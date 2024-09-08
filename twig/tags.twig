@@ -1,0 +1,39 @@
+{% extends "page.twig" %}
+
+{% block title %}Tags{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="/tags/" aria-current="page">Tags</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+    <h1 class="title">Tags</h1>
+
+    <table class="table" data-sortlist="[[1,1]]">
+        <thead>
+        <tr>
+            <th data-sorter="text">Tag</th>
+            <th data-sorter="digit">Out</th>
+            <th data-sorter="digit">In</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for tag in tags %}
+            <tr>
+                <td><a href="/tags/{{ tag.name }}">{{ tag.name }}</a></td>
+                <td>{{ tag.out }}</td>
+                <td>{{ tag.in }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}
+

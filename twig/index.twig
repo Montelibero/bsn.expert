@@ -1,0 +1,22 @@
+{% extends "page.twig" %}
+
+{% block title %}Index{% endblock %}
+
+{% block content %}
+    <h1 class="title">Blockchain Social Network</h1>
+    <p class="block">
+        <a href="/accounts/">Accounts</a>: {{ accounts_count }}
+    </p>
+    <p class="block">
+        <a href="/tags/">Tags</a>: all used tags.
+    </p>
+    <p class="block">
+        <a href="/mtla/council">MTLA Council</a>
+    </p>
+    <p class="block">
+        If your are looking RAW JSON data: <a href="https://bsn.mtla.me/json">/json</a>.
+    </p>
+    <p class="block">
+        For the legacy HTML page: <a href="https://bsn.mtla.me/html">/json</a>.
+    </p>
+{% endblock %}

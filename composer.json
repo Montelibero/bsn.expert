@@ -1,0 +1,27 @@
+{
+  "name": "mtl/bsn_viewer",
+  "version": "1.0.0",
+  "require": {
+    "php": ">=8.2",
+    "ext-apcu": "*",
+    "vlucas/phpdotenv": "5.4",
+    "twig/twig": "^3.10",
+    "pecee/simple-router": "^5.4",
+    "google/apiclient": "^2.15.0",
+    "soneso/stellar-php-sdk": "1.3.0"
+  }
+,
+  "require-dev": {
+    "roave/security-advisories": "dev-latest"
+  },
+  "autoload": {
+    "psr-4": {
+      "": "classes/"
+    }
+  },
+  "extra": {
+    "google/apiclient-services": [
+      "Sheets"
+    ]
+  }
+}

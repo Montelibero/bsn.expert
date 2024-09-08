@@ -1,0 +1,118 @@
+<html lang="en" class="has-navbar-fixed-top">
+<head>
+    <title>{% block title %}{% endblock %} — BSN viewer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="/jquery-3.7.1.min.js"></script>
+    <script src="/jquery.tablesorter.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+    <style>
+        .account_name {
+            font-family: monospace;
+        }
+    </style>
+    <script>
+        $(document).ready(function() {
+
+            // Check for click events on the navbar burger icon
+            $(".navbar-burger").click(function() {
+
+                // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                $(".navbar-burger").toggleClass("is-active");
+                $(".navbar-menu").toggleClass("is-active");
+
+            });
+        });
+    </script>
+</head>
+
+<body>
+<nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+        <a class="navbar-item has-background-primary has-text-black" href="/">
+            BSN
+        </a>
+        <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+    </div>
+    <div class="navbar-menu">
+        <div class="navbar-start">
+            <a class="navbar-item" href="/">
+                Home
+            </a>
+            <a class="navbar-item" href="/accounts/">
+                Accounts
+            </a>
+            <a class="navbar-item" href="/tags/">
+                Tags
+            </a>
+
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link" href="/mtla">
+                    MTLA
+                </a>
+                <div class="navbar-dropdown">
+                    <a class="navbar-item" href="/mtla/council">
+                        Council
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="navbar-end">
+            {% if session.telegram %}
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link" href="/">
+                        @{{ session.telegram.username }}
+                    </a>
+                    <div class="navbar-dropdown">
+                        {% if session.stellar_id %}
+                        <a class="navbar-item" href="/accounts/{{ session.stellar_id }}">
+                            {{ session.stellar_id|account_short }}
+                        </a>
+                        <a class="navbar-item" href="/editor/{{ session.stellar_id }}">
+                            Editor
+                        </a>
+                        {% endif %}
+                        <hr class="navbar-divider">
+                        <a class="navbar-item" href="/tg/logout?return_to={{ server.REQUEST_URI }}">
+                            Logout
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+            <div class="navbar-item">
+                    <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="BSN_robot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+                    <script type="text/javascript">
+                        function onTelegramAuth(user) {
+                            user['return_to'] = '{{ server.REQUEST_URI|escape('js') }}';
+                            const query = Object.keys(user)
+                                .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(user[key])}`)
+                                .join('&');
+                            window.location.href = `/tg?${query}`;
+                        }
+                    </script>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+<section class="section">
+    <div class="container">
+    <nav class="breadcrumb" aria-label="breadcrumbs">
+        <ul>
+            {% block breadcrumbs %}
+            <li class="is-active"><a href="/" aria-current="page">BSN</a></li>
+            {% endblock %}
+        </ul>
+    </nav>
+
+{% block content %}{% endblock %}
+    </div>
+</section>
+<div class="footer">2024. Proudly developed by <a href="https://monte.wiki/ru/Соз">Soz</a> for <a href="https://mtla.me/">Montelibero Association</a>.</div>
+</body>
+</html>

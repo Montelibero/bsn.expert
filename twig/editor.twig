@@ -1,0 +1,117 @@
+{% extends "page.twig" %}
+
+{% block title %}Editor{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/editor/" aria-current="page">Editor</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ account.short_id }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+{#    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.3/css/dataTables.dataTables.css" />#}
+{#    <script src="https://cdn.datatables.net/2.1.3/js/dataTables.js"></script>#}
+
+    <link href="https://cdn.datatables.net/v/bm/dt-2.1.4/cr-2.0.4/fc-5.0.1/fh-4.0.1/rr-1.5.0/datatables.min.css" rel="stylesheet">
+    <script src="https://cdn.datatables.net/v/bm/dt-2.1.4/cr-2.0.4/fc-5.0.1/fh-4.0.1/rr-1.5.0/datatables.min.js"></script>
+    <style>
+        table.dataTable tbody tr>.dtfc-fixed-start, table.dataTable tbody tr>.dtfc-fixed-end {
+            background-color: var(--bulma-table-background-color);
+        }
+        table.dataTable thead tr>.dtfc-fixed-start, table.dataTable thead tr>.dtfc-fixed-end, table.dataTable tfoot tr>.dtfc-fixed-start, table.dataTable tfoot tr>.dtfc-fixed-end {
+            background-color: var(--bulma-table-background-color);
+        }
+    </style>
+
+    <script>
+        $(document).ready( function () {
+            $('#editor_table').DataTable({
+                paging: false,
+                scrollY: 500,
+                scrollX: true,
+                search: false,
+                colReorder: true,
+                rowReorder: true,
+                fixedHeader: true,
+                fixedColumns: true
+            });
+        } );
+    </script>
+    <h1 class="title">Editor</h1>
+    <h1 class="subtitle">{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</h1>
+    <form method="post">
+<div class="table-container">
+    <table class="table" id="editor_table">
+        <thead>
+        <tr>
+            <th>Account</th>
+            {% for tag in tags %}
+            <th>{{ tag.name }}</th>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for contact in contacts %}
+            <tr>
+            <th style="white-space: nowrap">{{ include('account_link.twig', {id: contact.id, name: contact.display_name}, with_context = false) }}</th>
+        {% for tag in tags %}
+            <td class="has-text-centered{% if values[contact.id][tag.name] %} has-background-primary-dark{% endif %}">
+                {% if tag.is_single %}
+                <input type="radio"
+                       name="tag[{{ tag.name }}]"
+                       value="{{ contact.id }}" {% if values[contact.id][tag.name] %}checked{% endif %}
+                />
+                {% else %}
+                    <input type="checkbox"
+                           name="tag[{{ tag.name }}][{{ contact.id }}]"
+                           {% if values[contact.id][tag.name] %}checked{% endif %}
+                    />
+                {% endif %}
+            </td>
+        {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+        <tr>
+        <td>Empty values</td>
+            {% for tag in tags %}
+                <td class="has-text-centered{% if values[contact.id][tag.name] %} has-background-primary-dark{% endif %}">
+                    {% if tag.is_single %}
+                        <input type="radio"
+                               name="tag[{{ tag.name }}]"
+                               value="" {% if not single_tag_has_value[tag.name] %}checked{% endif %}
+                        />
+                    {% endif %}
+                </td>
+            {% endfor %}
+        </tr>
+        </tfoot>
+    </table>
+</div>
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="reset" class="button is-light" value="Reset">
+            </div>
+            <div class="control">
+                <input type="submit" class="button is-link" value="Prepare transaction">
+            </div>
+        </div>
+    </form>
+
+    <pre>
+    Что хочу отображать:
+    1. Актуальное состояние чек-бокса. Самим чек-боксом, и цветом.
+
+    2. Состояние различия чек-бокса и известного значения
+
+    3. Желательно статус есть ли встречный тег:
+        а. Есть просто парный, вроде One Family
+        б. А есть парный, с другим названием, вроде OwnershipFull.
+
+    4. Обработка тегов, которые могут быть только одни: mtl_delegate и Owner, например.
+       Показывать их как радио-батоны. При сохранении ругаться, если значений больше одного.
+    </pre>
+{% endblock %}
+

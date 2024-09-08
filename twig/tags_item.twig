@@ -1,0 +1,36 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ tag_name }} — Tags{% endblock %}
+
+{% block breadcrumbs %}
+        <li><a href="/" aria-current="page">BSN</a></li>
+        <li><a href="/tags/" aria-current="page">Tags</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ tag_name }}</a></li>
+{% endblock %}
+
+{% block content %}
+        <script>
+                $(function () {
+                        $(".table").tablesorter();
+                });
+        </script>
+<h1 class="title">{{ tag_name }}</h1>
+
+        <table class="table" data-sortlist="[[0,0],[1,0]]">
+                <thead>
+                <tr>
+                        <th data-sorter="text">Source</th>
+                        <th data-sorter="text">Target</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for link in links %}
+                <tr>
+                        <td>{{ include('account_link.twig', {id: link.source_account.id, name: link.source_account.display_name}, with_context = false) }}</td>
+                        <td>{{ include('account_link.twig', {id: link.target_account.id, name: link.target_account.display_name}, with_context = false) }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+        </table>
+
+{% endblock %}

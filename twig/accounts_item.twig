@@ -1,0 +1,75 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ display_name }} — Accounts{% endblock %}
+
+{% block breadcrumbs %}
+        <li><a href="/" aria-current="page">BSN</a></li>
+        <li><a href="/accounts/" aria-current="page">Accounts</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ account_short_id }}</a></li>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">{{ display_name }}</h1>
+{% if name or about or website %}
+<dl class="box">
+    {% if name %}
+        <dt class="title is-4">Name</dt>
+        <dd class="subtitle is-4">
+            {% for item in name %}
+                {{ item }}<br>
+            {% endfor %}
+        </dd>
+    {% endif %}
+    {% if about %}
+        <dt class="title is-4">About</dt>
+        <dd class="subtitle is-4">
+            {% for item in about %}
+                {{ item }}<br>
+            {% endfor %}
+        </dd>
+    {% endif %}
+    {% if website %}
+        <dt class="title is-4">Website</dt>
+        <dd class="subtitle is-4">
+            {% for item in website %}
+                {{ item }}<br>
+            {% endfor %}
+        </dd>
+    {% endif %}
+</dl>
+{% endif %}
+
+<div class="columns">
+<div class="column">
+<h2 class="title">Income tags</h2>
+{% if income_tags %}
+{% for tag in income_tags %}
+<dl class="block">
+        <dt class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
+        {% for account in tag.accounts %}
+                <dd>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</dd>
+        {% endfor %}
+</dl>
+{% endfor %}
+{% else %}
+<p>The account has not any income tag.</p>
+{% endif %}
+</div>
+<div class="column">
+<h2 class="title">Outcome tags</h2>
+{% if outcome_tags %}
+{% for tag in outcome_tags %}
+<dl class="block">
+        <dt class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
+        {% for account in tag.accounts %}
+                <dd>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</dd>
+        {% endfor %}
+</dl>
+{% endfor %}
+{% else %}
+<p>The account has not any outcome tag.</p>
+{% endif %}
+</div>
+</div>
+
+{% endblock %}

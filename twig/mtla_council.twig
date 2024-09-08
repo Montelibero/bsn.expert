@@ -1,0 +1,69 @@
+{% extends "page.twig" %}
+
+{% block title %}MTLA Council{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/mtla/" aria-current="page">MTLA</a></li>
+    <li class="is-active"><a href="#" aria-current="page">Council</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+
+    <h1 class="title">MTLA  Council</h1>
+
+    <h2 class="title is-4">Current Council Members</h2>
+
+    <table class="table" id="current_council" data-sortlist="[[1,1]]">
+        <thead>
+        <tr>
+            <th data-sorter="false">Account</th>
+            <th data-sorter="digit">Sign weight</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for account in current_signers %}
+            <tr>
+            <td>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</td>
+            <td>{{ account.sign_weight }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h2 class="title is-4">Delegations</h2>
+
+    <table class="table" data-sortlist="[[2,1],[1,1]]">
+        <thead>
+        <tr>
+            <th data-sorter="false">Participant</th>
+            <th data-sorter="digit">Level</th>
+            <th>Delegate</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in delegations %}
+            <tr>
+                <td>{{ include('account_link.twig', {id: item.account.id, name: item.account.display_name}, with_context = false) }}</td>
+                <td>{{ item.member_level }}</td>
+                <td>
+                    {% if item.ready_to_council %}
+                    Ready to be council
+                    {% elseif item.delegate %}
+                    {{ include('account_link.twig', {id: item.delegate.id, name: item.delegate.display_name}, with_context = false) }}
+                    {% else %}
+                    No delegation
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
