@@ -10,10 +10,52 @@
 
 {% block content %}
     <h1 class="title">Accounts</h1>
-    <ul>
-    {% for account in accounts %}
-        <li>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</li>
-    {% endfor %}
-    </ul>
+
+    <div class="tabs is-centered">
+        <ul>
+            <li class="is-active" data-target="mtlap"><a>MTLAP owners</a></li>
+            <li data-target="mtlac"><a>MTLAC owners</a></li>
+            <li data-target="other"><a>Other</a></li>
+        </ul>
+    </div>
+
+    <div id="mtlap" class="accounts-list">
+        <ul>
+        {% for account in accounts_mtlap %}
+            <li>{{ include('account_link.twig', {id: account.id, name: account.getDisplayName}, with_context = false) }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div id="mtlac" class="accounts-list is-hidden">
+        <ul>
+        {% for account in accounts_mtlac %}
+            <li>{{ include('account_link.twig', {id: account.id, name: account.getDisplayName}, with_context = false) }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div id="other" class="accounts-list is-hidden">
+        <ul>
+        {% for account in accounts_other %}
+            <li>{{ include('account_link.twig', {id: account.id, name: account.getDisplayName}, with_context = false) }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <script>
+        const tabs = document.querySelectorAll('.tabs ul li');
+        const lists = document.querySelectorAll('.accounts-list');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('is-active'));
+                tab.classList.add('is-active');
+
+                lists.forEach(list => list.classList.add('is-hidden'));
+                document.getElementById(tab.dataset.target).classList.remove('is-hidden');
+            });
+        });
+    </script>
 {% endblock %}
 
