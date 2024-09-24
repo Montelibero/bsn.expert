@@ -54,16 +54,34 @@ class WebApp
     public function Accounts(): ?string
     {
         $Template = $this->Twig->load('accounts_list.twig');
-        $accounts = [];
+
+        $accounts_mtlap = [];
+        $accounts_mtlac = [];
+        $accounts_other = [];
+
         foreach ($this->BSN->getAccounts() as $Account) {
-            $accounts[] = [
-                'id' => $Account->getId(),
-                'short_id' => $Account->getShortId(),
-                'display_name' => $Account->getDisplayName(),
-            ];
+            if ($Account->getBalance('MTLAP') > 0) {
+                $accounts_mtlap[] = $Account;
+            } else if ($Account->getBalance('MTLAC') > 0) {
+                $accounts_mtlac[] = $Account;
+            } else {
+                $accounts_other[] = $Account;
+            }
         }
+
+        usort($accounts_mtlap, function($a, $b) {
+            $balanceComparison = [$b->getBalance('MTLAP'), $b->getName()] <=> [$a->getBalance('MTLAP'), $a->getName()];
+            return $balanceComparison;
+        });
+        usort($accounts_mtlac, function($a, $b) {
+            $balanceComparison = [$b->getBalance('MTLAC'), $b->getName()] <=> [$a->getBalance('MTLAC'), $a->getName()];
+            return $balanceComparison;
+        });
+
         return $Template->render([
-            'accounts' => $accounts,
+            'accounts_mtlap' => $accounts_mtlap,
+            'accounts_mtlac' => $accounts_mtlac,
+            'accounts_other' => $accounts_other,
         ]);
     }
 
