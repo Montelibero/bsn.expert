@@ -197,4 +197,13 @@ class BSN
 
         return preg_match('/\AG[A-Z2-7]{55}\Z/', $account_id);
     }
+
+    public static function validateTagNameFormat(?string $name): bool
+    {
+        if (!$name) {
+            return false;
+        }
+
+        return preg_match('/^[a-z0-9_]+?$/i', $name);
+    }
 }
