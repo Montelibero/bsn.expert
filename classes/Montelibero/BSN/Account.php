@@ -29,6 +29,9 @@ class Account implements JsonSerializable
     private ?string $telegram_id = null;
     private ?string $telegram_username = null;
 
+    private bool $is_contact = false;
+    private ?string $contact_name = null;
+
     public function __construct(string $id = null)
     {
         $this->id = $id;
@@ -47,10 +50,25 @@ class Account implements JsonSerializable
     public function getDisplayName(): string
     {
         $result = $this->getShortId();
+        $public_name = '';
         if (($name = $this->getName()) && ($name = $name[0])) {
-            $result .= ' [' . $name . ']';
+            $public_name = $name;
         }
-        if (($_SESSION['show_telegram_usernames'] ?? false) && $tg_username = $this->getTelegramUsername()) {
+        $contact_name = null;
+        if ($this->isContact() && ($contact_name = $this->getContactName())) {
+            $result .= ' [📒 ' . $contact_name . ']';
+        } else if ($this->isContact() && $public_name) {
+            $result .= ' [📒 ' . $public_name . ']';
+        } else if ($this->isContact()) {
+            $result .= ' [📒]';
+        } else if ($public_name) {
+            $result .= ' [' . $public_name . ']';
+        }
+        if (
+            $contact_name === null
+            && ($_SESSION['show_telegram_usernames'] ?? false)
+            && $tg_username = $this->getTelegramUsername()
+        ) {
             $result .= ' @' . $tg_username;
         }
         $result .= ' ' . $this->getEmoji();
@@ -336,5 +354,59 @@ class Account implements JsonSerializable
             'short_id' => $this->getShortId(),
             'display_name' => $this->getDisplayName(),
         ];
+    }
+
+    public function isContact(?bool $value = null): bool
+    {
+        if ($value !== null) {
+            $this->is_contact = $value;
+        }
+
+        return $this->is_contact;
+    }
+
+    public function getContactName(): ?string
+    {
+        return $this->contact_name;
+    }
+
+    public function setContactName(?string $contact_name): void
+    {
+        $this->contact_name = $contact_name;
+    }
+
+    public function calcBsnScore(): int
+    {
+        $score = 0;
+
+        if ($this->name) {
+            $score += 10;
+        }
+        if ($this->about) {
+            $score += 5;
+        }
+        if ($this->website) {
+            $score += 5;
+        }
+        if (count($this->getOutcomeLinks(Tag::fromName('Signer'))) > 1) {
+            $score += 10;
+        }
+        if (count($this->getOutcomeTags()) > 2) {
+            $score += 5;
+        }
+        if (count($this->getOutcomeTags()) > 5) {
+            $score += 5;
+        }
+        if (count($this->getIncomeTags()) > 2) {
+            $score += 5;
+        }
+        if (count($this->getIncomeTags()) > 5) {
+            $score += 5;
+        }
+        if (count($this->balances) > 5) {
+            $score += 5;
+        }
+
+        return $score;
     }
 }
