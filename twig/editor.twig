@@ -10,86 +10,120 @@
 
 
 {% block content %}
-{#    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.3/css/dataTables.dataTables.css" />#}
-{#    <script src="https://cdn.datatables.net/2.1.3/js/dataTables.js"></script>#}
-
-    <link href="https://cdn.datatables.net/v/bm/dt-2.1.4/cr-2.0.4/fc-5.0.1/fh-4.0.1/rr-1.5.0/datatables.min.css" rel="stylesheet">
-    <script src="https://cdn.datatables.net/v/bm/dt-2.1.4/cr-2.0.4/fc-5.0.1/fh-4.0.1/rr-1.5.0/datatables.min.js"></script>
-    <style>
-        table.dataTable tbody tr>.dtfc-fixed-start, table.dataTable tbody tr>.dtfc-fixed-end {
-            background-color: var(--bulma-table-background-color);
+<script>
+    $(function () {
+        const $tags_selector = $('#tags_selector');
+        if (!$tags_selector.length) {
+            return;
         }
-        table.dataTable thead tr>.dtfc-fixed-start, table.dataTable thead tr>.dtfc-fixed-end, table.dataTable tfoot tr>.dtfc-fixed-start, table.dataTable tfoot tr>.dtfc-fixed-end {
-            background-color: var(--bulma-table-background-color);
-        }
-    </style>
 
-    <script>
-        $(document).ready( function () {
-            $('#editor_table').DataTable({
-                paging: false,
-                scrollY: 500,
-                scrollX: true,
-                search: false,
-                colReorder: true,
-                rowReorder: true,
-                fixedHeader: true,
-                fixedColumns: true
-            });
-        } );
-    </script>
-    <h1 class="title">Editor</h1>
-    <h1 class="subtitle">{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</h1>
-    <form method="post">
-<div class="table-container">
-    <table class="table" id="editor_table">
-        <thead>
-        <tr>
-            <th>Account</th>
-            {% for tag in tags %}
-            <th>{{ tag.name }}</th>
+        const $tags_switchers = $('#tags_switchers input[type=checkbox]');
+        $tags_selector.find('.tag#tags_selector_all').click(function () {
+            const $set = $tags_switchers.filter(':not(:checked)');
+            $set.prop('checked', true);
+            $set.change();
+            return false;
+        });
+        $tags_selector.find('.tag#tags_selector_nothing').click(function () {
+            const $set = $tags_switchers.filter(':checked');
+            $set.prop('checked', false);
+            $set.change();
+            return false;
+        });
+        $tags_selector.find('.tag:not(#tags_selector_all)').click(function () {
+            const $cell = $(this);
+            $tags_switchers.filter(':checked').prop('checked', false).change();
+            for (const tag of $cell.data('tags')) {
+                $('#tag_switcher_' + tag).prop('checked', true).change();
+            }
+            return false;
+        });
+
+        $tags_switchers.change(function () {
+            const tag = this.id.substring(13);
+            console.log(tag)
+            $(".tag_input_" + tag).closest('.cell').toggle(this.checked);
+        });
+
+        $tags_selector.toggleClass('is-hidden');
+    });
+</script>
+
+<h1 class="title">Editor</h1>
+<h1 class="subtitle">{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</h1>
+<form method="post">
+
+    <div class="block is-hidden" id="tags_selector">
+        <p class="block">Which tags do you want edit?</p>
+        <p class="block">Select group of tags:</p>
+        <div class="tags">
+            <button class="tag is-primary is-medium" id="tags_selector_nothing">Nothing</button>
+            <button class="tag is-primary is-medium" id="tags_selector_all">All</button>
+            {% for group_name, tags in group_tags %}
+            <button class="tag is-primary is-medium" data-tags="{{ tags|json_encode|e('html_attr') }}">{{ group_name }}</button>
             {% endfor %}
-        </tr>
-        </thead>
-        <tbody>
-        {% for contact in contacts %}
-            <tr>
-            <th style="white-space: nowrap">{{ include('account_link.twig', {id: contact.id, name: contact.display_name}, with_context = false) }}</th>
-        {% for tag in tags %}
-            <td class="has-text-centered{% if values[contact.id][tag.name] %} has-background-primary-dark{% endif %}">
+        </div>
+
+        <div class="fixed-grid has-auto-count" id="tags_switchers">
+            <div class="grid is-gap-1">
+                {% for tag in tags %}
+                    <div class="cell py-1 px-2 has-radius-normal">
+                        <label><input type="checkbox" id="tag_switcher_{{ tag.name }}" checked/>&nbsp;{{ tag.name }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% for contact in contacts %}
+    <h2 class="title is-5">{{ include('account_link.twig', {id: contact.id, name: contact.display_name}, with_context = false) }}</h2>
+
+    <div class="fixed-grid has-auto-count">
+        <div class="grid is-gap-1">
+            {% for tag in tags %}
+            <div class="cell py-1 px-2 has-radius-normal{% if values[contact.id][tag.name] %} has-background-primary has-text-primary-invert{% endif %}">
                 {% if tag.is_single %}
-                <input type="radio"
-                       name="tag[{{ tag.name }}]"
-                       value="{{ contact.id }}" {% if values[contact.id][tag.name] %}checked{% endif %}
-                />
+                    <label><input type="radio"
+                           name="tag[{{ tag.name }}]"
+                           class="tag_input_{{ tag.name }}"
+                           value="{{ contact.id }}" {% if values[contact.id][tag.name] %}checked{% endif %}
+                    />&nbsp;{{ tag.name }}</label>
                 {% else %}
-                    <input type="checkbox"
+                    <label><input type="checkbox"
                            name="tag[{{ tag.name }}][{{ contact.id }}]"
+                           class="tag_input_{{ tag.name }}"
                            {% if values[contact.id][tag.name] %}checked{% endif %}
-                    />
+                    />&nbsp;{{ tag.name }}</label>
                 {% endif %}
-            </td>
-        {% endfor %}
-            </tr>
-        {% endfor %}
-        </tbody>
-        <tfoot>
-        <tr>
-        <td>Empty values</td>
-            {% for tag in tags %}
-                <td class="has-text-centered{% if values[contact.id][tag.name] %} has-background-primary-dark{% endif %}">
-                    {% if tag.is_single %}
-                        <input type="radio"
-                               name="tag[{{ tag.name }}]"
-                               value="" {% if not single_tag_has_value[tag.name] %}checked{% endif %}
-                        />
-                    {% endif %}
-                </td>
+            </div>
             {% endfor %}
-        </tr>
-        </tfoot>
-    </table>
+        </div>
+    </div>
+    {% endfor %}
+
+        <p class="block">Nobody</p>
+<div class="fixed-grid has-auto-count">
+    <div class="grid is-gap-1">
+
+    {% for tag in tags %}
+        <div class="cell py-1 px-2 has-radius-normal{% if values[contact.id][tag.name] %} has-background-primary has-text-primary-invert{% endif %}">
+            {% if tag.is_single %}
+                <label><input type="radio"
+                       name="tag[{{ tag.name }}]"
+                       class="tag_input_{{ tag.name }}"
+                       value="" {% if not single_tag_has_value[tag.name] %}checked{% endif %}
+                />&nbsp;{{ tag.name }}</label>
+            {% else %}
+                <label><input type="checkbox"
+                      class="tag_input_{{ tag.name }}"
+                      disabled
+                />&nbsp;{{ tag.name }}</label>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
 </div>
+
         <div class="field is-grouped">
             <div class="control">
                 <input type="reset" class="button is-light" value="Reset">
@@ -100,7 +134,7 @@
         </div>
     </form>
 
-    <pre>
+<pre>
     Что хочу отображать:
     1. Актуальное состояние чек-бокса. Самим чек-боксом, и цветом.
 

@@ -103,11 +103,13 @@ SimpleRouter::get('/tags/', function () use ($WebApp) {
 SimpleRouter::get('/tags/{id}', function ($id) use ($WebApp) {
     return $WebApp->Tag($id);
 })->name('tag');
-SimpleRouter::get('/mtla/', function () use ($WebApp) {
-    return $WebApp->Mtla();
-});
-SimpleRouter::get('/mtla/council/', function () use ($WebApp) {
-    return $WebApp->MtlaCouncil();
+SimpleRouter::group(['prefix' => '/mtla'], function() use ($WebApp) {
+    SimpleRouter::get('/', function () use ($WebApp) {
+        return $WebApp->Mtla();
+    });
+    SimpleRouter::get('/council', function () use ($WebApp) {
+        return $WebApp->MtlaCouncil();
+    });
 });
 SimpleRouter::get('/editor/', function () use ($WebApp) {
     return $WebApp->EditorForm();
@@ -117,6 +119,12 @@ SimpleRouter::get('/editor/{id}', function ($id) use ($WebApp) {
 })->name('editor');
 SimpleRouter::post('/editor/{id}', function ($id) use ($WebApp) {
     return $WebApp->EditorSave($id);
+});
+SimpleRouter::match(['get', 'post'], '/contacts', function () use ($WebApp) {
+    return $WebApp->Contacts();
+});
+SimpleRouter::match(['get', 'post'], '/defaults', function () use ($WebApp) {
+    return $WebApp->Defaults();
 });
 
 SimpleRouter::start();

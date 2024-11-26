@@ -11,12 +11,40 @@
 
 
 {% block content %}
+    <style>
+        .qr_svg svg {
+            width: 50vmin;
+            background-color: #d6d9e0;
+            padding: 10px;
+        }
+    </style>
     <h1 class="title">Result</h1>
     <p class="block">
         Держи транзакцию. В редактор можно будет возвращаться минут через 15 после её подписания и отправки в блокчейн:
     </p>
 
-    <textarea class="textarea">{{ xdr }}</textarea>
+    <p class="block">
+        Operations: {{ operations_count }}
+    </p>
+
+    <div class="field">
+        <label for="xdr_body">You transaction (XDR) for signing & submitting to the blockchain:</label>
+        <div class="control">
+            <textarea class="textarea" id="xdr_body">{{ xdr }}</textarea>
+        </div>
+    </div>
+
+    <h2 class="title is-4">Sign by Stellar-link</h2>
+
+    <p class="block"><a href="{{ sep_07 }}">SEP-07 Stellar-link</a></p>
+
+    <p class="block qr_svg">{{ qr_svg|raw }}</a></p>
+
+    <h2 class="title is-4">Sign by secret key</h2>
+
+    <p class="block"><a href="https://eurmtl.me/url/?xdr=">The page to sign</a></p>
+
+
 
 {% endblock %}
 

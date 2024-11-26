@@ -1,0 +1,42 @@
+{% extends "page.twig" %}
+
+{% block title %}Defaults{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="#" aria-current="page">Defaults</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">Defaults</h1>
+
+    <p class="block">
+        A cookie-based setting that allows selecting which viewer will open
+        when directly navigating to account page links.
+    </p>
+
+    <form action="/defaults" method="post">
+        <div class="field">
+            <label class="label" for="default_bsn_viewer">Default BSN viewer</label>
+            <div class="control">
+                <div class="select">
+                    <select id="default_bsn_viewer" name="viewer">
+                        <option value="this">bsn.mtla.me</option>
+                        <option value="brainbox" {% if current_value == 'brainbox' %}selected{% endif %}>bsn.brainbox.no</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="submit" class="button is-link" value="Submit">
+            </div>
+            <div class="control">
+                <input type="reset" class="button is-light" value="Reset">
+            </div>
+        </div>
+    </form>
+{% endblock %}
+

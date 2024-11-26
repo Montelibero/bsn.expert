@@ -10,6 +10,9 @@
         .account_name {
             font-family: monospace;
         }
+        .copyable {
+            cursor: copy;
+        }
     </style>
     <script>
         $(document).ready(function() {
@@ -22,6 +25,22 @@
                 $(".navbar-menu").toggleClass("is-active");
 
             });
+
+
+            if (navigator.clipboard) {
+                $('code, .stellar_address')
+                    .addClass('copyable')
+                    .on('click', function() {
+                            navigator.clipboard.writeText($(this).text()).then(() => {
+                            console.log('Текст успешно скопирован: ' + $(this).text());
+                        }).catch(err => {
+                            console.error('Ошибка при копировании текста: ', err);
+                        }
+                    );
+                });
+            } else {
+                console.warn('Clipboard API недоступен.');
+            }
         });
     </script>
 </head>
@@ -50,6 +69,9 @@
             <a class="navbar-item" href="/tags/">
                 Tags
             </a>
+            <a class="navbar-item" href="/editor/">
+                Editor
+            </a>
 
             <div class="navbar-item has-dropdown is-hoverable">
                 <a class="navbar-link" href="/mtla">
@@ -73,8 +95,14 @@
                         <a class="navbar-item" href="/accounts/{{ session.stellar_id }}">
                             {{ session.stellar_id|account_short }}
                         </a>
+                        <a class="navbar-item" href="/contacts">
+                            Contacts
+                        </a>
                         <a class="navbar-item" href="/editor/{{ session.stellar_id }}">
                             Editor
+                        </a>
+                        <a class="navbar-item" href="/defaults">
+                            Defaults
                         </a>
                         {% endif %}
                         <hr class="navbar-divider">
@@ -84,7 +112,8 @@
                     </div>
                 </div>
             {% else %}
-            <div class="navbar-item">
+            <div class="navbar-item has-dropdown is-hoverable">
+                <div class="navbar-link">
                     <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="BSN_robot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
                     <script type="text/javascript">
                         function onTelegramAuth(user) {
@@ -95,7 +124,12 @@
                             window.location.href = `/tg?${query}`;
                         }
                     </script>
-            </div>
+                </div>
+                <div class="navbar-dropdown">
+                    <a class="navbar-item" href="/defaults">
+                        Defaults
+                    </a>
+                </div>
             {% endif %}
         </div>
     </div>

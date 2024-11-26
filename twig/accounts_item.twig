@@ -10,6 +10,17 @@
 
 {% block content %}
 <h1 class="title">{{ display_name }}</h1>
+<h1 class="subtitle">
+        <span class="stellar_address is-family-monospace">{{ account_id }}</span>
+        <a class="tag is-primary" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Expert</a>
+        <a class="tag is-info" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
+        <a class="tag is-warning" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
+        <br>
+        {% if session.show_telegram_usernames and telegram_username %}
+        Telegram: <a href="https://t.me/{{ telegram_username }}">@{{ telegram_username }}</a>{% endif %}<br>
+        BSN score: {{ bsn_score }}
+</h1>
+<h1 class="subtitle"></h1>
 {% if name or about or website %}
 <dl class="box">
     {% if name %}
@@ -32,7 +43,7 @@
         <dt class="title is-4">Website</dt>
         <dd class="subtitle is-4">
             {% for item in website %}
-                {{ item }}<br>
+                <a href="{{ item }}">{{ item }}</a><br>
             {% endfor %}
         </dd>
     {% endif %}
@@ -46,8 +57,11 @@
 {% for tag in income_tags %}
 <dl class="block">
         <dt class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
-        {% for account in tag.accounts %}
-                <dd>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</dd>
+        {% for link in tag.links %}
+                <dd>
+                {% if tag.pair %}{% if link.has_pair %}🟢{% elseif tag.pair_strong %}🔴{% else %}🟡{% endif %}{% else %}⚪️{% endif %}
+                {{ include('account_link.twig', {id: link.account.id, name: link.account.display_name}, with_context = false) }}
+                </dd>
         {% endfor %}
 </dl>
 {% endfor %}
@@ -61,8 +75,11 @@
 {% for tag in outcome_tags %}
 <dl class="block">
         <dt class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
-        {% for account in tag.accounts %}
-                <dd>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</dd>
+        {% for link in tag.links %}
+                <dd>
+                {% if tag.pair %}{% if link.has_pair %}🟢{% elseif tag.pair_strong %}🔴{% else %}🟡{% endif %}{% else %}⚪️{% endif %}
+                {{ include('account_link.twig', {id: link.account.id, name: link.account.display_name}, with_context = false) }}
+                </dd>
         {% endfor %}
 </dl>
 {% endfor %}

@@ -1,0 +1,96 @@
+{% extends "page.twig" %}
+
+{% block title %}Contacts{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="#" aria-current="page">Contacts</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">Contacts</h1>
+    <h2 class="title is-4">Edit</h2>
+    <form method="post" action="/contacts">
+    {% for contact in contacts %}
+        <div class="columns is-vcentered">
+            <div class="column">
+                <div class="columns">
+                    <div class="column">
+                        <input type="text" name="name_{{ contact.id }}" value="{{ contact.name }}" class="input" placeholder="Optional name" size="32" maxlength="64">
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="columns is-mobile">
+                    <div class="column">
+                        <input type="hidden" name="update_{{ contact.id }}" value="yes">
+                        {{ include('account_link.twig', {id: contact.id, name: contact.display_name}, with_context = false) }}
+                    </div>
+                    <div class="column is-one-fifth">
+                        <input type="checkbox" name="to_remove_{{ contact.id }}" class="checkbox">
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    <div class="field">
+        <label class="label" for="new_name_1">New record address</label>
+        <div class="control">
+            <input type="text" name="new_stellar_account_1" class="input" placeholder="G..." size="56" maxlength="56" pattern="G[A-Z2-7]{55}">
+        </div>
+    </div>
+    <div class="field">
+        <label class="label" for="new_name_1">New record name</label>
+        <div class="control">
+            <input type="text" name="new_name_1" class="input" placeholder="Optional name" size="32" maxlength="64">
+        </div>
+    </div>
+    <div class="field is-grouped">
+        <div class="control">
+            <input type="reset" class="button is-light" value="Reset">
+        </div>
+        <div class="control">
+            <input type="submit" class="button is-link" value="Save">
+        </div>
+    </div>
+    </form>
+
+    <h2 class="title is-4">Import</h2>
+    <form method="post" action="/contacts" enctype="multipart/form-data">
+        <div class="field">
+            <label class="label" for="import_file">Stellar account</label>
+            <input
+                    id="import_file"
+                    class="input"
+                    type="file"
+                    name="import_file"
+                    required
+                    accept="application/json"
+            />
+        </div>
+        <div class="field">
+            <label class="label" for="doubles">Duplicate elements</label>
+            <div class="select">
+                <select id="doubles" name="duplicates">
+                    <option value="ignore">Ignore</option>
+                    <option value="update">Update</option>
+                </select>
+            </div>
+        </div>
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="submit" class="button is-link" value="Import">
+            </div>
+        </div>
+    </form>
+
+    {% if contacts %}
+    <h2 class="title is-4">Export</h2>
+    <p class="block">
+        <a href="/contacts?export=json">Export all contacts as JSON file</a>
+    </p>
+    {% endif %}
+
+{% endblock %}
+

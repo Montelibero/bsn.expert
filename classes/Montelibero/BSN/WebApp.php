@@ -2,6 +2,8 @@
 
 namespace Montelibero\BSN;
 
+use League\Uri\Exceptions\SyntaxError;
+use League\Uri\Http;
 use Montelibero\BSN\Relations\Member;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
@@ -11,6 +13,7 @@ use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
+use splitbrain\phpQRCode\QRCode;
 use Twig\Environment;
 
 class WebApp
@@ -21,16 +24,18 @@ class WebApp
     private Environment $Twig;
     private StellarSDK $Stellar;
 
-    public array $sort_tags_example = [
+    public static array $sort_tags_example = [
         'Friend', 'Like', 'Dislike',
         'A', 'B', 'C', 'D',
         'Spouse', 'Love', 'OneFamily', 'Guardian', 'Ward', 'Sympathy', 'Divorce',
         'Employer', 'Employee', 'Contractor', 'Client', 'Partnership', 'Collaboration',
-        'Owner', 'OwnershipFull', 'OwnerMajority', 'OwnershipMajority', 'OwnerMinority',
+        'OwnershipFull', 'OwnershipMajority', 'OwnerMajority', 'OwnerMinority', 'Owner',
         'MyJudge',
         'Signer',
         'FactionMember', 'WelcomeGuest',
     ];
+
+    private ?string $default_viewer = null;
 
     public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar)
     {
@@ -41,6 +46,10 @@ class WebApp
         $this->Twig->addGlobal('server', $_SERVER);
 
         $this->Stellar = $Stellar;
+
+        if ($_COOKIE['default_viewer']) {
+            $this->default_viewer = $_COOKIE['default_viewer'];
+        }
     }
 
     public function Index(): ?string
@@ -60,6 +69,7 @@ class WebApp
                 'id' => $Account->getId(),
                 'short_id' => $Account->getShortId(),
                 'display_name' => $Account->getDisplayName(),
+                'bsn_score' => $Account->calcBsnScore(),
             ];
         }
         return $Template->render([
@@ -80,40 +90,63 @@ class WebApp
             return null;
         }
 
+        if ($this->default_viewer === 'brainbox'
+            && (
+                !isset($_SERVER['HTTP_REFERER'])
+                || !str_contains($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST'])
+            )
+        ) {
+            SimpleRouter::response()->redirect('https://bsn.brainbox.no/accounts/' . $Account->getId(), 302);
+        }
+
         $income_tags = [];
         foreach ($Account->getIncomeTags() as $Tag) {
+            $Pair = $Tag->getPair();
             $tag_data = [
                 'name' => $Tag->getName(),
-                'accounts' => [],
+                'pair' => $Pair?->getName(),
+                'pair_strong' => $Pair && $Tag->isPairStrong(),
+                'links' => [],
             ];
             foreach ($Account->getIncomeLinks($Tag) as $LinkAccount) {
-                $tag_data['accounts'][] = $LinkAccount->jsonSerialize();
+                $tag_data['links'][] = [
+                    'account' => $LinkAccount->jsonSerialize(),
+                    'has_pair' => $Pair && in_array($LinkAccount, $Account->getOutcomeLinks($Pair)),
+                ];
             }
             $income_tags[$Tag->getName()] = $tag_data;
         }
-        $this->semantic_sort_keys($income_tags, $this->sort_tags_example);
+        $this::semantic_sort_keys($income_tags, $this::$sort_tags_example);
 
         $outcome_tags = [];
         foreach ($Account->getOutcomeTags() as $Tag) {
+            $Pair = $Tag->getPair();
             $tag_data = [
                 'name' => $Tag->getName(),
-                'accounts' => [],
+                'pair' => $Pair?->getName(),
+                'pair_strong' => $Pair && $Tag->isPairStrong(),
+                'links' => [],
             ];
             foreach ($Account->getOutcomeLinks($Tag) as $LinkAccount) {
-                $tag_data['accounts'][] = $LinkAccount->jsonSerialize();
+                $tag_data['links'][] = [
+                    'account' => $LinkAccount->jsonSerialize(),
+                    'has_pair' => $Pair && in_array($LinkAccount, $Account->getIncomeLinks($Pair)),
+                ];
             }
             $outcome_tags[$Tag->getName()] = $tag_data;
         }
-        $this->semantic_sort_keys($outcome_tags, $this->sort_tags_example);
+        $this::semantic_sort_keys($outcome_tags, $this::$sort_tags_example);
 
         $Template = $this->Twig->load('accounts_item.twig');
         return $Template->render([
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
             'display_name' => $Account->getDisplayName(),
+            'telegram_username' => $Account->getTelegramUsername(),
             'name' => $Account->getName(),
             'about' => $Account->getAbout(),
-            'website' => $Account->getWebsite(),
+            'website' => array_values(array_filter(array_map(self::normalizeURL(...), $Account->getWebsite()))),
+            'bsn_score' => $Account->calcBsnScore(),
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,
         ]);
@@ -160,7 +193,7 @@ class WebApp
             }
         }
 
-        SimpleRouter::response()->redirect($_GET['return_to'] ?? '/', 301);
+        SimpleRouter::response()->redirect($_GET['return_to'] ?? '/', 302);
     }
 
     public function TgLogout()
@@ -168,10 +201,10 @@ class WebApp
         unset($_SESSION['telegram']);
         unset($_SESSION['stellar_id']);
         unset($_SESSION['show_telegram_usernames']);
-        SimpleRouter::response()->redirect($_GET['return_to'] ?? '/', 301);
+        SimpleRouter::response()->redirect($_GET['return_to'] ?? '/', 302);
     }
 
-    public function semantic_sort_keys(array & $data, array $sort_example): void
+    public static function semantic_sort_keys(array & $data, array $sort_example): void
     {
         uksort($data, function($a, $b) use ($sort_example) {
             $indexA = array_search($a, $sort_example);
@@ -227,6 +260,9 @@ class WebApp
     public function Tag($name)
     {
         $Tag = $this->BSN->getTag($name);
+        if (!$Tag && BSN::validateTagNameFormat($name)) {
+            $Tag = $this->BSN->makeTagByName($name);
+        }
 
         if (!$Tag) {
             SimpleRouter::response()->httpCode(404);
@@ -385,7 +421,7 @@ class WebApp
     public function EditorForm(): string
     {
         if (($id = $_GET['id'] ?? null) && $this->BSN::validateStellarAccountIdFormat($id)) {
-            SimpleRouter::response()->redirect('/editor/' . $id, 301);
+            SimpleRouter::response()->redirect('/editor/' . $id, 302);
         }
         $Template = $this->Twig->load('editor_form.twig');
         return $Template->render([
@@ -393,6 +429,10 @@ class WebApp
         ]);
     }
 
+    /**
+     * @param Account $Account
+     * @return Tag[]
+     */
     private function decideEditableTags(Account $Account) :array
     {
         $tags = [];
@@ -411,24 +451,125 @@ class WebApp
             $tags
         );
 
+        usort($tags, function($a, $b) {
+            // Получаем названия тегов
+            $nameA = $a->getName();
+            $nameB = $b->getName();
+
+            // Ищем позиции тегов в массиве $sort_example
+            $indexA = array_search($nameA, WebApp::$sort_tags_example);
+            $indexB = array_search($nameB, WebApp::$sort_tags_example);
+
+            // Если оба тега есть в $sort_example, сортируем по их позициям
+            if ($indexA !== false && $indexB !== false) {
+                return $indexA - $indexB;
+            }
+
+            // Если один из тегов есть в $sort_example, а другой нет, придаём приоритет тому, что есть в $sort_example
+            if ($indexA !== false) {
+                return -1; // $a имеет приоритет, т.к. он есть в $sort_example
+            }
+            if ($indexB !== false) {
+                return 1; // $b имеет приоритет, т.к. он есть в $sort_example
+            }
+
+            // Если ни один из тегов не найден в $sort_example, сортируем их по алфавиту
+            return strcmp($nameA, $nameB);
+        });
+
         return $tags;
+    }
+
+    /**
+     * @param Tag[] $tags
+     * @return array
+     */
+    private function decideTagGroups(array $tags): array
+    {
+        $groups = [
+            'Social' => [
+                'Friend', 'Like', 'Dislike',
+            ],
+            'Credit' => [
+                'A', 'B', 'C', 'D',
+            ],
+            'Family' => [
+                'Spouse', 'Love', 'OneFamily', 'Guardian', 'Ward',
+            ],
+            'Partnership' => [
+                'Employer', 'Employee', 'Contractor', 'Client', 'Partnership', 'Collaboration',
+            ],
+            'Ownership' => [
+                'Owner', 'OwnershipFull', 'OwnerMajority', 'OwnershipMajority', 'OwnerMinority',
+            ],
+            'MTLA' => [
+                'FactionMember', 'RecommendToMTLA', 'RecommendForVerification',
+                'LeaderForMTLA',
+            ],
+            'Delegation' => [
+                'mtl_delegate',
+                'tfm_delegate',
+                'mtla_c_delegate', 'mtla_a_delegate',
+            ],
+            'Other' => [],
+        ];
+
+        $tag_groups = [];
+
+        // Обход всех тегов
+        foreach ($tags as $tag) {
+            $tag_name = $tag->getName();
+            $found = false;
+
+            // Поиск, к какой группе принадлежит тег
+            foreach ($groups as $group_name => $group_tags) {
+                if (in_array($tag_name, $group_tags, true)) {
+                    // Инициализация группы при первом добавлении
+                    if (!isset($tag_groups[$group_name])) {
+                        $tag_groups[$group_name] = [];
+                    }
+                    $tag_groups[$group_name][] = $tag_name;
+                    $found = true;
+                    break;
+                }
+            }
+
+            // Если тег не нашелся в группах, добавляем его в Others
+            if (!$found) {
+                $tag_groups['Others'][] = $tag_name;
+            }
+        }
+
+        WebApp::semantic_sort_keys($tag_groups, array_keys($groups));
+
+        return $tag_groups;
     }
 
     public function Editor($id): string
     {
         if (!$this->BSN::validateStellarAccountIdFormat($id)) {
-            SimpleRouter::response()->redirect('/editor/', 301);
+            SimpleRouter::response()->redirect('/editor/', 302);
         }
 
         $Account = $this->BSN->makeAccountById($id);
 
         $tags = $this->decideEditableTags($Account);
+        $group_tags = $this->decideTagGroups($tags);
 
         /** @var Account[] $contacts */
         $contacts = [];
         foreach ($tags as $Tag) {
             foreach (array_merge($Account->getOutcomeLinks($Tag), $Account->getIncomeLinks($Tag)) as $Contact) {
                 $contacts[$Contact->getId()] = $Contact;
+            }
+        }
+        // Add from contact book
+        if ($_SESSION['telegram']) {
+            $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+            foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
+                if (!array_key_exists($stellar_address, $contacts)) {
+                    $contacts[$stellar_address] = $this->BSN->makeAccountById($stellar_address);
+                }
             }
         }
 
@@ -459,6 +600,7 @@ class WebApp
                 'name' => $Tag->getName(),
                 'is_single' => $Tag->isSingle(),
             ], $tags),
+            'group_tags' => $group_tags,
             'contacts' => array_map(fn($Contact) => $Contact->jsonSerialize(), $contacts),
             'values' => $values,
             'single_tag_has_value' => $single_tag_has_value,
@@ -468,7 +610,7 @@ class WebApp
     public function EditorSave($id): string
     {
         if (!$this->BSN::validateStellarAccountIdFormat($id)) {
-            SimpleRouter::response()->redirect('/editor/', 301);
+            SimpleRouter::response()->redirect('/editor/', 302);
         }
 
         $Account = $this->BSN->makeAccountById($id);
@@ -596,9 +738,12 @@ class WebApp
         } else {
             SimpleRouter::response()->redirect(
                 SimpleRouter::getUrl('editor', ['id' => $Account->getId()]),
-                301
+                302
             );
         }
+
+        $sep_07 = 'web+stellar:tx?xdr=' . urlencode($xdr);
+        $qr_svg = QRCode::svg($sep_07);
 
         $Template = $this->Twig->load('editor_result.twig');
         return $Template->render([
@@ -607,7 +752,10 @@ class WebApp
                 'short_id' => $Account->getShortId(),
                 'display_name' => $Account->getDisplayName(),
             ],
+            'operations_count' => count($operations),
             'xdr' => $xdr,
+            'sep_07' => $sep_07,
+            'qr_svg' => $qr_svg,
         ]);
     }
 
@@ -615,4 +763,133 @@ class WebApp
     {
         return $this->Stellar->requestAccount($id)->getData()->getData();
     }
+
+    public function Contacts()
+    {
+        if (!$_SESSION['telegram']) {
+            SimpleRouter::response()->redirect('/tg/', 302);
+        }
+
+        $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+
+        $contacts = $ContactsManager->getContacts();
+
+        foreach ($contacts as $stellar_account => &$contact) {
+            $Account = $this->BSN->makeAccountById($stellar_account);
+            $contact = $Account->jsonSerialize() + $contact;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            foreach ($contacts as & $item) {
+                if (!isset($_POST['update_' . $item['id']])) {
+                    continue;
+                }
+
+                $given_name = trim($_POST['name_' . $item['id']] ?? '') ?: null;
+                if ($item['name'] !== $given_name) {
+                    $item['name'] = $given_name;
+                    $ContactsManager->updateContact($item['id'], $given_name);
+                }
+            }
+
+            if (
+                ($_POST['new_stellar_account_1'] ?? null)
+                && BSN::validateStellarAccountIdFormat($_POST['new_stellar_account_1'])
+                && !array_key_exists($_POST['new_stellar_account_1'], $contacts)
+            ) {
+                $ContactsManager->addContact($_POST['new_stellar_account_1'], $_POST['new_name_1']);
+            }
+
+            if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
+                $duplicates = $_POST['duplicates'] ?? 'ignore';
+                $data = file_get_contents($_FILES['import_file']['tmp_name']);
+                $data = json_decode($data, true);
+                if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+                    $data = [];
+                }
+                foreach ($data as $address => $name) {
+                    if (array_key_exists($address, $contacts)) {
+                        if ($duplicates === 'update' && $name !== $contacts[$address]['name']) {
+                            $ContactsManager->updateContact($address, $name);
+                        }
+                    } else {
+                        $ContactsManager->addContact($address, $name ?: null);
+                    }
+                }
+            }
+
+            SimpleRouter::response()->redirect('/contacts', 302);
+        }
+
+        if (($_GET['export'] ?? null) === 'json') {
+            header('Content-Disposition: attachment; filename="contacts.json"');
+            header('Content-Type: application/json');
+
+            $formatted_contacts = array_map(function ($contact) {
+                return $contact['name'];
+            }, $contacts);
+
+            return json_encode($formatted_contacts, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        } else {
+            $Template = $this->Twig->load('contacts.twig');
+            return $Template->render([
+                'contacts' => $contacts,
+            ]);
+        }
+    }
+
+    /**
+     * @param string $url
+     * @return string|null
+     */
+    public static function normalizeURL(string $url): ?string
+    {
+        try {
+            // Пробуем создать объект URL из строки
+            $uri = Http::new($url);
+
+            // Проверяем, содержит ли URL хотя бы хост
+            if (!$uri->getHost()) {
+                return null;
+            }
+
+            // Нормализуем URL (например, добавляем протокол, если отсутствует)
+            if (!$uri->getScheme()) {
+                $uri = $uri->withScheme('http');
+            }
+
+            return $uri->__toString();
+        } catch (SyntaxError $e) {
+            // Возвращаем null для некорректных ссылок
+            return null;
+        }
+    }
+
+    public function Defaults(): ?string
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $variants = ['this', 'brainbox'];
+            $viewer = in_array($_POST['viewer'], $variants) ? $_POST['viewer'] : 'this';
+            $time = $viewer === 'this' ? time() - 86400 : time() + (6 * 30 * 24 * 60 * 60); // delete or 6 months
+            setcookie(
+                'default_viewer',
+                $viewer,
+                [
+                    "expires" => $time,
+                    "path" => "/",
+                    "domain" => "",
+                    "secure" => true,
+                    "httponly" => true,
+                    "samesite" => "Strict"
+                ]
+            );
+            SimpleRouter::response()->redirect('/defaults', 302);
+        }
+
+        $Template = $this->Twig->load('defaults.twig');
+        return $Template->render([
+            'current_value' => $this->default_viewer,
+        ]);
+    }
+
 }
