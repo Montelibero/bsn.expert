@@ -12,6 +12,8 @@ class Tag
     private bool $is_standard = false;
     private bool $is_promote = false;
     private bool $is_editable = true;
+    private ?Tag $Pair = null;
+    private bool $pair_strong = false;
 
     public function __construct(string $name)
     {
@@ -62,5 +64,21 @@ class Tag
         }
 
         return $this->is_promote;
+    }
+
+    public function setPair(Tag $Pair, bool $strong = false): void
+    {
+        $this->Pair = $Pair;
+        $this->pair_strong = $strong;
+    }
+
+    public function getPair(): ?Tag
+    {
+        return $this->Pair;
+    }
+
+    public function isPairStrong(): bool
+    {
+        return $this->pair_strong;
     }
 }
