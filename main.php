@@ -29,6 +29,7 @@ $BSN->makeTagByName('fcm_delegate')->isSingle(true);
 $BSN->makeTagByName('mtla_c_delegate')->isSingle(true);
 $BSN->makeTagByName('mtla_a_delegate')->isSingle(true);
 $BSN->makeTagByName('Owner')->isSingle(true);
+$BSN->makeTagByName('LeaderForMTLA')->isSingle(true);
 
 // Standards tags
 $standard_tags = [
@@ -42,15 +43,25 @@ foreach ($standard_tags as $tag_name) {
     $BSN->makeTagByName($tag_name)->isStandard(true);
 }
 $promoted_tags = [
-    'Friend', 'Antipathy', 'Like', 'Dislike', 'MyJudge',
+    'Friend', 'Like', 'Dislike', 'MyJudge',
+    'ResidentME',
 ];
 foreach ($promoted_tags as $tag_name) {
     $BSN->makeTagByName($tag_name)->isPromote(true);
+}
+$known_tags = json_decode(file_get_contents('./known_tags.json'), JSON_OBJECT_AS_ARRAY);
+foreach ($known_tags['links'] as $link_name => $link_data) {
+    if ($pair = ($link_data['pair'] ?? false)) {
+        $Tag = $BSN->makeTagByName($link_name);
+        $TagPair = $link_data['pair'] === true ? $Tag : $BSN->makeTagByName($pair);
+        $Tag->setPair($TagPair, $link_data['strong_pair'] ?? false);
+    }
 }
 
 
 $BSN->loadFromJson(json_decode(file_get_contents(JSON_DATA_FILE_PATH), JSON_OBJECT_AS_ARRAY));
 $BSN->loadMtlaMembersFromJson(json_decode(file_get_contents('../mtla_members.json'), JSON_OBJECT_AS_ARRAY));
+$BSN->loadContacts();
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
 
@@ -61,6 +72,8 @@ session_set_cookie_params(86400 * 7);
 session_start();
 
 $WebApp = new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance());
+
+$Router = new SimpleRouter();
 
 SimpleRouter::get('/', function () use ($WebApp) {
     return $WebApp->Index();
