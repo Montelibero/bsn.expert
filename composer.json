@@ -8,7 +8,10 @@
     "twig/twig": "^3.10",
     "pecee/simple-router": "^5.4",
     "google/apiclient": "^2.15.0",
-    "soneso/stellar-php-sdk": "1.3.0"
+    "soneso/stellar-php-sdk": "1.3.0",
+    "ext-pdo": "*",
+    "splitbrain/php-qrcode": "^0.1.0",
+    "league/uri": "^7.4"
   }
 ,
   "require-dev": {
