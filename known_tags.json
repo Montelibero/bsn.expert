@@ -1,0 +1,129 @@
+{
+  "presentation": {
+    "Name": {},
+    "About": {},
+    "Website": {}
+  },
+  "links": {
+    "A": {
+      "standard": true
+    },
+    "B": {
+      "standard": true
+    },
+    "C": {
+      "standard": true
+    },
+    "D": {
+      "standard": true
+    },
+    "Spouse": {
+      "standard": true,
+      "pair": true,
+      "strong_pair": true
+    },
+    "Love": {
+      "standard": true,
+      "pair": true
+    },
+    "OneFamily": {
+      "standard": true,
+      "pair": true,
+      "strong_pair": true
+    },
+    "Guardian": {
+      "standard": true,
+      "pair": "Ward",
+      "strong_pair": true
+    },
+    "Ward": {
+      "standard": true,
+      "pair": "Guardian",
+      "strong_pair": true
+    },
+    "Sympathy": {
+      "standard": true,
+      "pair": true
+    },
+    "Divorce": {
+      "standard": true
+    },
+    "Employer": {
+      "standard": true,
+      "pair": "Employee"
+    },
+    "Employee": {
+      "standard": true,
+      "pair": "Employer"
+    },
+    "Contractor": {
+      "standard": true
+    },
+    "Client": {
+      "standard": true
+    },
+    "Partnership": {
+      "standard": true,
+      "pair": true
+    },
+    "Collaboration": {
+      "standard": true,
+      "pair": true
+    },
+    "Owner": {
+      "standard": true,
+      "pair": "OwnershipFull",
+      "single": true,
+      "strong_pair": true
+    },
+    "OwnershipFull": {
+      "standard": true,
+      "pair": "Owner",
+      "strong_pair": true
+    },
+    "OwnerMajority": {
+      "standard": true,
+      "pair": "OwnershipMajority",
+      "strong_pair": true
+    },
+    "OwnershipMajority": {
+      "standard": true,
+      "pair": "OwnerMajority",
+      "strong_pair": true
+    },
+    "OwnerMinority": {
+      "standard": true
+    },
+    "FactionMember": {
+      "standard": true,
+      "pair": true
+    },
+    "WelcomeGuest": {
+      "standard": true,
+      "pair": true
+    },
+    "Ambassador": {},
+    "Like": {
+      "pair": true
+    },
+    "Dislike": {
+      "pair": true
+    },
+    "Expert": {},
+    "Friend": {
+      "pair": true
+    },
+    "IAmVolunteerFor": {},
+    "LeaderForMTLA": {
+      "single": true
+    },
+    "MyJudge": {},
+    "MyMediator": {},
+    "RecommendForVerification": {},
+    "RecommendToMTLA": {},
+    "VerifiedByRecommendation": {},
+    "ResidentME": {}
+  }
+}
+
+

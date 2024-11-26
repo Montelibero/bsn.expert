@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "presentation": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z]+$": {
+          "type": "object",
+          "description": "Дополнительные параметры для каждого имени, пока не определены, оставляем пустыми"
+        }
+      },
+      "additionalProperties": false
+    },
+    "links": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z]+$": {
+          "type": "object",
+          "properties": {
+            "standard": {
+              "type": "boolean",
+              "default": false
+            },
+            "pair": {
+              "anyOf": [
+                { "type": "boolean" },
+                { "type": "string" }
+              ],
+              "description": "Булево значение или название парного типа",
+              "default": false
+            },
+            "strong_pair": {
+              "type": "boolean",
+              "default": false
+            },
+            "single": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["presentation", "links"],
+  "additionalProperties": false
+}
