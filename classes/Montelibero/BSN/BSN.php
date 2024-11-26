@@ -76,6 +76,18 @@ class BSN
         }
     }
 
+    public function loadContacts(): void
+    {
+        if ($_SESSION['telegram']) {
+            $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+            foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
+                $Account = $this->makeAccountById($stellar_address);
+                $Account->isContact(true);
+                $Account->setContactName($item['name'] ?? null);
+            }
+        }
+    }
+
     private function findInherited(): void
     {
         foreach ($this->accounts as $Account) {
