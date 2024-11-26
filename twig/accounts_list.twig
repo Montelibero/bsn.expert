@@ -11,8 +11,12 @@
 {% block content %}
     <h1 class="title">Accounts</h1>
     <ul>
-    {% for account in accounts %}
-        <li>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</li>
+    {% for account in accounts|sort((a, b) => b.bsn_score <=> a.bsn_score) %}
+        <li>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}
+            {% if account.bsn_score %}
+            ({{ account.bsn_score }})
+            {% endif %}
+        </li>
     {% endfor %}
     </ul>
 {% endblock %}
