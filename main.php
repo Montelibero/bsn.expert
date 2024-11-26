@@ -58,6 +58,16 @@ foreach ($known_tags['links'] as $link_name => $link_data) {
     }
 }
 
+session_name("HELLOKITTY");
+session_set_cookie_params([
+    'lifetime' => 86400 * 14,
+    'path' => '/',
+    'domain' => '', // Defaults to current domain
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+session_start();
 
 $BSN->loadFromJson(json_decode(file_get_contents(JSON_DATA_FILE_PATH), JSON_OBJECT_AS_ARRAY));
 $BSN->loadMtlaMembersFromJson(json_decode(file_get_contents('../mtla_members.json'), JSON_OBJECT_AS_ARRAY));
@@ -67,9 +77,6 @@ $BSN->loadContacts();
 
 $Twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'));
 $Twig->addExtension(new TwigExtension());
-
-session_set_cookie_params(86400 * 7);
-session_start();
 
 $WebApp = new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance());
 
