@@ -51,6 +51,8 @@
 
 <h1 class="title">Editor</h1>
 <h1 class="subtitle">{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</h1>
+
+<p class="block">Alternative BSN editor → <a href="https://eurmtl.me/bsn/{{ account.id }}">eurmtl.me/bsn</a></p>
 <form method="post">
 
     <div class="block is-hidden" id="tags_selector">
