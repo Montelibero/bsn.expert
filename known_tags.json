@@ -122,7 +122,15 @@
     "RecommendForVerification": {},
     "RecommendToMTLA": {},
     "VerifiedByRecommendation": {},
-    "ResidentME": {}
+    "ResidentME": {},
+    "MyPart": {
+      "pair": "PartOf",
+      "strong_pair": true
+    },
+    "PartOf": {
+      "pair": "MyPart",
+      "strong_pair": true
+    }
   }
 }
 

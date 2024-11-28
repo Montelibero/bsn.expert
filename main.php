@@ -44,7 +44,7 @@ foreach ($standard_tags as $tag_name) {
 }
 $promoted_tags = [
     'Friend', 'Like', 'Dislike', 'MyJudge',
-    'ResidentME',
+    'ResidentME', 'MyPart', 'PartOf'
 ];
 foreach ($promoted_tags as $tag_name) {
     $BSN->makeTagByName($tag_name)->isPromote(true);
