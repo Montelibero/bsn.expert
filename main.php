@@ -126,5 +126,8 @@ SimpleRouter::match(['get', 'post'], '/contacts', function () use ($WebApp) {
 SimpleRouter::match(['get', 'post'], '/defaults', function () use ($WebApp) {
     return $WebApp->Defaults();
 });
+SimpleRouter::match(['get', 'post'], '/tools/percent_pay', function () use ($WebApp) {
+    return $WebApp->PercentPay();
+});
 
 SimpleRouter::start();

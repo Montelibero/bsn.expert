@@ -1,0 +1,119 @@
+{% extends "page.twig" %}
+
+{% block title %}Percent Pay{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="#" aria-current="page">PercentPay</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+
+    <h1 class="title">Percent Pay</h1>
+    <h2 class="title is-4">Asset data</h2>
+    <form action="/tools/percent_pay" method="get">
+        <div class="field">
+            <label class="label" for="asset_issuer">Issuer (account)</label>
+            <input
+                    id="asset_issuer"
+                    class="input"
+                    type="text"
+                    name="asset_issuer"
+                    placeholder="G..."
+                    value="{{ asset_issuer }}"
+                    maxlength="56"
+            />
+        </div>
+        <div class="field">
+            <label class="label" for="asset_code">Asset code</label>
+            <input
+                    id="asset_code"
+                    class="input"
+                    type="text"
+                    name="asset_code"
+                    placeholder="MyToken"
+                    value="{{ asset_code }}"
+                    maxlength="12"
+            />
+        </div>
+        <div class="field">
+            <label class="label" for="percent">Percent</label>
+            <input
+                    id="percent"
+                    class="input"
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    name="percent"
+                    placeholder="1.234"
+                    value="{{ percent }}"
+                    maxlength="6"
+            />
+        </div>
+        <div class="field">
+            <label class="label" for="payer_account">Payer account</label>
+            <input
+                    id="payer_account"
+                    class="input"
+                    type="text"
+                    name="payer_account"
+                    placeholder="G..."
+                    value="{{ payer_account }}"
+                    maxlength="56"
+            />
+        </div>
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="reset" class="button is-light" value="Reset">
+            </div>
+            <div class="control">
+                <input type="submit" class="button is-link" value="Calculate">
+            </div>
+        </div>
+    </form>
+
+    {% if accounts %}
+    <h2 class="title is-4">Asset holders</h2>
+    <table class="table" id="holders" data-sortlist="[[1,1]]">
+        <thead>
+        <tr>
+            <th data-sorter="false">Account</th>
+            <th data-sorter="digit">Balance</th>
+            <th data-sorter="digit">To pay</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for account in accounts %}
+            <tr>
+                <td>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</td>
+                <td>{{ account.balance }}</td>
+                <td>{{ account.to_pay }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if transactions %}
+    <h2 class="title is-4">Transaction</h2>
+    {% for transaction in transactions %}
+    <div class="field">
+        <label for="xdr_body">You transaction (XDR) for signing & submitting to the blockchain:</label>
+        <div class="control">
+            <textarea class="textarea" id="xdr_body">{{ transaction }}</textarea>
+        </div>
+    </div>
+    <p class="block"><a href="web+stellar:tx?xdr={{ transaction|url_encode }}">Stellar-link</a></p>
+
+    {% endfor %}
+    {% endif %}
+
+
+{% endblock %}
+
