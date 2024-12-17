@@ -232,8 +232,24 @@ class WebApp
 
     public function Tags(): ?string
     {
+        $Source = null;
+        if (isset($_GET['source']) && BSN::validateStellarAccountIdFormat($_GET['source'])) {
+            $Source = $this->BSN->makeAccountById($_GET['source']);
+        }
+        $Target = null;
+        if (isset($_GET['target']) && BSN::validateStellarAccountIdFormat($_GET['target'])) {
+            $Target = $this->BSN->makeAccountById($_GET['target']);
+        }
+
         $tags = [];
         foreach ($this->BSN->getLinks() as $Link) {
+            if ($Source && $Link->getSourceAccount() !== $Source) {
+                continue;
+            }
+            if ($Target && $Link->getTargetAccount() !== $Target) {
+                continue;
+            }
+
             $Tag = $Link->getTag();
             if (!array_key_exists($Tag->getName(), $tags)) {
                 $tags[$Tag->getName()] = [
@@ -253,13 +269,32 @@ class WebApp
         }
 
         $Template = $this->Twig->load('tags.twig');
+        $filter_query = [];
+        if ($Source) {
+            $filter_query['source'] = $Source->getId();
+        }
+        if ($Target) {
+            $filter_query['target'] = $Target->getId();
+        }
         return $Template->render([
+            'source' => $Source ? $Source->getId() : null,
+            'target' => $Target ? $Target->getId() : null,
+            'filter_query' => $filter_query ? http_build_query($filter_query) : '',
             'tags' => $tags,
         ]);
     }
 
-    public function Tag($name)
+    public function Tag($name): ?string
     {
+        $Source = null;
+        if (isset($_GET['source']) && BSN::validateStellarAccountIdFormat($_GET['source'])) {
+            $Source = $this->BSN->makeAccountById($_GET['source']);
+        }
+        $Target = null;
+        if (isset($_GET['target']) && BSN::validateStellarAccountIdFormat($_GET['target'])) {
+            $Target = $this->BSN->makeAccountById($_GET['target']);
+        }
+
         $Tag = $this->BSN->getTag($name);
         if (!$Tag && BSN::validateTagNameFormat($name)) {
             $Tag = $this->BSN->makeTagByName($name);
@@ -274,6 +309,12 @@ class WebApp
 
         foreach ($this->BSN->getLinks() as $Link) {
             if ($Link->getTag()->getName() !== $name) {
+                continue;
+            }
+            if ($Source && $Link->getSourceAccount() !== $Source) {
+                continue;
+            }
+            if ($Target && $Link->getTargetAccount() !== $Target) {
                 continue;
             }
             $links[] = [

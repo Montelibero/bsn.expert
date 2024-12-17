@@ -27,7 +27,7 @@
         <tbody>
         {% for tag in tags %}
             <tr>
-                <td><a href="/tags/{{ tag.name }}">{{ tag.name }}</a></td>
+                <td><a href="/tags/{{ tag.name }}{% if filter_query %}?{{ filter_query }}{% endif %}">{{ tag.name }}</a></td>
                 <td>{{ tag.out }}</td>
                 <td>{{ tag.in }}</td>
             </tr>
