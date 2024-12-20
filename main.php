@@ -97,6 +97,12 @@ SimpleRouter::get('/accounts/', function () use ($WebApp) {
 SimpleRouter::get('/accounts/{id}', function ($id) use ($WebApp) {
     return $WebApp->Account($id);
 })->name('account');
+SimpleRouter::get('/accounts/{id}/and', function ($id) use ($WebApp) {
+    return $WebApp->AccountAndList($id);
+})->name('account_and_list');
+SimpleRouter::get('/accounts/{id1}/and/{id2}', function ($id1, $id2) use ($WebApp) {
+    return $WebApp->AccountAnd($id1, $id2);
+})->name('account_and');
 SimpleRouter::get('/tags/', function () use ($WebApp) {
     return $WebApp->Tags();
 });

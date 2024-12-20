@@ -153,6 +153,136 @@ class WebApp
         ]);
     }
 
+    public function AccountAndList(string $id): ?string
+    {
+        $Account = null;
+
+        if ($this->BSN::validateStellarAccountIdFormat($id)) {
+            $Account = $this->BSN->makeAccountById($id);
+        }
+
+        if (!$Account) {
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        }
+
+        $connections = [];
+        /** @var Account[] $contacts */
+        $tags = array_merge($Account->getOutcomeTags(), $Account->getIncomeTags());
+        foreach ($tags as $Tag) {
+            /** @var Account $Contact */
+            foreach (array_merge($Account->getOutcomeLinks($Tag), $Account->getIncomeLinks($Tag)) as $Contact) {
+                $connection = $Contact->jsonSerialize();
+                $connection['bsn_score'] = $Contact->calcBsnScore();
+                $connections[$Contact->getId()] = $connection;
+
+            }
+        }
+
+        $Template = $this->Twig->load('account_and_list.twig');
+        return $Template->render([
+            'account_id' => $Account->getId(),
+            'account_short_id' => $Account->getShortId(),
+            'display_name' => $Account->getDisplayName(),
+            'connections' => $connections,
+        ]);
+    }
+
+    public function AccountAnd(string $id1, string $id2): ?string
+    {
+        $Account1 = null;
+
+        if ($this->BSN::validateStellarAccountIdFormat($id1)) {
+            $Account1 = $this->BSN->makeAccountById($id1);
+        }
+
+        if (!$Account1) {
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        }
+
+        $Account2 = null;
+
+        if ($this->BSN::validateStellarAccountIdFormat($id2)) {
+            $Account2 = $this->BSN->makeAccountById($id2);
+        }
+
+        if (!$Account2) {
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        }
+
+        /** @var Tag[] $acc1_tags */
+        $acc1_tags = [];
+        foreach ($Account1->getOutcomeTags() as $OutcomeTag) {
+            foreach ($Account1->getOutcomeLinks($OutcomeTag) as $Account) {
+                if ($Account->getId() !== $Account2->getId()) {
+                    continue;
+                }
+                $acc1_tags[$OutcomeTag->getName()] = $OutcomeTag;
+            }
+        }
+        /** @var Tag[] $acc2_tags */
+        $acc2_tags = [];
+        foreach ($Account2->getOutcomeTags() as $OutcomeTag) {
+            foreach ($Account2->getOutcomeLinks($OutcomeTag) as $Account) {
+                if ($Account->getId() !== $Account1->getId()) {
+                    continue;
+                }
+                $acc2_tags[$OutcomeTag->getName()] = $OutcomeTag;
+            }
+        }
+        $common_tags = array_merge($acc1_tags, $acc2_tags);
+        $this::semantic_sort_keys($common_tags, $this::$sort_tags_example);
+
+        $links = [];
+        /*
+         * Теги могут быть: тупо одинаковые, MyJudge
+         * Могут быть не одинаковые, но и не парные
+         * Могут быть парными, не не строго
+         * Могут быть парными строго и
+         */
+        foreach ($common_tags as $tag_name => $Tag) {
+            $link_data = [];
+            if (isset($acc1_tags[$tag_name])) {
+                $link_data['acc1'] = [
+                    'tag_name' => $Tag->getName(),
+                ];
+                $Pair = $Tag->getPair() ?? $Tag;
+                if (isset($acc2_tags[$Pair->getName()])) {
+                    $link_data['acc2'] = [
+                        'tag_name' => $Pair->getName(),
+                    ];
+                }
+            }
+            if (isset($link_data['acc1']) && isset($acc2_tags[$tag_name])) {
+                $link_data['acc2'] = [
+                    'tag_name' => $Tag->getName(),
+                ];
+                $Pair = $Tag->getPair() ?? $Tag;
+                if (isset($acc1_tags[$Pair->getName()])) {
+                    $link_data['acc1'] = [
+                        'tag_name' => $Pair->getName(),
+                    ];
+                }
+            }
+            if ($link_data) {
+                $links[] = $link_data;
+            }
+        }
+
+        $Template = $this->Twig->load('account_and.twig');
+        return $Template->render([
+            'account1_id' => $Account1->getId(),
+            'account1_short_id' => $Account1->getShortId(),
+            'account1_display_name' => $Account1->getDisplayName(),
+            'account2_id' => $Account2->getId(),
+            'account2_short_id' => $Account2->getShortId(),
+            'account2_display_name' => $Account2->getDisplayName(),
+            'links' => $links,
+        ]);
+    }
+
     public function checkTelegramAuthorization($auth_data): bool
     {
         unset($auth_data['return_to']);
