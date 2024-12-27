@@ -979,7 +979,8 @@ class WebApp
                 if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
                     $data = [];
                 }
-                foreach ($data as $address => $name) {
+                foreach ($data as $address => $item) {
+                    $name = is_array($item) && array_key_exists('name', $item) ? $item['name'] : $item;
                     if (array_key_exists($address, $contacts)) {
                         if ($duplicates === 'update' && $name !== $contacts[$address]['name']) {
                             $ContactsManager->updateContact($address, $name);
@@ -998,7 +999,11 @@ class WebApp
             header('Content-Type: application/json');
 
             $formatted_contacts = array_map(function ($contact) {
-                return $contact['name'];
+                $item = [];
+                if ($contact['name']) {
+                    $item['label'] = $contact['name'];
+                }
+                return $item;
             }, $contacts);
 
             return json_encode($formatted_contacts, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
