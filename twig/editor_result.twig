@@ -1,12 +1,12 @@
 {% extends "page.twig" %}
 
-{% block title %}Result — Editor{% endblock %}
+{% block title %}{{ 'editor.result'|trans }} — {{ 'nav.editor'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="/" aria-current="page">BSN</a></li>
-    <li><a href="/editor/" aria-current="page">Editor</a></li>
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/editor/" aria-current="page">{{ 'nav.editor'|trans }}</a></li>
     <li><a href="/editor/{{ account.id }}" aria-current="page">{{ account.short_id }}</a></li>
-    <li class="is-active"><a href="#" aria-current="page">Result</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'editor.result'|trans }}</a></li>
 {% endblock %}
 
 
@@ -18,9 +18,9 @@
             padding: 10px;
         }
     </style>
-    <h1 class="title">Result</h1>
+    <h1 class="title">{{ 'editor.result'|trans }}</h1>
     <p class="block">
-        Держи транзакцию. В редактор можно будет возвращаться минут через 15 после её подписания и отправки в блокчейн:
+        {{ 'editor.instruction'|trans }}
     </p>
 
     <p class="block">
@@ -28,15 +28,15 @@
     </p>
 
     <div class="field">
-        <label for="xdr_body">You transaction (XDR) for signing & submitting to the blockchain:</label>
+        <label for="xdr_body">{{ 'editor.transaction_label'|trans }}:</label>
         <div class="control">
             <textarea class="textarea" id="xdr_body">{{ xdr }}</textarea>
         </div>
     </div>
 
-    <h2 class="title is-4">Sign by Stellar-link</h2>
+    <h2 class="title is-4">{{ 'editor.sign_by_link.header'|trans }}</h2>
 
-    <p class="block"><a href="{{ sep_07 }}">SEP-07 Stellar-link</a></p>
+    <p class="block"><a href="{{ sep_07 }}">{{ 'editor.sign_by_link.link_text'|trans }}</a></p>
 
     <p class="block qr_svg">{{ qr_svg|raw }}</a></p>
 

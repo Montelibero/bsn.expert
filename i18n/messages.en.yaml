@@ -1,0 +1,70 @@
+common:
+  short_name: BSN
+  full_name: Blockchain Social Network
+
+nav:
+  home: Home
+  accounts: Accounts
+  tags: Tags
+  editor: Editor
+  mtla: MTLA
+  council: Council
+  contacts: Contacts
+  defaults: Defaults
+  logout: Logout
+
+index_page:
+  accounts: "{0} No accounts|{1} 1 account|]1,Inf] %count% accounts"
+  tags: "List of all known tags"
+  mtla_council: "Council of Montelibero Association"
+
+tags_page:
+  tag: Tag
+  out: Uses
+  in: Gets
+
+tag_page:
+  source: Source
+  target: Target
+
+mtla_council_page:
+  header: Council of Montelibero Association
+  header_current: Current Council Members
+  account: Account
+  sign: Voice weight
+  delegations: Delegations
+  participant: Participant
+  level: Level
+  delegate: Delegate
+  no_delegation: No delegation
+  ready: Ready to be council
+
+editor:
+  stellar_account: Stellar account
+  reset: Reset
+  edit: Edit
+  alternative: Alternative BSN editor
+  tar_selector:
+    head: Which tags do you want edit?
+    select: Select group of tags
+    nothing: Nothing
+    all: All
+    tag_group:
+      Social: Social
+      Credit: Credit
+      Family: Family
+      Partnership: Partnership
+      Ownership: Ownership
+      MTLA: MTLA
+      Delegation: Delegation
+      Others: Others
+  prepare: Prepare transaction
+  result: Result
+  instruction: >
+    We have prepared a transaction. It needs to be signed and sent to the blockchain.
+    If you have a Telegram wallet, you can simply copy the transaction code below and paste it there.
+    An important nuance is that the changes on the site will occur within 5 minutes after signing and sending this transaction.
+  transaction_label: Your Transaction (XDR)
+  sign_by_link:
+    header: Sign by link
+    link_text: A special Stellar link that can be opened, for example, by Sunce Wallet.

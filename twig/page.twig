@@ -49,7 +49,7 @@
 <nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
         <a class="navbar-item has-background-primary has-text-black" href="/">
-            BSN
+            {{ 'common.short_name'|trans }}
         </a>
         <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
             <span aria-hidden="true"></span>
@@ -61,25 +61,25 @@
     <div class="navbar-menu">
         <div class="navbar-start">
             <a class="navbar-item" href="/">
-                Home
+                {{ 'nav.home'|trans }}
             </a>
             <a class="navbar-item" href="/accounts/">
-                Accounts
+                {{ 'nav.accounts'|trans }}
             </a>
             <a class="navbar-item" href="/tags/">
-                Tags
+                {{ 'nav.tags'|trans }}
             </a>
             <a class="navbar-item" href="/editor/">
-                Editor
+                {{ 'nav.editor'|trans }}
             </a>
 
             <div class="navbar-item has-dropdown is-hoverable">
                 <a class="navbar-link" href="/mtla">
-                    MTLA
+                    {{ 'nav.mtla'|trans }}
                 </a>
                 <div class="navbar-dropdown">
                     <a class="navbar-item" href="/mtla/council">
-                        Council
+                        {{ 'nav.council'|trans }}
                     </a>
                 </div>
             </div>
@@ -96,18 +96,18 @@
                             {{ session.stellar_id|account_short }}
                         </a>
                         <a class="navbar-item" href="/contacts">
-                            Contacts
+                            {{ 'nav.contacts'|trans }}
                         </a>
                         <a class="navbar-item" href="/editor/{{ session.stellar_id }}">
-                            Editor
+                            {{ 'nav.editor'|trans }}
                         </a>
                         <a class="navbar-item" href="/defaults">
-                            Defaults
+                            {{ 'nav.defaults'|trans }}
                         </a>
                         {% endif %}
                         <hr class="navbar-divider">
                         <a class="navbar-item" href="/tg/logout?return_to={{ server.REQUEST_URI }}">
-                            Logout
+                            {{ 'nav.logout'|trans }}
                         </a>
                     </div>
                 </div>
@@ -139,7 +139,7 @@
     <nav class="breadcrumb" aria-label="breadcrumbs">
         <ul>
             {% block breadcrumbs %}
-            <li class="is-active"><a href="/" aria-current="page">BSN</a></li>
+            <li class="is-active"><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
             {% endblock %}
         </ul>
     </nav>

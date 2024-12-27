@@ -1,10 +1,10 @@
 {% extends "page.twig" %}
 
-{% block title %}Editor{% endblock %}
+{% block title %}{{ 'nav.editor'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="/" aria-current="page">BSN</a></li>
-    <li><a href="/editor/" aria-current="page">Editor</a></li>
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/editor/" aria-current="page">{{ 'nav.editor'|trans }}</a></li>
     <li class="is-active"><a href="#" aria-current="page">{{ account.short_id }}</a></li>
 {% endblock %}
 
@@ -49,20 +49,20 @@
     });
 </script>
 
-<h1 class="title">Editor</h1>
+<h1 class="title">{{ 'nav.editor'|trans }}</h1>
 <h1 class="subtitle">{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</h1>
 
-<p class="block">Alternative BSN editor → <a href="https://eurmtl.me/bsn/{{ account.id }}">eurmtl.me/bsn</a></p>
+<p class="block">{{ 'editor.alternative'|trans }} → <a href="https://eurmtl.me/bsn/{{ account.id }}">eurmtl.me/bsn</a></p>
 <form method="post">
 
     <div class="block is-hidden" id="tags_selector">
-        <p class="block">Which tags do you want edit?</p>
-        <p class="block">Select group of tags:</p>
+        <p class="block">{{ 'editor.tar_selector.head'|trans }}</p>
+        <p class="block">{{ 'editor.tar_selector.select'|trans }}:</p>
         <div class="tags">
-            <button class="tag is-primary is-medium" id="tags_selector_nothing">Nothing</button>
-            <button class="tag is-primary is-medium" id="tags_selector_all">All</button>
+            <button class="tag is-primary is-medium" id="tags_selector_nothing">{{ 'editor.tar_selector.nothing'|trans }}</button>
+            <button class="tag is-primary is-medium" id="tags_selector_all">{{ 'editor.tar_selector.all'|trans }}</button>
             {% for group_name, tags in group_tags %}
-            <button class="tag is-primary is-medium" data-tags="{{ tags|json_encode|e('html_attr') }}">{{ group_name }}</button>
+            <button class="tag is-primary is-medium" data-tags="{{ tags|json_encode|e('html_attr') }}">{{ ('editor.tar_selector.tag_group.'~group_name)|trans }}</button>
             {% endfor %}
         </div>
 
@@ -128,10 +128,10 @@
 
         <div class="field is-grouped">
             <div class="control">
-                <input type="reset" class="button is-light" value="Reset">
+                <input type="reset" class="button is-light" value="{{ 'editor.reset'|trans }}">
             </div>
             <div class="control">
-                <input type="submit" class="button is-link" value="Prepare transaction">
+                <input type="submit" class="button is-link" value="{{ 'editor.prepare'|trans }}">
             </div>
         </div>
     </form>

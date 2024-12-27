@@ -3,8 +3,8 @@
 {% block title %}Tags{% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="/" aria-current="page">BSN</a></li>
-    <li class="is-active"><a href="/tags/" aria-current="page">Tags</a></li>
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="/tags/" aria-current="page">{{ 'nav.tags'|trans }}</a></li>
 {% endblock %}
 
 
@@ -14,14 +14,14 @@
             $(".table").tablesorter();
         });
     </script>
-    <h1 class="title">Tags</h1>
+    <h1 class="title">{{ 'nav.tags'|trans }}</h1>
 
     <table class="table" data-sortlist="[[1,1]]">
         <thead>
         <tr>
-            <th data-sorter="text">Tag</th>
-            <th data-sorter="digit">Out</th>
-            <th data-sorter="digit">In</th>
+            <th data-sorter="text">{{ 'tags_page.tag'|trans }}</th>
+            <th data-sorter="digit">{{ 'tags_page.out'|trans }}</th>
+            <th data-sorter="digit">{{ 'tags_page.in'|trans }}</th>
         </tr>
         </thead>
         <tbody>

@@ -3,13 +3,13 @@
 {% block title %}Accounts{% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="/" aria-current="page">BSN</a></li>
-    <li class="is-active"><a href="/accounts/" aria-current="page">Accounts</a></li>
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="/accounts/" aria-current="page">{{ 'nav.accounts'|trans }}</a></li>
 {% endblock %}
 
 
 {% block content %}
-    <h1 class="title">Accounts</h1>
+    <h1 class="title">{{ 'nav.accounts'|trans }}</h1>
     <ul>
     {% for account in accounts|sort((a, b) => b.bsn_score <=> a.bsn_score) %}
         <li>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}

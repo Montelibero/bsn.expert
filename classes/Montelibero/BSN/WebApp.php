@@ -48,7 +48,7 @@ class WebApp
 
         $this->Stellar = $Stellar;
 
-        if ($_COOKIE['default_viewer']) {
+        if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
             $this->default_viewer = $_COOKIE['default_viewer'];
         }
     }

@@ -1,11 +1,11 @@
 {% extends "page.twig" %}
 
-{% block title %}MTLA Council{% endblock %}
+{% block title %}{{ 'mtla_council_page.header'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="/" aria-current="page">BSN</a></li>
-    <li><a href="/mtla/" aria-current="page">MTLA</a></li>
-    <li class="is-active"><a href="#" aria-current="page">Council</a></li>
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/mtla/" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.council'|trans }}</a></li>
 {% endblock %}
 
 
@@ -16,15 +16,15 @@
         });
     </script>
 
-    <h1 class="title">MTLA  Council</h1>
+    <h1 class="title">{{ 'mtla_council_page.header'|trans }}</h1>
 
-    <h2 class="title is-4">Current Council Members</h2>
+    <h2 class="title is-4">{{ 'mtla_council_page.header_current'|trans }}</h2>
 
     <table class="table" id="current_council" data-sortlist="[[1,1]]">
         <thead>
         <tr>
-            <th data-sorter="false">Account</th>
-            <th data-sorter="digit">Sign weight</th>
+            <th data-sorter="false">{{ 'mtla_council_page.account'|trans }}</th>
+            <th data-sorter="digit">{{ 'mtla_council_page.sign'|trans }}</th>
         </tr>
         </thead>
         <tbody>
@@ -37,14 +37,14 @@
         </tbody>
     </table>
 
-    <h2 class="title is-4">Delegations</h2>
+    <h2 class="title is-4">{{ 'mtla_council_page.delegations'|trans }}</h2>
 
     <table class="table" data-sortlist="[[2,1],[1,1]]">
         <thead>
         <tr>
-            <th data-sorter="false">Participant</th>
-            <th data-sorter="digit">Level</th>
-            <th>Delegate</th>
+            <th data-sorter="false">{{ 'mtla_council_page.participant'|trans }}</th>
+            <th data-sorter="digit">{{ 'mtla_council_page.level'|trans }}</th>
+            <th>{{ 'mtla_council_page.delegate'|trans }}</th>
         </tr>
         </thead>
         <tbody>
@@ -54,11 +54,11 @@
                 <td>{{ item.member_level }}</td>
                 <td>
                     {% if item.ready_to_council %}
-                    Ready to be council
+                        {{ 'mtla_council_page.ready'|trans }}
                     {% elseif item.delegate %}
-                    {{ include('account_link.twig', {id: item.delegate.id, name: item.delegate.display_name}, with_context = false) }}
+                        {{ include('account_link.twig', {id: item.delegate.id, name: item.delegate.display_name}, with_context = false) }}
                     {% else %}
-                    No delegation
+                        {{ 'mtla_council_page.no_delegation'|trans }}
                     {% endif %}
                 </td>
             </tr>

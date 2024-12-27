@@ -1,15 +1,15 @@
 {% extends "page.twig" %}
 
-{% block title %}Editor{% endblock %}
+{% block title %}{{ 'nav.editor'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="/" aria-current="page">BSN</a></li>
-    <li class="is-active"><a href="#" aria-current="page">Editor</a></li>
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.editor'|trans }}</a></li>
 {% endblock %}
 
 
 {% block content %}
-    <h1 class="title">Editor</h1>
+    <h1 class="title">{{ 'nav.editor'|trans }}</h1>
     <form action="/editor/">
         <div class="field">
             <label class="label" for="stellar_account_id">Stellar account</label>

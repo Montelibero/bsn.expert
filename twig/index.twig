@@ -3,15 +3,15 @@
 {% block title %}Index{% endblock %}
 
 {% block content %}
-    <h1 class="title">Blockchain Social Network</h1>
+    <h1 class="title">{{ 'common.full_name'|trans }}</h1>
     <p class="block">
-        <a href="/accounts/">Accounts</a>: {{ accounts_count }}
+        <a href="/accounts/">{{ 'index_page.accounts'|trans({'%count%': accounts_count}) }}</a>
     </p>
     <p class="block">
-        <a href="/tags/">Tags</a>: all used tags.
+        <a href="/tags/">{{ 'index_page.tags'|trans }}</a>
     </p>
     <p class="block">
-        <a href="/mtla/council">MTLA Council</a>
+        <a href="/mtla/council">{{ 'index_page.mtla_council'|trans }}</a>
     </p>
     <p class="block">
         For the legacy HTML page: <a href="https://bsn.mtla.me/html">/json</a>.

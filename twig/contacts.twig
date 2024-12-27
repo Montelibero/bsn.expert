@@ -1,15 +1,15 @@
 {% extends "page.twig" %}
 
-{% block title %}Contacts{% endblock %}
+{% block title %}{{ 'nav.contacts'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="/" aria-current="page">BSN</a></li>
-    <li class="is-active"><a href="#" aria-current="page">Contacts</a></li>
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.contacts'|trans }}</a></li>
 {% endblock %}
 
 
 {% block content %}
-    <h1 class="title">Contacts</h1>
+    <h1 class="title">{{ 'nav.contacts'|trans }}</h1>
     <h2 class="title is-4">Edit</h2>
     <form method="post" action="/contacts">
     {% for contact in contacts %}

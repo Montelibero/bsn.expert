@@ -3,9 +3,13 @@
 use Dotenv\Dotenv;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\TwigExtension;
+use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\StellarSDK;
+use Symfony\Bridge\Twig\Extension\TranslationExtension;
+use Symfony\Component\Translation\Loader\YamlFileLoader;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
@@ -77,6 +81,19 @@ $BSN->loadContacts();
 
 $Twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'));
 $Twig->addExtension(new TwigExtension());
+
+$locale = 'en';
+if (stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false) {
+    $locale = 'ru';
+}
+$Translator = new Translator($locale); // Указываем текущий язык
+$Translator->addLoader('yaml', new YamlFileLoader());
+$Translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');
+$Translator->addResource('yaml', __DIR__ . '/i18n/messages.en.yaml', 'en');
+$Translator->setFallbackLocales(['en']);
+
+$Twig->addExtension(new TranslationExtension($Translator));
+$Twig->addExtension(new TwigPluralizeExtension($Translator));
 
 $WebApp = new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance());
 
