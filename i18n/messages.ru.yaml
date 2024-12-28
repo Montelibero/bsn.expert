@@ -68,3 +68,10 @@ editor:
   sign_by_link:
     header: Подписать по ссылке
     link_text: Специальная Стеллар-ссылка, которую умеет открыть, например, Sunce Wallet.
+
+contacts:
+  edit:
+    action:
+      save: Сохранить контакт
+      add: Добавить контакт
+      delete: Удалить

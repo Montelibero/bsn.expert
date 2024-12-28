@@ -95,7 +95,7 @@ $Translator->setFallbackLocales(['en']);
 $Twig->addExtension(new TranslationExtension($Translator));
 $Twig->addExtension(new TwigPluralizeExtension($Translator));
 
-$WebApp = new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance());
+$WebApp = new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance(), $Translator);
 
 $Router = new SimpleRouter();
 
@@ -142,6 +142,9 @@ SimpleRouter::get('/editor/{id}', function ($id) use ($WebApp) {
 })->name('editor');
 SimpleRouter::post('/editor/{id}', function ($id) use ($WebApp) {
     return $WebApp->EditorSave($id);
+});
+SimpleRouter::match(['get', 'post'], '/contacts/{id}', function ($id) use ($WebApp) {
+    return $WebApp->ContactsEdit($id);
 });
 SimpleRouter::match(['get', 'post'], '/contacts', function () use ($WebApp) {
     return $WebApp->Contacts();

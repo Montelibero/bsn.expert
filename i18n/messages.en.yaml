@@ -68,3 +68,10 @@ editor:
   sign_by_link:
     header: Sign by link
     link_text: A special Stellar link that can be opened, for example, by Sunce Wallet.
+
+contacts:
+  edit:
+    action:
+      save: Save the contact
+      add: Add a new contact
+      delete: Delete

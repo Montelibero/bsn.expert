@@ -15,6 +15,7 @@ use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
 use splitbrain\phpQRCode\QRCode;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 class WebApp
@@ -37,8 +38,9 @@ class WebApp
     ];
 
     private ?string $default_viewer = null;
+    private Translator $Translator;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar)
+    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Translator $Translator)
     {
         $this->BSN = $BSN;
 
@@ -47,6 +49,8 @@ class WebApp
         $this->Twig->addGlobal('server', $_SERVER);
 
         $this->Stellar = $Stellar;
+
+        $this->Translator = $Translator;
 
         if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
             $this->default_viewer = $_COOKIE['default_viewer'];
@@ -100,6 +104,14 @@ class WebApp
             SimpleRouter::response()->redirect('https://bsn.brainbox.no/accounts/' . $Account->getId(), 302);
         }
 
+        $is_contact = false;
+        $is_logged = false;
+        if ($_SESSION['telegram']) {
+            $is_logged = true;
+            $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+            $is_contact = (bool) $ContactsManager->getContact($Account->getId());
+        }
+
         $income_tags = [];
         foreach ($Account->getIncomeTags() as $Tag) {
             $Pair = $Tag->getPair();
@@ -143,6 +155,8 @@ class WebApp
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
             'display_name' => $Account->getDisplayName(),
+            'is_logged' => $is_logged,
+            'is_contact' => $is_contact,
             'telegram_username' => $Account->getTelegramUsername(),
             'name' => $Account->getName(),
             'about' => $Account->getAbout(),
@@ -1013,6 +1027,52 @@ class WebApp
                 'contacts' => $contacts,
             ]);
         }
+    }
+
+    public function ContactsEdit($account_id): ?string
+    {
+        if (!$this->BSN::validateStellarAccountIdFormat($account_id)) {
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        }
+
+        $csrf_token = md5(session_id() . 'contacts');
+
+
+        $Account = $this->BSN->makeAccountById($account_id);
+
+        if (!$_SESSION['telegram']) {
+            SimpleRouter::response()->redirect('/tg/', 302);
+        }
+
+        $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+
+        $exists_contact = $ContactsManager->getContact($account_id);
+
+        if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
+            if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {
+                $ContactsManager->deleteContact($account_id);
+            } else if ($_POST['action'] && $exists_contact) {
+                $ContactsManager->updateContact($account_id, trim($_POST['name']));
+            } else if ($_POST['action'] && !$exists_contact) {
+                $ContactsManager->addContact($account_id, trim($_POST['name']));
+            }
+            SimpleRouter::response()->redirect('/accounts/' . $account_id, 302);
+        }
+
+        $name = $Account->getName() ? $Account->getName()[0] : '';
+        if ($exists_contact && isset($exists_contact['name']) && $exists_contact['name']) {
+            $name = $exists_contact['name'];
+        }
+
+        $Template = $this->Twig->load('contact_edit.twig');
+        return $Template->render([
+            'account' => $Account->jsonSerialize(),
+            'csrf_token' => $csrf_token,
+            'is_exists' => (bool) $exists_contact,
+            'name' => $name,
+        ]);
+
     }
 
     /**

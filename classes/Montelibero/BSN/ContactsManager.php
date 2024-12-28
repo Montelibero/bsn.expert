@@ -22,10 +22,17 @@ class ContactsManager
         );
     }
 
-    public function getContacts(): array
+    public function getContacts(?string $stellar_address = null): array
     {
-        $stmt = $this->PDO->prepare('SELECT * FROM contacts WHERE telegram_id = :telegram_id');
+        $sql = 'SELECT * FROM contacts WHERE telegram_id = :telegram_id';
+        if ($stellar_address) {
+            $sql .= ' AND stellar_address = :stellar_address';
+        }
+        $stmt = $this->PDO->prepare($sql);
         $stmt->bindParam(':telegram_id', $this->tg_id);
+        if ($stellar_address) {
+            $stmt->bindParam(':stellar_address', $stellar_address);
+        }
         $stmt->execute();
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -37,6 +44,13 @@ class ContactsManager
         }
 
         return $this->contacts;
+    }
+
+    public function getContact($id): ?array
+    {
+        $contacts = $this->getContacts($id);
+
+        return $contacts ? $contacts[$id] : null;
     }
 
     public function addContact(string $stellar_account, ?string $name = null): void
@@ -54,6 +68,14 @@ class ContactsManager
         $stmt->bindParam(':telegram_id', $this->tg_id);
         $stmt->bindParam(':stellar_address', $stellar_account);
         $stmt->bindParam(':name', $name);
+        $stmt->execute();
+    }
+
+    public function deleteContact($stellar_account)
+    {
+        $stmt = $this->PDO->prepare('DELETE FROM contacts WHERE telegram_id = :telegram_id AND stellar_address = :stellar_address');
+        $stmt->bindParam(':telegram_id', $this->tg_id);
+        $stmt->bindParam(':stellar_address', $stellar_account);
         $stmt->execute();
     }
 }
