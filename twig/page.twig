@@ -96,16 +96,18 @@
                         <a class="navbar-item" href="/accounts/{{ session.stellar_id }}">
                             {{ session.stellar_id|account_short }}
                         </a>
+                        {% endif %}
                         <a class="navbar-item" href="/contacts">
                             {{ 'nav.contacts'|trans }}
                         </a>
+                        {% if session.stellar_id %}
                         <a class="navbar-item" href="/editor/{{ session.stellar_id }}">
                             {{ 'nav.editor'|trans }}
                         </a>
+                        {% endif %}
                         <a class="navbar-item" href="/defaults">
                             {{ 'nav.defaults'|trans }}
                         </a>
-                        {% endif %}
                         <hr class="navbar-divider">
                         <a class="navbar-item" href="/tg/logout?return_to={{ server.REQUEST_URI }}">
                             {{ 'nav.logout'|trans }}
