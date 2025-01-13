@@ -1,0 +1,17 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'nav.login'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.login'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">{{ 'nav.login'|trans }}</h1>
+    <p class="block">
+        {{ 'login.description'|trans }}
+    </p>
+{% endblock %}
+

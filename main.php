@@ -62,6 +62,11 @@ foreach ($known_tags['links'] as $link_name => $link_data) {
     }
 }
 
+$functional_tags = [
+    'Owner', 'OwnershipFull',
+    'FactionMember',
+];
+
 session_name("HELLOKITTY");
 session_set_cookie_params([
     'lifetime' => 86400 * 14,
@@ -107,6 +112,12 @@ SimpleRouter::get('/tg', function () use ($WebApp) {
 });
 SimpleRouter::get('/tg/logout', function () use ($WebApp) {
     return $WebApp->TgLogout();
+});
+SimpleRouter::get('/login', function () use ($WebApp) {
+    return $WebApp->Login();
+});
+SimpleRouter::get('/search/', function () use ($WebApp) {
+    return $WebApp->Search();
 });
 SimpleRouter::get('/accounts/', function () use ($WebApp) {
     return $WebApp->Accounts();

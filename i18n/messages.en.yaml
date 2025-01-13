@@ -4,6 +4,7 @@ common:
 
 nav:
   home: Home
+  search: Search
   accounts: Accounts
   tags: Tags
   editor: Editor
@@ -11,12 +12,28 @@ nav:
   council: Council
   contacts: Contacts
   defaults: Defaults
+  login: Login
   logout: Logout
 
 index_page:
   accounts: "{0} No accounts|{1} 1 account|]1,Inf] %count% accounts"
   tags: "List of all known tags"
   mtla_council: "Council of Montelibero Association"
+
+login:
+  description: >
+    The site offers some features that are only available to authorized users.
+    First of all, it is a convenient contact book compatible with Sunce Wallet.
+    Also, verified members of the Montelibero Association can see the Telegram usernames of other members.
+
+search:
+  not_found: Could not find anything 🤷‍♂️
+  description: >
+    The search is still simple and basic. It can only find results by a full Stellar address or a tag.
+    At best, it can recognize that "like" is the tag "Like."
+  placeholder_hint: Account id, tag name etc
+  action:
+    search: Find
 
 tags_page:
   tag: Tag

@@ -349,6 +349,43 @@ class WebApp
         SimpleRouter::response()->redirect($_GET['return_to'] ?? '/', 302);
     }
 
+    public function Login(): ?string
+    {
+        if ($_SESSION['telegram'] ?? null) {
+//            SimpleRouter::response()->redirect($_GET['return_to'] ?? '/', 302);
+//            return null;
+        }
+
+        $Template = $this->Twig->load('login.twig');
+        return $Template->render([
+            'return_to' => $_GET['return_to'] ?? '/',
+        ]);
+    }
+
+    public function Search(): ?string
+    {
+        $q = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
+
+        if (BSN::validateStellarAccountIdFormat($q)) {
+            SimpleRouter::response()->redirect(SimpleRouter::getUrl('account', ['id' => $q]));
+        }
+        if (BSN::validateTagNameFormat($q)) {
+            $tag_name = $q;
+            foreach ($this->BSN->getTags() as $Tag) {
+                if (mb_strtolower($Tag->getName()) === $tag_name) {
+                    $tag_name = $Tag->getName();
+                    break;
+                }
+            }
+            SimpleRouter::response()->redirect(SimpleRouter::getUrl('tag', ['id' => $tag_name]));
+        }
+
+        $Template = $this->Twig->load('search.twig');
+        return $Template->render([
+            'q' => $q,
+        ]);
+    }
+
     public static function semantic_sort_keys(array & $data, array $sort_example): void
     {
         uksort($data, function($a, $b) use ($sort_example) {

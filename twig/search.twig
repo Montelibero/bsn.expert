@@ -1,0 +1,42 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'nav.search'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.search'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">{{ 'nav.search'|trans }}</h1>
+    {% if q %}
+    <h1 class="subtitle">{{ q }}</h1>
+    {% endif %}
+
+    {% if q %}
+    <p class="block has-text-primary">
+        {{ 'search.not_found'|trans }}
+    </p>
+    {% endif %}
+
+    <p class="block">
+        {{ 'search.description'|trans }}
+    </p>
+
+    <form method="get" action="/search/">
+    <div class="field">
+        <label class="label" for="new_name">Search</label>
+        <div class="control">
+            <input type="text" name="q" class="input" placeholder="{{ 'search.placeholder_hint'|trans }}" size="32" maxlength="64" value="{{ q }}">
+        </div>
+    </div>
+    <div class="field is-grouped">
+        <div class="control">
+            <input type="submit" class="button is-link"  value="{{ 'search.action.search'|trans }}">
+        </div>
+    </div>
+    </form>
+
+{% endblock %}
+
