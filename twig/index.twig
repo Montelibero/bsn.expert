@@ -4,8 +4,24 @@
 
 {% block content %}
     <h1 class="title">{{ 'common.full_name'|trans }}</h1>
+
+    <form method="get" action="/search/">
+        <div class="field has-addons">
+            <div class="control has-icons-left">
+                <input type="text" name="q" class="input is-large" placeholder="{{ 'search.placeholder_hint'|trans }}" size="32" maxlength="64" value="{{ q }}">
+                <span class="icon is-large is-left">
+                    <i class="fas fa-search"></i>
+                </span>
+            </div>
+            <div class="control">
+                <input type="submit" class="button is-link is-large"  value="{{ 'search.action.search'|trans }}">
+            </div>
+        </div>
+    </form>
+
     <p class="block">
         <a href="/accounts/">{{ 'index_page.accounts'|trans({'%count%': accounts_count}) }}</a>
+        (<a href="/accounts/?adopters=true">{{ adopters_count }}</a>)
     </p>
     <p class="block">
         <a href="/tags/">{{ 'index_page.tags'|trans }}</a>

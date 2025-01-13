@@ -62,14 +62,43 @@ class WebApp
         $Template = $this->Twig->load('index.twig');
         return $Template->render([
             'accounts_count' => $this->BSN->getAccountsCount(),
+            'adopters_count' => count($this->getAdopters()),
         ]);
+    }
+
+    private function getAdopters(): array
+    {
+        global $functional_tags;
+        $free_tags = [];
+        foreach ($this->BSN->getTags() as $Tag) {
+            if (($Tag->isStandard() || $Tag->isPromote()) && !in_array($Tag->getName(), $functional_tags)) {
+                $free_tags[] = $Tag->getName();
+            }
+        }
+        /** @var Account[] $accounts */
+        $accounts = [];
+        foreach ($this->BSN->getAccounts() as $Account) {
+            foreach ($Account->getOutcomeTags() as $Tag) {
+                if (in_array($Tag->getName(), $free_tags)) {
+                    $accounts[] = $Account;
+                    continue 2;
+                }
+            }
+        }
+
+        return $accounts;
     }
 
     public function Accounts(): ?string
     {
         $Template = $this->Twig->load('accounts_list.twig');
+        if (($_GET['adopters'] ?? null) == 'true') {
+            $list_accounts = $this->getAdopters();
+        } else {
+            $list_accounts = $this->BSN->getAccounts();
+        }
         $accounts = [];
-        foreach ($this->BSN->getAccounts() as $Account) {
+        foreach ($list_accounts as $Account) {
             $accounts[] = [
                 'id' => $Account->getId(),
                 'short_id' => $Account->getShortId(),
