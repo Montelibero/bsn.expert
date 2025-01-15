@@ -535,7 +535,10 @@ class WebApp
 
         $Template = $this->Twig->load('tags_item.twig');
         return $Template->render([
-            'tag_name' => $Tag->getName(),
+            'tag' => [
+                'name' => $Tag->getName(),
+                'is_editable' => $Tag->isEditable(),
+            ],
             'links' => $links,
         ]);
     }
@@ -805,22 +808,36 @@ class WebApp
 
         $Account = $this->BSN->makeAccountById($id);
 
-        $tags = $this->decideEditableTags($Account);
+        $single_tag = BSN::validateTagNameFormat($_GET['tag'] ?? null) ? $_GET['tag'] : null;
+        $single_contact = BSN::validateStellarAccountIdFormat($_GET['id'] ?? null) ? $_GET['id'] : null;
+
+        /** @var Tag[] $tags */
+        $tags = [];
+        if ($single_tag) {
+            $tags[$single_tag] = $this->BSN->makeTagByName($single_tag);
+        } else {
+            $tags = $this->decideEditableTags($Account);
+        }
+
         $group_tags = $this->decideTagGroups($tags);
 
         /** @var Account[] $contacts */
         $contacts = [];
-        foreach ($tags as $Tag) {
-            foreach (array_merge($Account->getOutcomeLinks($Tag), $Account->getIncomeLinks($Tag)) as $Contact) {
-                $contacts[$Contact->getId()] = $Contact;
+        if ($single_contact) {
+            $contacts[$single_contact] = $this->BSN->makeAccountById($single_contact);
+        } else {
+            foreach ($tags as $Tag) {
+                foreach (array_merge($Account->getOutcomeLinks($Tag), $Account->getIncomeLinks($Tag)) as $Contact) {
+                    $contacts[$Contact->getId()] = $Contact;
+                }
             }
-        }
-        // Add from contact book
-        if ($_SESSION['telegram']) {
-            $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
-            foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
-                if (!array_key_exists($stellar_address, $contacts)) {
-                    $contacts[$stellar_address] = $this->BSN->makeAccountById($stellar_address);
+            // Add from contact book
+            if ($_SESSION['telegram']) {
+                $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+                foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
+                    if (!array_key_exists($stellar_address, $contacts)) {
+                        $contacts[$stellar_address] = $this->BSN->makeAccountById($stellar_address);
+                    }
                 }
             }
         }
@@ -848,6 +865,8 @@ class WebApp
                 'short_id' => $Account->getShortId(),
                 'display_name' => $Account->getDisplayName(),
             ],
+            'single_tag' => $single_tag,
+            'single_contact' => $single_contact,
             'tags' => array_map(fn(Tag $Tag) => [
                 'name' => $Tag->getName(),
                 'is_single' => $Tag->isSingle(),
@@ -867,8 +886,18 @@ class WebApp
 
         $Account = $this->BSN->makeAccountById($id);
 
+        $single_tag = BSN::validateTagNameFormat($_POST['single_tag'] ?? null)
+            ? $_POST['single_tag']
+            : null;
+        $single_contact = BSN::validateStellarAccountIdFormat($_POST['single_contact'] ?? null)
+            ? $_POST['single_contact']
+            : null;
+
+        $working_tags = $single_tag ? [$this->BSN->makeTagByName($single_tag)] : $Account->getOutcomeTags();
+
         $current_values = [];
-        foreach ($Account->getOutcomeTags() as $Tag) {
+
+        foreach ($working_tags as $Tag) {
             if (!$Tag->isEditable()) {
                 continue;
             }
@@ -876,6 +905,9 @@ class WebApp
                 $current_values[$Tag->getName()] = null;
             }
             foreach ($Account->getOutcomeLinks($Tag) as $Contact) {
+                if ($single_contact && $Contact->getId() !== $single_contact) {
+                    continue;
+                }
                 if ($Tag->isSingle()) {
                     $current_values[$Tag->getName()] = $Contact->getId();
                 } else {
@@ -988,8 +1020,17 @@ class WebApp
             $Transaction->addOperations($operations);
             $xdr = $Transaction->build()->toEnvelopeXdrBase64();
         } else {
+            $filter_query = [];
+            if ($single_contact) {
+                $filter_query['id'] = $single_contact;
+            }
+            if ($single_tag) {
+                $filter_query['tag'] = $single_tag;
+            }
+
             SimpleRouter::response()->redirect(
-                SimpleRouter::getUrl('editor', ['id' => $Account->getId()]),
+                SimpleRouter::getUrl('editor', ['id' => $Account->getId()])
+                    . ($filter_query ? '?' . http_build_query($filter_query) : ''),
                 302
             );
         }

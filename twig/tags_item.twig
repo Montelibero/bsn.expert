@@ -1,11 +1,11 @@
 {% extends "page.twig" %}
 
-{% block title %}{{ tag_name }} — Tags{% endblock %}
+{% block title %}{{ tag.name }} — Tags{% endblock %}
 
 {% block breadcrumbs %}
         <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
         <li><a href="/tags/" aria-current="page">{{ 'nav.tags'|trans }}</a></li>
-        <li class="is-active"><a href="#" aria-current="page">{{ tag_name }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ tag.name }}</a></li>
 {% endblock %}
 
 {% block content %}
@@ -14,7 +14,11 @@
                         $(".table").tablesorter();
                 });
         </script>
-<h1 class="title">{{ tag_name }}</h1>
+<h1 class="title">{{ tag.name }}</h1>
+
+        {% if tag.is_editable and session.stellar_id %}
+        <p class="block"><a href="/editor/{{ session.stellar_id }}/?tag={{ tag.name }}">{{ 'tag_page.edit_link'|trans }} →</a></p>
+        {% endif %}
 
         <table class="table" data-sortlist="[[0,0],[1,0]]">
                 <thead>

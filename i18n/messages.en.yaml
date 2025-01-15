@@ -41,6 +41,7 @@ tags_page:
   in: Gets
 
 tag_page:
+  edit_link: Assign this tag to each of your contacts
   source: Source
   target: Target
 

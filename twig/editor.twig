@@ -54,7 +54,10 @@
 
 <p class="block">{{ 'editor.alternative'|trans }} → <a href="https://eurmtl.me/bsn/{{ account.id }}">eurmtl.me/bsn</a></p>
 <form method="post">
+{% if single_contact %}<input type="hidden" name="single_contact" value="{{ single_contact }}">{% endif %}
+{% if single_tag %}<input type="hidden" name="single_tag" value="{{ single_tag }}">{% endif %}
 
+    {% if not single_tag and not single_contact %}
     <div class="block is-hidden" id="tags_selector">
         <p class="block">{{ 'editor.tar_selector.head'|trans }}</p>
         <p class="block">{{ 'editor.tar_selector.select'|trans }}:</p>
@@ -76,6 +79,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     {% for contact in contacts %}
     <h2 class="title is-5">{{ include('account_link.twig', {id: contact.id, name: contact.display_name}, with_context = false) }}</h2>
@@ -103,7 +107,8 @@
     </div>
     {% endfor %}
 
-        <p class="block">Nobody</p>
+{% if not single_tag and not single_contact %}
+<p class="block">Nobody</p>
 <div class="fixed-grid has-auto-count">
     <div class="grid is-gap-1">
 
@@ -125,6 +130,7 @@
         {% endfor %}
     </div>
 </div>
+{% endif %}
 
         <div class="field is-grouped">
             <div class="control">

@@ -41,6 +41,7 @@ tags_page:
   in: Получают
 
 tag_page:
+  edit_link: Проставить этот тег для ваших контактов
   source: Использует
   target: Получает
 

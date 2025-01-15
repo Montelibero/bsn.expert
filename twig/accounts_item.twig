@@ -9,8 +9,14 @@
 {% endblock %}
 
 {% block content %}
-<h1 class="title">{{ display_name }}{% if is_logged %}
-        <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}" href="/contacts/{{ account_id }}"><span class="icon"><i class="fas fa-address-book"></i></span></a>{% endif %}</h1>
+<h1 class="title">{{ display_name }}
+        {% if is_logged %}
+        <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}" href="/contacts/{{ account_id }}"><span class="icon"><i class="fa-regular fa-address-book"></i></span></a>
+        {% if session.stellar_id %}
+        <a class="button is-outlined is-primary" href="/editor/{{ session.stellar_id }}/?id={{ account_id }}"><span class="icon"><i class="fa-regular fa-square-check"></i></span></a>
+        {% endif %}
+        {% endif %}
+</h1>
 <h1 class="subtitle">
         <span class="stellar_address is-family-monospace">{{ account_id }}</span><br>
         Alternative viewers: <a class="tag is-primary" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
