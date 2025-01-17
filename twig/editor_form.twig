@@ -23,6 +23,36 @@
                     maxlength="56"
             />
         </div>
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label" for="tag">Only for tag</label>
+                    <input
+                            id="tag"
+                            class="input"
+                            type="text"
+                            name="tag"
+                            placeholder="TagName"
+                            value="{{ single_tag }}"
+                            maxlength="56"
+                    />
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label" for="contact">Only for contact</label>
+                    <input
+                            id="contact"
+                            class="input"
+                            type="text"
+                            name="contact"
+                            placeholder="G..."
+                            value="{{ single_contact }}"
+                            maxlength="56"
+                    />
+                </div>
+            </div>
+        </div>
         <div class="field is-grouped">
             <div class="control">
                 <input type="reset" class="button is-light" value="Reset">

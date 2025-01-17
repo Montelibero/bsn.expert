@@ -27,14 +27,35 @@ class WebApp
     private StellarSDK $Stellar;
 
     public static array $sort_tags_example = [
-        'Friend', 'Like', 'Dislike',
-        'A', 'B', 'C', 'D',
-        'Spouse', 'Love', 'OneFamily', 'Guardian', 'Ward', 'Sympathy', 'Divorce',
-        'Employer', 'Employee', 'Contractor', 'Client', 'Partnership', 'Collaboration',
-        'OwnershipFull', 'OwnershipMajority', 'OwnerMajority', 'OwnerMinority', 'Owner',
+        'Friend',
+        'Like',
+        'Dislike',
+        'A',
+        'B',
+        'C',
+        'D',
+        'Spouse',
+        'Love',
+        'OneFamily',
+        'Guardian',
+        'Ward',
+        'Sympathy',
+        'Divorce',
+        'Employer',
+        'Employee',
+        'Contractor',
+        'Client',
+        'Partnership',
+        'Collaboration',
+        'OwnershipFull',
+        'OwnershipMajority',
+        'OwnerMajority',
+        'OwnerMinority',
+        'Owner',
         'MyJudge',
         'Signer',
-        'FactionMember', 'WelcomeGuest',
+        'FactionMember',
+        'WelcomeGuest',
     ];
 
     private ?string $default_viewer = null;
@@ -218,7 +239,6 @@ class WebApp
                 $connection = $Contact->jsonSerialize();
                 $connection['bsn_score'] = $Contact->calcBsnScore();
                 $connections[$Contact->getId()] = $connection;
-
             }
         }
 
@@ -298,7 +318,8 @@ class WebApp
                     ];
                 }
             }
-            if (isset($link_data['acc1']) && isset($acc2_tags[$tag_name])) {
+            // isset($link_data['acc1']) &&
+            if (isset($acc2_tags[$tag_name])) {
                 $link_data['acc2'] = [
                     'tag_name' => $Tag->getName(),
                 ];
@@ -381,8 +402,8 @@ class WebApp
     public function Login(): ?string
     {
         if ($_SESSION['telegram'] ?? null) {
-//            SimpleRouter::response()->redirect($_GET['return_to'] ?? '/', 302);
-//            return null;
+            //            SimpleRouter::response()->redirect($_GET['return_to'] ?? '/', 302);
+            //            return null;
         }
 
         $Template = $this->Twig->load('login.twig');
@@ -415,25 +436,22 @@ class WebApp
         ]);
     }
 
-    public static function semantic_sort_keys(array & $data, array $sort_example): void
+    public static function semantic_sort_keys(array &$data, array $sort_example): void
     {
-        uksort($data, function($a, $b) use ($sort_example) {
+        uksort($data, function ($a, $b) use ($sort_example) {
             $indexA = array_search($a, $sort_example);
             $indexB = array_search($b, $sort_example);
 
             // Если оба ключа есть в массиве сортировки
             if ($indexA !== false && $indexB !== false) {
                 return $indexA - $indexB;
-            }
-            // Если ключ A в массиве сортировки, а B нет
+            } // Если ключ A в массиве сортировки, а B нет
             elseif ($indexA !== false) {
                 return -1;
-            }
-            // Если ключ B в массиве сортировки, а A нет
+            } // Если ключ B в массиве сортировки, а A нет
             elseif ($indexB !== false) {
                 return 1;
-            }
-            // Если ни один из ключей не в массиве сортировки, сортируем их по алфавиту
+            } // Если ни один из ключей не в массиве сортировки, сортируем их по алфавиту
             else {
                 return $a <=> $b;
             }
@@ -590,7 +608,6 @@ class WebApp
 
         foreach ($accounts as $AccountResponse) {
             if ($AccountResponse instanceof AccountResponse) {
-
                 foreach ($AccountResponse->getBalances()->toArray() as $Asset) {
                     if (($Asset instanceof AccountBalanceResponse)
                         && $Asset->getAssetCode() === 'MTLAP'
@@ -616,7 +633,6 @@ class WebApp
                 }
             }
         }
-
 
         apcu_store($key, $accounts_to_delegate, 600);
 
@@ -675,12 +691,34 @@ class WebApp
 
     public function EditorForm(): string
     {
+        $single_tag = BSN::validateTagNameFormat($_GET['tag'] ?? null)
+            ? $_GET['tag']
+            : null;
+        $single_contact = BSN::validateStellarAccountIdFormat($_GET['contact'] ?? null)
+            ? $_GET['contact']
+            : null;
+
         if (($id = $_GET['id'] ?? null) && $this->BSN::validateStellarAccountIdFormat($id)) {
-            SimpleRouter::response()->redirect('/editor/' . $id, 302);
+            $filter_query = [];
+            if ($single_tag) {
+                $filter_query['tag'] = $single_tag;
+            }
+            if ($single_contact) {
+                $filter_query['id'] = $single_contact;
+            }
+
+            SimpleRouter::response()->redirect(
+                '/editor/' . $id . '/'
+                . ($filter_query ? '?' . http_build_query($filter_query) : ''),
+                302
+            );
         }
+
         $Template = $this->Twig->load('editor_form.twig');
         return $Template->render([
             'default_id' => $_GET['id'] ?? $_SESSION['stellar_id'] ?? '',
+            'single_tag' => $single_tag,
+            'single_contact' => $single_contact,
         ]);
     }
 
@@ -688,7 +726,7 @@ class WebApp
      * @param Account $Account
      * @return Tag[]
      */
-    private function decideEditableTags(Account $Account) :array
+    private function decideEditableTags(Account $Account): array
     {
         $tags = [];
         foreach ($this->BSN->getTags() as $Tag) {
@@ -706,7 +744,7 @@ class WebApp
             $tags
         );
 
-        usort($tags, function($a, $b) {
+        usort($tags, function ($a, $b) {
             // Получаем названия тегов
             $nameA = $a->getName();
             $nameB = $b->getName();
@@ -743,28 +781,49 @@ class WebApp
     {
         $groups = [
             'Social' => [
-                'Friend', 'Like', 'Dislike',
+                'Friend',
+                'Like',
+                'Dislike',
             ],
             'Credit' => [
-                'A', 'B', 'C', 'D',
+                'A',
+                'B',
+                'C',
+                'D',
             ],
             'Family' => [
-                'Spouse', 'Love', 'OneFamily', 'Guardian', 'Ward',
+                'Spouse',
+                'Love',
+                'OneFamily',
+                'Guardian',
+                'Ward',
             ],
             'Partnership' => [
-                'Employer', 'Employee', 'Contractor', 'Client', 'Partnership', 'Collaboration',
+                'Employer',
+                'Employee',
+                'Contractor',
+                'Client',
+                'Partnership',
+                'Collaboration',
             ],
             'Ownership' => [
-                'Owner', 'OwnershipFull', 'OwnerMajority', 'OwnershipMajority', 'OwnerMinority',
+                'Owner',
+                'OwnershipFull',
+                'OwnerMajority',
+                'OwnershipMajority',
+                'OwnerMinority',
             ],
             'MTLA' => [
-                'FactionMember', 'RecommendToMTLA', 'RecommendForVerification',
+                'FactionMember',
+                'RecommendToMTLA',
+                'RecommendForVerification',
                 'LeaderForMTLA',
             ],
             'Delegation' => [
                 'mtl_delegate',
                 'tfm_delegate',
-                'mtla_c_delegate', 'mtla_a_delegate',
+                'mtla_c_delegate',
+                'mtla_a_delegate',
             ],
             'Other' => [],
         ];
@@ -917,7 +976,7 @@ class WebApp
             }
         }
 
-//        print '<pre>';
+        //        print '<pre>';
 
         // Removed
         $to_remove = [];
@@ -936,8 +995,8 @@ class WebApp
                 }
             }
         }
-//        print "Remove:\n";
-//        print_r($to_remove);
+        //        print "Remove:\n";
+        //        print_r($to_remove);
 
         // Added
         $to_add = [];
@@ -956,8 +1015,8 @@ class WebApp
                 }
             }
         }
-//        print "Add:\n";
-//        print_r($to_add);
+        //        print "Add:\n";
+        //        print_r($to_add);
 
         $last_tag_sufix = [];
         $to_remove_data_keys = [];
@@ -966,26 +1025,30 @@ class WebApp
             if (!$this->BSN::validateStellarAccountIdFormat($value)) {
                 continue;
             }
-            if (!preg_match('/^\s*(?<tag>[a-z0-9_]+?)\s*(:\s*(?<extra>[a-z0-9_]+?))?\s*(?<sufix>\d*)\s*$/i', $key_name, $m)) {
+            if (!preg_match(
+                '/^\s*(?<tag>[a-z0-9_]+?)\s*(:\s*(?<extra>[a-z0-9_]+?))?\s*(?<sufix>\d*)\s*$/i',
+                $key_name,
+                $m
+            )) {
                 continue;
             }
             $tag = $m['tag'] . ($m['extra'] ? ':' . $m['extra'] : '');
-//            var_dump($tag);
+            //            var_dump($tag);
             $last_tag_sufix[$tag] = max($last_tag_sufix[$tag] ?? 0, $m['sufix'] ?: 0);
             if (array_key_exists($tag, $to_remove)) {
                 if (
                     (is_array($to_remove[$tag]) && in_array($value, $to_remove[$tag]))
                     || !is_array($to_remove[$tag])
                 ) {
-//                  print_r($key_name);
+                    //                  print_r($key_name);
                     $to_remove_data_keys[] = $key_name;
                 }
             }
         }
-//        print "Sufixes:\n";
-//        print_r($last_tag_sufix);
-//        print "To remove keys:\n";
-//        print_r($to_remove_data_keys);
+        //        print "Sufixes:\n";
+        //        print_r($last_tag_sufix);
+        //        print "To remove keys:\n";
+        //        print_r($to_remove_data_keys);
 
         $Stellar = $this->Stellar;
 
@@ -1030,7 +1093,7 @@ class WebApp
 
             SimpleRouter::response()->redirect(
                 SimpleRouter::getUrl('editor', ['id' => $Account->getId()])
-                    . ($filter_query ? '?' . http_build_query($filter_query) : ''),
+                . ($filter_query ? '?' . http_build_query($filter_query) : ''),
                 302
             );
         }
@@ -1145,7 +1208,6 @@ class WebApp
 
         $csrf_token = md5(session_id() . 'contacts');
 
-
         $Account = $this->BSN->makeAccountById($account_id);
 
         if (!$_SESSION['telegram']) {
@@ -1159,10 +1221,14 @@ class WebApp
         if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {
                 $ContactsManager->deleteContact($account_id);
-            } else if ($_POST['action'] && $exists_contact) {
-                $ContactsManager->updateContact($account_id, trim($_POST['name']));
-            } else if ($_POST['action'] && !$exists_contact) {
-                $ContactsManager->addContact($account_id, trim($_POST['name']));
+            } else {
+                if ($_POST['action'] && $exists_contact) {
+                    $ContactsManager->updateContact($account_id, trim($_POST['name']));
+                } else {
+                    if ($_POST['action'] && !$exists_contact) {
+                        $ContactsManager->addContact($account_id, trim($_POST['name']));
+                    }
+                }
             }
             SimpleRouter::response()->redirect('/accounts/' . $account_id, 302);
         }
@@ -1179,7 +1245,6 @@ class WebApp
             'is_exists' => (bool) $exists_contact,
             'name' => $name,
         ]);
-
     }
 
     /**
@@ -1241,7 +1306,7 @@ class WebApp
         if (empty($_SERVER['QUERY_STRING']) && !empty($_COOKIE['percent_pay'])) {
             $percent_pay = json_decode($_COOKIE['percent_pay'], true);
             if ($percent_pay) {
-                SimpleRouter::response()->redirect('/tools/percent_pay?'.http_build_query($percent_pay), 302);
+                SimpleRouter::response()->redirect('/tools/percent_pay?' . http_build_query($percent_pay), 302);
             }
         }
 
