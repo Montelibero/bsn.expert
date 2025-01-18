@@ -35,6 +35,9 @@ search:
   action:
     search: Найти
 
+account_page:
+  this_account_and: Этот аккаунт и...
+
 tags_page:
   tag: Тег
   out: Используют

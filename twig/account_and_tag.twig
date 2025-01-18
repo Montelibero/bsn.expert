@@ -1,0 +1,68 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ tag_name }} — And - {{ account_display_name }} — Accounts{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/accounts/" aria-current="page">Accounts</a></li>
+    <li><a href="/accounts/{{ account_id }}" aria-current="page">{{ account_short_id }}</a></li>
+    <li><a href="/accounts/{{ account_id }}/and" aria-current="page">And</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ tag_name }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ account_display_name }}<br>And<br>{{ tag_name }} tag</h1>
+
+    {% if only_paired %}
+    <p class="block">
+        🟢 Only paired contacts, <a href="/accounts/{{ account_id }}/and/{{ tag_name }}">reset</a>.
+    </p>
+    {% endif %}
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Contact</th>
+            <th>Out</th>
+            <th>In</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for link in links %}
+            <tr>
+                <td>{{ include('account_link.twig', {id: link.contact.id, name: link.contact.display_name}, with_context = false) }}</td>
+                <td>{% if link.out %}◉{% else %}◯{% endif %}</td>
+                <td>{% if link.in %}◉{% else %}◯{% endif %}</td>
+                <td>
+                    {% if is_pair %}
+                        {% if link.out and link.in %}
+                            🟢
+                        {% elseif is_pair_strong %}
+                            🔴
+                        {% else %}
+                            🟡
+                        {% endif %}
+                    {% else %}
+                        ·
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <ul class="block">
+        {% if not only_paired %}
+        <li>
+            <a href="/accounts/{{ account_id }}/and/{{ tag_name }}/?only_paired=true">🟢 Display nly paired contacts.</a>
+        </li>
+        {% endif %}
+        <li>
+            <a href="/editor/{{ account_id }}/?tag={{ tag_name }}">✏️ Edit tag «{{ tag_name }}» for <span class="account_name">{{ account_display_name }}</span></a>
+{#            {{ 'account_page.this_account_and'|trans }}#}
+        </li>
+    </ul>
+
+
+{% endblock %}

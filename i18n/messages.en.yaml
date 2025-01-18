@@ -35,6 +35,9 @@ search:
   action:
     search: Find
 
+account_page:
+  this_account_and: This account and...
+
 tags_page:
   tag: Tag
   out: Uses

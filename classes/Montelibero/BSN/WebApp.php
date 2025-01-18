@@ -230,10 +230,14 @@ class WebApp
             return null;
         }
 
+        $tags = [];
         $connections = [];
         /** @var Account[] $contacts */
-        $tags = array_merge($Account->getOutcomeTags(), $Account->getIncomeTags());
-        foreach ($tags as $Tag) {
+        $all_tags = array_merge($Account->getOutcomeTags(), $Account->getIncomeTags());
+        foreach ($all_tags as $Tag) {
+            $tags[$Tag->getName()] = [
+                'name' => $Tag->getName(),
+            ];
             /** @var Account $Contact */
             foreach (array_merge($Account->getOutcomeLinks($Tag), $Account->getIncomeLinks($Tag)) as $Contact) {
                 $connection = $Contact->jsonSerialize();
@@ -248,33 +252,33 @@ class WebApp
             'account_short_id' => $Account->getShortId(),
             'display_name' => $Account->getDisplayName(),
             'connections' => $connections,
+            'tags' => $tags,
         ]);
     }
 
     public function AccountAnd(string $id1, string $id2): ?string
     {
-        $Account1 = null;
-
         if ($this->BSN::validateStellarAccountIdFormat($id1)) {
-            $Account1 = $this->BSN->makeAccountById($id1);
-        }
-
-        if (!$Account1) {
+            $Account = $this->BSN->makeAccountById($id1);
+        } else {
             SimpleRouter::response()->httpCode(404);
             return null;
         }
-
-        $Account2 = null;
 
         if ($this->BSN::validateStellarAccountIdFormat($id2)) {
             $Account2 = $this->BSN->makeAccountById($id2);
-        }
-
-        if (!$Account2) {
+            return $this->AccountAndAccount($Account, $Account2);
+        } else if ($this->BSN::validateTagNameFormat($id2)) {
+            $Tag = $this->BSN->makeTagByName($id2);
+            return $this->AccountAndTag($Account, $Tag);
+        } else {
             SimpleRouter::response()->httpCode(404);
             return null;
         }
+    }
 
+    private function AccountAndAccount(Account $Account1, Account $Account2): ?string
+    {
         /** @var Tag[] $acc1_tags */
         $acc1_tags = [];
         foreach ($Account1->getOutcomeTags() as $OutcomeTag) {
@@ -343,6 +347,55 @@ class WebApp
             'account2_id' => $Account2->getId(),
             'account2_short_id' => $Account2->getShortId(),
             'account2_display_name' => $Account2->getDisplayName(),
+            'links' => $links,
+        ]);
+    }
+
+    private function AccountAndTag(Account $Account, Tag $Tag): ?string
+    {
+        $Template = $this->Twig->load('account_and_tag.twig');
+
+        $PairTag = $Tag->getPair() ?? $Tag;
+        $is_pair = !!$Tag->getPair();
+        $is_pair_strong = $Tag->isPairStrong();
+
+        $links = [];
+        foreach ($Account->getOutcomeLinks($Tag) as $Contact) {
+            $links[$Contact->getId()] = [
+                'contact' => $Contact->jsonSerialize(),
+                'out' => true,
+                'in' => false,
+            ];
+        }
+        foreach ($Account->getIncomeLinks($PairTag) as $Contact) {
+            if (array_key_exists($Contact->getId(), $links)) {
+                $links[$Contact->getId()]['in'] = true;
+            } else {
+                $links[$Contact->getId()] = [
+                    'contact' => $Contact->jsonSerialize(),
+                    'out' => false,
+                    'in' => true,
+                ];
+            }
+        }
+
+        $only_paired = ($_GET['only_paired'] ?? false) && $_GET['only_paired'] === 'true';
+
+        if ($only_paired) {
+            $links = array_filter($links, function ($link) {
+                return $link['in'] && $link['out'];
+            });
+        }
+
+        return $Template->render([
+            'account_id' => $Account->getId(),
+            'account_short_id' => $Account->getShortId(),
+            'account_display_name' => $Account->getDisplayName(),
+            'tag_name' => $Tag->getName(),
+            'tag_pair_name' => $PairTag->getName(),
+            'is_pair' => $is_pair,
+            'is_pair_strong' => $is_pair_strong,
+            'only_paired' => $only_paired,
             'links' => $links,
         ]);
     }

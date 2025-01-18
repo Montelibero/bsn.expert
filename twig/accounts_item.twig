@@ -59,7 +59,7 @@
 
 <div class="columns">
 <div class="column">
-<h2 class="title">Income tags</h2>
+<h2 class="title">Income tags <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-flip-vertical fa-arrow-right-to-bracket" style="transform: scaleX(-1); display: inline-block;"></i></span></h2>
 {% if income_tags %}
 {% for tag in income_tags %}
 <dl class="block">
@@ -77,7 +77,7 @@
 {% endif %}
 </div>
 <div class="column">
-<h2 class="title">Outcome tags</h2>
+<h2 class="title">Outcome tags <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-arrow-right-from-bracket"></i></span></h2>
 {% if outcome_tags %}
 {% for tag in outcome_tags %}
 <dl class="block">
@@ -95,5 +95,8 @@
 {% endif %}
 </div>
 </div>
+{% if income_tags or outcome_tags %}
+<p class="block"><a href="/accounts/{{ account_id }}/and/">🪢 {{ 'account_page.this_account_and'|trans }}</a></p>
+{% endif %}
 
 {% endblock %}

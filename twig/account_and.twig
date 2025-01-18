@@ -16,14 +16,30 @@
     <table class="table">
         <thead>
         <tr>
-            <th>{{ include('account_link.twig', {id: account1_id, name: account1_display_name}, with_context = false) }}</th>
-            <th>{{ include('account_link.twig', {id: account2_id, name: account2_display_name}, with_context = false) }}</th>
+            <th>
+                {{ include('account_link.twig', {id: account1_id, name: account1_display_name}, with_context = false) }}<br>
+                Out tags:
+            </th>
+            <th>Link side</th>
+            <th>
+                {{ include('account_link.twig', {id: account2_id, name: account2_display_name}, with_context = false) }}<br>
+                Out tags:
+            </th>
         </tr>
         </thead>
         <tbody>
         {% for link in links %}
             <tr>
                 <td>{{ link.acc1.tag_name }}</td>
+                <td>
+                    {% if link.acc1.tag_name and link.acc2.tag_name %}
+                        ⇄
+                    {% elseif link.acc1.tag_name %}
+                        ⮕
+                    {% elseif link.acc2.tag_name %}
+                        ⬅
+                    {% endif %}
+                </td>
                 <td>{{ link.acc2.tag_name }}</td>
             </tr>
         {% endfor %}
