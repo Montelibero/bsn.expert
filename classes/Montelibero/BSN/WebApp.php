@@ -200,7 +200,7 @@ class WebApp
         }
         $this::semantic_sort_keys($outcome_tags, $this::$sort_tags_example);
 
-        $Template = $this->Twig->load('accounts_item.twig');
+        $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
@@ -246,7 +246,7 @@ class WebApp
             }
         }
 
-        $Template = $this->Twig->load('account_and_list.twig');
+        $Template = $this->Twig->load('account_and.twig');
         return $Template->render([
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
@@ -339,7 +339,7 @@ class WebApp
             }
         }
 
-        $Template = $this->Twig->load('account_and.twig');
+        $Template = $this->Twig->load('account_and_account.twig');
         return $Template->render([
             'account1_id' => $Account1->getId(),
             'account1_short_id' => $Account1->getShortId(),

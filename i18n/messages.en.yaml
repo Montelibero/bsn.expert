@@ -35,8 +35,59 @@ search:
   action:
     search: Find
 
+accounts:
+  description: >
+    Here are all the accounts that are more or less known to the system. Primarily, these include members of 
+    the Montelibero Association and users of the EURMTL system who have set up a BSN tag or are recipients of one. 
+    Accounts with higher engagement in the BSN network are listed first 
+    (with the degree of involvement indicated in parentheses).
+
 account_page:
+  contact_button:
+    add: Add to contacts
+    edit: Edit the contact
+  edit_button: Edit tags for this account
+  alternatives: Alternative viewers
+  name: Name
+  about: About
+  website: Website
+  income_tags:
+    header: Income tags
+    description: This is how other accounts refer to this one.
+  outcome_tags:
+    header: Outcome tags
+    description: Tags set on this account.
+  no_income_tags: The account has not any income tag.
+  no_outcome_tags: The account has not any outcome tag.
   this_account_and: This account and...
+
+account_and:
+  header: And?
+  description: >
+    The idea is to enable viewing the connection between a specific account and another account or tag in isolation.
+  connections:
+    header: Connections
+    description: Other accounts linked to the main one by tags.
+  tags:
+    header: Tags
+    description: A list of tags set by the account or directed at it.
+
+account_and_account:
+  header: And
+  description: >
+    The connection between two accounts: which tags they have set on each other.
+  link_direction: Links direction
+
+account_and_tag:
+  header: And
+  description: >
+    The connection of an account with others through a specific tag.
+  accounts: Accounts
+  out: Out
+  in: In
+  display_only_paired: Display nly paired accounts.
+  only_paired: Only paired contacts.
+  only_paired_reset: Reset.
 
 tags_page:
   tag: Tag

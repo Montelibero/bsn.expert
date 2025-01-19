@@ -1,6 +1,6 @@
 {% extends "page.twig" %}
 
-{% block title %}Accounts{% endblock %}
+{% block title %}{{ 'nav.accounts'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
@@ -10,7 +10,10 @@
 
 {% block content %}
     <h1 class="title">{{ 'nav.accounts'|trans }}</h1>
-    <ul>
+
+    <p class="block">{{ 'accounts.description'|trans }}</p>
+
+    <ul class="block">
     {% for account in accounts|sort((a, b) => b.bsn_score <=> a.bsn_score) %}
         <li>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}
             {% if account.bsn_score %}

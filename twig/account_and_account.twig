@@ -1,0 +1,53 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ account2_display_name }} — {{ 'account_and_account.header'|trans }} - {{ account1_display_name }} — Accounts{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/accounts/" aria-current="page">Accounts</a></li>
+    <li><a href="/accounts/{{ account1_id }}" aria-current="page">{{ account1_short_id }}</a></li>
+    <li><a href="/accounts/{{ account1_id }}/and" aria-current="page">{{ 'account_and_account.header'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ account2_short_id }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">
+        {{ account1_display_name }}<br>
+        {{ 'account_and_account.header'|trans }}<br>
+        {{ account2_display_name }}
+    </h1>
+
+    <p class="block">{{ 'account_and_account.description'|trans }}</p>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>
+                {{ include('account_link.twig', {id: account1_id, name: account1_display_name}, with_context = false) }}
+            </th>
+            <th>{{ 'account_and_account.link_direction'|trans }}</th>
+            <th>
+                {{ include('account_link.twig', {id: account2_id, name: account2_display_name}, with_context = false) }}
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for link in links %}
+            <tr>
+                <td>{{ link.acc1.tag_name }}</td>
+                <td>
+                    {% if link.acc1.tag_name and link.acc2.tag_name %}
+                        ⇄
+                    {% elseif link.acc1.tag_name %}
+                        ⮕
+                    {% elseif link.acc2.tag_name %}
+                        ⬅
+                    {% endif %}
+                </td>
+                <td>{{ link.acc2.tag_name }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}

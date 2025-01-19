@@ -1,30 +1,37 @@
 {% extends "page.twig" %}
 
-{% block title %}{{ tag_name }} — And - {{ account_display_name }} — Accounts{% endblock %}
+{% block title %}{{ tag_name }} — {{ 'account_and_tag.header'|trans }} - {{ account_display_name }} — Accounts{% endblock %}
 
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">BSN</a></li>
     <li><a href="/accounts/" aria-current="page">Accounts</a></li>
     <li><a href="/accounts/{{ account_id }}" aria-current="page">{{ account_short_id }}</a></li>
-    <li><a href="/accounts/{{ account_id }}/and" aria-current="page">And</a></li>
+    <li><a href="/accounts/{{ account_id }}/and" aria-current="page">{{ 'account_and_tag.header'|trans }}</a></li>
     <li class="is-active"><a href="#" aria-current="page">{{ tag_name }}</a></li>
 {% endblock %}
 
 {% block content %}
-    <h1 class="title">{{ account_display_name }}<br>And<br>{{ tag_name }} tag</h1>
+    <h1 class="title">
+        {{ account_display_name }}<br>
+        {{ 'account_and_tag.header'|trans }}<br>
+        {{ tag_name }}
+    </h1>
+
+    <p class="block">{{ 'account_and_tag.description'|trans }}</p>
 
     {% if only_paired %}
     <p class="block">
-        🟢 Only paired contacts, <a href="/accounts/{{ account_id }}/and/{{ tag_name }}">reset</a>.
+        🟢 {{ 'account_and_tag.only_paired'|trans }}
+        <a href="/accounts/{{ account_id }}/and/{{ tag_name }}">{{ 'account_and_tag.only_paired_reset'|trans }}</a>
     </p>
     {% endif %}
 
     <table class="table">
         <thead>
         <tr>
-            <th>Contact</th>
-            <th>Out</th>
-            <th>In</th>
+            <th>{{ 'account_and_tag.accounts'|trans }}</th>
+            <th>{{ 'account_and_tag.out'|trans }}</th>
+            <th>{{ 'account_and_tag.in'|trans }}</th>
             <th></th>
         </tr>
         </thead>
@@ -55,7 +62,7 @@
     <ul class="block">
         {% if not only_paired %}
         <li>
-            <a href="/accounts/{{ account_id }}/and/{{ tag_name }}/?only_paired=true">🟢 Display nly paired contacts.</a>
+            <a href="/accounts/{{ account_id }}/and/{{ tag_name }}/?only_paired=true">🟢 {{ 'account_and_tag.display_only_paired'|trans }}</a>
         </li>
         {% endif %}
         <li>

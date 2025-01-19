@@ -1,25 +1,31 @@
 {% extends "page.twig" %}
 
-{% block title %}{{ display_name }} — Accounts{% endblock %}
+{% block title %}{{ display_name }} — {{ 'nav.accounts'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
         <li><a href="/" aria-current="page">BSN</a></li>
-        <li><a href="/accounts/" aria-current="page">Accounts</a></li>
+        <li><a href="/accounts/" aria-current="page">{{ 'nav.accounts'|trans }}</a></li>
         <li class="is-active"><a href="#" aria-current="page">{{ account_short_id }}</a></li>
 {% endblock %}
 
 {% block content %}
 <h1 class="title">{{ display_name }}
         {% if is_logged %}
-        <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}" href="/contacts/{{ account_id }}"><span class="icon"><i class="fa-regular fa-address-book"></i></span></a>
+        <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}"
+           href="/contacts/{{ account_id }}"
+           title="{% if is_contact  %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}"
+        ><span class="icon"><i class="fa-regular fa-address-book"></i></span></a>
         {% if session.stellar_id %}
-        <a class="button is-outlined is-primary" href="/editor/{{ session.stellar_id }}/?id={{ account_id }}"><span class="icon"><i class="fa-regular fa-square-check"></i></span></a>
+        <a class="button is-outlined is-primary"
+           href="/editor/{{ session.stellar_id }}/?id={{ account_id }}"
+           title="{{ 'account_page.edit_button'|trans }}"
+        ><span class="icon"><i class="fa-regular fa-square-check"></i></span></a>
         {% endif %}
         {% endif %}
 </h1>
 <h1 class="subtitle">
         <span class="stellar_address is-family-monospace">{{ account_id }}</span><br>
-        Alternative viewers: <a class="tag is-primary" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
+        {{ 'account_page.alternatives'|trans }}: <a class="tag is-primary" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
         <a class="tag is-info" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
         <a class="tag is-warning" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
         <br>
@@ -31,7 +37,7 @@
 {% if name or about or website %}
 <dl class="box">
     {% if name %}
-        <dt class="title is-4">Name</dt>
+        <dt class="title is-4">{{ 'account_page.name'|trans }}</dt>
         <dd class="subtitle is-4">
             {% for item in name %}
                 {{ item }}<br>
@@ -39,7 +45,7 @@
         </dd>
     {% endif %}
     {% if about %}
-        <dt class="title is-4">About</dt>
+        <dt class="title is-4">{{ 'account_page.about'|trans }}</dt>
         <dd class="subtitle is-4">
             {% for item in about %}
                 {{ item }}<br>
@@ -47,7 +53,7 @@
         </dd>
     {% endif %}
     {% if website %}
-        <dt class="title is-4">Website</dt>
+        <dt class="title is-4">{{ 'account_page.website'|trans }}</dt>
         <dd class="subtitle is-4">
             {% for item in website %}
                 <a href="{{ item }}">{{ item }}</a><br>
@@ -59,7 +65,8 @@
 
 <div class="columns">
 <div class="column">
-<h2 class="title">Income tags <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-flip-vertical fa-arrow-right-to-bracket" style="transform: scaleX(-1); display: inline-block;"></i></span></h2>
+<h2 class="title">{{ 'account_page.income_tags.header'|trans }} <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-flip-vertical fa-arrow-right-to-bracket" style="transform: scaleX(-1); display: inline-block;"></i></span></h2>
+<p class="block">{{ 'account_page.income_tags.description'|trans }}</p>
 {% if income_tags %}
 {% for tag in income_tags %}
 <dl class="block">
@@ -73,11 +80,13 @@
 </dl>
 {% endfor %}
 {% else %}
-<p>The account has not any income tag.</p>
+<p>{{ 'account_page.no_income_tags'|trans }}</p>
 {% endif %}
 </div>
+
 <div class="column">
-<h2 class="title">Outcome tags <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-arrow-right-from-bracket"></i></span></h2>
+<h2 class="title">{{ 'account_page.outcome_tags.header'|trans }} <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-arrow-right-from-bracket"></i></span></h2>
+<p class="block">{{ 'account_page.outcome_tags.description'|trans }}</p>
 {% if outcome_tags %}
 {% for tag in outcome_tags %}
 <dl class="block">
@@ -91,7 +100,7 @@
 </dl>
 {% endfor %}
 {% else %}
-<p>The account has not any outcome tag.</p>
+<p>{{ 'account_page.no_outcome_tags'|trans }}</p>
 {% endif %}
 </div>
 </div>
