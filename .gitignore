@@ -1,3 +1,8 @@
 # IntelliJ project files
 .idea
 *.iml
+
+vendor/
+.env
+mtl-observer*
+.DS_Store
