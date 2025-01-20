@@ -48,10 +48,9 @@ class WebApp
         'Partnership',
         'Collaboration',
         'OwnershipFull',
-        'OwnershipMajority',
         'OwnerMajority',
-        'OwnerMinority',
         'Owner',
+        'OwnerMinority',
         'MyJudge',
         'Signer',
         'FactionMember',
@@ -1466,6 +1465,13 @@ class WebApp
             'payer_account' => $payer_account,
             'accounts' => $accounts,
             'transactions' => $transactions,
+        ]);
+    }
+
+    public function Multisig(): string
+    {
+        return $this->Twig->render('tools_multisig.twig', [
+            // 'user' => $this->getUser()
         ]);
     }
 

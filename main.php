@@ -166,5 +166,8 @@ SimpleRouter::match(['get', 'post'], '/defaults', function () use ($WebApp) {
 SimpleRouter::match(['get', 'post'], '/tools/percent_pay', function () use ($WebApp) {
     return $WebApp->PercentPay();
 });
+SimpleRouter::match(['get', 'post'], '/tools/multisig', function () use ($WebApp) {
+    return $WebApp->Multisig();
+});
 
 SimpleRouter::start();
