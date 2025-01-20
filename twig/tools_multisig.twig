@@ -1,0 +1,156 @@
+{% extends "page.twig" %}
+
+{% block title %}Multisig{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="#" aria-current="page">Multisig</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">Мультиподпись</h1>
+    <form action="/tools/multisig" method="get">
+        <h2 class="title is-4">Основное</h2>
+        <div class="field">
+            <label class="label" for="account">Аккаунт</label>
+            <div class="field has-addons">
+                <div class="control is-expanded has-icons-left">
+                    <input
+                            id="account"
+                            class="input"
+                            type="text"
+                            name="account"
+                            placeholder="G..."
+                            value="{{ account_id }}"
+                            maxlength="56"
+                    />
+                    <span class="icon is-left">
+                        <i class="fas fa-user"></i>
+                    </span>
+                </div>
+                <div class="control">
+                    <button class="button is-primary">
+                        Load data
+                    </button>
+                </div>
+            </div>
+            <p class="help">Стеллар аккаунт, для которого редактируется мультиподпись</p>
+        </div>
+        <div class="field">
+            <label class="label" for="account">Лимит для простых операций</label>
+            <div class="control has-icons-left">
+                <input
+                        id="low_threshold"
+                        class="input"
+                        type="number"
+                        min="1"
+                        max="255"
+                        step="1"
+                        name="low_threshold"
+                        placeholder="1"
+                        value="{{ low_threshold }}"
+                        maxlength="3"
+                />
+                <span class="icon is-left has-text-success">
+                    <i class="fas fa-weight-hanging"></i>
+                </span>
+            </div>
+            <p class="help">1-255. Лимит для безопасных операций: Bump sequence, Set trustline flags, Claim claimable balance</p>
+        </div>
+        <div class="field">
+            <label class="label" for="medium_threshold">Лимит основных операций</label>
+            <div class="control has-icons-left">
+                <input
+                        id="medium_threshold"
+                        class="input"
+                        type="number"
+                        min="1"
+                        max="255"
+                        step="1"
+                        name="medium_threshold"
+                        placeholder="1"
+                        value="{{ medium_threshold }}"
+                        maxlength="3"
+                />
+                <span class="icon is-left has-text-warning">
+                    <i class="fas fa-weight-hanging"></i>
+                </span>
+            </div>
+            <p class="help">1-255. Лимит основного блока операций, вроде исходящих платежей</p>
+        </div>
+        <div class="field">
+            <label class="label" for="high_threshold">Лимит для простых операций</label>
+            <div class="control has-icons-left">
+                <input
+                        id="high_threshold"
+                        class="input"
+                        type="number"
+                        min="1"
+                        max="255"
+                        step="1"
+                        name="high_threshold"
+                        placeholder="1"
+                        value="{{ high_threshold }}"
+                        maxlength="3"
+                />
+                <span class="icon is-left has-text-danger">
+                    <i class="fas fa-weight-hanging"></i>
+                </span>
+            </div>
+            <p class="help">1-255. Лимит для двух опасных транзакций: обновление мультиподписи и слияния аккаунта в другой</p>
+        </div>
+
+        <h2 class="title is-4">Участники мультиподписи</h2>
+        {% for i in 1..20 %}
+        <div class="field">
+            <label class="label" for="account_{{ i }}">Участник {{ i }}</label>
+            <div class="field has-addons">
+                <div class="control is-expanded has-icons-left">
+                    <input
+                            id="account_{{ i }}"
+                            class="input"
+                            type="text"
+                            name="account_{{ i }}"
+                            placeholder="G..."
+                            value="{{ accounts[i-1].id|default('') }}"
+                            maxlength="56"
+                    />
+                    <span class="icon is-left">
+                        <i class="fas fa-user"></i>
+                    </span>
+                </div>
+                <div class="control has-icons-left">
+                    <input
+                            id="weight_{{ i }}"
+                            class="input"
+                            type="number"
+                            min="1"
+                            max="255"
+                            step="1"
+                            name="weight_{{ i }}"
+                            placeholder="1"
+                            value="{{ accounts[i-1].weight|default('') }}"
+                            maxlength="3"
+                    />
+                    <span class="icon is-left">
+                        <i class="fas fa-weight-hanging"></i>
+                    </span>
+                </div>
+            </div>
+            <p class="help">Стеллар аккаунт и вес его подписи (1-255)</p>
+        </div>
+        {% endfor %}
+
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="reset" class="button is-light" value="Reset">
+            </div>
+            <div class="control">
+                <input type="submit" class="button is-link" value="Calculate">
+            </div>
+        </div>
+    </form>
+
+{% endblock %}
+
