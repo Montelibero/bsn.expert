@@ -78,7 +78,7 @@ class BSN
 
     public function loadContacts(): void
     {
-        if ($_SESSION['telegram']) {
+        if ($_SESSION['telegram'] ?? false) {
             $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
             foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
                 $Account = $this->makeAccountById($stellar_address);

@@ -1,0 +1,90 @@
+{% extends "page.twig" %}
+
+{% block title %}Токены участия — MTLA{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="#" aria-current="page">Membership distribution</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">Выдача токенов участия</h1>
+
+    {% if error %}
+        <div class="notification is-danger">
+            {{ error|e|nl2br }}
+        </div>
+    {% endif %}
+
+    <form action="/tools/mtla/membership_distribution" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <h2 class="title is-4">Данные</h2>
+        <div class="field">
+            <label class="label" for="accounts">Аккаунты</label>
+            <div class="control">
+                <textarea
+                    id="accounts"
+                    class="textarea"
+                    name="accounts"
+                    placeholder="GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA 2 MTLAC"
+                    rows="5"
+                    style="font-family: monospace;"
+                >{{ accounts }}</textarea>
+                <p class="help">Стеллар адреса, по строке на каждый. По-умолчанию каждому 1 MTLAP, можно через пробел уточнить: 2 MTLAP, 1 MTLAC</p>
+            </div>
+        </div>
+        {# <div class="field">
+            <label class="label" for="source_account">Откуда брать токены</label>
+            <div class="control has-icons-left">
+                <div class="control">
+                    <div class="select">
+                        <select name="source_account" id="source_account">
+                            <option value="secretary" {% if source_account == 'secretary' %}selected{% endif %}>Секретариат</option>
+                            <option value="mtla" {% if source_account == 'mtla' %}selected{% endif %}>Ассоциация</option>
+                        </select>
+                    </div>
+                </div>
+                <span class="icon is-left">
+                    <i class="fas fa-credit-card"></i>
+                </span>
+            </div>
+            <p class="help">За чей счет праздник: малая мультиподпись секретариата, или эмиссия Советом.</p>
+        </div> #}
+        <div class="field">
+            <label class="label" for="memo">Мемо транзакции</label>
+            <div class="control has-icons-left">
+                <input
+                        id="memo"
+                        class="input"
+                        type="text"
+                        name="memo"
+                        placeholder="Some text"
+                        value="{{ memo }}"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-comment"></i>
+                </span>
+            </div>
+            <p class="help">Что запишем в блокчейне. Для секретариата обычно дефолтно, для Совета — MTLA и номер решения</p>
+        </div>
+
+        {% if transaction %}
+        <h2 class="title is-4">Итог</h2>
+        <div class="notification is-info">
+            {{ sign_tools_url }}
+        </div>
+        {% endif %}
+
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="reset" class="button is-light" value="Reset">
+            </div>
+            <div class="control">
+                <input type="submit" class="button is-link" value="Calculate">
+            </div>
+        </div>
+    </form>
+
+{% endblock %}
+

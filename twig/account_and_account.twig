@@ -50,4 +50,15 @@
         </tbody>
     </table>
 
+    <ul class="block">
+        {% if not only_paired %}
+        <li>
+            <a href="/accounts/{{ account_id }}/and/{{ tag_name }}/?only_paired=true">🟢 {{ 'account_and_tag.display_only_paired'|trans }}</a>
+        </li>
+        {% endif %}
+        <li>
+            <a href="/editor/{{ account_id }}/?tag={{ tag_name }}">✏️ Edit tag «{{ tag_name }}» for <span class="account_name">{{ account_display_name }}</span></a>
+{#            {{ 'account_page.this_account_and'|trans }}#}
+        </li>
+    </ul>
 {% endblock %}

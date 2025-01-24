@@ -1,7 +1,9 @@
 <?php
 
+use DI\ContainerBuilder;
 use Dotenv\Dotenv;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
@@ -37,18 +39,42 @@ $BSN->makeTagByName('LeaderForMTLA')->isSingle(true);
 
 // Standards tags
 $standard_tags = [
-    'A', 'B', 'C', 'D',
-    'Spouse', 'Love', 'OneFamily', 'Guardian', 'Ward', 'Sympathy', 'Divorce',
-    'Employer', 'Employee', 'Contractor', 'Client', 'Partnership', 'Collaboration',
-    'Owner', 'OwnershipFull', 'OwnerMajority', 'OwnershipMajority', 'OwnerMinority',
-    'FactionMember', 'WelcomeGuest',
+    'A',
+    'B',
+    'C',
+    'D',
+    'Spouse',
+    'Love',
+    'OneFamily',
+    'Guardian',
+    'Ward',
+    'Sympathy',
+    'Divorce',
+    'Employer',
+    'Employee',
+    'Contractor',
+    'Client',
+    'Partnership',
+    'Collaboration',
+    'Owner',
+    'OwnershipFull',
+    'OwnerMajority',
+    'OwnershipMajority',
+    'OwnerMinority',
+    'FactionMember',
+    'WelcomeGuest',
 ];
 foreach ($standard_tags as $tag_name) {
     $BSN->makeTagByName($tag_name)->isStandard(true);
 }
 $promoted_tags = [
-    'Friend', 'Like', 'Dislike', 'MyJudge',
-    'ResidentME', 'MyPart', 'PartOf'
+    'Friend',
+    'Like',
+    'Dislike',
+    'MyJudge',
+    'ResidentME',
+    'MyPart',
+    'PartOf'
 ];
 foreach ($promoted_tags as $tag_name) {
     $BSN->makeTagByName($tag_name)->isPromote(true);
@@ -63,7 +89,8 @@ foreach ($known_tags['links'] as $link_name => $link_data) {
 }
 
 $functional_tags = [
-    'Owner', 'OwnershipFull',
+    'Owner',
+    'OwnershipFull',
     'FactionMember',
 ];
 
@@ -102,72 +129,12 @@ $Twig->addExtension(new TwigPluralizeExtension($Translator));
 
 $WebApp = new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance(), $Translator);
 
-$Router = new SimpleRouter();
+$ContainerBuilder = new ContainerBuilder();
+$ContainerBuilder->addDefinitions([
+    WebApp::class => new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance(), $Translator),
+]);
+$Container = $ContainerBuilder->build();
 
-SimpleRouter::get('/', function () use ($WebApp) {
-    return $WebApp->Index();
-})->name('root');
-SimpleRouter::get('/tg', function () use ($WebApp) {
-    return $WebApp->TgLogin();
-});
-SimpleRouter::get('/tg/logout', function () use ($WebApp) {
-    return $WebApp->TgLogout();
-});
-SimpleRouter::get('/login', function () use ($WebApp) {
-    return $WebApp->Login();
-});
-SimpleRouter::get('/search/', function () use ($WebApp) {
-    return $WebApp->Search();
-});
-SimpleRouter::get('/accounts/', function () use ($WebApp) {
-    return $WebApp->Accounts();
-});
-SimpleRouter::get('/accounts/{id}', function ($id) use ($WebApp) {
-    return $WebApp->Account($id);
-})->name('account');
-SimpleRouter::get('/accounts/{id}/and', function ($id) use ($WebApp) {
-    return $WebApp->AccountAndList($id);
-})->name('account_and_list');
-SimpleRouter::get('/accounts/{id1}/and/{id2}', function ($id1, $id2) use ($WebApp) {
-    return $WebApp->AccountAnd($id1, $id2);
-})->name('account_and');
-SimpleRouter::get('/tags/', function () use ($WebApp) {
-    return $WebApp->Tags();
-});
-SimpleRouter::get('/tags/{id}', function ($id) use ($WebApp) {
-    return $WebApp->Tag($id);
-})->name('tag');
-SimpleRouter::group(['prefix' => '/mtla'], function() use ($WebApp) {
-    SimpleRouter::get('/', function () use ($WebApp) {
-        return $WebApp->Mtla();
-    });
-    SimpleRouter::get('/council', function () use ($WebApp) {
-        return $WebApp->MtlaCouncil();
-    });
-});
-SimpleRouter::get('/editor/', function () use ($WebApp) {
-    return $WebApp->EditorForm();
-});
-SimpleRouter::get('/editor/{id}', function ($id) use ($WebApp) {
-    return $WebApp->Editor($id);
-})->name('editor');
-SimpleRouter::post('/editor/{id}', function ($id) use ($WebApp) {
-    return $WebApp->EditorSave($id);
-});
-SimpleRouter::match(['get', 'post'], '/contacts/{id}', function ($id) use ($WebApp) {
-    return $WebApp->ContactsEdit($id);
-});
-SimpleRouter::match(['get', 'post'], '/contacts', function () use ($WebApp) {
-    return $WebApp->Contacts();
-});
-SimpleRouter::match(['get', 'post'], '/defaults', function () use ($WebApp) {
-    return $WebApp->Defaults();
-});
-SimpleRouter::match(['get', 'post'], '/tools/percent_pay', function () use ($WebApp) {
-    return $WebApp->PercentPay();
-});
-SimpleRouter::match(['get', 'post'], '/tools/multisig', function () use ($WebApp) {
-    return $WebApp->Multisig();
-});
+RootRoutes::register($Container);
 
 SimpleRouter::start();
