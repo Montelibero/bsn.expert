@@ -3,7 +3,7 @@
 namespace Montelibero\BSN\Routes;
 
 use DI\Container;
-use Montelibero\BSN\WebApp;
+use Montelibero\BSN\Controllers\MtlaController;
 use Pecee\SimpleRouter\SimpleRouter;
 
 class MtlaRouter
@@ -11,11 +11,11 @@ class MtlaRouter
     public static function register(Container $Container): void
     {
         SimpleRouter::get('/', function () use ($Container) {
-            return $Container->get(WebApp::class)->Mtla();
+            return $Container->get(MtlaController::class)->Mtla();
         });
 
         SimpleRouter::get('/council', function () use ($Container) {
-            return $Container->get(WebApp::class)->MtlaCouncil();
+            return $Container->get(MtlaController::class)->MtlaCouncil();
         });
     }
 }

@@ -1,8 +1,17 @@
 <?php
 
+use DI\Container;
 use DI\ContainerBuilder;
 use Dotenv\Dotenv;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\Controllers\AccountsController;
+use Montelibero\BSN\Controllers\ContactsController;
+use Montelibero\BSN\Controllers\EditorController;
+use Montelibero\BSN\Controllers\MembershipDistributionController;
+use Montelibero\BSN\Controllers\MtlaController;
+use Montelibero\BSN\Controllers\MultisigController;
+use Montelibero\BSN\Controllers\PercentPayController;
+use Montelibero\BSN\Controllers\TagsController;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
@@ -14,6 +23,8 @@ use Symfony\Component\Translation\Loader\YamlFileLoader;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
+
+use function DI\autowire;
 
 include_once __DIR__ . '/vendor/autoload.php';
 
@@ -92,6 +103,8 @@ $functional_tags = [
     'Owner',
     'OwnershipFull',
     'FactionMember',
+    'RecommendToMTLA',
+    'RecommendForVerification',
 ];
 
 session_name("HELLOKITTY");
@@ -111,27 +124,48 @@ $BSN->loadContacts();
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
 
-$Twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'));
-$Twig->addExtension(new TwigExtension());
-
-$locale = 'en';
-if (stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false) {
-    $locale = 'ru';
-}
-$Translator = new Translator($locale); // Указываем текущий язык
-$Translator->addLoader('yaml', new YamlFileLoader());
-$Translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');
-$Translator->addResource('yaml', __DIR__ . '/i18n/messages.en.yaml', 'en');
-$Translator->setFallbackLocales(['en']);
-
-$Twig->addExtension(new TranslationExtension($Translator));
-$Twig->addExtension(new TwigPluralizeExtension($Translator));
-
-$WebApp = new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance(), $Translator);
-
 $ContainerBuilder = new ContainerBuilder();
 $ContainerBuilder->addDefinitions([
-    WebApp::class => new WebApp($BSN, $Twig, StellarSDK::getPublicNetInstance(), $Translator),
+    // Базовые сервисы
+    BSN::class => $BSN,
+
+    Translator::class => function() {
+        $locale = 'en';
+        if (stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false) {
+            $locale = 'ru';
+        }
+        $translator = new Translator($locale);
+        $translator->addLoader('yaml', new YamlFileLoader());
+        $translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');
+        $translator->addResource('yaml', __DIR__ . '/i18n/messages.en.yaml', 'en');
+        $translator->setFallbackLocales(['en']);
+        
+        return $translator;
+    },
+
+    Environment::class => function(Container $container) {
+        $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'));
+        $twig->addExtension(new TwigExtension());
+        $twig->addExtension(new TranslationExtension($container->get(Translator::class)));
+        $twig->addExtension(new TwigPluralizeExtension($container->get(Translator::class)));
+        
+        return $twig;
+    },
+
+    StellarSDK::class => function() {
+        return StellarSDK::getPublicNetInstance();
+    },
+
+    WebApp::class => autowire(),
+
+    AccountsController::class => autowire(),
+    EditorController::class => autowire(),
+    ContactsController::class => autowire(),
+    TagsController::class => autowire(),
+    MembershipDistributionController::class => autowire(),
+    MtlaController::class => autowire(),
+    PercentPayController::class => autowire(),
+    MultisigController::class => autowire(),
 ]);
 $Container = $ContainerBuilder->build();
 

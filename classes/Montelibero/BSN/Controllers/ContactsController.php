@@ -1,0 +1,151 @@
+<?php
+
+namespace Montelibero\BSN\Controllers;
+
+use Montelibero\BSN\BSN;
+use Montelibero\BSN\ContactsManager;
+use Pecee\SimpleRouter\SimpleRouter;
+use Symfony\Component\Translation\Translator;
+use Twig\Environment;
+
+class ContactsController
+{
+    private BSN $BSN;
+    private Environment $Twig;
+    private Translator $Translator;
+
+    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator)
+    {
+        $this->BSN = $BSN;
+
+        $this->Twig = $Twig;
+        $this->Twig->addGlobal('session', $_SESSION);
+        $this->Twig->addGlobal('server', $_SERVER);
+
+        $this->Translator = $Translator;
+    }
+
+    public function Contacts(): ?string
+    {
+        if (!$_SESSION['telegram']) {
+            SimpleRouter::response()->redirect('/tg/', 302);
+        }
+
+        $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+
+        $contacts = $ContactsManager->getContacts();
+
+        foreach ($contacts as $stellar_account => &$contact) {
+            $Account = $this->BSN->makeAccountById($stellar_account);
+            $contact = $Account->jsonSerialize() + $contact;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            foreach ($contacts as & $item) {
+                if (!isset($_POST['update_' . $item['id']])) {
+                    continue;
+                }
+
+                $given_name = trim($_POST['name_' . $item['id']] ?? '') ?: null;
+                if ($item['name'] !== $given_name) {
+                    $item['name'] = $given_name;
+                    $ContactsManager->updateContact($item['id'], $given_name);
+                }
+            }
+            unset($item);
+
+            if (
+                ($_POST['new_stellar_account_1'] ?? null)
+                && BSN::validateStellarAccountIdFormat($_POST['new_stellar_account_1'])
+                && !array_key_exists($_POST['new_stellar_account_1'], $contacts)
+            ) {
+                $ContactsManager->addContact($_POST['new_stellar_account_1'], $_POST['new_name_1']);
+            }
+
+            if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
+                $duplicates = $_POST['duplicates'] ?? 'ignore';
+                $data = file_get_contents($_FILES['import_file']['tmp_name']);
+                $data = json_decode($data, true);
+                if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+                    $data = [];
+                }
+                foreach ($data as $address => $item) {
+                    $name = is_array($item) && array_key_exists('name', $item) ? $item['name'] : $item;
+                    if (array_key_exists($address, $contacts)) {
+                        if ($duplicates === 'update' && $name !== $contacts[$address]['name']) {
+                            $ContactsManager->updateContact($address, $name);
+                        }
+                    } else {
+                        $ContactsManager->addContact($address, $name ?: null);
+                    }
+                }
+            }
+
+            SimpleRouter::response()->redirect('/contacts', 302);
+        }
+
+        if (($_GET['export'] ?? null) === 'json') {
+            header('Content-Disposition: attachment; filename="contacts.json"');
+            header('Content-Type: application/json');
+
+            $formatted_contacts = array_map(function ($contact) {
+                $item = [];
+                if ($contact['name']) {
+                    $item['label'] = $contact['name'];
+                }
+                return $item;
+            }, $contacts);
+
+            return json_encode($formatted_contacts, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        } else {
+            $Template = $this->Twig->load('contacts.twig');
+            return $Template->render([
+                'contacts' => $contacts,
+            ]);
+        }
+    }
+
+    public function ContactsEdit($account_id): ?string
+    {
+        if (!$this->BSN::validateStellarAccountIdFormat($account_id)) {
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        }
+
+        $csrf_token = md5(session_id() . 'contacts');
+
+        $Account = $this->BSN->makeAccountById($account_id);
+
+        if (!$_SESSION['telegram']) {
+            SimpleRouter::response()->redirect('/tg/', 302);
+        }
+
+        $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+
+        $exists_contact = $ContactsManager->getContact($account_id);
+
+        if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
+            if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {
+                $ContactsManager->deleteContact($account_id);
+            } elseif ($_POST['action'] && $exists_contact) {
+                $ContactsManager->updateContact($account_id, trim($_POST['name']));
+            } elseif ($_POST['action'] && !$exists_contact) {
+                $ContactsManager->addContact($account_id, trim($_POST['name']));
+            }
+            SimpleRouter::response()->redirect('/accounts/' . $account_id, 302);
+        }
+
+        $name = $Account->getName() ? $Account->getName()[0] : '';
+        if ($exists_contact && isset($exists_contact['name']) && $exists_contact['name']) {
+            $name = $exists_contact['name'];
+        }
+
+        $Template = $this->Twig->load('contact_edit.twig');
+        return $Template->render([
+            'account' => $Account->jsonSerialize(),
+            'csrf_token' => $csrf_token,
+            'is_exists' => (bool) $exists_contact,
+            'name' => $name,
+        ]);
+    }
+}

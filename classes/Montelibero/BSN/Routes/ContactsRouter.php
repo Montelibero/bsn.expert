@@ -3,7 +3,7 @@
 namespace Montelibero\BSN\Routes;
 
 use DI\Container;
-use Montelibero\BSN\WebApp;
+use Montelibero\BSN\Controllers\ContactsController;
 use Pecee\SimpleRouter\SimpleRouter;
 
 class ContactsRouter
@@ -11,11 +11,11 @@ class ContactsRouter
     public static function register(Container $Container): void
     {
         SimpleRouter::match(['get', 'post'], '/', function () use ($Container) {
-            return $Container->get(WebApp::class)->Contacts();
+            return $Container->get(ContactsController::class)->Contacts();
         });
 
         SimpleRouter::match(['get', 'post'], '/{id}', function ($id) use ($Container) {
-            return $Container->get(WebApp::class)->ContactsEdit($id);
+            return $Container->get(ContactsController::class)->ContactsEdit($id);
         });
     }
 } 
