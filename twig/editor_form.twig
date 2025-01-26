@@ -9,10 +9,43 @@
 
 
 {% block content %}
+    <style>
+        .clickable {
+            cursor: pointer;
+        }
+    </style>
+
+    <script>
+    $(document).ready(function() {
+        const $for_tag = $('#tag');
+        const $for_contact = $('#contact');
+        const $additional_options_title = $('#additional_options_title');
+        const $additional_options_content = $('#additional_options_content');
+
+        const initial_open_state = $for_tag.val() !== '' || $for_contact.val() !== '';
+
+        $additional_options_content.toggle(initial_open_state);
+
+        $additional_options_title
+            .find('.icon')
+                .removeClass('is-hidden')
+            .find('i')
+                .toggleClass('fa-angle-down', initial_open_state)
+                .toggleClass('fa-angle-right', !initial_open_state);
+        $additional_options_title.addClass('clickable');
+
+        $additional_options_title.on('click', function() {
+            $additional_options_content.slideToggle();
+            $additional_options_title.find('i')
+                .toggleClass('fa-angle-down')
+                .toggleClass('fa-angle-right');
+        });
+    });
+    </script>
     <h1 class="title">{{ 'nav.editor'|trans }}</h1>
     <form action="/editor/">
         <div class="field">
-            <label class="label" for="stellar_account_id">Stellar account</label>
+            <label class="label" for="stellar_account_id">{{ 'editor.stellar_account'|trans }}</label>
             <input
                     id="stellar_account_id"
                     class="input"
@@ -22,11 +55,13 @@
                     value="{{ default_id }}"
                     maxlength="56"
             />
+            <p class="help">{{ 'editor.form.stellar_account_help'|trans }}</p>
         </div>
-        <div class="columns">
+    <h2 class="title is-5" id="additional_options_title"><span class="icon is-hidden"><i class="fas fa-angle-down"></i></span>{{ 'editor.form.additional_options'|trans }}</h2>
+        <div class="columns" id="additional_options_content">
             <div class="column">
                 <div class="field">
-                    <label class="label" for="tag">Only for tag</label>
+                    <label class="label" for="tag">{{ 'editor.form.tag_only'|trans }}</label>
                     <input
                             id="tag"
                             class="input"
@@ -37,10 +72,11 @@
                             maxlength="56"
                     />
                 </div>
+                <p class="help">{{ 'editor.form.tag_help'|trans }}</p>
             </div>
             <div class="column">
                 <div class="field">
-                    <label class="label" for="contact">Only for contact</label>
+                    <label class="label" for="contact">{{ 'editor.form.contact_only'|trans }}</label>
                     <input
                             id="contact"
                             class="input"
@@ -51,6 +87,7 @@
                             maxlength="56"
                     />
                 </div>
+                <p class="help">{{ 'editor.form.contact_help'|trans }}</p>
             </div>
         </div>
         <div class="field is-grouped">

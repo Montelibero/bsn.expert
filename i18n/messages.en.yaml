@@ -112,6 +112,16 @@ mtla_council_page:
   ready: Ready to be council
 
 editor:
+  form:
+    stellar_account_help: >
+      The account for which you are editing tags. It can be your own, or any other.
+    additional_options: Additional options
+    tag_only: Only for tag
+    tag_help: >
+      If you specify a certain tag here, the form will open only for editing this tag.
+    contact_only: Only for account
+    contact_help: >
+      If you specify a certain account here, the form will open in editing mode for editing tags relative to this account.
   stellar_account: Stellar account
   reset: Reset
   edit: Edit
