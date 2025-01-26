@@ -46,8 +46,11 @@ class RootRoutes
             ToolsRouter::register($Container);
         });
 
-        SimpleRouter::match(['get', 'post'], '/defaults', function () use ($Container) {
-            return $Container->get(WebApp::class)->Defaults();
+        SimpleRouter::match(['get', 'post'], '/preferences', function () use ($Container) {
+            return $Container->get(WebApp::class)->Preferences();
+        });
+        SimpleRouter::get('/defaults', function() {
+            SimpleRouter::response()->redirect('/preferences', 301);
         });
     }
 }

@@ -11,7 +11,7 @@ nav:
   mtla: MTLA
   council: Council
   contacts: Contacts
-  defaults: Defaults
+  preferences: Preferences
   login: Login
   logout: Logout
 
@@ -25,6 +25,14 @@ login:
     The site offers some features that are only available to authorized users.
     First of all, it is a convenient contact book compatible with Sunce Wallet.
     Also, verified members of the Montelibero Association can see the Telegram usernames of other members.
+
+preferences:
+  description: >
+    Your preferences that we save in cookies.
+  default_viewer:
+    header: Default BSN viewer
+    description: >
+      The choice of default viewer that will open when navigating to a direct account page link.
 
 search:
   not_found: Could not find anything 🤷‍♂️

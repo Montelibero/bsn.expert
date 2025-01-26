@@ -1,24 +1,23 @@
 {% extends "page.twig" %}
 
-{% block title %}Defaults{% endblock %}
+{% block title %}{{ 'nav.preferences'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">BSN</a></li>
-    <li class="is-active"><a href="#" aria-current="page">Defaults</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.preferences'|trans }}</a></li>
 {% endblock %}
 
 
 {% block content %}
-    <h1 class="title">Defaults</h1>
+    <h1 class="title">{{ 'nav.preferences'|trans }}</h1>
 
     <p class="block">
-        A cookie-based setting that allows selecting which viewer will open
-        when directly navigating to account page links.
+        {{ 'preferences.description'|trans }}
     </p>
 
-    <form action="/defaults" method="post">
+    <form action="/preferences" method="post">
         <div class="field">
-            <label class="label" for="default_bsn_viewer">Default BSN viewer</label>
+            <label class="label" for="default_bsn_viewer">{{ 'preferences.default_viewer.header'|trans }}</label>
             <div class="control">
                 <div class="select">
                     <select id="default_bsn_viewer" name="viewer">
@@ -27,6 +26,7 @@
                     </select>
                 </div>
             </div>
+            <p class="help">{{ 'preferences.default_viewer.description'|trans }}</p>
         </div>
 
         <div class="field is-grouped">

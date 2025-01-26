@@ -179,7 +179,7 @@ class WebApp
         });
     }
 
-    public function Defaults(): ?string
+    public function Preferences(): ?string
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $variants = ['this', 'brainbox'];
@@ -197,10 +197,10 @@ class WebApp
                     "samesite" => "Strict"
                 ]
             );
-            SimpleRouter::response()->redirect('/defaults', 302);
+            SimpleRouter::response()->redirect('/preferences', 302);
         }
 
-        $Template = $this->Twig->load('defaults.twig');
+        $Template = $this->Twig->load('preferences.twig');
         return $Template->render([
             'current_value' => $this->default_viewer,
         ]);
