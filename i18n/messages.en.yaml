@@ -99,8 +99,8 @@ account_and_tag:
 
 tags_page:
   tag: Tag
-  out: Uses
-  in: Gets
+  out: Source
+  in: Destination
 
 tag_page:
   edit_link: Assign this tag to each of your contacts

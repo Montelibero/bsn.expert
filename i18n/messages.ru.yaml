@@ -98,8 +98,8 @@ account_and_tag:
 
 tags_page:
   tag: Тег
-  out: Используют
-  in: Получают
+  out: Источник
+  in: Адресат
 
 tag_page:
   edit_link: Проставить этот тег для ваших контактов
