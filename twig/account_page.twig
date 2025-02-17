@@ -71,10 +71,10 @@
 {% for tag in income_tags %}
 <dl class="block">
         <dt class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
-        {% for link in tag.links %}
+        {% for account_id, link in tag.links %}
                 <dd>
                 {% if tag.pair %}{% if link.has_pair %}🟢{% elseif tag.pair_strong %}🔴{% else %}🟡{% endif %}{% else %}⚪️{% endif %}
-                {{ include('account_link.twig', {id: link.account.id, name: link.account.display_name}, with_context = false) }}
+                {{ include('account_link.twig', {id: account_id, name: link.display_name}, with_context = false) }}
                 </dd>
         {% endfor %}
 </dl>
@@ -91,10 +91,10 @@
 {% for tag in outcome_tags %}
 <dl class="block">
         <dt class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
-        {% for link in tag.links %}
+        {% for account_id, link in tag.links %}
                 <dd>
                 {% if tag.pair %}{% if link.has_pair %}🟢{% elseif tag.pair_strong %}🔴{% else %}🟡{% endif %}{% else %}⚪️{% endif %}
-                {{ include('account_link.twig', {id: link.account.id, name: link.account.display_name}, with_context = false) }}
+                {{ include('account_link.twig', {id: account_id, name: link.display_name}, with_context = false) }}
                 </dd>
         {% endfor %}
 </dl>

@@ -174,8 +174,9 @@ class AccountsController
                 'links' => [],
             ];
             foreach ($Account->getIncomeLinks($Tag) as $LinkAccount) {
-                $tag_data['links'][] = [
-                    'account' => $LinkAccount->jsonSerialize(),
+                $tag_data['links'][$LinkAccount->getId()] = [
+                    'short_id' => $LinkAccount->getShortId(),
+                    'display_name' => $LinkAccount->getDisplayName(),
                     'has_pair' => $Pair && in_array($LinkAccount, $Account->getOutcomeLinks($Pair)),
                 ];
             }
@@ -193,14 +194,42 @@ class AccountsController
                 'links' => [],
             ];
             foreach ($Account->getOutcomeLinks($Tag) as $LinkAccount) {
-                $tag_data['links'][] = [
-                    'account' => $LinkAccount->jsonSerialize(),
+                $tag_data['links'][$LinkAccount->getId()] = [
+                    'short_id' => $LinkAccount->getShortId(),
+                    'display_name' => $LinkAccount->getDisplayName(),
                     'has_pair' => $Pair && in_array($LinkAccount, $Account->getIncomeLinks($Pair)),
                 ];
             }
             $outcome_tags[$Tag->getName()] = $tag_data;
         }
         WebApp::semantic_sort_keys($outcome_tags, $this::$sort_tags_example);
+
+        if ($_SERVER['HTTP_ACCEPT'] === 'application/json' || $_GET['format'] ?? '' === 'json') {
+            if (!empty($_GET['tag']) && BSN::validateTagNameFormat($_GET['tag'])) {
+                $FilterTag = $this->BSN->makeTagByName($_GET['tag']);
+                $FilterPairTag = $FilterTag->getPair();
+                $filter_tags = function ($key) use ($FilterTag, $FilterPairTag) {
+                    return $key === $FilterTag->getName() || ($FilterPairTag && $key === $FilterPairTag->getName());
+                };
+                $outcome_tags = array_filter($outcome_tags, $filter_tags, ARRAY_FILTER_USE_KEY);
+                $income_tags = array_filter($income_tags, $filter_tags, ARRAY_FILTER_USE_KEY);
+            }
+            $result = [
+                'account' => $Account->jsonSerialize(),
+                'self_presentation' => [
+                    'name' => $Account->getName(),
+                    'about' => $Account->getAbout(),
+                    'website' => $Account->getWebsite(),
+                ],
+                'links' => [
+                    'outcome' => $outcome_tags,
+                    'income' => $income_tags,
+                ],
+            ];
+
+            header('Content-type: application/json');
+            return json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
 
         $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
