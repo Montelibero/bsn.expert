@@ -18,7 +18,7 @@ class ToolsRouter
 
         SimpleRouter::match(['get', 'post'], '/multisig', function () use ($Container) {
             return $Container->get(MultisigController::class)->Multisig();
-        });
+        })->name('multisig');
 
         SimpleRouter::match(['get', 'post'], '/mtla/membership_distribution', function () use ($Container) {
             return $Container->get(MembershipDistributionController::class)->MtlaMembershipDistribution();

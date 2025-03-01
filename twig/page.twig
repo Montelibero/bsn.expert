@@ -3,6 +3,18 @@
     <title>{% block title %}{% endblock %} — BSN viewer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% if og_title %}
+    <meta property="og:type" content="profile" />
+    <meta property="og:site_name" content="{{ 'common.full_name'|trans }}" />
+    <meta property="og:image" content="https://bsn.mtla.me/images/og_title_common.png" />
+    <meta property="og:title" content="{{ og_title }}" />
+    {%  if og_url %}
+        <meta property="og:url" content="https://bsn.mtla.me{{ og_url }}" />
+    {% endif %}
+    {%  if og_description %}
+        <meta property="og:description" content="{{ og_description }}" />
+    {% endif %}
+    {% endif %}
     <script src="/jquery-3.7.1.min.js"></script>
     <script src="/jquery.tablesorter.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">

@@ -71,6 +71,7 @@ class AccountsController
         try {
             // Пробуем создать объект URL из строки
             $uri = Http::new($url);
+//            var_dump($uri);
 
             // Проверяем, содержит ли URL хотя бы хост
             if (!$uri->getHost()) {
@@ -233,6 +234,7 @@ class AccountsController
 
         $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
+            'canonical_url' => SimpleRouter::getUrl('account', ['id' => $Account->getId()]),
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
             'display_name' => $Account->getDisplayName(),

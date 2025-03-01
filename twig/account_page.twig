@@ -1,6 +1,9 @@
 {% extends "page.twig" %}
 
 {% block title %}{{ display_name }} — {{ 'nav.accounts'|trans }}{% endblock %}
+{% set og_title = display_name %}
+{% set og_description = about|join(' ') %}
+{% set og_url = canonical_url %}
 
 {% block breadcrumbs %}
         <li><a href="/" aria-current="page">BSN</a></li>
@@ -109,3 +112,4 @@
 {% endif %}
 
 {% endblock %}
+
