@@ -10,7 +10,27 @@
 
 {% block content %}
     <h1 class="title">Мультиподпись</h1>
-    <form action="/tools/multisig" method="get">
+    {% if errors %}
+        <div class="notification is-danger">
+            <h2 class="title is-4">Найдены ошибки</h2>
+            {% for error in errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if save %}
+        <div class="notification is-info">
+            <h2 class="title is-4">Готовая транзакция:</h2>
+            {% if xdr %}
+            <code>{{ xdr }}</code>
+            {% else %}
+            <p class="block">У вас тут в итоге нечего менять</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <form action="/tools/multisig" method="post">
         <h2 class="title is-4">Основное</h2>
         <div class="field">
             <label class="label" for="account">Аккаунт</label>
@@ -22,7 +42,7 @@
                             type="text"
                             name="account"
                             placeholder="G..."
-                            value="{{ account_id }}"
+                            value="{{ account }}"
                             maxlength="56"
                     />
                     <span class="icon is-left">
@@ -30,13 +50,21 @@
                     </span>
                 </div>
                 <div class="control">
-                    <button class="button is-primary">
+                    <button name="action" value="load" class="button is-primary">
                         Load data
                     </button>
                 </div>
             </div>
             <p class="help">Стеллар аккаунт, для которого редактируется мультиподпись</p>
         </div>
+
+        <h2 class="title is-4">Лимиты</h2>
+        <p class="block">
+            Для того чтобы транзакция была успешно принята блокчейном, нужно чтобы она собрала подписями
+            необходимый лимит. Каждый участник мультиподписи обладает своим весом голоса, они суммируются.
+        </p>
+
+        <div class="box">
         <div class="field">
             <label class="label" for="account">Лимит для простых операций</label>
             <div class="control has-icons-left">
@@ -62,15 +90,15 @@
             <label class="label" for="medium_threshold">Лимит основных операций</label>
             <div class="control has-icons-left">
                 <input
-                        id="medium_threshold"
+                        id="med_threshold"
                         class="input"
                         type="number"
                         min="1"
                         max="255"
                         step="1"
-                        name="medium_threshold"
+                        name="med_threshold"
                         placeholder="1"
-                        value="{{ medium_threshold }}"
+                        value="{{ med_threshold }}"
                         maxlength="3"
                 />
                 <span class="icon is-left has-text-warning">
@@ -80,7 +108,7 @@
             <p class="help">1-255. Лимит основного блока операций, вроде исходящих платежей</p>
         </div>
         <div class="field">
-            <label class="label" for="high_threshold">Лимит для простых операций</label>
+            <label class="label" for="high_threshold">Лимит для серьёзных операций</label>
             <div class="control has-icons-left">
                 <input
                         id="high_threshold"
@@ -100,11 +128,13 @@
             </div>
             <p class="help">1-255. Лимит для двух опасных транзакций: обновление мультиподписи и слияния аккаунта в другой</p>
         </div>
+        </div>
 
         <h2 class="title is-4">Участники мультиподписи</h2>
-        {% for i in 1..20 %}
+        <div class="box">
+        {% for i in 0..20 %}
         <div class="field">
-            <label class="label" for="account_{{ i }}">Участник {{ i }}</label>
+            <label class="label" for="account_{{ i }}">{% if i %}Участник {{ i }}{% else %}Мастер ключ{% endif %}</label>
             <div class="field has-addons">
                 <div class="control is-expanded has-icons-left">
                     <input
@@ -113,8 +143,9 @@
                             type="text"
                             name="account_{{ i }}"
                             placeholder="G..."
-                            value="{{ accounts[i-1].id|default('') }}"
+                            value="{% if i %}{{ multisig[i].account|default('') }}{% else %}{{ account }}{% endif %}"
                             maxlength="56"
+                            {% if not i %}disabled{% endif %}
                     />
                     <span class="icon is-left">
                         <i class="fas fa-user"></i>
@@ -129,8 +160,7 @@
                             max="255"
                             step="1"
                             name="weight_{{ i }}"
-                            placeholder="1"
-                            value="{{ accounts[i-1].weight|default('') }}"
+                            value="{{ multisig[i].weight|default('') }}"
                             maxlength="3"
                     />
                     <span class="icon is-left">
@@ -138,19 +168,19 @@
                     </span>
                 </div>
             </div>
-            <p class="help">Стеллар аккаунт и вес его подписи (1-255)</p>
+            <p class="help">{% if i %}Стеллар аккаунт и вес его подписи (1-255){% else %}Вес той подписи, что образуется оригинальным ключем этого аккаунта. Для организаций обычно устанавливают 0, то есть отключает.{% endif %}</p>
         </div>
         {% endfor %}
+        </div>
 
         <div class="field is-grouped">
             <div class="control">
                 <input type="reset" class="button is-light" value="Reset">
             </div>
             <div class="control">
-                <input type="submit" class="button is-link" value="Calculate">
+                <input type="submit" name="action" class="button is-link" value="{{ 'tools_multisig.buttons.calculate'|trans }}">
             </div>
         </div>
     </form>
-
 {% endblock %}
 
