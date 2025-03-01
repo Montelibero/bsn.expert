@@ -139,6 +139,7 @@ class PercentPayController
             'asset_code' => $asset_code,
             'percent' => $percent,
             'payer_account' => $payer_account,
+            'memo' => $memo,
             'accounts' => $accounts,
             'transactions' => $transactions,
         ]);
