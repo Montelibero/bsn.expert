@@ -37,23 +37,20 @@ class ContactsController
 
         foreach ($contacts as $stellar_account => &$contact) {
             $Account = $this->BSN->makeAccountById($stellar_account);
-            $contact = $Account->jsonSerialize() + $contact;
+            $contact = [
+                'id' => $Account->getId(),
+                'short_id' => $Account->getShortId(),
+                'display_name' => $Account->getDisplayName(ignore_contact: true),
+            ] + $contact;
         }
+        usort($contacts, function ($a, $b) {
+            if ($a['name'] === $b['name']) {
+                return 0;
+            }
+            return $a['name'] < $b['name'] ? -1 : 1;
+        });
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            foreach ($contacts as & $item) {
-                if (!isset($_POST['update_' . $item['id']])) {
-                    continue;
-                }
-
-                $given_name = trim($_POST['name_' . $item['id']] ?? '') ?: null;
-                if ($item['name'] !== $given_name) {
-                    $item['name'] = $given_name;
-                    $ContactsManager->updateContact($item['id'], $given_name);
-                }
-            }
-            unset($item);
-
             if (
                 ($_POST['new_stellar_account_1'] ?? null)
                 && BSN::validateStellarAccountIdFormat($_POST['new_stellar_account_1'])
@@ -124,6 +121,10 @@ class ContactsController
 
         $exists_contact = $ContactsManager->getContact($account_id);
 
+        $return_to = $_POST['return_to']
+            ?? $_SERVER['HTTP_REFERER']
+            ?? SimpleRouter::getUrl('account', ['id' => $Account->getId()]);
+
         if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {
                 $ContactsManager->deleteContact($account_id);
@@ -132,7 +133,7 @@ class ContactsController
             } elseif ($_POST['action'] && !$exists_contact) {
                 $ContactsManager->addContact($account_id, trim($_POST['name']));
             }
-            SimpleRouter::response()->redirect('/accounts/' . $account_id, 302);
+            SimpleRouter::response()->redirect($return_to, 302);
         }
 
         $name = $Account->getName() ? $Account->getName()[0] : '';
@@ -142,8 +143,13 @@ class ContactsController
 
         $Template = $this->Twig->load('contact_edit.twig');
         return $Template->render([
-            'account' => $Account->jsonSerialize(),
+            'account' => [
+                'id' => $Account->getId(),
+                'short_id' => $Account->getShortId(),
+                'display_name' => $Account->getDisplayName(ignore_contact: true),
+            ],
             'csrf_token' => $csrf_token,
+            'return_to' => $return_to,
             'is_exists' => (bool) $exists_contact,
             'name' => $name,
         ]);

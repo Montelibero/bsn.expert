@@ -17,6 +17,7 @@
 
     <form method="post" action="/contacts/{{ account.id }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
     <div class="field">
         <label class="label" for="new_name">Display name</label>
         <div class="control">
