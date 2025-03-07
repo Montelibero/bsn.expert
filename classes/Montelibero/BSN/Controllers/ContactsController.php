@@ -50,6 +50,7 @@ class ContactsController
             return $a['name'] < $b['name'] ? -1 : 1;
         });
 
+        $errors = [];
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (
                 ($_POST['new_stellar_account_1'] ?? null)
@@ -66,19 +67,31 @@ class ContactsController
                 if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
                     $data = [];
                 }
+                $new_accounts = [];
                 foreach ($data as $address => $item) {
+                    $address = trim(strtoupper($address));
                     $name = is_array($item) && array_key_exists('name', $item) ? $item['name'] : $item;
                     if (array_key_exists($address, $contacts)) {
                         if ($duplicates === 'update' && $name !== $contacts[$address]['name']) {
-                            $ContactsManager->updateContact($address, $name);
+                            try {
+                                $ContactsManager->updateContact($address, $name);
+                            } catch (\Exception $e) {
+                                $errors[] = "Не смог обновить контакт $address: {$e->getMessage()}";
+                            }
                         }
-                    } else {
-                        $ContactsManager->addContact($address, $name ?: null);
+                    } elseif (!in_array($address, $new_accounts, true)) {
+                        try {
+                            $ContactsManager->addContact($address, $name ?: null);
+                            $new_accounts[] = $address;
+                        } catch (\Exception $e) {
+                            $errors[] = "Не смог добавить контакт $address: {$e->getMessage()}";
+                        }
                     }
                 }
             }
-
-            SimpleRouter::response()->redirect('/contacts', 302);
+            if (!$errors) {
+                SimpleRouter::response()->redirect('/contacts', 302);
+            }
         }
 
         if (($_GET['export'] ?? null) === 'json') {
@@ -98,6 +111,7 @@ class ContactsController
             $Template = $this->Twig->load('contacts.twig');
             return $Template->render([
                 'contacts' => $contacts,
+                'errors' => $errors,
             ]);
         }
     }
