@@ -3,6 +3,7 @@
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\MTLA\CalcDelegations\CalcVoices;
 use Montelibero\BSN\Relations\Member;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
@@ -151,8 +152,61 @@ class MtlaController
             $delegations[] = $record;
         }
 
+        if ($_GET['new'] ?? false) {
+            $CalcVoices = new CalcVoices(
+                $this->Stellar,
+                'GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA',
+                'MTLAP',
+                ['GDUTNVJWCTJSPJEI3AWN7NRE535LAQDUEUEA37M22WGDYOLUGWKAMNFT'],
+            );
+
+
+            $CalcVoices->isDebugMode(false);
+            $data = $CalcVoices->run();
+            $broken = $data['broken'];
+            $this->fetchAccountData($broken);
+            $delegation_tree = $data['roots'];
+            $this->sortAccounts($delegation_tree);
+            $this->fetchAccountData($delegation_tree);
+//            print "<pre>" . json_encode($delegate_tree, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "</pre>";
+        }
+
         return $Template->render([
             'current_signers' => $current_signers,
             'delegations' => $delegations,
+            'delegation_tree' => $delegation_tree ?? [],
         ]);
-    }}
+    }
+
+    private function sortAccounts(array & $accounts): void
+    {
+        // Рекурсивная сортировка вложенных элементов
+        foreach ($accounts as & $root) {
+            if (!empty($root['delegated']) && is_array($root['delegated'])) {
+                $this->sortAccounts($root['delegated']);
+            }
+        }
+
+        // Сортировка текущего уровня по сумме `own_token_amount` + `delegated_token_amount`
+        usort($accounts, function ($a, $b) {
+            $sumA = $a['own_token_amount'] + $a['delegated_token_amount'];
+            $sumB = $b['own_token_amount'] + $b['delegated_token_amount'];
+
+            return $sumB <=> $sumA; // По убыванию
+        });
+    }
+
+    private function fetchAccountData(array & $accounts): void
+    {
+        // Рекурсивная обработка
+        foreach ($accounts as & $root) {
+            $Account = $this->BSN->makeAccountById($root['id']);
+            $root['display_name'] = $Account->getDisplayName();
+            $root['short_id'] = $Account->getShortId();
+
+            if (!empty($root['delegated']) && is_array($root['delegated'])) {
+                $this->fetchAccountData($root['delegated']);
+            }
+        }
+    }
+}

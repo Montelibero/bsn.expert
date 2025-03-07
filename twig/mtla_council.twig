@@ -37,6 +37,29 @@
         </tbody>
     </table>
 
+    {% if delegation_tree %}
+        {% macro renderDelegationTree(tree, level) %}
+            <ul>
+                {% for node in tree %}
+                    <li>
+                        {{ include('account_link.twig', {id: node.id, name: node.display_name}, with_context = false) }}
+                        <span class="has-text-dark">
+                        {{ node.own_token_amount }} + {{ node.delegated_token_amount }} =
+                        {{ node.own_token_amount + node.delegated_token_amount }}
+                        </span>
+                        {% if node.delegated is not empty %}
+                            {{ _self.renderDelegationTree(node.delegated, level + 1) }}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endmacro %}
+
+        <div class="content">
+        {{ _self.renderDelegationTree(delegation_tree, 0) }}
+        </div>
+    {% endif %}
+
     <h2 class="title is-4">{{ 'mtla_council_page.delegations'|trans }}</h2>
 
     <table class="table" data-sortlist="[[2,1],[1,1]]">
