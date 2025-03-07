@@ -43,7 +43,9 @@ class ContactsController
                 'display_name' => $Account->getDisplayName(ignore_contact: true),
             ] + $contact;
         }
-        usort($contacts, function ($a, $b) {
+        unset($contact);
+
+        uasort($contacts, function ($a, $b) {
             if ($a['name'] === $b['name']) {
                 return 0;
             }
@@ -70,7 +72,7 @@ class ContactsController
                 $new_accounts = [];
                 foreach ($data as $address => $item) {
                     $address = trim(strtoupper($address));
-                    $name = is_array($item) && array_key_exists('name', $item) ? $item['name'] : $item;
+                    $name = is_array($item) && array_key_exists('label', $item) ? $item['label'] : $item;
                     if (array_key_exists($address, $contacts)) {
                         if ($duplicates === 'update' && $name !== $contacts[$address]['name']) {
                             try {
@@ -98,13 +100,14 @@ class ContactsController
             header('Content-Disposition: attachment; filename="contacts.json"');
             header('Content-Type: application/json');
 
-            $formatted_contacts = array_map(function ($contact) {
+            $formatted_contacts = [];
+            foreach ($contacts as $key => $contact) {
                 $item = [];
-                if ($contact['name']) {
+                if (!empty($contact['name'])) {
                     $item['label'] = $contact['name'];
                 }
-                return $item;
-            }, $contacts);
+                $formatted_contacts[$key] = $item;
+            }
 
             return json_encode($formatted_contacts, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         } else {
