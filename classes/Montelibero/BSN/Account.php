@@ -31,6 +31,8 @@ class Account implements JsonSerializable
 
     private bool $is_contact = false;
     private ?string $contact_name = null;
+    /** @var Signature[] */
+    private array $signatures = [];
 
     public function __construct(string $id = null)
     {
@@ -47,7 +49,7 @@ class Account implements JsonSerializable
         return substr($this->id, 0, 4) . '…' . substr($this->id, -4);
     }
 
-    public function getDisplayName(): string
+    public function getDisplayName($ignore_contact = false): string
     {
         $result = $this->getShortId();
         $public_name = '';
@@ -55,13 +57,14 @@ class Account implements JsonSerializable
             $public_name = $name;
         }
         $contact_name = null;
-        if ($this->isContact() && ($contact_name = $this->getContactName())) {
+        $contact_mode = $this->isContact() && !$ignore_contact;
+        if ($contact_mode && ($contact_name = $this->getContactName())) {
             $result .= ' [📒 ' . $contact_name . ']';
-        } else if ($this->isContact() && $public_name) {
+        } elseif ($contact_mode && $public_name) {
             $result .= ' [📒 ' . $public_name . ']';
-        } else if ($this->isContact()) {
+        } elseif ($contact_mode) {
             $result .= ' [📒]';
-        } else if ($public_name) {
+        } elseif ($public_name) {
             $result .= ' [' . $public_name . ']';
         }
         if (
@@ -408,5 +411,18 @@ class Account implements JsonSerializable
         }
 
         return $score;
+    }
+
+    public function addSignature(Signature $Signature): void
+    {
+        $this->signatures[$Signature->getContract()->getHash()] = $Signature;
+    }
+
+    /**
+     * @return Signature[]
+     */
+    public function getSignatures(): array
+    {
+        return $this->signatures;
     }
 }

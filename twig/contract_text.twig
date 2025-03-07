@@ -1,0 +1,36 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'contract_text_page.name'|trans }} — {{ contract.display_name }} — {{ 'nav.contracts'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+        <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+        <li><a href="/contracts/" aria-current="page">{{ 'nav.contracts'|trans }}</a></li>
+        <li><a href="/contracts/{{ contract.hash }}/" aria-current="page">{{ contract.display_name }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ 'contract_text_page.name'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+<style>
+        pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+        }
+</style>
+<h1 class="title">{{ 'contract_page.header'|trans }}: {{ contract.display_name }}</h1>
+<h1 class="subtitle">
+        <span class="is-family-monospace">{{ contract.hash }}</span>
+</h1>
+
+<div class="box">
+        {% if invalid_hash %}
+                <section class="hero is-warning">
+                        <div class="hero-body">
+                                <p class="title">{{ 'contract_text_page.wrong_hash.header'|trans }}</p>
+                                <p class="subtitle">{{ 'contract_text_page.wrong_hash.text'|trans }}<br>
+                                        <span class="is-family-monospace">{{ calculated_hash }}</span></p>
+                        </div>
+                </section>
+        {% endif %}
+        <pre>{{ contract.text }}</pre>
+</div>
+{% endblock %}

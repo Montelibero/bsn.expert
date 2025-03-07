@@ -6,6 +6,7 @@ use Dotenv\Dotenv;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ContactsController;
+use Montelibero\BSN\Controllers\ContractsController;
 use Montelibero\BSN\Controllers\EditorController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MtlaController;
@@ -162,6 +163,7 @@ $ContainerBuilder->addDefinitions([
     EditorController::class => autowire(),
     ContactsController::class => autowire(),
     TagsController::class => autowire(),
+    ContractsController::class => autowire(),
     MembershipDistributionController::class => autowire(),
     MtlaController::class => autowire(),
     PercentPayController::class => autowire(),
@@ -172,3 +174,43 @@ $Container = $ContainerBuilder->build();
 RootRoutes::register($Container);
 
 SimpleRouter::start();
+
+function gristRequest($url, $method, $data = null)
+{
+    $options = [
+        'http' => [
+            'header' => [
+                "Authorization: Bearer " . $_ENV['GRIST_API_KEY'],
+                "Content-Type: application/json"
+            ],
+            'method' => $method,
+            'content' => $data ? json_encode($data) : null,
+            'ignore_errors' => true // Позволяет получить тело ответа даже при ошибках HTTP
+        ]
+    ];
+    $context = stream_context_create($options);
+
+    $response = file_get_contents(
+        $url,
+        false,
+        $context
+    );
+
+    // Получаем информацию о последнем HTTP-ответе
+    $status_line = $http_response_header[0];
+    preg_match('{HTTP\/\S*\s(\d{3})}', $status_line, $match);
+    $status = $match[1];
+
+    if ($status >= 400) {
+        $error_data = json_decode($response, true);
+        throw new Exception(
+            sprintf(
+                "HTTP %s: %s",
+                $status,
+                $error_data['error'] ?? $response
+            )
+        );
+    }
+
+    return json_decode($response, true);
+}

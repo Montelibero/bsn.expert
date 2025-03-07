@@ -1,0 +1,26 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'nav.contracts'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="/contracts/" aria-current="page">{{ 'nav.contracts'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">{{ 'nav.contracts'|trans }}</h1>
+
+    <p class="block">{{ 'contracts.description'|trans }}</p>
+
+    <ul class="block">
+    {% for contract in contracts|sort((a, b) => b.using_count <=> a.using_count) %}
+        <li>
+            {% if contract.name %}<b>{{ contract.name }}</b><br>{% endif %}
+            <a href="/contracts/{{ contract.hash }}/" class="is-family-monospace">{{ contract.hash }}</a>,<br>
+            {{ contract.using_count }}
+        </li>
+    {% endfor %}
+    </ul>
+{% endblock %}
+

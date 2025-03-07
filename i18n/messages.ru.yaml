@@ -7,6 +7,7 @@ nav:
   search: Поиск
   accounts: Аккаунты
   tags: Теги
+  contracts: Контракты
   editor: Редактор
   mtla: Ассоциация
   council: Совет
@@ -58,6 +59,8 @@ account_page:
   name: Имя
   about: Описание
   website: Ссылка
+  signatures:
+    header: Контракты
   income_tags:
     header: Входящие теги
     description: Это то, как с других аккаунтов ссылаются на этот.
@@ -105,6 +108,24 @@ tag_page:
   edit_link: Проставить этот тег для ваших контактов
   source: Использует
   target: Получает
+
+contracts:
+  description: >
+    Контракты — закреплённые в блокчейне подписи под некими документами. Какие-то из них широко известно, вроде 
+    публичных оферт токенов, а какие-то наоборот, приватные, чьё содержимое знают только те, кто их подписывал.
+
+contract_page:
+  header: Контракт
+  account: Аккаунт
+  signature_name: Название
+  link: Ссылка на документ →
+  link_to_text: Текст документа →
+
+contract_text_page:
+  name: Текст документа
+  wrong_hash:
+    header: Не совпадение хеша
+    text: "Хеш от этого документа не равен хешу контракта:"
 
 mtla_council_page:
   header: Совет Ассоциации Монтелиберо

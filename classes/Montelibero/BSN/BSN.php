@@ -17,7 +17,14 @@ class BSN
     /** @var Account[] */
     private array $tg_id_to_account = [];
 
+    private SignatureCollection $Signatures;
+
     public const IGNORE_MEMBER_TOKENS = 'GDGC46H4MQKRW3TZTNCWUU6R2C7IPXGN7HQLZBJTNQO6TW7ZOS6MSECR';
+
+    public function __construct()
+    {
+        $this->Signatures = new SignatureCollection();
+    }
 
     public function loadFromJson(array $json): void
     {
@@ -48,6 +55,12 @@ class BSN
                         $TargetAccount->addLink($Link);
                         $this->addLink($Link);
                     }
+                }
+            }
+
+            if (array_key_exists('signatures', $data)) {
+                foreach ($data['signatures'] as $hash => $name) {
+                    $this->Signatures->addSignature($Account, $hash, $name);
                 }
             }
 
@@ -205,5 +218,10 @@ class BSN
         }
 
         return preg_match('/^[a-z0-9_]+?$/i', $name);
+    }
+
+    public function getSignatures(): SignatureCollection
+    {
+        return $this->Signatures;
     }
 }

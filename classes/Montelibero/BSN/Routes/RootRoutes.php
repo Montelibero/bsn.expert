@@ -33,6 +33,9 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/tags'], function () use ($Container) {
             TagsRouter::register($Container);
         });
+        SimpleRouter::group(['prefix' => '/contracts'], function () use ($Container) {
+            ContractsRoutes::register($Container);
+        });
         SimpleRouter::group(['prefix' => '/mtla'], function () use ($Container) {
             MtlaRouter::register($Container);
         });

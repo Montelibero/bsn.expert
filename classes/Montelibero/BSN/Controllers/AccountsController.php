@@ -159,7 +159,7 @@ class AccountsController
 
         $is_contact = false;
         $is_logged = false;
-        if ($_SESSION['telegram']) {
+        if ($_SESSION['telegram'] ?? null) {
             $is_logged = true;
             $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
             $is_contact = (bool) $ContactsManager->getContact($Account->getId());
@@ -205,7 +205,13 @@ class AccountsController
         }
         WebApp::semantic_sort_keys($outcome_tags, $this::$sort_tags_example);
 
-        if ($_SERVER['HTTP_ACCEPT'] === 'application/json' || $_GET['format'] ?? '' === 'json') {
+        $signatures = array_map(function ($Signature) {
+            return [
+                'name' => $Signature->getName(),
+            ];
+        }, $Account->getSignatures());
+
+        if ($_SERVER['HTTP_ACCEPT'] === 'application/json' || ($_GET['format'] ?? '') === 'json') {
             if (!empty($_GET['tag']) && BSN::validateTagNameFormat($_GET['tag'])) {
                 $FilterTag = $this->BSN->makeTagByName($_GET['tag']);
                 $FilterPairTag = $FilterTag->getPair();
@@ -226,8 +232,9 @@ class AccountsController
                     'outcome' => $outcome_tags,
                     'income' => $income_tags,
                 ],
+                'signatures' => $signatures,
             ];
-
+            
             header('Content-type: application/json');
             return json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
@@ -247,6 +254,7 @@ class AccountsController
             'bsn_score' => $Account->calcBsnScore(),
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,
+            'signatures' => $signatures,
         ]);
     }
 

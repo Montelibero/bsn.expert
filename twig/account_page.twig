@@ -66,6 +66,15 @@
 </dl>
 {% endif %}
 
+{% if signatures %}
+<div class="box">
+        <h2 class="title">{{ 'account_page.signatures.header'|trans }}</h2>
+        {% for hash, signature in signatures %}
+                <a href="/contracts/{{ hash }}" title="{{ hash }}" class="tag">{{ signature.name }}</a>
+        {% endfor %}
+</div>
+{% endif %}
+
 <div class="columns">
 <div class="column">
 <h2 class="title">{{ 'account_page.income_tags.header'|trans }} <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-flip-vertical fa-arrow-right-to-bracket" style="transform: scaleX(-1); display: inline-block;"></i></span></h2>
