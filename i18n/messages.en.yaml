@@ -70,6 +70,10 @@ account_page:
     description: Tags set on this account.
   no_income_tags: The account has not any income tag.
   no_outcome_tags: The account has not any outcome tag.
+  pair:
+    green: Matching confirmation tag found
+    yellow: No matching confirmation tag
+    red: Missing expected confirmation tag
   this_account_and: This account and...
 
 account_and:
