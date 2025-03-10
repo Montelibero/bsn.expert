@@ -57,6 +57,8 @@ account_page:
     edit: Edit the contact
   edit_button: Edit tags for this account
   alternatives: Alternative viewers
+  owner_account: Parent account
+  ownership_full_accounts: Subsidiary accounts
   name: Name
   about: About
   website: Website

@@ -36,7 +36,34 @@
         Telegram: <a href="https://t.me/{{ telegram_username }}">@{{ telegram_username }}</a>{% endif %}<br>
         BSN score: {{ bsn_score }}
 </h1>
-<h1 class="subtitle"></h1>
+
+{% set owner_link = outcome_tags.Owner.links[outcome_tags.Owner.links|keys|first] %}
+{% set block_owner %}
+{% if owner_link and owner_link.has_pair %}
+        {{ 'account_page.owner_account'|trans }}:<br>
+        {{ include('account_link.twig', {data: owner_link}, with_context = false) }}<br>
+{% endif %}
+{% endset %}
+
+{% set block_slawes %}
+{% if outcome_tags.OwnershipFull %}
+        {{ 'account_page.ownership_full_accounts'|trans }}:<br>
+        {% for link in outcome_tags.OwnershipFull.links %}
+                {% if link.has_pair %}
+                        {% if loop.last %}┕{% else %}┠{% endif %}
+                        {{ include('account_link.twig', {data: link}, with_context = false) }}<br>
+                {% endif %}
+        {% endfor %}
+{% endif %}
+{% endset %}
+
+{% if block_owner is not empty or block_slawes is not empty %}
+        <div class="box">
+                {{ block_owner }}
+                {{ block_slawes }}
+        </div>
+{% endif %}
+
 {% if name or about or website %}
 <dl class="box">
     {% if name %}
