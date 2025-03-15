@@ -30,8 +30,8 @@
                 <tbody>
                 {% for link in links %}
                 <tr>
-                        <td>{{ include('account_link.twig', {id: link.source_account.id, name: link.source_account.display_name}, with_context = false) }}</td>
-                        <td>{{ include('account_link.twig', {id: link.target_account.id, name: link.target_account.display_name}, with_context = false) }}</td>
+                        <td>{{ include('account_link.twig', {data: link.source_account}, with_context = false) }}</td>
+                        <td>{{ include('account_link.twig', {data: link.target_account}, with_context = false) }}</td>
                 </tr>
                 {% endfor %}
                 </tbody>

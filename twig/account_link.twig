@@ -1,1 +1,4 @@
-<a href="/accounts/{{ id }}" class="account_name">{{ name }}</a>
+{% set id = id ?: data.id ?: data.account_id %}
+{% set name = name ?: data.display_name %}
+{% set username = username ?: data.username %}
+<a href="{% if username %}/@{{ username }}{% else %}/accounts/{{ id }}{% endif %}" class="account_name">{{ name }}</a>

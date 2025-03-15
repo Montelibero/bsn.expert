@@ -3,12 +3,16 @@
 namespace Montelibero\BSN\Routes;
 
 use DI\Container;
+use Montelibero\BSN\AccountsManager;
+use Montelibero\BSN\BSN;
+use Montelibero\BSN\Controllers\AccountsController;
+use Pecee\SimpleRouter\Exceptions\NotFoundHttpException;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
 
 class RootRoutes
 {
-    public static function register(Container $Container): void
+    public static function register(Container $Container, BSN $BSN, AccountsManager $AccountsManager): void
     {
         SimpleRouter::get('/', function () use ($Container) {
             return $Container->get(WebApp::class)->Index();
@@ -55,5 +59,22 @@ class RootRoutes
         SimpleRouter::get('/defaults', function() {
             SimpleRouter::response()->redirect('/preferences', 301);
         });
+
+        // Обработка "динамического" маршрута для user
+        SimpleRouter::get('/{username}', function($username) use ($Container, $BSN, $AccountsManager) {
+            $has_at = str_starts_with($username, '@');
+            $username = trim($username, '@');
+            $account_id = $AccountsManager->fetchAccountIdByUsername($username);
+            if ($account_id ?? null) {
+                $Account = $BSN->makeAccountById($account_id);
+                if ($Account->getUsername() === $username && $has_at) {
+                    return $Container->get(AccountsController::class)->Account($account_id);
+                } else {
+                    SimpleRouter::response()->redirect('/@' . $Account->getUsername(), 302);
+                }
+            }
+
+            throw new NotFoundHttpException();
+        })->where(['username' => '\@?[a-zA-Z0-9_]+']);
     }
 }

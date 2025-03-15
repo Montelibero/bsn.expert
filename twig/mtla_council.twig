@@ -30,7 +30,7 @@
         <tbody>
         {% for account in current_signers %}
             <tr>
-            <td>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</td>
+            <td>{{ include('account_link.twig', {data: account}, with_context = false) }}</td>
             <td>{{ account.sign_weight }}</td>
             </tr>
         {% endfor %}
@@ -73,13 +73,13 @@
         <tbody>
         {% for item in delegations %}
             <tr>
-                <td>{{ include('account_link.twig', {id: item.account.id, name: item.account.display_name}, with_context = false) }}</td>
+                <td>{{ include('account_link.twig', {data: item.account}, with_context = false) }}</td>
                 <td>{{ item.member_level }}</td>
                 <td>
                     {% if item.ready_to_council %}
                         {{ 'mtla_council_page.ready'|trans }}
                     {% elseif item.delegate %}
-                        {{ include('account_link.twig', {id: item.delegate.id, name: item.delegate.display_name}, with_context = false) }}
+                        {{ include('account_link.twig', {data: item.delegate}, with_context = false) }}
                     {% else %}
                         {{ 'mtla_council_page.no_delegation'|trans }}
                     {% endif %}

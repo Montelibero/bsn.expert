@@ -123,10 +123,7 @@ class AccountsController
         }
         $accounts = [];
         foreach ($list_accounts as $Account) {
-            $accounts[] = [
-                'id' => $Account->getId(),
-                'short_id' => $Account->getShortId(),
-                'display_name' => $Account->getDisplayName(),
+            $accounts[] = $Account->jsonSerialize() + [
                 'bsn_score' => $Account->calcBsnScore(),
             ];
         }
@@ -176,10 +173,8 @@ class AccountsController
             ];
             foreach ($Account->getIncomeLinks($Tag) as $LinkAccount) {
                 $tag_data['links'][$LinkAccount->getId()] = [
-                    'short_id' => $LinkAccount->getShortId(),
-                    'display_name' => $LinkAccount->getDisplayName(),
                     'has_pair' => $Pair && in_array($LinkAccount, $Account->getOutcomeLinks($Pair)),
-                ];
+                ] + $LinkAccount->jsonSerialize();
             }
             $income_tags[$Tag->getName()] = $tag_data;
         }
@@ -196,10 +191,8 @@ class AccountsController
             ];
             foreach ($Account->getOutcomeLinks($Tag) as $LinkAccount) {
                 $tag_data['links'][$LinkAccount->getId()] = [
-                    'short_id' => $LinkAccount->getShortId(),
-                    'display_name' => $LinkAccount->getDisplayName(),
                     'has_pair' => $Pair && in_array($LinkAccount, $Account->getIncomeLinks($Pair)),
-                ];
+                ] + $LinkAccount->jsonSerialize();
             }
             $outcome_tags[$Tag->getName()] = $tag_data;
         }
@@ -382,12 +375,8 @@ class AccountsController
 
         $Template = $this->Twig->load('account_and_account.twig');
         return $Template->render([
-            'account1_id' => $Account1->getId(),
-            'account1_short_id' => $Account1->getShortId(),
-            'account1_display_name' => $Account1->getDisplayName(),
-            'account2_id' => $Account2->getId(),
-            'account2_short_id' => $Account2->getShortId(),
-            'account2_display_name' => $Account2->getDisplayName(),
+            'account1' => $Account1->jsonSerialize(),
+            'account2' => $Account2->jsonSerialize(),
             'links' => $links,
         ]);
     }
@@ -441,4 +430,12 @@ class AccountsController
         ]);
     }
 
+    public static function getAccountPagePath(Account $Account): string
+    {
+        if ($username = $Account->getUsername()) {
+            return '/@' . $username;
+        }
+
+        return '/accounts/' . $Account->getId();
+    }
 }

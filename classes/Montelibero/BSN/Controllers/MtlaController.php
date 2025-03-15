@@ -115,10 +115,7 @@ class MtlaController
         $current_signers = [];
         foreach ($this->fetchMtlaSigners() as $id => $weight) {
             $Account = $this->BSN->getAccountById($id);
-            $current_signers[] = [
-                'id' => $Account->getId(),
-                'short_id' => $Account->getShortId(),
-                'display_name' => $Account->getDisplayName(),
+            $current_signers[$id] = $Account->jsonSerialize() + [
                 'sign_weight' => $weight,
             ];
         }
@@ -133,21 +130,13 @@ class MtlaController
                 $member_level = $Relation->getLevel();
             }
             $record = [
-                'account' => [
-                    'id' => $Account->getId(),
-                    'short_id' => $Account->getShortId(),
-                    'display_name' => $Account->getDisplayName(),
-                ],
+                'account' => $Account->jsonSerialize(),
                 'member_level' => $member_level,
                 'ready_to_council' => $delegate === 'ready',
             ];
             if ($delegate && $delegate !== 'ready') {
                 $DelegateAccount = $this->BSN->makeAccountById($delegate);
-                $record['delegate'] = [
-                    'id' => $DelegateAccount->getId(),
-                    'short_id' => $DelegateAccount->getShortId(),
-                    'display_name' => $DelegateAccount->getDisplayName(),
-                ];
+                $record['delegate'] = $DelegateAccount->jsonSerialize();
             }
             $delegations[] = $record;
         }

@@ -275,11 +275,7 @@ class EditorController
 
         $Template = $this->Twig->load('editor.twig');
         return $Template->render([
-            'account' => [
-                'id' => $Account->getId(),
-                'short_id' => $Account->getShortId(),
-                'display_name' => $Account->getDisplayName(),
-            ],
+            'account' => $Account->jsonSerialize(),
             'single_tag' => $single_tag,
             'single_contact' => $single_contact,
             'tags' => array_map(fn(Tag $Tag) => [

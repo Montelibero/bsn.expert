@@ -38,10 +38,8 @@ class ContactsController
         foreach ($contacts as $stellar_account => &$contact) {
             $Account = $this->BSN->makeAccountById($stellar_account);
             $contact = [
-                'id' => $Account->getId(),
-                'short_id' => $Account->getShortId(),
                 'display_name' => $Account->getDisplayName(ignore_contact: true),
-            ] + $contact;
+            ] + $Account->jsonSerialize() + $contact;
         }
         unset($contact);
 

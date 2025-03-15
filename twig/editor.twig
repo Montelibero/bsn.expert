@@ -50,7 +50,7 @@
 </script>
 
 <h1 class="title">{{ 'nav.editor'|trans }}</h1>
-<h1 class="subtitle">{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</h1>
+<h1 class="subtitle">{{ include('account_link.twig', {data: account}, with_context = false) }}</h1>
 
 <p class="block">{{ 'editor.alternative'|trans }} → <a href="https://eurmtl.me/bsn/{{ account.id }}">eurmtl.me/bsn</a></p>
 <form method="post">
@@ -82,7 +82,7 @@
     {% endif %}
 
     {% for contact in contacts %}
-    <h2 class="title is-5">{{ include('account_link.twig', {id: contact.id, name: contact.display_name}, with_context = false) }}</h2>
+    <h2 class="title is-5">{{ include('account_link.twig', {data: contact}, with_context = false) }}</h2>
 
     <div class="fixed-grid has-auto-count">
         <div class="grid is-gap-1">

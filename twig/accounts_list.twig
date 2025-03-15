@@ -15,7 +15,7 @@
 
     <ul class="block">
     {% for account in accounts|sort((a, b) => b.bsn_score <=> a.bsn_score) %}
-        <li>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}
+        <li>{{ include('account_link.twig', {data: account}, with_context = false) }}
             {% if account.bsn_score %}
             ({{ account.bsn_score }})
             {% endif %}

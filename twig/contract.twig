@@ -37,7 +37,7 @@
         <tbody>
         {% for signature in signatures %}
         <tr>
-                <td>{{ include('account_link.twig', {id: signature.account.id, name: signature.account.display_name}, with_context = false) }}</td>
+                <td>{{ include('account_link.twig', {data: signature.account}, with_context = false) }}</td>
                 <td>{{ signature.name }}</td>
         </tr>
         {% endfor %}

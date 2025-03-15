@@ -11,6 +11,7 @@ use Twig\Environment;
 class WebApp
 {
     private BSN $BSN;
+    private AccountsManager $AccountsManager;
     private Environment $Twig;
 
     public static array $sort_tags_example = [
@@ -43,12 +44,12 @@ class WebApp
         'FactionMember',
         'WelcomeGuest',
     ];
-
     private ?string $default_viewer = null;
 
-    public function __construct(BSN $BSN, Environment $Twig)
+    public function __construct(BSN $BSN, AccountsManager $AccountsManager, Environment $Twig)
     {
         $this->BSN = $BSN;
+        $this->AccountsManager = $AccountsManager;
 
         $this->Twig = $Twig;
         $this->Twig->addGlobal('session', $_SESSION);
@@ -140,6 +141,10 @@ class WebApp
         if (BSN::validateStellarAccountIdFormat($q)) {
             SimpleRouter::response()->redirect(SimpleRouter::getUrl('account', ['id' => $q]));
         }
+        if ($account_id = $this->AccountsManager->fetchAccountIdByUsername($q)) {
+            SimpleRouter::response()->redirect(SimpleRouter::getUrl('account', ['id' => $account_id]));
+        }
+
         if (BSN::validateTagNameFormat($q)) {
             $tag_name = $q;
             foreach ($this->BSN->getTags() as $Tag) {

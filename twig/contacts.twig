@@ -89,7 +89,7 @@
            title="{{ 'account_page.contact_button.edit'|trans }}"
         ><span class="icon"><i class="fa-regular fa-address-book"></i></span></a>
         <div class="ml-3">
-            <div>{{ include('account_link.twig', {id: contact.id, name: contact.display_name}, with_context = false) }}</div>
+            <div>{{ include('account_link.twig', {data: contact}, with_context = false) }}</div>
             <div>{{ contact.name }}</div>
         </div>
     </div>

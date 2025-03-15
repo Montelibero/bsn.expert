@@ -7,17 +7,19 @@
     "ext-bcmath": "*",
     "ext-pdo": "*",
     "ext-curl": "*",
+    "ext-gd": "*",
     "vlucas/phpdotenv": "5.4",
     "twig/twig": "^3.10",
     "pecee/simple-router": "^5.4",
     "google/apiclient": "^2.15.0",
-    "soneso/stellar-php-sdk": "1.3.0",
+    "soneso/stellar-php-sdk": "1.7.0",
     "splitbrain/php-qrcode": "^0.1.0",
     "league/uri": "^7.4",
     "symfony/translation": "^7.2",
     "symfony/twig-bridge": "^7.2",
     "symfony/yaml": "^7.2",
-    "php-di/php-di": "^7.0"
+    "php-di/php-di": "^7.0",
+    "endroid/qr-code": "^6.0"
   }
 ,
   "require-dev": {

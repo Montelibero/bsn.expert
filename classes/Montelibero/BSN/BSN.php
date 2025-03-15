@@ -4,6 +4,7 @@ namespace Montelibero\BSN;
 
 use Montelibero\BSN\Relations\Known;
 use Montelibero\BSN\Relations\Member;
+use PDO;
 
 class BSN
 {
@@ -20,9 +21,11 @@ class BSN
     private SignatureCollection $Signatures;
 
     public const IGNORE_MEMBER_TOKENS = 'GDGC46H4MQKRW3TZTNCWUU6R2C7IPXGN7HQLZBJTNQO6TW7ZOS6MSECR';
+    private AccountsManager $AccountsManager;
 
-    public function __construct()
+    public function __construct(AccountsManager $AccountsManager)
     {
+        $this->AccountsManager = $AccountsManager;
         $this->Signatures = new SignatureCollection();
     }
 
@@ -77,6 +80,8 @@ class BSN
 
         $this->findInherited();
         $this->findKnown();
+
+        $this->loadUsernames();
     }
 
     public function loadMtlaMembersFromJson(array $json): void
@@ -223,5 +228,17 @@ class BSN
     public function getSignatures(): SignatureCollection
     {
         return $this->Signatures;
+    }
+
+    private function loadUsernames(): void
+    {
+        $usernames = $this->AccountsManager->fetchUsernames();
+        foreach ($usernames as $account_id => $username) {
+            if (!isset($this->accounts[$account_id])) {
+                continue;
+            }
+
+            $this->accounts[$account_id]->setUsername($username);
+        }
     }
 }

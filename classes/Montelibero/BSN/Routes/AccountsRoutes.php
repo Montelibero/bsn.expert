@@ -3,6 +3,7 @@
 namespace Montelibero\BSN\Routes;
 
 use DI\Container;
+use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\Controllers\AccountsController;
 use Pecee\SimpleRouter\SimpleRouter;
 
@@ -14,6 +15,9 @@ class AccountsRoutes
             return $Container->get(AccountsController::class)->Accounts();
         });
         SimpleRouter::get('/{id}', function ($id) use ($Container) {
+            if ($username = $Container->get(AccountsManager::class)->fetchUsername($id)) {
+                SimpleRouter::response()->redirect('/@' . $username);
+            }
             return $Container->get(AccountsController::class)->Account($id);
         })->name('account');
         SimpleRouter::get('/{id}/and', function ($id) use ($Container) {

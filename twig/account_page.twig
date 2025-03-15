@@ -33,7 +33,7 @@
         <a class="tag is-warning" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
         <br>
         {% if session.show_telegram_usernames and telegram_username %}
-        Telegram: <a href="https://t.me/{{ telegram_username }}">@{{ telegram_username }}</a>{% endif %}<br>
+        Telegram: <a href="https://t.me/{{ telegram_username }}">@{{ telegram_username }}</a><br>{% endif %}
         BSN score: {{ bsn_score }}
 </h1>
 
@@ -102,6 +102,24 @@
 </div>
 {% endif %}
 
+{% if income_tags %}
+<div class="box">
+        <h2 class="title">{{ 'account_page.income_tags.header'|trans }}</h2>
+        <div class="field is-grouped is-grouped-multiline">
+        {% for tag in income_tags %}
+                <div class="control">
+                <div class="tags has-addons">
+                <a href="#income_tag_{{ tag.name }}" class="tag is-link">
+                {{ tag.name }}
+                </a>
+                <span class="tag is-info">{{ tag.links|length }}</span>
+                </div>
+                </div>
+        {% endfor %}
+        </div>
+</div>
+{% endif %}
+
 {% macro pairing_marker (pair, has_pair, pair_strong) %}
         {% if pair %}
                 {% if has_pair %}<span title="{{ 'account_page.pair.green'|trans }}: {{ pair }}">🟢</span>
@@ -120,7 +138,7 @@
 {% if income_tags %}
 {% for tag in income_tags %}
 <dl class="block">
-        <dt class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
+        <dt class="title is-4" id="income_tag_{{ tag.name }}">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
         {% for account_id, link in tag.links %}
                 <dd>
                 {{ _self.pairing_marker(tag.pair, link.has_pair, tag.pair_strong) }}

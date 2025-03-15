@@ -1,20 +1,20 @@
 {% extends "page.twig" %}
 
-{% block title %}{{ account2_display_name }} — {{ 'account_and_account.header'|trans }} - {{ account1_display_name }} — Accounts{% endblock %}
+{% block title %}{{ account2.display_name }} — {{ 'account_and_account.header'|trans }} - {{ account1.display_name }} — Accounts{% endblock %}
 
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">BSN</a></li>
     <li><a href="/accounts/" aria-current="page">Accounts</a></li>
-    <li><a href="/accounts/{{ account1_id }}" aria-current="page">{{ account1_short_id }}</a></li>
-    <li><a href="/accounts/{{ account1_id }}/and" aria-current="page">{{ 'account_and_account.header'|trans }}</a></li>
-    <li class="is-active"><a href="#" aria-current="page">{{ account2_short_id }}</a></li>
+    <li><a href="/accounts/{{ account1.id }}" aria-current="page">{{ account1.short_id }}</a></li>
+    <li><a href="/accounts/{{ account1.id }}/and" aria-current="page">{{ 'account_and_account.header'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ account2.short_id }}</a></li>
 {% endblock %}
 
 {% block content %}
     <h1 class="title">
-        {{ account1_display_name }}<br>
+        {{ account1.display_name }}<br>
         {{ 'account_and_account.header'|trans }}<br>
-        {{ account2_display_name }}
+        {{ account2.display_name }}
     </h1>
 
     <p class="block">{{ 'account_and_account.description'|trans }}</p>
@@ -23,11 +23,11 @@
         <thead>
         <tr>
             <th>
-                {{ include('account_link.twig', {id: account1_id, name: account1_display_name}, with_context = false) }}
+                {{ include('account_link.twig', {data: account1}, with_context = false) }}
             </th>
             <th>{{ 'account_and_account.link_direction'|trans }}</th>
             <th>
-                {{ include('account_link.twig', {id: account2_id, name: account2_display_name}, with_context = false) }}
+                {{ include('account_link.twig', {data: account2}, with_context = false) }}
             </th>
         </tr>
         </thead>

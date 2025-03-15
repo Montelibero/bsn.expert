@@ -103,7 +103,7 @@
         <tbody>
         {% for account in accounts %}
             <tr>
-                <td>{{ include('account_link.twig', {id: account.id, name: account.display_name}, with_context = false) }}</td>
+                <td>{{ include('account_link.twig', {data: account}, with_context = false) }}</td>
                 <td>{{ account.balance }}</td>
                 <td>{{ account.to_pay }}</td>
             </tr>

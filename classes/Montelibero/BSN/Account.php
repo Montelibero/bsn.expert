@@ -13,6 +13,7 @@ class Account implements JsonSerializable
     use HasLinks;
 
     private string $id;
+    private ?string $username = null;
     private array $name = [];
     private array $about = [];
     private array $website = [];
@@ -352,11 +353,16 @@ class Account implements JsonSerializable
 
     public function jsonSerialize(): array
     {
-        return [
+        $data = [
             'id' => $this->getId(),
             'short_id' => $this->getShortId(),
             'display_name' => $this->getDisplayName(),
         ];
+        if ($username = $this->getUsername()) {
+            $data['username'] = $username;
+        }
+
+        return $data;
     }
 
     public function isContact(?bool $value = null): bool
@@ -409,6 +415,9 @@ class Account implements JsonSerializable
         if (count($this->balances) > 5) {
             $score += 5;
         }
+        if ($this->getUsername()) {
+            $score += 10;
+        }
 
         return $score;
     }
@@ -424,5 +433,15 @@ class Account implements JsonSerializable
     public function getSignatures(): array
     {
         return $this->signatures;
+    }
+
+    public function getUsername(): ?string
+    {
+        return empty($this->username) ? null : $this->username;
+    }
+
+    public function setUsername(?string $username): void
+    {
+        $this->username = $username;
     }
 }

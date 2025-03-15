@@ -38,7 +38,7 @@
         <tbody>
         {% for link in links %}
             <tr>
-                <td>{{ include('account_link.twig', {id: link.contact.id, name: link.contact.display_name}, with_context = false) }}</td>
+                <td>{{ include('account_link.twig', {data: link.contact}, with_context = false) }}</td>
                 <td>{% if link.out %}◉{% else %}◯{% endif %}</td>
                 <td>{% if link.in %}◉{% else %}◯{% endif %}</td>
                 <td>

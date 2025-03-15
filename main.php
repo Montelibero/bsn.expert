@@ -3,6 +3,7 @@
 use DI\Container;
 use DI\ContainerBuilder;
 use Dotenv\Dotenv;
+use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ContactsController;
@@ -36,7 +37,17 @@ const JSON_DATA_FILE_PATH = '/var/www/bsn.mtla.me/app/bsn.json';
 //const JSON_DATA_FILE_PATH = '../BoR/bsn.json';
 
 //$memory1 = memory_get_usage();
-$BSN = new BSN();
+
+$PDO = new PDO(
+    'mysql:host=' . $_ENV['MYSQL_HOST'] . ';dbname=' . $_ENV['MYSQL_BASENAME'],
+    $_ENV['MYSQL_USERNAME'],
+    $_ENV['MYSQL_PASSWORD']
+);
+$PDO->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PDO->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+$AccountsManager = new AccountsManager($PDO);
+$BSN = new BSN($AccountsManager);
 
 $BSN->makeTagByName('Signer')->isEditable(false);
 
@@ -129,6 +140,7 @@ $ContainerBuilder = new ContainerBuilder();
 $ContainerBuilder->addDefinitions([
     // Базовые сервисы
     BSN::class => $BSN,
+    AccountsManager::class => $AccountsManager,
 
     Translator::class => function() {
         $locale = 'en';
@@ -171,7 +183,7 @@ $ContainerBuilder->addDefinitions([
 ]);
 $Container = $ContainerBuilder->build();
 
-RootRoutes::register($Container);
+RootRoutes::register($Container, $BSN, $AccountsManager);
 
 SimpleRouter::start();
 
