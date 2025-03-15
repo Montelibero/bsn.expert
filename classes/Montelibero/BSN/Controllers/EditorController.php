@@ -247,7 +247,7 @@ class EditorController
                 }
             }
             // Add from contact book
-            if ($_SESSION['telegram']) {
+            if ($_SESSION['telegram'] ?? null) {
                 $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
                 foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
                     if (!array_key_exists($stellar_address, $contacts)) {
