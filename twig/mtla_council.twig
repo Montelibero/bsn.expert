@@ -15,6 +15,11 @@
             $(".table").tablesorter();
         });
     </script>
+    <style>
+        .delegation_tree li > ul {
+            margin-left: 2em;
+        }
+    </style>
 
     <h1 class="title">{{ 'mtla_council_page.header'|trans }}</h1>
 
@@ -42,7 +47,10 @@
             <ul>
                 {% for node in tree %}
                     <li>
-                        {{ include('account_link.twig', {id: node.id, name: node.display_name}, with_context = false) }}
+                        {% if node.is_ready_to_council %}🙋{% endif %}
+                        {% if node.candidate_index %}<span class="tag {{ node.candidate_index <= 20 ? 'is-primary' : 'is-info' }}">{{ node.candidate_index }}</span>{% endif %}
+                        {% if node.is_council %}🏛️{% endif %}
+                        {{ include('account_link.twig', {data: node}, with_context = false) }}
                         <span class="has-text-dark">
                         {{ node.own_token_amount }} + {{ node.delegated_token_amount }} =
                         {{ node.own_token_amount + node.delegated_token_amount }}
@@ -55,7 +63,7 @@
             </ul>
         {% endmacro %}
 
-        <div class="content">
+        <div class="block delegation_tree">
         {{ _self.renderDelegationTree(delegation_tree, 0) }}
         </div>
     {% endif %}

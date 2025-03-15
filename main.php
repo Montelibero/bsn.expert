@@ -166,8 +166,15 @@ $ContainerBuilder->addDefinitions([
     },
 
     StellarSDK::class => function() {
-        return StellarSDK::getPublicNetInstance();
+//        if (($_GET['test'] ?? null) == 'true') {
+            $SDK = new StellarSDK($_ENV['STELLAR_HORIZON_ENDPOINT']);
+//        } else {
+//            $SDK = StellarSDK::getPublicNetInstance();
+//        }
+        return $SDK;
     },
+
+    PDO::class => $PDO,
 
     WebApp::class => autowire(),
 

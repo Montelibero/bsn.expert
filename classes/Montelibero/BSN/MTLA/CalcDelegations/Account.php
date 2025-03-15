@@ -152,6 +152,9 @@ class Account
             'delegated_token_amount' => 0,
             'delegated' => [],
         ];
+        if ($this->isReadyToCouncil()) {
+            $data['is_ready_to_council'] = true;
+        }
 
         foreach ($this->DelegatedCouncilBy->asArray() as $Account) {
             if ($Account->isBrokenCouncilDelegate()) {

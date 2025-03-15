@@ -86,9 +86,10 @@ class CalcVoices
 
         $this->processCouncilDelegations();
         $result = $this->analiseCouncilDelegations();
-        $council_candidates = $this->filterCouncilCandidates($result['roots']);
+
         // TODO: return!
-//        $this->updateCouncil($council_candidates);
+        $result['council_candidates'] = $this->getCouncilCandidates($result['roots']);
+        //  $this->updateCouncil($council_candidates);
 
         return $result;
     }
@@ -118,6 +119,9 @@ class CalcVoices
         foreach ($accounts as $AccountResponse) {
             if ($AccountResponse instanceof AccountResponse) {
                 if ($AccountResponse->getAccountId() === 'GDGC46H4MQKRW3TZTNCWUU6R2C7IPXGN7HQLZBJTNQO6TW7ZOS6MSECR') {
+                    continue;
+                }
+                if (!$this->getAmountOfTokens($AccountResponse)) {
                     continue;
                 }
                 $Account = $this->processStellarAccount($AccountResponse);
@@ -304,7 +308,7 @@ class CalcVoices
         return $result;
     }
 
-    private function filterCouncilCandidates(array $candidates): array
+    private function getCouncilCandidates(array $candidates): array
     {
         $candidates_filtered = [];
 
@@ -313,8 +317,29 @@ class CalcVoices
             $token_power = $item['own_token_amount'] + $item['delegated_token_amount'];
             $Account = $this->Accounts->getById($account_id);
             if ($Account->isVerified() && $Account->isReadyToCouncil()) {
-                $candidates_filtered[$account_id] = $token_power;
+                $candidates_filtered[$account_id] = [
+                    'id' => $account_id,
+                    'token_power' => $token_power,
+                    'index' => null,
+                ];
             }
+        }
+
+        uasort($candidates_filtered, function (array $a, array $b) {
+            if ($a['token_power'] > $b['token_power']) {
+                return -1;
+            }
+
+            if ($a['token_power'] < $b['token_power']) {
+                return 1;
+            }
+
+            return strcmp($a['id'], $b['id']);
+        });
+
+        $index = 0;
+        foreach ($candidates_filtered as & $item) {
+            $item['index'] = ++$index;
         }
 
         return $candidates_filtered;

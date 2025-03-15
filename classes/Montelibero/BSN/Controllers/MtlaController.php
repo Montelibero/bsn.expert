@@ -141,7 +141,11 @@ class MtlaController
             $delegations[] = $record;
         }
 
-        if ($_GET['new'] ?? false) {
+        $key = 'mtla_council_delegation_tree';
+
+        if (apcu_exists($key)) {
+            $data = apcu_fetch($key);
+        } else {
             $CalcVoices = new CalcVoices(
                 $this->Stellar,
                 'GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA',
@@ -152,13 +156,15 @@ class MtlaController
 
             $CalcVoices->isDebugMode(false);
             $data = $CalcVoices->run();
-            $broken = $data['broken'];
-            $this->fetchAccountData($broken);
-            $delegation_tree = $data['roots'];
-            $this->sortAccounts($delegation_tree);
-            $this->fetchAccountData($delegation_tree);
-//            print "<pre>" . json_encode($delegate_tree, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "</pre>";
+            apcu_store($key, $data, 600);
         }
+
+
+        $broken = $data['broken'];
+        $this->fetchAccountData($broken, $current_signers, $data['council_candidates']);
+        $delegation_tree = $data['roots'];
+        $this->sortAccounts($delegation_tree);
+        $this->fetchAccountData($delegation_tree, $current_signers, $data['council_candidates']);
 
         return $Template->render([
             'current_signers' => $current_signers,
@@ -181,20 +187,29 @@ class MtlaController
             $sumA = $a['own_token_amount'] + $a['delegated_token_amount'];
             $sumB = $b['own_token_amount'] + $b['delegated_token_amount'];
 
+            if ($sumA === $sumB) {
+                return strcmp($a['id'], $b['id']);
+            }
+
             return $sumB <=> $sumA; // По убыванию
         });
     }
 
-    private function fetchAccountData(array & $accounts): void
+    private function fetchAccountData(array & $accounts, array $current_council, array $council_candidates): void
     {
         // Рекурсивная обработка
         foreach ($accounts as & $root) {
             $Account = $this->BSN->makeAccountById($root['id']);
-            $root['display_name'] = $Account->getDisplayName();
-            $root['short_id'] = $Account->getShortId();
+            $root += $Account->jsonSerialize();
+            if (array_key_exists($root['id'], $current_council)) {
+                $root['is_council'] = true;
+            }
+            if (array_key_exists($root['id'], $council_candidates)) {
+                $root['candidate_index'] = $council_candidates[$root['id']]['index'];
+            }
 
             if (!empty($root['delegated']) && is_array($root['delegated'])) {
-                $this->fetchAccountData($root['delegated']);
+                $this->fetchAccountData($root['delegated'], $current_council, $council_candidates);
             }
         }
     }
