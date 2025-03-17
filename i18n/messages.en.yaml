@@ -140,12 +140,6 @@ mtla_council_page:
   header_current: Current Council Members
   account: Account
   sign: Voice weight
-  delegations: Delegations
-  participant: Participant
-  level: Level
-  delegate: Delegate
-  no_delegation: No delegation
-  ready: Ready to be council
 
 editor:
   form:

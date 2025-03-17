@@ -120,26 +120,6 @@ class MtlaController
                 ];
         }
 
-        $accounts_to_delegate = $this->fetchMtlaCouncilDelegations();
-
-        $delegations = [];
-        foreach ($accounts_to_delegate as $account_id => $delegate) {
-            $Account = $this->BSN->makeAccountById($account_id);
-            $member_level = 0;
-            if (($Relation = $Account->getRelation()) && $Relation instanceof Member) {
-                $member_level = $Relation->getLevel();
-            }
-            $record = [
-                'account' => $Account->jsonSerialize(),
-                'member_level' => $member_level,
-                'ready_to_council' => $delegate === 'ready',
-            ];
-            if ($delegate && $delegate !== 'ready') {
-                $DelegateAccount = $this->BSN->makeAccountById($delegate);
-                $record['delegate'] = $DelegateAccount->jsonSerialize();
-            }
-            $delegations[] = $record;
-        }
 
         $key = 'mtla_council_delegation_tree';
 
@@ -165,8 +145,6 @@ class MtlaController
         $this->fetchAccountData($delegation_tree, $current_signers, $data['council_candidates']);
 
         return $Template->render([
-            'current_signers' => $current_signers,
-            'delegations' => $delegations,
             'delegation_tree' => $delegation_tree ?? [],
         ]);
     }

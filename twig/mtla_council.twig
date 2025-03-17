@@ -23,25 +23,6 @@
 
     <h1 class="title">{{ 'mtla_council_page.header'|trans }}</h1>
 
-    <h2 class="title is-4">{{ 'mtla_council_page.header_current'|trans }}</h2>
-
-    <table class="table" id="current_council" data-sortlist="[[1,1]]">
-        <thead>
-        <tr>
-            <th data-sorter="false">{{ 'mtla_council_page.account'|trans }}</th>
-            <th data-sorter="digit">{{ 'mtla_council_page.sign'|trans }}</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for account in current_signers %}
-            <tr>
-            <td>{{ include('account_link.twig', {data: account}, with_context = false) }}</td>
-            <td>{{ account.sign_weight }}</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-
     {% if delegation_tree %}
         {% macro renderDelegationTree(tree, level) %}
             <ul>
@@ -68,33 +49,5 @@
         </div>
     {% endif %}
 
-    <h2 class="title is-4">{{ 'mtla_council_page.delegations'|trans }}</h2>
-
-    <table class="table" data-sortlist="[[2,1],[1,1]]">
-        <thead>
-        <tr>
-            <th data-sorter="false">{{ 'mtla_council_page.participant'|trans }}</th>
-            <th data-sorter="digit">{{ 'mtla_council_page.level'|trans }}</th>
-            <th>{{ 'mtla_council_page.delegate'|trans }}</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for item in delegations %}
-            <tr>
-                <td>{{ include('account_link.twig', {data: item.account}, with_context = false) }}</td>
-                <td>{{ item.member_level }}</td>
-                <td>
-                    {% if item.ready_to_council %}
-                        {{ 'mtla_council_page.ready'|trans }}
-                    {% elseif item.delegate %}
-                        {{ include('account_link.twig', {data: item.delegate}, with_context = false) }}
-                    {% else %}
-                        {{ 'mtla_council_page.no_delegation'|trans }}
-                    {% endif %}
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
 {% endblock %}
 

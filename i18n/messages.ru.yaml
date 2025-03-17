@@ -138,12 +138,6 @@ mtla_council_page:
   header_current: Актуальный состав
   account: Аккаунт
   sign: Вес голоса
-  delegations: Делегации
-  participant: Доверитель
-  level: Уровень
-  delegate: Делегат
-  no_delegation: Без делегации
-  ready: Готов работать в Совете
 
 editor:
   form:
