@@ -64,6 +64,8 @@ account_page:
   website: Website
   signatures:
     header: Contracts
+  balances:
+    header: Balances
   income_tags:
     header: Income tags
     description: This is how other accounts refer to this one.

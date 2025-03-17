@@ -6,6 +6,7 @@ use Dotenv\Dotenv;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
+use Montelibero\BSN\Controllers\AssetsController;
 use Montelibero\BSN\Controllers\ContactsController;
 use Montelibero\BSN\Controllers\ContractsController;
 use Montelibero\BSN\Controllers\EditorController;
@@ -186,6 +187,7 @@ $ContainerBuilder->addDefinitions([
     EditorController::class => autowire(),
     ContactsController::class => autowire(),
     TagsController::class => autowire(),
+    AssetsController::class => autowire(),
     ContractsController::class => autowire(),
     MembershipDistributionController::class => autowire(),
     MtlaController::class => autowire(),

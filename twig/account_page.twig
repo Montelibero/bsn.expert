@@ -102,6 +102,26 @@
 </div>
 {% endif %}
 
+{% if balances %}
+<div class="box">
+        <h2 class="title">{{ 'account_page.balances.header'|trans }}</h2>
+        <div class="field is-grouped is-grouped-multiline">
+        {% for asset, balance in balances %}
+                <div class="control">
+                <div class="tags has-addons">
+                <span class="tag is-dark" title="{{ asset }}">
+                {{ balance.code }}
+                </span>
+                {% if balance.amount %}
+                <span class="tag {{ balance.is_tokenomic ? "is-info" : "" }}">{{ balance.amount }}</span>
+                {% endif %}
+                </div>
+                </div>
+        {% endfor %}
+        </div>
+</div>
+{% endif %}
+
 {% if income_tags %}
 <div class="box">
         <h2 class="title">{{ 'account_page.income_tags.header'|trans }}</h2>

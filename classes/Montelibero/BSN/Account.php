@@ -280,6 +280,11 @@ class Account implements JsonSerializable
         $this->balances[$name] = $value;
     }
 
+    public function getBalances(): array
+    {
+        return $this->balances;
+    }
+
     public function getBalance(string $name = null): float
     {
         if (!array_key_exists($name, $this->balances)) {

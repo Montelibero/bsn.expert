@@ -10,6 +10,8 @@ use Montelibero\BSN\ContactsManager;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
+use Soneso\StellarSDK\Asset;
+use Soneso\StellarSDK\StellarSDK;
 use Twig\Environment;
 
 class AccountsController
@@ -48,14 +50,17 @@ class AccountsController
     ];
 
     private ?string $default_viewer = null;
+    private StellarSDK $Stellar;
 
-    public function __construct(BSN $BSN, Environment $Twig)
+    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar)
     {
         $this->BSN = $BSN;
 
         $this->Twig = $Twig;
         $this->Twig->addGlobal('session', $_SESSION);
         $this->Twig->addGlobal('server', $_SERVER);
+
+        $this->Stellar = $Stellar;
 
         if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
             $this->default_viewer = $_COOKIE['default_viewer'];
@@ -204,6 +209,62 @@ class AccountsController
             ];
         }, $Account->getSignatures());
 
+        $base_assets = [
+            "EURMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
+            "USDM-GDHDC4GBNPMENZAOBB4NCQ25TGZPDRK6ZGWUGSI22TVFATOLRPSUUSDM",
+            "MTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
+            "MTLRECT-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
+            "BTCMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
+            "SATSMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
+            "GPA-GBGGX7QD3JCPFKOJTLBRAFU3SIME3WSNDXETWI63EDCORLBB6HIP2CRR",
+            "Agora-GBGGX7QD3JCPFKOJTLBRAFU3SIME3WSNDXETWI63EDCORLBB6HIP2CRR",
+            "TIC-GBJ3HT6EDPWOUS3CUSIJW5A4M7ASIKNW4WFTLG76AAT5IE6VGVN47TIC",
+            "TOC-GBJ3HT6EDPWOUS3CUSIJW5A4M7ASIKNW4WFTLG76AAT5IE6VGVN47TIC",
+            "TPS-GAODFS2M4NSBFGKVNG6SEECI3DWU2GXQKG6MUBYJEIIINVIPZULCJTPS",
+            "EURTPS-GDEF73CXYOZXQ6XLUN55UBCW5YTIU4KVZEPOI6WJSREN3DMOBLVLZTOP",
+            "USDC-GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        ];
+
+        $base_code_to_issuer = [];
+        foreach ($base_assets as $asset) {
+            list($code, $issuer) = explode('-', $asset);
+            $base_code_to_issuer[$code] = $issuer;
+        }
+
+        $balances = [];
+        foreach ($Account->getBalances() as $asset_name => $value) {
+            if (!array_key_exists($asset_name, $base_code_to_issuer)) {
+                continue;
+            }
+            $balances["$asset_name-{$base_code_to_issuer[$asset_name]}"] = [
+                'code' => $asset_name,
+                'amount' => $value,
+                'is_tokenomic' => true,
+            ];
+        }
+        try {
+            $StellarAccount = $this->Stellar->requestAccount($Account->getId());
+            foreach ($StellarAccount->getBalances()->toArray() as $Asset) {
+                if ($Asset->getAssetType() === Asset::TYPE_NATIVE) {
+                    $asset_name = 'XLM';
+                } else {
+                    $asset_name = $Asset->getAssetCode() . '-' . $Asset->getAssetIssuer();
+                }
+                if (!array_key_exists($asset_name, $balances)) {
+                    $balances[$asset_name] = [
+                        'code' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? 'XLM' : $Asset->getAssetCode(),
+                        'amount' => (float) $Asset->getBalance(),
+                        'is_tokenomic' => false,
+                    ];
+                } else {
+                    $balances[$asset_name]['amount'] = (float) $Asset->getBalance();
+                }
+            }
+        } catch (\Exception $E) {
+
+        }
+        WebApp::semantic_sort_keys($balances, $base_assets);
+
         if ($_SERVER['HTTP_ACCEPT'] === 'application/json' || ($_GET['format'] ?? '') === 'json') {
             if (!empty($_GET['tag']) && BSN::validateTagNameFormat($_GET['tag'])) {
                 $FilterTag = $this->BSN->makeTagByName($_GET['tag']);
@@ -248,6 +309,7 @@ class AccountsController
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,
             'signatures' => $signatures,
+            'balances' => $balances,
         ]);
     }
 

@@ -63,6 +63,8 @@ account_page:
   website: Ссылка
   signatures:
     header: Контракты
+  balances:
+    header: Балансы
   income_tags:
     header: Входящие теги
     description: Это то, как с других аккаунтов ссылаются на этот.

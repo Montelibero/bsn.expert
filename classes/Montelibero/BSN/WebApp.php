@@ -45,8 +45,9 @@ class WebApp
         'WelcomeGuest',
     ];
     private ?string $default_viewer = null;
+    private StellarSDK $Stellar;
 
-    public function __construct(BSN $BSN, AccountsManager $AccountsManager, Environment $Twig)
+    public function __construct(BSN $BSN, AccountsManager $AccountsManager, Environment $Twig, StellarSDK $Stellar)
     {
         $this->BSN = $BSN;
         $this->AccountsManager = $AccountsManager;
@@ -54,6 +55,8 @@ class WebApp
         $this->Twig = $Twig;
         $this->Twig->addGlobal('session', $_SESSION);
         $this->Twig->addGlobal('server', $_SERVER);
+
+        $this->Stellar = $Stellar;
 
         if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
             $this->default_viewer = $_COOKIE['default_viewer'];
@@ -65,7 +68,7 @@ class WebApp
         $Template = $this->Twig->load('index.twig');
         return $Template->render([
             'accounts_count' => $this->BSN->getAccountsCount(),
-            'adopters_count' => count((new AccountsController($this->BSN, $this->Twig))->getAdopters()),
+            'adopters_count' => count((new AccountsController($this->BSN, $this->Twig, $this->Stellar))->getAdopters()),
         ]);
     }
 
