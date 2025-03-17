@@ -13,6 +13,9 @@ class MtlaRouter
         SimpleRouter::get('/', function () use ($Container) {
             return $Container->get(MtlaController::class)->Mtla();
         });
+        SimpleRouter::match(['get', 'post'], '/reload_members', function () use ($Container) {
+            return $Container->get(MtlaController::class)->MtlaReloadMembers();
+        });
 
         SimpleRouter::get('/council', function () use ($Container) {
             return $Container->get(MtlaController::class)->MtlaCouncil();

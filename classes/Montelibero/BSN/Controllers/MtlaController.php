@@ -116,8 +116,8 @@ class MtlaController
         foreach ($this->fetchMtlaSigners() as $id => $weight) {
             $Account = $this->BSN->getAccountById($id);
             $current_signers[$id] = $Account->jsonSerialize() + [
-                'sign_weight' => $weight,
-            ];
+                    'sign_weight' => $weight,
+                ];
         }
 
         $accounts_to_delegate = $this->fetchMtlaCouncilDelegations();
@@ -153,12 +153,10 @@ class MtlaController
                 ['GDUTNVJWCTJSPJEI3AWN7NRE535LAQDUEUEA37M22WGDYOLUGWKAMNFT'],
             );
 
-
             $CalcVoices->isDebugMode(false);
             $data = $CalcVoices->run();
             apcu_store($key, $data, 600);
         }
-
 
         $broken = $data['broken'];
         $this->fetchAccountData($broken, $current_signers, $data['council_candidates']);
@@ -173,7 +171,7 @@ class MtlaController
         ]);
     }
 
-    private function sortAccounts(array & $accounts): void
+    private function sortAccounts(array &$accounts): void
     {
         // Рекурсивная сортировка вложенных элементов
         foreach ($accounts as & $root) {
@@ -195,7 +193,7 @@ class MtlaController
         });
     }
 
-    private function fetchAccountData(array & $accounts, array $current_council, array $council_candidates): void
+    private function fetchAccountData(array &$accounts, array $current_council, array $council_candidates): void
     {
         // Рекурсивная обработка
         foreach ($accounts as & $root) {
@@ -212,5 +210,37 @@ class MtlaController
                 $this->fetchAccountData($root['delegated'], $current_council, $council_candidates);
             }
         }
+    }
+
+    public function MtlaReloadMembers(): ?string
+    {
+        self::reloadMembers();
+        return "OK";
+    }
+
+    public static function reloadMembers(): void
+    {
+        $grist_response = \gristRequest(
+            'https://montelibero.getgrist.com/api/docs/aYk6cpKAp9CDPJe51sP3AT/tables/Users/records',
+            'GET'
+        );
+        $members = [];
+        foreach ($grist_response['records'] as $item) {
+            $fields = $item['fields'];
+            if (
+                empty($fields['TGID'])
+                || empty($fields['Stellar'])
+                || empty($fields['MTLAP'])
+                || $fields['MTLAP'] == 0
+            ) {
+                continue;
+            }
+            $members[] = [
+                'stellar' => $fields['Stellar'],
+                'tg_id' => $fields['TGID'],
+                'tg_username' => trim($fields['Telegram'], '@'),
+            ];
+        }
+        apcu_store('mtla_members', $members, 3600);
     }
 }

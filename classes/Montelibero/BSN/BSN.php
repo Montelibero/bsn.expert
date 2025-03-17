@@ -87,6 +87,9 @@ class BSN
     public function loadMtlaMembersFromJson(array $json): void
     {
         foreach ($json as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
             $Account = $this->makeAccountById($item['stellar']);
             $Account->setTelegramId($item['tg_id']);
             $Account->setTelegramUsername($item['tg_username']);

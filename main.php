@@ -131,7 +131,11 @@ session_set_cookie_params([
 session_start();
 
 $BSN->loadFromJson(json_decode(file_get_contents(JSON_DATA_FILE_PATH), JSON_OBJECT_AS_ARRAY));
-$BSN->loadMtlaMembersFromJson(json_decode(file_get_contents('../mtla_members.json'), JSON_OBJECT_AS_ARRAY));
+if (!apcu_exists('mtla_members')) {
+    MtlaController::reloadMembers();
+}
+$mtla_members = apcu_fetch('mtla_members');
+$BSN->loadMtlaMembersFromJson($mtla_members);
 $BSN->loadContacts();
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
