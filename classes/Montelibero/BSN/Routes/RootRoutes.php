@@ -6,6 +6,7 @@ use DI\Container;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
+use Montelibero\BSN\Controllers\FederationController;
 use Pecee\SimpleRouter\Exceptions\NotFoundHttpException;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
@@ -61,6 +62,9 @@ class RootRoutes
         });
         SimpleRouter::get('/defaults', function() {
             SimpleRouter::response()->redirect('/preferences', 301);
+        });
+        SimpleRouter::get('/federation', function() use ($Container) {
+            return $Container->get(FederationController::class)->Federation();
         });
 
         // Обработка "динамического" маршрута для user

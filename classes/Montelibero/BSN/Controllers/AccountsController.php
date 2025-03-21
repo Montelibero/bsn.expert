@@ -299,6 +299,7 @@ class AccountsController
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
             'display_name' => $Account->getDisplayName(),
+            'username' => $Account->getUsername(),
             'is_logged' => $is_logged,
             'is_contact' => $is_contact,
             'telegram_username' => $Account->getTelegramUsername(),

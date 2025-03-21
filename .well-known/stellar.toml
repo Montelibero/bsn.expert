@@ -1,0 +1,12 @@
+VERSION = "2.0"
+
+FEDERATION_SERVER = "https://bsn.expert/federation"
+
+ACCOUNTS = [
+    "GBY743WRLF4APZ2D6DSRQBIGVDGME65QIQXONN4E52CEDRCQ2VIMEBSN"
+]
+
+[DOCUMENTATION]
+ORG_NAME = "BSN.Expert"
+ORG_URL = "https://bsn.expert"
+ORG_SUPPORT_EMAIL = "info@bsn.expert"

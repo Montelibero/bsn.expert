@@ -8,6 +8,8 @@ class AccountsManager
 {
     private PDO $PDO;
 
+    const USERNAME_REGEX = '/^[a-zA-Z0-9_]+$/';
+
     public function __construct(PDO $PDO)
     {
         $this->PDO = $PDO;
@@ -51,5 +53,10 @@ class AccountsManager
         $stmt->execute();
 
         return $stmt->fetchColumn();
+    }
+
+    public static function validateUsername($text): bool
+    {
+        return preg_match(self::USERNAME_REGEX, $text);
     }
 }
