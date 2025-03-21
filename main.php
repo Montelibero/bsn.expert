@@ -10,6 +10,8 @@ use Montelibero\BSN\Controllers\AssetsController;
 use Montelibero\BSN\Controllers\ContactsController;
 use Montelibero\BSN\Controllers\ContractsController;
 use Montelibero\BSN\Controllers\EditorController;
+use Montelibero\BSN\Controllers\ErrorController;
+use Montelibero\BSN\Controllers\FederationController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MultisigController;
@@ -19,6 +21,7 @@ use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
+use Pecee\Http\Request;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\StellarSDK;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -193,10 +196,18 @@ $ContainerBuilder->addDefinitions([
     MtlaController::class => autowire(),
     PercentPayController::class => autowire(),
     MultisigController::class => autowire(),
+    FederationController::class => autowire(),
+    ErrorController::class => autowire(),
 ]);
 $Container = $ContainerBuilder->build();
 
 RootRoutes::register($Container, $BSN, $AccountsManager);
+
+SimpleRouter::error(function (Request $Request, Exception $Exception) use ($Container) {
+    if ($Exception->getCode() === 404) {
+        return $Container->get(ErrorController::class)->Error404();
+    }
+});
 
 SimpleRouter::start();
 

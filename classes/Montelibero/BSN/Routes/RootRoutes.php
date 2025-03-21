@@ -81,7 +81,7 @@ class RootRoutes
                 }
             }
 
-            throw new NotFoundHttpException();
+            SimpleRouter::response()->httpCode(404);
         })->where(['username' => '\@?[a-zA-Z0-9_]+']);
     }
 }
