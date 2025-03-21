@@ -3,6 +3,8 @@
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
+use phpseclib3\Math\BigInteger;
+use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\AssetTypeCreditAlphanum;
 use Soneso\StellarSDK\AssetTypeNative;
@@ -14,7 +16,7 @@ use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\SetTrustLineFlagsOperationBuilder;
 use Soneso\StellarSDK\StellarSDK;
-use Soneso\StellarSDK\TransactionBuilder;
+use Soneso\StellarSDK\Transaction;
 use Twig\Environment;
 
 class MembershipDistributionController
@@ -81,30 +83,37 @@ class MembershipDistributionController
                     $error .= 'Error account format: ' . $line . "\n";
                 }
             }
+            if (!count($accounts)) {
+                $error .= "Нет аккаунтов, куда это вот всё\n";
+            }
             $memo = $_POST['memo'] ?? '';
             if (strlen($memo) > 28) {
                 $error .= "Длина мемо не может быть больше 28 байт\n";
             }
+            $seq_num = $_POST['seq_num'] ?? '';
+            if ($seq_num !== '' && !preg_match('/^\d+$/', $seq_num)) {
+                $error .= "Seq num должен быть числом, ну вы чего\n";
+            }
+
 
             if (!$error) {
                 $StellarAccount = $this->Stellar->requestAccount($account_secretary);
-                $Transaction = new TransactionBuilder($StellarAccount);
-                $Transaction->addMemo($memo ? Memo::text($memo) : Memo::none());
-                $Transaction->setMaxOperationFee(10000);
+                /** @var AbstractOperation[] $operations */
+                $operations = [];
                 foreach ($accounts as $data) {
                     $Account = $this->Stellar->requestAccount($data['account']);
 
                     if ($data['amount'] > 0) {
                         $Operation = new SetTrustLineFlagsOperationBuilder($data['account'], $assets[$data['token']], 0, 1);
                         $Operation->setSourceAccount($account_main);
-                        $Transaction->addOperation($Operation->build());
+                        $operations[] = $Operation->build();
 
                         $Operation = new PaymentOperationBuilder($data['account'], $assets[$data['token']], $data['amount']);
-                        $Transaction->addOperation($Operation->build());
+                        $operations[] = $Operation->build();
 
                         $Operation = new SetTrustLineFlagsOperationBuilder($data['account'], $assets[$data['token']], 1, 0);
                         $Operation->setSourceAccount($account_main);
-                        $Transaction->addOperation($Operation->build());
+                        $operations[] = $Operation->build();
                     } else {
                         $Operation = new ClawbackOperationBuilder(
                             $assets[$data['token']],
@@ -112,17 +121,25 @@ class MembershipDistributionController
                             abs($data['amount'])
                         );
                         $Operation->setSourceAccount($account_main);
-                        $Transaction->addOperation($Operation->build());
+                        $operations[] = $Operation->build();
                     }
 
                     $xlm_amount = $this->getAmountOfXlm($Account);
                     if ($xlm_amount < 10) {
                         $Operation = new PaymentOperationBuilder($data['account'], new AssetTypeNative(), 2);
-                        $Transaction->addOperation($Operation->build());
+                        $operations[] = $Operation->build();
                     }
                 }
+                $Transaction = new Transaction(
+                    $StellarAccount->getMuxedAccount(),
+                    $seq_num ? new BigInteger($seq_num) : $StellarAccount->getIncrementedSequenceNumber(),
+                    $operations,
+                    $memo ? Memo::text($memo) : Memo::none(),
+                    null,
+                    count($operations) * 10000,
+                );
 
-                $transaction = $Transaction->build()->toEnvelopeXdrBase64();
+                $transaction = $Transaction->toEnvelopeXdrBase64();
             }
         }
 
@@ -136,6 +153,7 @@ class MembershipDistributionController
             'accounts' => $_POST['accounts'] ?? '',
             'source_account' => $_POST['source_account'] ?? 'secretary',
             'memo' => $_POST['memo'] ?? 'Membership Distribution',
+            'seq_num' => $_POST['seq_num'] ?? '',
             'error' => $error,
             'transaction' => $transaction,
             'sign_tools_url' => $sign_tools_url,
