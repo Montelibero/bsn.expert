@@ -161,9 +161,9 @@ class AccountsController
 
         $is_contact = false;
         $is_logged = false;
-        if ($_SESSION['telegram'] ?? null) {
+        if ($_SESSION['account'] ?? null) {
             $is_logged = true;
-            $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+            $ContactsManager = new ContactsManager($_SESSION['account']['id']);
             $is_contact = (bool) $ContactsManager->getContact($Account->getId());
         }
 

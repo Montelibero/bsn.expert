@@ -72,7 +72,7 @@ class EditorController
 
         $Template = $this->Twig->load('editor_form.twig');
         return $Template->render([
-            'default_id' => $_GET['id'] ?? $_SESSION['stellar_id'] ?? '',
+            'default_id' => $_GET['id'] ?? $_SESSION['account']['id'] ?? '',
             'single_tag' => $single_tag,
             'single_contact' => $single_contact,
         ]);
@@ -247,8 +247,8 @@ class EditorController
                 }
             }
             // Add from contact book
-            if ($_SESSION['telegram'] ?? null) {
-                $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+            if ($_SESSION['account'] ?? null) {
+                $ContactsManager = new ContactsManager($_SESSION['account']['id']);
                 foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
                     if (!array_key_exists($stellar_address, $contacts)) {
                         $contacts[$stellar_address] = $this->BSN->makeAccountById($stellar_address);

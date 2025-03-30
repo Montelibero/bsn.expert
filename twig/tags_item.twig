@@ -16,8 +16,8 @@
         </script>
 <h1 class="title">{{ tag.name }}</h1>
 
-        {% if tag.is_editable and session.stellar_id %}
-        <p class="block"><a href="/editor/{{ session.stellar_id }}/?tag={{ tag.name }}">{{ 'tag_page.edit_link'|trans }} →</a></p>
+        {% if tag.is_editable and session.account %}
+        <p class="block"><a href="/editor/{{ session.account.id }}/?tag={{ tag.name }}">{{ 'tag_page.edit_link'|trans }} →</a></p>
         {% endif %}
 
         <table class="table" data-sortlist="[[0,0],[1,0]]">

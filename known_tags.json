@@ -130,6 +130,9 @@
     "PartOf": {
       "pair": "MyPart",
       "strong_pair": true
+    },
+    "TimeTokenIssuer": {
+      "single": true
     }
   }
 }

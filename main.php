@@ -12,6 +12,7 @@ use Montelibero\BSN\Controllers\ContractsController;
 use Montelibero\BSN\Controllers\EditorController;
 use Montelibero\BSN\Controllers\ErrorController;
 use Montelibero\BSN\Controllers\FederationController;
+use Montelibero\BSN\Controllers\LoginController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MultisigController;
@@ -37,7 +38,7 @@ include_once __DIR__ . '/vendor/autoload.php';
 // Загружаем переменные окружения из файла .env
 (Dotenv::createImmutable(__DIR__))->load();
 
-const JSON_DATA_FILE_PATH = '/var/www/bsn.mtla.me/app/bsn.json';
+const JSON_DATA_FILE_PATH = '/var/www/crawler/bsn.json';
 //const JSON_DATA_FILE_PATH = '../BoR/bsn.json';
 
 //$memory1 = memory_get_usage();
@@ -49,6 +50,9 @@ $PDO = new PDO(
 );
 $PDO->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $PDO->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+$Memcached = new Memcached();
+$Memcached->addServer("127.0.0.1", 11211);
 
 $AccountsManager = new AccountsManager($PDO);
 $BSN = new BSN($AccountsManager);
@@ -113,6 +117,10 @@ foreach ($known_tags['links'] as $link_name => $link_data) {
         $TagPair = $link_data['pair'] === true ? $Tag : $BSN->makeTagByName($pair);
         $Tag->setPair($TagPair, $link_data['strong_pair'] ?? false);
     }
+    if ($known_tags['single'] ?? null) {
+        $Tag = $BSN->makeTagByName($link_name);
+        $Tag->isSingle($known_tags['single']);
+    }
 }
 
 $functional_tags = [
@@ -124,6 +132,7 @@ $functional_tags = [
 ];
 
 session_name("HELLOKITTY");
+//session_save_path(__DIR__ . '/../sessions');
 session_set_cookie_params([
     'lifetime' => 86400 * 14,
     'path' => '/',
@@ -132,6 +141,7 @@ session_set_cookie_params([
     'httponly' => true,
     'samesite' => 'Strict'
 ]);
+
 session_start();
 
 $BSN->loadFromJson(json_decode(file_get_contents(JSON_DATA_FILE_PATH), JSON_OBJECT_AS_ARRAY));
@@ -148,6 +158,7 @@ $ContainerBuilder = new ContainerBuilder();
 $ContainerBuilder->addDefinitions([
     // Базовые сервисы
     BSN::class => $BSN,
+    Memcached::class => $Memcached,
     AccountsManager::class => $AccountsManager,
 
     Translator::class => function() {
@@ -186,6 +197,7 @@ $ContainerBuilder->addDefinitions([
 
     WebApp::class => autowire(),
 
+    LoginController::class => autowire(),
     AccountsController::class => autowire(),
     EditorController::class => autowire(),
     ContactsController::class => autowire(),

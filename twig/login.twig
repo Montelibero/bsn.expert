@@ -2,6 +2,50 @@
 
 {% block title %}{{ 'nav.login'|trans }}{% endblock %}
 
+{% block head %}
+    {% if sign_uri %}
+        <noscript>
+            <meta id="meta-refresh" http-equiv="refresh" content="10; url=/login/?nonce={{ nonce }}">
+        </noscript>
+        <script>
+            async function checkLoginStatus() {
+                try {
+                    const response = await fetch('/login?format=json&nonce={{ nonce }}', { cache: 'no-store' });
+                    const data = await response.json();
+
+                    // Обработка таймера, если пришёл timestamp
+                    if (data.timestamp) {
+                        const now = Math.floor(Date.now() / 1000); // текущее время в секундах
+                        const remaining = Math.max(0, data.timestamp + 300 - now); // 5 минут = 300 секунд
+
+                        const minutes = String(Math.floor(remaining / 60));
+                        const seconds = String(remaining % 60).padStart(2, '0');
+
+                        const timerEl = document.getElementById('timer');
+                        if (timerEl) {
+                            timerEl.textContent = `${minutes}:${seconds}`;
+                        }
+                    }
+
+                    // Проверка статуса
+                    if (data.status === 'created') {
+                        setTimeout(checkLoginStatus, 5000); // Повтор через 5 секунд
+                    } else {
+                        window.location.href = '/login?nonce={{ nonce }}'; // Переход, если статус не "created"
+                    }
+                } catch (e) {
+                    console.error('Ошибка при проверке статуса:', e);
+                    // Можно повторить попытку через время, если нужно
+                    setTimeout(checkLoginStatus, 10000); // Повтор с задержкой при ошибке
+                }
+            }
+
+            // Запускаем при загрузке
+            checkLoginStatus();
+        </script>
+    {% endif %}
+{% endblock %}
+
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
     <li class="is-active"><a href="#" aria-current="page">{{ 'nav.login'|trans }}</a></li>
@@ -9,9 +53,55 @@
 
 
 {% block content %}
+    <style>
+        .qr {
+            width: 40vmin;
+        }
+    </style>
+
     <h1 class="title">{{ 'nav.login'|trans }}</h1>
     <p class="block">
         {{ 'login.description'|trans }}
     </p>
+
+    {% if no_cookie %}
+        <div class="notification is-danger">
+            <h2 class="title is-4">{{ 'login.no_cookie.title'|trans }}</h2>
+            <p class="block">{{ 'login.no_cookie.description'|trans }}</p>
+        </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="notification is-info">
+        {% if error == 'timeout' %}
+        <h2 class="title is-4">Вышло время</h2>
+        <p class="block">Может долго подписывали транзакцию? Там минут 5 даётся.</p>
+        {% else %}
+        <h2 class="title is-4">Чего-то не получилось</h2>
+        <p class="block">Попробуйте ещё раз, скорее всего всё получится!</p>
+        <p class="block">({{ error }})</p>
+        {% endif %}
+    </div>
+    <p class="block">
+    <a href="/login/" class="button is-link">{{ 'login.again_button'|trans }}</a>
+    </p>
+    {% endif %}
+
+{% if sign_uri %}
+    <h2 class="title is-4">{{ 'login.step_one.title'|trans }}</h2>
+    <p class="block">{{ 'login.step_one.description'|trans }}</p>
+    <p class="block">
+        {{ 'login.step_one.time_limit'|trans }}
+        <span id="timer">{{ (timer // 60)|format('%02d') }}:{{ timer|date('s', 'UTC') }}</span>
+    </p>
+    <p class="block">
+        <a href="{{ sign_uri }}" class="button is-link">{{ 'login.step_one.button'|trans }}</a>
+    </p>
+    <p class="block qr"><img src="{{ sign_qr }}"></p>
+    <h2 class="title is-4">{{ 'login.step_two.title'|trans }}</h2>
+    <p class="block">{{ 'login.step_two.description'|trans }}</p>
+    <a href="/login/?nonce={{ nonce }}" class="button is-link">{{ 'login.step_two.button'|trans }}</a>
+{% endif %}
+
 {% endblock %}
 

@@ -26,6 +26,21 @@ login:
     The site offers some features that are only available to authorized users.
     First of all, it is a convenient contact book compatible with Sunce Wallet.
     Also, verified members of the Montelibero Association can see the Telegram usernames of other members.
+  no_cookie:
+    title: Cookies are disabled
+    description: >
+      To authorize on this site, you need to first enable cookies. There is only session cookie needed.
+      After enabling, you need to reload this page.
+  step_one:
+    title: 1. First, sign
+    description: Sign a dummy transaction to prove you control the account. Sunce Wallet, Lobstr—bless their hearts—are your friends here.
+    time_limit: "This transaction is only good for:"
+    button: Sign
+  step_two:
+    title: 2. Now verify
+    description: Once you’ve successfully signed the transaction, click this button to log in.
+    button: Verify
+  again_button: Authorize
 
 preferences:
   description: >

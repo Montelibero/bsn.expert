@@ -8,6 +8,7 @@
     "ext-pdo": "*",
     "ext-curl": "*",
     "ext-gd": "*",
+    "ext-memcached": "*",
     "vlucas/phpdotenv": "5.4",
     "twig/twig": "^3.10",
     "pecee/simple-router": "^5.4",
@@ -19,7 +20,8 @@
     "symfony/twig-bridge": "^7.2",
     "symfony/yaml": "^7.2",
     "php-di/php-di": "^7.0",
-    "endroid/qr-code": "^6.0"
+    "endroid/qr-code": "^6.0",
+    "chillerlan/php-qrcode": "^5.0"
   }
 ,
   "require-dev": {

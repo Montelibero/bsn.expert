@@ -13,17 +13,15 @@
 
 {% block content %}
 <h1 class="title">{{ display_name }}
-        {% if is_logged %}
+        {% if session.account %}
         <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}"
            href="/contacts/{{ account_id }}"
            title="{% if is_contact  %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}"
         ><span class="icon"><i class="fa-regular fa-address-book"></i></span></a>
-        {% if session.stellar_id %}
         <a class="button is-outlined is-primary"
-           href="/editor/{{ session.stellar_id }}/?id={{ account_id }}"
+           href="/editor/{{ session.account.id }}/?id={{ account_id }}"
            title="{{ 'account_page.edit_button'|trans }}"
         ><span class="icon"><i class="fa-regular fa-square-check"></i></span></a>
-        {% endif %}
         {% endif %}
 </h1>
 <h1 class="subtitle">

@@ -27,11 +27,11 @@ class ContactsController
 
     public function Contacts(): ?string
     {
-        if (!$_SESSION['telegram']) {
-            SimpleRouter::response()->redirect('/tg/', 302);
+        if (!$_SESSION['account']) {
+            SimpleRouter::response()->redirect('/login/', 302);
         }
 
-        $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+        $ContactsManager = new ContactsManager($_SESSION['account']['id']);
 
         $contacts = $ContactsManager->getContacts();
 
@@ -128,11 +128,11 @@ class ContactsController
 
         $Account = $this->BSN->makeAccountById($account_id);
 
-        if (!$_SESSION['telegram']) {
+        if (!$_SESSION['account']) {
             SimpleRouter::response()->redirect('/tg/', 302);
         }
 
-        $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+        $ContactsManager = new ContactsManager($_SESSION['account']['id']);
 
         $exists_contact = $ContactsManager->getContact($account_id);
 

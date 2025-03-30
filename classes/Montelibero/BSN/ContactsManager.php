@@ -6,14 +6,14 @@ use \PDO;
 
 class ContactsManager
 {
-    private $tg_id;
+    private $account_id;
     private $PDO;
     
     private $contacts = [];
 
-    public function __construct($tg_id)
+    public function __construct($account_id)
     {
-        $this->tg_id = $tg_id;
+        $this->account_id = $account_id;
 
         $this->PDO = new PDO(
             'mysql:host=' . $_ENV['MYSQL_HOST'] . ';dbname=' . $_ENV['MYSQL_BASENAME'],
@@ -24,12 +24,12 @@ class ContactsManager
 
     public function getContacts(?string $stellar_address = null): array
     {
-        $sql = 'SELECT * FROM contacts WHERE telegram_id = :telegram_id';
+        $sql = 'SELECT * FROM contacts WHERE account_id = :account_id';
         if ($stellar_address) {
             $sql .= ' AND stellar_address = :stellar_address';
         }
         $stmt = $this->PDO->prepare($sql);
-        $stmt->bindParam(':telegram_id', $this->tg_id);
+        $stmt->bindParam(':account_id', $this->account_id);
         if ($stellar_address) {
             $stmt->bindParam(':stellar_address', $stellar_address);
         }
@@ -55,8 +55,8 @@ class ContactsManager
 
     public function addContact(string $stellar_account, ?string $name = null): void
     {
-        $stmt = $this->PDO->prepare('INSERT INTO contacts (telegram_id, stellar_address, name) VALUES (:telegram_id, :stellar_address, :name)');
-        $stmt->bindParam(':telegram_id', $this->tg_id);
+        $stmt = $this->PDO->prepare('INSERT INTO contacts (account_id, stellar_address, name) VALUES (:account_id, :stellar_address, :name)');
+        $stmt->bindParam(':account_id', $this->account_id);
         $stmt->bindParam(':stellar_address', $stellar_account);
         $stmt->bindParam(':name', $name);
         $stmt->execute();
@@ -64,8 +64,8 @@ class ContactsManager
 
     public function updateContact(string $stellar_account, ?string $name)
     {
-        $stmt = $this->PDO->prepare('UPDATE contacts SET name = :name WHERE telegram_id = :telegram_id AND stellar_address = :stellar_address');
-        $stmt->bindParam(':telegram_id', $this->tg_id);
+        $stmt = $this->PDO->prepare('UPDATE contacts SET name = :name WHERE account_id = :account_id AND stellar_address = :stellar_address');
+        $stmt->bindParam(':account_id', $this->account_id);
         $stmt->bindParam(':stellar_address', $stellar_account);
         $stmt->bindParam(':name', $name);
         $stmt->execute();
@@ -73,8 +73,8 @@ class ContactsManager
 
     public function deleteContact($stellar_account)
     {
-        $stmt = $this->PDO->prepare('DELETE FROM contacts WHERE telegram_id = :telegram_id AND stellar_address = :stellar_address');
-        $stmt->bindParam(':telegram_id', $this->tg_id);
+        $stmt = $this->PDO->prepare('DELETE FROM contacts WHERE account_id = :account_id AND stellar_address = :stellar_address');
+        $stmt->bindParam(':account_id', $this->account_id);
         $stmt->bindParam(':stellar_address', $stellar_account);
         $stmt->execute();
     }

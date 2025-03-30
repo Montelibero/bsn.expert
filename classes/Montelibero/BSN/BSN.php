@@ -99,8 +99,8 @@ class BSN
 
     public function loadContacts(): void
     {
-        if ($_SESSION['telegram'] ?? false) {
-            $ContactsManager = new ContactsManager($_SESSION['telegram']['id']);
+        if ($_SESSION['account'] ?? false) {
+            $ContactsManager = new ContactsManager($_SESSION['account']['id']);
             foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
                 $Account = $this->makeAccountById($stellar_address);
                 $Account->isContact(true);
