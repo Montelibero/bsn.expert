@@ -217,7 +217,9 @@ RootRoutes::register($Container, $BSN, $AccountsManager);
 
 SimpleRouter::error(function (Request $Request, Exception $Exception) use ($Container) {
     if ($Exception->getCode() === 404) {
-        return $Container->get(ErrorController::class)->Error404();
+        $Request->setRewriteCallback(function () use ($Container) {
+            return $Container->get(ErrorController::class)->Error404();
+        });
     }
 });
 

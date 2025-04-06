@@ -1,17 +1,21 @@
 {% extends "page.twig" %}
 
-{% block title %}{{ 'error404.title'|trans }}{% endblock %}
+{% block title %}{{ 'error404.name'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
-    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'error404.name'|trans }}</a></li>
 {% endblock %}
 
 
 {% block content %}
+<section class="hero is-warning">
+    <div class="hero-body">
     <h1 class="title">{{ 'error404.title'|trans }}</h1>
     <p class="block">
-{#        <a href="/mtla/council">{{ 'nav.council'|trans }}</a>#}
+        {{ 'error404.description'|trans }}
     </p>
+    </div>
+</section>
 {% endblock %}
 

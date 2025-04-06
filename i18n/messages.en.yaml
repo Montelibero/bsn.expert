@@ -59,6 +59,12 @@ search:
   action:
     search: Find
 
+error404:
+  name: 404 Not Found
+  title: Not found (404)
+  description: >
+    There's some kind of error, but we don't have anything at the specified address :-(
+
 accounts:
   description: >
     Here are all the accounts that are more or less known to the system. Primarily, these include members of 
