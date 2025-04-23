@@ -27,6 +27,6 @@ class TwigExtension extends AbstractExtension
 
     public function accountShort($account): string
     {
-        return substr($account, 0, 4) . '…' . substr($account, -4);
+        return substr($account, 0, 2) . '…' . substr($account, -6);
     }
 }

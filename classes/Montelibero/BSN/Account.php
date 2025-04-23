@@ -47,7 +47,7 @@ class Account implements JsonSerializable
 
     public function getShortId(): string
     {
-        return substr($this->id, 0, 4) . '…' . substr($this->id, -4);
+        return substr($this->id, 0, 2) . '…' . substr($this->id, -6);
     }
 
     public function getDisplayName($ignore_contact = false): string
