@@ -96,6 +96,7 @@ class CalcVoices
 
     private function loadTokenHolders(): void
     {
+        $time = microtime(true);
         $Accounts = $this->Stellar
             ->accounts()
             ->forAsset(
@@ -104,15 +105,23 @@ class CalcVoices
                     $this->main_account
                 )
             )
+            ->limit(200)
             ->execute();
+        $this->log('(1) Loaded accounts in ' . (microtime(true) - $time) . ' seconds.');
         $accounts = [];
         do {
             $this->log('Fetch accounts page.');
             foreach ($Accounts->getAccounts() as $Account) {
                 $accounts[] = $Account;
             }
+            $time = microtime(true);
             $Accounts = $Accounts->getNextPage();
-        } while ($Accounts->getAccounts()->count());
+            $this->log('(2) Loaded accounts in ' . (microtime(true) - $time) . ' seconds.');
+        } while (
+            $Accounts->getAccounts()->count() === 200
+            && ($Accounts = $Accounts->getNextPage())
+            && $Accounts->getAccounts()->count() > 0
+        );
 
         $this->log('Открывшие линии доверия к MTLAP:');
 
@@ -238,7 +247,9 @@ class CalcVoices
     private function loadNewAccount(string $id): ?Account
     {
         try {
+            $time = microtime(true);
             $AccountResponse = $this->Stellar->requestAccount($id);
+            $this->log('Loaded a single account in ' . (microtime(true) - $time) . ' seconds.');
             return $this->processStellarAccount($AccountResponse);
         } catch (HorizonRequestException) {
             return null;
