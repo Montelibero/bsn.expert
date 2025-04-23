@@ -60,7 +60,11 @@
       "standard": true
     },
     "Client": {
-      "standard": true
+      "standard": true,
+      "pair": "Vendor"
+    },
+    "Vendor": {
+      "pair": "Client"
     },
     "Partnership": {
       "standard": true,
