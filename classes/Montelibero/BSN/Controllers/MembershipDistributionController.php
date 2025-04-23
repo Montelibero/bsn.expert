@@ -125,8 +125,8 @@ class MembershipDistributionController
                     }
 
                     $xlm_amount = $this->getAmountOfXlm($Account);
-                    if ($xlm_amount < 10) {
-                        $Operation = new PaymentOperationBuilder($data['account'], new AssetTypeNative(), 2);
+                    if ($xlm_amount < 10 && $data['token'] === 'MTLAP') {
+                        $Operation = new PaymentOperationBuilder($data['account'], new AssetTypeNative(), 1);
                         $operations[] = $Operation->build();
                     }
                 }
