@@ -157,6 +157,9 @@ contract_text_page:
   wrong_hash:
     header: Wrong hash
     text: "The SHA-256 hash from this document is not equal to the contract hash:"
+  right_hash:
+    header: Right hash
+    text: "The SHA-256 hash from this document is equal to the contract hash."
 
 mtla_council_page:
   header: Council of Montelibero Association

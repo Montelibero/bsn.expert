@@ -30,6 +30,13 @@
                                         <span class="is-family-monospace">{{ calculated_hash }}</span></p>
                         </div>
                 </section>
+        {% else %}
+                <section class="hero is-success">
+                        <div class="hero-body">
+                                <p class="title">{{ 'contract_text_page.right_hash.header'|trans }}</p>
+                                <p class="subtitle">{{ 'contract_text_page.right_hash.text'|trans }}</p>
+                        </div>
+                </section>
         {% endif %}
         <pre>{{ contract.text }}</pre>
 </div>

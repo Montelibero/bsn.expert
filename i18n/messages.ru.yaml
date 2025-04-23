@@ -155,6 +155,9 @@ contract_text_page:
   wrong_hash:
     header: Не совпадение хеша
     text: "Хеш от этого документа не равен хешу контракта:"
+  right_hash:
+    header: Хеш совпадает
+    text: "Хеш от этого документа равен хешу контракта"
 
 mtla_council_page:
   header: Совет Ассоциации Монтелиберо
