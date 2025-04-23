@@ -139,7 +139,7 @@ session_set_cookie_params([
     'domain' => '', // Defaults to current domain
     'secure' => true,
     'httponly' => true,
-    'samesite' => 'Strict'
+    'samesite' => 'Lax'
 ]);
 
 session_start();
