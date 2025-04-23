@@ -265,7 +265,7 @@ class AccountsController
         }
         WebApp::semantic_sort_keys($balances, $base_assets);
 
-        if ($_SERVER['HTTP_ACCEPT'] === 'application/json' || ($_GET['format'] ?? '') === 'json') {
+        if (($_SERVER['HTTP_ACCEPT'] ?? null) === 'application/json' || ($_GET['format'] ?? '') === 'json') {
             if (!empty($_GET['tag']) && BSN::validateTagNameFormat($_GET['tag'])) {
                 $FilterTag = $this->BSN->makeTagByName($_GET['tag']);
                 $FilterPairTag = $FilterTag->getPair();

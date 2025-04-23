@@ -123,7 +123,7 @@ class MtlaController
 
         $key = 'mtla_council_delegation_tree';
 
-        if (apcu_exists($key)) {
+        if (!isset($_GET['debug']) && apcu_exists($key)) {
             $data = apcu_fetch($key);
         } else {
             $CalcVoices = new CalcVoices(
@@ -133,9 +133,9 @@ class MtlaController
                 ['GDUTNVJWCTJSPJEI3AWN7NRE535LAQDUEUEA37M22WGDYOLUGWKAMNFT'],
             );
 
-            $CalcVoices->isDebugMode(false);
+            $CalcVoices->isDebugMode(isset($_GET['debug']));
             $data = $CalcVoices->run();
-            apcu_store($key, $data, 600);
+            apcu_store($key, $data, 60);
         }
 
         $broken = $data['broken'];
