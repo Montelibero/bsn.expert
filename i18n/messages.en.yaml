@@ -200,12 +200,15 @@ editor:
   result: Result
   instruction: >
     We have prepared a transaction. It needs to be signed and sent to the blockchain.
-    If you have a Telegram wallet, you can simply copy the transaction code below and paste it there.
-    An important nuance is that the changes on the site will occur within 5 minutes after signing and sending this transaction.
+  timeout_notice: >
+    An important nuance is that the changes on the site will occur within 5 minutes after signing and
+    sending this transaction.
   transaction_label: Your Transaction (XDR)
-  sign_by_link:
-    header: Sign by link
+  sign:
+    header: Sign transaction
+    sep_07_button_name: Sunce, Lobstr etc
     link_text: A special Stellar link that can be opened, for example, by Sunce Wallet.
+    qr_text: Magic QR for your mobile
 
 contacts:
   edit:

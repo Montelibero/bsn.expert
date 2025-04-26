@@ -453,6 +453,20 @@ class EditorController
         $sep_07 = 'web+stellar:tx?xdr=' . urlencode($xdr);
         $qr_svg = QRCode::svg($sep_07);
 
+        // MMWB integration
+        try {
+            $HttpClient = new \GuzzleHttp\Client();
+            $response = $HttpClient->post('https://eurmtl.me/remote/sep07/add', [
+                'json' => ['uri' => $sep_07],
+                'http_errors' => false
+            ]);
+            $response_body = (string) $response->getBody();
+            $parsed_response = json_decode($response_body, true);
+            $mmwb_url = $parsed_response['url'] ?? null;
+        } catch (\Exception $e) {
+            $mmwb_url = null;
+        }
+
         $Template = $this->Twig->load('editor_result.twig');
         return $Template->render([
             'account' => [
@@ -463,6 +477,7 @@ class EditorController
             'operations_count' => count($operations),
             'xdr' => $xdr,
             'sep_07' => $sep_07,
+            'mmwb_url' => $mmwb_url,
             'qr_svg' => $qr_svg,
         ]);
     }

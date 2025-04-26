@@ -21,28 +21,45 @@
     <p class="block">
         {{ 'editor.instruction'|trans }}
     </p>
-
     <p class="block">
-        Operations: {{ operations_count }}
+        <span class="icon has-text-info"><i class="fa-solid fa-circle-info"></i></span>
+        {{ 'editor.timeout_notice'|trans }}
     </p>
 
+    <h2 class="title is-4">{{ 'editor.sign.header'|trans }}</h2>
+
+    <div class="buttons">
+        <a href="{{ sep_07 }}" class="button is-primary">
+            <span class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+            <span>{{ 'editor.sign.sep_07_button_name'|trans }}</span>
+        </a>
+
+        {% if mmwb_url %}
+        <a href="{{ mmwb_url }}" class="button is-link" target="_blank" rel="noopener noreferrer">
+            <span class="icon">
+                <i class="fa-brands fa-telegram"></i>
+            </span>
+            <span>@MyMTLWalletBot (MTL Wallet)</span>
+        </a>
+        {% endif %}
+
+        <a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}" class="button is-dark">
+            <span class="icon">
+                <i class="fa-solid fa-key"></i>
+            </span>
+            <span>Sign by secret key</span>
+        </a>
+    </div>
+
+    <p class="block">{{ 'editor.sign.qr_text'|trans }}:</p>
+    <p class="block qr_svg">{{ qr_svg|raw }}</a></p>
+
     <div class="field">
-        <label for="xdr_body">{{ 'editor.transaction_label'|trans }}:</label>
+        <label for="xdr_body">{{ 'editor.transaction_label'|trans }} ({{ operations_count }}):</label>
         <div class="control">
             <textarea class="textarea" id="xdr_body">{{ xdr }}</textarea>
         </div>
     </div>
-
-    <h2 class="title is-4">{{ 'editor.sign_by_link.header'|trans }}</h2>
-
-    <p class="block"><a href="{{ sep_07 }}">{{ 'editor.sign_by_link.link_text'|trans }}</a></p>
-
-    <p class="block qr_svg">{{ qr_svg|raw }}</a></p>
-
-    <h2 class="title is-4">Sign by secret key</h2>
-
-    <p class="block"><a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}">The page to sign</a></p>
-
 
 
 {% endblock %}
