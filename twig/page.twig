@@ -88,6 +88,20 @@
             </a>
 
             <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link" href="/tools/">
+                    {{ 'nav.tools.title'|trans }}
+                </a>
+                <div class="navbar-dropdown">
+                    <a class="navbar-item" href="/tools/multisig">
+                        {{ 'nav.tools.multisig'|trans }}
+                    </a>
+                    <a class="navbar-item" href="/tools/percent_pay">
+                        {{ 'nav.tools.percent_pay'|trans }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="navbar-item has-dropdown is-hoverable">
                 <a class="navbar-link" href="/mtla">
                     {{ 'nav.mtla'|trans }}
                 </a>
@@ -153,6 +167,9 @@
 {% block content %}{% endblock %}
     </div>
 </section>
-<div class="footer">2024. Proudly developed by <a href="https://monte.wiki/ru/Соз">Soz</a> from <a href="https://mtla.me/">Montelibero Association</a>.</div>
+
+<div class="footer">
+    2024. Proudly developed by <a href="https://monte.wiki/ru/Соз">Soz</a> from <a href="https://mtla.me/">Montelibero Association</a>.
+</div>
 </body>
 </html>

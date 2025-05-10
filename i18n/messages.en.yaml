@@ -9,6 +9,10 @@ nav:
   tags: Tags
   contracts: Contracts
   editor: Editor
+  tools:
+    title: Tools
+    multisig: Multisig Editor
+    percent_pay: Percent Bulk Payment
   mtla: MTLA
   council: Council
   contacts: Contacts

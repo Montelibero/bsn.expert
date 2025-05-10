@@ -9,6 +9,10 @@ nav:
   tags: Теги
   contracts: Контракты
   editor: Редактор
+  tools:
+    title: Инструменты
+    multisig: Редактор мультиподписи
+    percent_pay: Массовая выплата процентов
   mtla: Ассоциация
   council: Совет
   contacts: Контакты

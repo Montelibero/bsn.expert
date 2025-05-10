@@ -7,11 +7,16 @@ use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Pecee\SimpleRouter\SimpleRouter;
+use Twig\Environment;
 
 class ToolsRouter
 {
     public static function register(Container $Container): void
     {
+        SimpleRouter::get('/', function () use ($Container) {
+            return $Container->get(Environment::class)->render('tools.twig');
+        });
+
         SimpleRouter::match(['get', 'post'], '/percent_pay', function () use ($Container) {
             return $Container->get(PercentPayController::class)->PercentPay();
         });

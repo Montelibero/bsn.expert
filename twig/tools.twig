@@ -1,0 +1,22 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">{{ 'nav.tools.title'|trans }}</h1>
+
+    <div class="menu">
+        <ul class="menu-list">
+            <li><a href="/tools/multisig">{{ 'nav.tools.multisig'|trans }}</a></li>
+            <li><a href="/tools/percent_pay">{{ 'nav.tools.percent_pay'|trans }}</a></li>
+        </ul>
+    </div>
+
+{% endblock %}
+
