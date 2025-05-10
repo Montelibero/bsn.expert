@@ -1,0 +1,42 @@
+<style>
+    .qr_svg svg {
+        color: var(--bulma-body-color);
+        width: 40vmin;
+    }
+</style>
+<div class="buttons">
+    <a href="{{ uri }}" class="button is-primary">
+        <span class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+        <span>{{ 'editor.sign.sep_07_button_name'|trans }}</span>
+    </a>
+
+    {% if mmwb_url %}
+        <a href="{{ mmwb_url }}" class="button is-link" target="_blank" rel="noopener noreferrer">
+            <span class="icon">
+                <i class="fa-brands fa-telegram"></i>
+            </span>
+            <span>@MyMTLWalletBot (MTL Wallet)</span>
+        </a>
+    {% endif %}
+
+    {% if tx %}
+    <a href="https://eurmtl.me/uri?xdr={{ tx|url_encode }}" class="button is-dark">
+            <span class="icon">
+                <i class="fa-solid fa-key"></i>
+            </span>
+        <span>Sign by secret key</span>
+    </a>
+    {% endif %}
+</div>
+
+<p class="block">{{ 'editor.sign.qr_text'|trans }}:</p>
+<p class="block qr_svg">{{ qr_svg|raw }}</p>
+
+{% if tx %}
+<div class="field">
+    <label for="xdr_body">{{ 'editor.transaction_label'|trans }}:</label>
+    <div class="control">
+        <textarea class="textarea" id="xdr_body">{{ tx }}</textarea>
+    </div>
+</div>
+{% endif %}

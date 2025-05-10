@@ -21,13 +21,15 @@
 
     {% if save %}
         <div class="notification is-info">
-            <h2 class="title is-4">Готовая транзакция:</h2>
-            {% if xdr %}
-            <code>{{ xdr }}</code>
-            {% else %}
+            <h2 class="title is-4">Готовая транзакция</h2>
+            {% if not signing_form %}
             <p class="block">У вас тут в итоге нечего менять</p>
             {% endif %}
         </div>
+
+        {% if signing_form %}
+        {{ signing_form|raw }}
+        {% endif %}
     {% endif %}
 
     <form action="/tools/multisig" method="post">

@@ -180,7 +180,9 @@ $ContainerBuilder->addDefinitions([
         $twig->addExtension(new TwigExtension());
         $twig->addExtension(new TranslationExtension($container->get(Translator::class)));
         $twig->addExtension(new TwigPluralizeExtension($container->get(Translator::class)));
-        
+        $twig->addGlobal('session', $_SESSION);
+        $twig->addGlobal('server', $_SERVER);
+
         return $twig;
     },
 

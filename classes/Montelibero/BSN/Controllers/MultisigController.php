@@ -2,6 +2,7 @@
 
 namespace Montelibero\BSN\Controllers;
 
+use DI\Container;
 use Montelibero\BSN\BSN;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Crypto\KeyPair;
@@ -19,15 +20,14 @@ class MultisigController
     private Environment $Twig;
     private StellarSDK $Stellar;
     private Translator $Translator;
+    private Container $Container;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar, Translator $Translator)
+    public function __construct(Environment $Twig, StellarSDK $Stellar, Translator $Translator, Container $Container)
     {
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
-
         $this->Stellar = $Stellar;
         $this->Translator = $Translator;
+        $this->Container = $Container;
     }
 
     public function Multisig(): ?string
@@ -230,6 +230,7 @@ class MultisigController
             if ($operations) {
                 $Transaction->addOperations($operations);
                 $xdr = $Transaction->build()->toEnvelopeXdrBase64();
+                $signing_form = $this->Container->get(CommonController::class)->SignTransaction($xdr);
             }
             $save = true;
         }
@@ -241,7 +242,7 @@ class MultisigController
             'high_threshold' => $_POST['high_threshold'] ?? $Account?->getThresholds()?->getHighThreshold(),
             'multisig' => $multisig,
             'errors' => $errors,
-            'xdr' => $xdr,
+            'signing_form' => $signing_form ?? null,
             'save' => $save,
         ]);
     }
