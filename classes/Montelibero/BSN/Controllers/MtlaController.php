@@ -134,7 +134,13 @@ class MtlaController
             );
 
             $CalcVoices->isDebugMode(isset($_GET['debug']));
+            if (isset($_GET['debug'])) {
+                print "<pre>";
+            }
             $data = $CalcVoices->run();
+            if (isset($_GET['debug'])) {
+                print "</pre>";
+            }
             apcu_store($key, $data, 60);
         }
 

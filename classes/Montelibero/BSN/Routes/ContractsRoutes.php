@@ -19,5 +19,8 @@ class ContractsRoutes
         SimpleRouter::get('/{id}/text', function ($id) use ($Container) {
             return $Container->get(ContractsController::class)->ContractText($id);
         })->name('contract_text');
+        SimpleRouter::match(['get', 'post'], '/{id}/sign', function ($id) use ($Container) {
+            return $Container->get(ContractsController::class)->ContractSign($id);
+        });
     }
 }
