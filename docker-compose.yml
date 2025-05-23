@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    volumes:
+      - ./app:/var/www/html
+      - bsn_shared_data:/var/www/bsn
+    expose:
+      - "9000"  # php-fpm
+    depends_on:
+      - db
+      - cache
+
+  web:
+    build:
+      context: ./web
+    ports:
+      - "44077:80"
+    depends_on:
+      - app
+    volumes:
+      - ./app:/var/www/html
+      - bsn_shared_data:/var/www/bsn
+
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: app_db
+      MARIADB_USER: app_user
+      MARIADB_PASSWORD: app_pass
+    volumes:
+      - db_data:/var/lib/mysql
+
+  cache:
+    image: memcached:alpine
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  bsn_shared_data:
+    external: true
