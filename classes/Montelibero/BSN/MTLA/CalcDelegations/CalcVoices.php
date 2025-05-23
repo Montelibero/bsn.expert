@@ -115,13 +115,13 @@ class CalcVoices
                 $accounts[] = $Account;
             }
             $time = microtime(true);
-            $Accounts = $Accounts->getNextPage();
-            $this->log('(2) Loaded accounts in ' . (microtime(true) - $time) . ' seconds.');
-        } while (
-            $Accounts->getAccounts()->count() === 200
-            && ($Accounts = $Accounts->getNextPage())
-            && $Accounts->getAccounts()->count() > 0
-        );
+            if ($Accounts->getAccounts()->count() === 200) {
+                $Accounts = $Accounts->getNextPage();
+                $this->log('(2) Loaded accounts in ' . (microtime(true) - $time) . ' seconds.');
+            } else {
+                $Accounts = null;
+            }
+        } while ($Accounts && $Accounts->getAccounts()->count() > 0);
 
         $this->log('Открывшие линии доверия к MTLAP:');
 
