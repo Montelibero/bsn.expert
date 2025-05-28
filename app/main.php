@@ -35,10 +35,7 @@ use function DI\autowire;
 
 include_once __DIR__ . '/vendor/autoload.php';
 
-// Загружаем переменные окружения из файла .env
-(Dotenv::createImmutable(__DIR__))->load();
-
-const JSON_DATA_FILE_PATH = '/var/www/crawler/bsn.json';
+const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
 //const JSON_DATA_FILE_PATH = '../BoR/bsn.json';
 
 //$memory1 = memory_get_usage();

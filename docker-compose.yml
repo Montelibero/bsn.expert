@@ -6,8 +6,17 @@ services:
     volumes:
       - ./app:/var/www/html
       - bsn_shared_data:/var/www/bsn
+      - ./app/init.sh:/var/www/init.sh
     expose:
       - "9000"  # php-fpm
+    environment:
+      MARIADB_DATABASE: app_db
+      MARIADB_USER: app_user
+      MARIADB_PASSWORD: app_pass
+    env_file:
+      - .env
+    working_dir: /var/www
+    command: [ "sh", "-c", "./init.sh" ]
     depends_on:
       - db
       - cache
@@ -23,15 +32,25 @@ services:
       - ./app:/var/www/html
       - bsn_shared_data:/var/www/bsn
 
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    expose:
+      - "8080"
+    depends_on:
+      - db
 
   db:
     image: mariadb:11
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_PORT: 3306
+      MARIADB_ROOT_PASSWORD: n4dfN3asI5wLPkXx1Yqg
       MARIADB_DATABASE: app_db
       MARIADB_USER: app_user
       MARIADB_PASSWORD: app_pass
+    expose:
+      - "3306"
     volumes:
       - db_data:/var/lib/mysql
 
