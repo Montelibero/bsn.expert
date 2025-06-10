@@ -24,4 +24,6 @@ RUN apk add --no-cache \
     && pecl install memcached \
     && docker-php-ext-enable apcu memcached
 
+COPY ./custom-php.ini /usr/local/etc/php/conf.d/99-custom.ini
+
 WORKDIR /var/www/html
