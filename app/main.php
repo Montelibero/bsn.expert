@@ -49,7 +49,7 @@ $PDO->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $PDO->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
 $Memcached = new Memcached();
-$Memcached->addServer("127.0.0.1", 11211);
+$Memcached->addServer("cache", 11211);
 
 $AccountsManager = new AccountsManager($PDO);
 $BSN = new BSN($AccountsManager);
