@@ -4,9 +4,7 @@ services:
       context: ./app
       dockerfile: Dockerfile
     volumes:
-      - ./app:/var/www/html
       - bsn_shared_data:/var/www/bsn
-      - ./app/init.sh:/var/www/init.sh
     expose:
       - "9000"  # php-fpm
     environment:
@@ -15,8 +13,6 @@ services:
       MARIADB_PASSWORD: app_pass
     env_file:
       - .env
-    working_dir: /var/www
-    command: [ "sh", "-c", "./init.sh" ]
     depends_on:
       - db
       - cache

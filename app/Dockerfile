@@ -20,6 +20,7 @@ RUN apk add --no-cache \
         bcmath \
         curl \
         gd \
+        pcntl \
     && pecl install apcu \
     && pecl install memcached \
     && docker-php-ext-enable apcu memcached
@@ -27,3 +28,10 @@ RUN apk add --no-cache \
 COPY ./custom-php.ini /usr/local/etc/php/conf.d/99-custom.ini
 
 WORKDIR /var/www/html
+
+COPY . .
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN composer install --no-dev --optimize-autoloader
+
+CMD ["sh", "init.sh"]
