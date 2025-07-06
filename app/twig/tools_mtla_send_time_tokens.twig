@@ -1,0 +1,104 @@
+{% extends "page.twig" %}
+
+{% block title %}Отправка токенов участия — MTLA{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="#" aria-current="page">Отправка токенов участия</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">Отправка токенов участия</h1>
+
+    {% if error %}
+        <div class="notification is-danger">
+            {{ error|e|nl2br }}
+        </div>
+    {% endif %}
+    {% if transaction %}
+        <h2 class="title is-4">Итог</h2>
+        <div class="notification is-success">
+            <a href="{{ sign_tools_url }}">{{ sign_tools_url }}</a>
+        </div>
+    {% endif %}
+
+    <form action="/tools/mtla/send_time_tokens" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <h2 class="title is-4">Данные</h2>
+        <div class="field">
+            <label class="label" for="source_account">Sender</label>
+            <div class="control has-icons-left">
+                <input
+                        id="source_account"
+                        class="input"
+                        type="text"
+                        name="source_account"
+                        placeholder="G..."
+                        value="{{ source_account }}"
+                        maxlength="56"
+                />
+                <span class="icon is-left">
+                    <i class="fa-solid fa-receipt"></i>
+                </span>
+            </div>
+        </div>
+        <div class="field">
+            <label class="label" for="accounts">Цели</label>
+            <div class="control">
+                <textarea
+                    id="targets"
+                    class="textarea"
+                    name="targets"
+                    placeholder="GBDWGABTWCQHVARC7OQH4FC42O2SFI6FQRJRKVFMZ2U33RUGO3UMFBSN
+@sozidatel 2"
+                    rows="5"
+                    style="font-family: monospace;"
+                >{{ targets }}</textarea>
+                <p class="help">Адрес, куда шлются тайм-токены (опционально, в обратном случае — на счет-эмитент токенов), затем юзернеймы или названия токенов и количество, сколько отправлять</p>
+            </div>
+        </div>
+        <div class="field">
+            <label class="label" for="memo">Мемо транзакции</label>
+            <div class="control has-icons-left">
+                <input
+                        id="memo"
+                        class="input"
+                        type="text"
+                        name="memo"
+                        placeholder="Some text"
+                        value="{{ memo }}"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-comment"></i>
+                </span>
+            </div>
+            <p class="help">Что запишем в блокчейне. Для секретариата обычно дефолтно, для Совета — MTLA и номер решения</p>
+        </div>
+        <div class="field">
+            <label class="label" for="seq_num">Seq number</label>
+            <div class="control has-icons-left">
+                <input
+                        id="seq_num"
+                        class="input"
+                        type="text"
+                        name="seq_num"
+                        placeholder="По-умолчанию, просто очередной"
+                        value="{{ seq_num }}"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-hashtag"></i>
+                </span>
+            </div>
+            <p class="help">Нужно заполнить, если уже есть в очереди проекты транзакций с другими номерами</p>
+        </div>
+
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="submit" class="button is-link" value="Получить транзакцию">
+            </div>
+        </div>
+    </form>
+
+{% endblock %}
+
