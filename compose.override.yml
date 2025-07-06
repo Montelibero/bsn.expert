@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      target: dev
+    volumes:
+      - ./app:/var/www/html
+
+  web:
+    volumes:
+      - ./app:/var/www/html

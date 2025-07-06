@@ -18,5 +18,3 @@ if [ "$ROWS" -eq 0 ]; then
 else
   echo "Database already has tables. Skipping import."
 fi
-
-exec php-fpm

@@ -1,4 +1,6 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.2-fpm-alpine AS base
+
+WORKDIR /var/www/html
 
 RUN apk add --no-cache \
     libpng-dev \
@@ -27,11 +29,14 @@ RUN apk add --no-cache \
 
 COPY ./custom-php.ini /usr/local/etc/php/conf.d/99-custom.ini
 
-WORKDIR /var/www/html
-
-COPY . .
-
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-RUN composer install --no-dev --optimize-autoloader
 
-CMD ["sh", "init.sh"]
+# Development
+FROM base AS dev
+CMD ["sh", "-c", "sh /var/www/html/init.sh && composer install --no-dev --optimize-autoloader && php-fpm"]
+
+# Production
+FROM base AS prod
+COPY . .
+RUN composer install --no-dev --optimize-autoloader
+CMD ["sh", "-c", "sh /var/www/html/init.sh && php-fpm"]
