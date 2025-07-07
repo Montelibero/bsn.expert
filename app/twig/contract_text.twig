@@ -41,6 +41,7 @@
         <pre>{{ contract.text }}</pre>
 </div>
 
+{% if session.account.username == "sozidatel" %}
 <h1 class="title">{{ 'contract_sign.sign_preform.name'|trans }}</h1>
 <form action="/contracts/{{ contract.hash }}/sign" method="get">
     <div class="field">
@@ -65,5 +66,6 @@
         </div>
     </div>
 </form>
+{% endif %}
 
 {% endblock %}
