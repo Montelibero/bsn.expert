@@ -39,4 +39,4 @@ CMD ["sh", "-c", "sh /var/www/html/init.sh && composer install --no-dev --optimi
 FROM base AS prod
 COPY . .
 RUN composer install --no-dev --optimize-autoloader
-CMD ["sh", "-c", "sh /var/www/html/init.sh && php-fpm"]
+CMD ["sh", "-c", "sh /var/www/html/init.sh && php-fpm -F"]
