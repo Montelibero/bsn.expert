@@ -43,10 +43,10 @@ class PercentPayController
             $asset_issuer = null;
         }
         $asset_code = $_GET['asset_code'] ?? null;
-        if (!preg_match('/[0-1a-zA-Z]{1,12}/', $asset_code)) {
+        if ($asset_code && !preg_match('/[0-1a-zA-Z]{1,12}/', $asset_code)) {
             $asset_code = null;
         }
-        $percent = $_GET['percent'] ?? null;
+        $percent = $_GET['percent'] ?? '';
         $percent = str_replace(' ', '', $percent);
         $percent = str_replace(',', '.', $percent);
         if (!is_numeric($percent) || $percent == 0 || $percent == '' || $percent < 0) {
