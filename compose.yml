@@ -1,3 +1,7 @@
+# DEV:
+# docker compose build
+# PROD:
+# docker compose -f compose.yml -f compose.prod.yml build
 services:
   app:
     build:
@@ -19,7 +23,8 @@ services:
 
   web:
     build:
-      context: ./web
+      context: .
+      dockerfile: web/Dockerfile
     ports:
       - "44077:80"
     depends_on:

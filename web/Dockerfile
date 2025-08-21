@@ -1,3 +1,11 @@
-FROM nginx:stable-alpine
+FROM nginx:stable-alpine as base
 
-COPY default.conf /etc/nginx/conf.d/default.conf
+WORKDIR /var/www/html
+
+# Development
+FROM base AS dev
+
+# Production
+FROM base AS prod
+COPY web/default.conf /etc/nginx/conf.d/default.conf
+COPY app/ .

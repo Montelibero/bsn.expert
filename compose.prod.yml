@@ -2,3 +2,6 @@ services:
   app:
     build:
       target: prod
+  web:
+    build:
+      target: prod
