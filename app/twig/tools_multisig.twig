@@ -158,7 +158,7 @@
                             id="weight_{{ i }}"
                             class="input"
                             type="number"
-                            min="1"
+                            min="{% if i %}1{% else %}0{% endif %}"
                             max="255"
                             step="1"
                             name="weight_{{ i }}"

@@ -62,7 +62,7 @@ class MultisigController
 
                 $multisig[$current_i] = [
                     'account' => $Signer->getKey(),
-                    'weight' => $Signer->getWeight(),
+                    'weight' => $Signer->getWeight() || 0,
                 ];
             }
         } elseif (isset($_POST['account'])) {
@@ -94,7 +94,11 @@ class MultisigController
             }
             // Thresholds
             $validate_threshold = function ($value): bool {
-                return !empty($value) && filter_var($value, FILTER_VALIDATE_INT) && $value >= 0 && $value <= 255;
+                return isset($value)
+                    && $value !== ''
+                    && filter_var($value, FILTER_VALIDATE_INT) !== false
+                    && (int) $value >= 0
+                    && (int) $value <= 255;
             };
             $check_thresholds = true;
             if (!$validate_threshold($_POST['low_threshold'])) {
@@ -170,69 +174,71 @@ class MultisigController
             }
 
             // Transaction
-            $StellarAccount = $this->Stellar->requestAccount($_POST['account']);
-            $Transaction = new TransactionBuilder($StellarAccount);
-            $Transaction->setMaxOperationFee(10000);
-            $operations = [];
-            $update_options = false;
-            $SetOptions = new SetOptionsOperationBuilder();
-            if ((int) $_POST['low_threshold'] !== $StellarAccount?->getThresholds()?->getLowThreshold()) {
-                $SetOptions->setLowThreshold((int) $_POST['low_threshold']);
-                $update_options = true;
-            }
-            if ((int) $_POST['med_threshold'] !== $StellarAccount?->getThresholds()?->getMedThreshold()) {
-                $SetOptions->setMediumThreshold((int) $_POST['med_threshold']);
-                $update_options = true;
-            }
-            if ((int) $_POST['high_threshold'] !== $StellarAccount?->getThresholds()?->getHighThreshold()) {
-                $SetOptions->setHighThreshold((int) $_POST['high_threshold']);
-                $update_options = true;
-            }
-            $current_master_key_weight = 0;
-            $current_signers = [];
-            foreach ($StellarAccount->getSigners() as $Signer) {
-                if ($Signer->getType() !== 'ed25519_public_key' || $Signer->getWeight() === 0) {
-                    continue;
-                }
-                if ($Signer->getKey() === $StellarAccount->getAccountId()) {
-                    $current_master_key_weight = $Signer->getWeight();
-                } else {
-                    $current_signers[$Signer->getKey()] = $Signer->getWeight();
-                }
-            }
-            if ((int) $_POST['weight_0'] !== $current_master_key_weight) {
-                $SetOptions->setMasterKeyWeight((int) $_POST['weight_0']);
-                $update_options = true;
-            }
-            if ($update_options) {
-                $operations[] = $SetOptions->build();
-            }
-            $make_signer_operation = function ($account_id, $weight): SetOptionsOperationBuilder {
-                $Signer = new XdrSignerKey();
-                $Signer->setType(new XdrSignerKeyType(XdrSignerKeyType::ED25519));
-                $Signer->setEd25519(KeyPair::fromAccountId($account_id)->getPublicKey());
+            if (!$errors) {
+                $StellarAccount = $this->Stellar->requestAccount($_POST['account']);
+                $Transaction = new TransactionBuilder($StellarAccount);
+                $Transaction->setMaxOperationFee(10000);
+                $operations = [];
+                $update_options = false;
                 $SetOptions = new SetOptionsOperationBuilder();
-                $SetOptions->setSigner($Signer, (int) $weight);
-                return $SetOptions;
-            };
-            // Removes
-            foreach ($current_signers as $account_id => $weight) {
-                if (!array_key_exists($account_id, $signers) || !(int) $signers[$account_id]) {
-                    $operations[] = $make_signer_operation($account_id, 0)->build();
+                if ((int) $_POST['low_threshold'] !== $StellarAccount?->getThresholds()?->getLowThreshold()) {
+                    $SetOptions->setLowThreshold((int) $_POST['low_threshold']);
+                    $update_options = true;
                 }
-            }
-            // Add & updates
-            foreach ($signers as $account_id => $weight) {
-                if (!array_key_exists($account_id, $current_signers) || (int) $current_signers[$account_id] !== (int) $weight) {
-                    $operations[] = $make_signer_operation($account_id, (int) $weight)->build();
+                if ((int) $_POST['med_threshold'] !== $StellarAccount?->getThresholds()?->getMedThreshold()) {
+                    $SetOptions->setMediumThreshold((int) $_POST['med_threshold']);
+                    $update_options = true;
                 }
+                if ((int) $_POST['high_threshold'] !== $StellarAccount?->getThresholds()?->getHighThreshold()) {
+                    $SetOptions->setHighThreshold((int) $_POST['high_threshold']);
+                    $update_options = true;
+                }
+                $current_master_key_weight = 0;
+                $current_signers = [];
+                foreach ($StellarAccount->getSigners() as $Signer) {
+                    if ($Signer->getType() !== 'ed25519_public_key' || $Signer->getWeight() === 0) {
+                        continue;
+                    }
+                    if ($Signer->getKey() === $StellarAccount->getAccountId()) {
+                        $current_master_key_weight = $Signer->getWeight();
+                    } else {
+                        $current_signers[$Signer->getKey()] = $Signer->getWeight();
+                    }
+                }
+                if ((int) $_POST['weight_0'] !== $current_master_key_weight) {
+                    $SetOptions->setMasterKeyWeight((int) $_POST['weight_0']);
+                    $update_options = true;
+                }
+                if ($update_options) {
+                    $operations[] = $SetOptions->build();
+                }
+                $make_signer_operation = function ($account_id, $weight): SetOptionsOperationBuilder {
+                    $Signer = new XdrSignerKey();
+                    $Signer->setType(new XdrSignerKeyType(XdrSignerKeyType::ED25519));
+                    $Signer->setEd25519(KeyPair::fromAccountId($account_id)->getPublicKey());
+                    $SetOptions = new SetOptionsOperationBuilder();
+                    $SetOptions->setSigner($Signer, (int) $weight);
+                    return $SetOptions;
+                };
+                // Removes
+                foreach ($current_signers as $account_id => $weight) {
+                    if (!array_key_exists($account_id, $signers) || !(int) $signers[$account_id]) {
+                        $operations[] = $make_signer_operation($account_id, 0)->build();
+                    }
+                }
+                // Add & updates
+                foreach ($signers as $account_id => $weight) {
+                    if (!array_key_exists($account_id, $current_signers) || (int) $current_signers[$account_id] !== (int) $weight) {
+                        $operations[] = $make_signer_operation($account_id, (int) $weight)->build();
+                    }
+                }
+                if ($operations) {
+                    $Transaction->addOperations($operations);
+                    $xdr = $Transaction->build()->toEnvelopeXdrBase64();
+                    $signing_form = $this->Container->get(CommonController::class)->SignTransaction($xdr);
+                }
+                $save = true;
             }
-            if ($operations) {
-                $Transaction->addOperations($operations);
-                $xdr = $Transaction->build()->toEnvelopeXdrBase64();
-                $signing_form = $this->Container->get(CommonController::class)->SignTransaction($xdr);
-            }
-            $save = true;
         }
 
         return $this->Twig->render('tools_multisig.twig', [
