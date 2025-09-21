@@ -335,7 +335,7 @@ class EditorController
         foreach ($current_values as $tag_name => $data) {
             $Tag = $this->BSN->getTag($tag_name);
             if ($Tag->isSingle()) {
-                if (array_key_exists($tag_name, $_POST['tag']) && !$_POST['tag'][$tag_name]) {
+                if (array_key_exists($tag_name, $_POST['tag'] ?? []) && !$_POST['tag'][$tag_name]) {
                     $to_remove[$tag_name] = true;
                 }
             } else {
