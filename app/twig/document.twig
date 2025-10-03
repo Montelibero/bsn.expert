@@ -1,0 +1,47 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ document.display_name }} — {{ 'nav.documents'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+        <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+        <li><a href="/documents/" aria-current="page">{{ 'nav.documents'|trans }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ document.display_name }}</a></li>
+{% endblock %}
+
+{% block content %}
+        <script>
+                $(function () {
+                        $(".table").tablesorter();
+                });
+        </script>
+<h1 class="title">{{ 'document_page.header'|trans }}: {{ document.display_name }}</h1>
+<h1 class="subtitle">
+        <span class="is-family-monospace">{{ document.hash }}</span>
+</h1>
+
+
+{% if document.url %}
+<p class="block"><a href="{{ document.url }}">{{ 'document_page.link'|trans }}</a></p>
+{% endif %}
+{% if document.text %}
+<p class="block"><a href="/documents/{{ document.hash }}/text">{{ 'document_page.link_to_text'|trans }}</a></p>
+{% endif %}
+
+<table class="table" data-sortlist="[[0,0],[1,0]]">
+        <thead>
+        <tr>
+                <th data-sorter="text">{{ 'document_page.account'|trans }}</th>
+                <th data-sorter="text">{{ 'document_page.signature_name'|trans }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for signature in signatures %}
+        <tr>
+                <td>{{ include('account_link.twig', {data: signature.account}, with_context = false) }}</td>
+                <td>{{ signature.name }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+</table>
+
+{% endblock %}

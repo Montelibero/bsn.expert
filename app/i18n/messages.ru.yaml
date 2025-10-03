@@ -7,7 +7,7 @@ nav:
   search: Поиск
   accounts: Аккаунты
   tags: Теги
-  contracts: Контракты
+  documents: Documents
   editor: Редактор
   tools:
     title: Инструменты
@@ -87,7 +87,7 @@ account_page:
   about: Описание
   website: Ссылка
   signatures:
-    header: Контракты
+    header: Документы
   balances:
     header: Балансы
   income_tags:
@@ -142,19 +142,19 @@ tag_page:
   source: Использует
   target: Получает
 
-contracts:
+documents:
   description: >
     Контракты — закреплённые в блокчейне подписи под некими документами. Какие-то из них широко известно, вроде 
     публичных оферт токенов, а какие-то наоборот, приватные, чьё содержимое знают только те, кто их подписывал.
 
-contract_page:
+document_page:
   header: Контракт
   account: Аккаунт
   signature_name: Название
   link: Ссылка на документ →
   link_to_text: Текст документа →
 
-contract_text_page:
+document_text_page:
   name: Текст документа
   wrong_hash:
     header: Не совпадение хеша
@@ -163,7 +163,7 @@ contract_text_page:
     header: Хеш совпадает
     text: "Хеш от этого документа равен хешу контракта"
 
-contract_sign:
+document_sign:
   name: Подпись
   name_for: Подпись для
   sign_preform:

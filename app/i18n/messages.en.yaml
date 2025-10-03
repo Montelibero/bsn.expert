@@ -7,7 +7,7 @@ nav:
   search: Search
   accounts: Accounts
   tags: Tags
-  contracts: Contracts
+  documents: Documents
   editor: Editor
   tools:
     title: Tools
@@ -88,7 +88,7 @@ account_page:
   about: About
   website: Website
   signatures:
-    header: Contracts
+    header: Documents
   balances:
     header: Balances
   income_tags:
@@ -143,27 +143,27 @@ tag_page:
   source: Source
   target: Target
 
-contracts:
+documents:
   description: >
     Contracts are signatures on certain documents secured in the blockchain. Some of them are widely known, 
     like public offers of tokens, and some, on the contrary, are private, the contents of which are known 
     only to those who signed them.
 
-contract_page:
-  header: Contract
+document_page:
+  header: Document
   account: Account
   signature_name: Name
   link: Link to the document →
   link_to_text: Text of the document →
 
-contract_text_page:
+document_text_page:
   name: Text of the document
   wrong_hash:
     header: Wrong hash
-    text: "The SHA-256 hash from this document is not equal to the contract hash:"
+    text: "The SHA-256 hash from this document is not equal to the document hash:"
   right_hash:
     header: Right hash
-    text: "The SHA-256 hash from this document is equal to the contract hash."
+    text: "The SHA-256 hash from this document is equal to the document hash."
 
 mtla_council_page:
   header: Council of Montelibero Association

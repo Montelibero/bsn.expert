@@ -10,7 +10,7 @@ use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\StellarSDK;
 use Twig\Environment;
 
-class ContractsController
+class DocumentsController
 {
     private BSN $BSN;
     private Environment $Twig;
@@ -28,29 +28,29 @@ class ContractsController
 
     }
 
-    public function Contracts(): ?string
+    public function Documents(): ?string
     {
         $Contracts = $this->BSN->getSignatures();
-        $contracts = [];
+        $documents = [];
         foreach ($Contracts->getContractsByUsing() as $hash => $using_count) {
             if ($using_count < 2) {
                 continue;
             }
             $Hash = $Contracts->makeContract($hash);
-            $contracts[] = [
+            $documents[] = [
                 'hash' => $Hash->hash,
                 'name' => $Hash->getName(),
                 'display_name' => $Hash->getDisplayName(),
                 'using_count' => $using_count,
             ];
         }
-        $Template = $this->Twig->load('contracts.twig');
+        $Template = $this->Twig->load('documents.twig');
         return $Template->render([
-            'contracts' => $contracts,
+            'documents' => $documents,
         ]);
     }
 
-    public function Contract(string $hash): ?string
+    public function Document(string $hash): ?string
     {
         $Hash = null;
         $Contracts = $this->BSN->getSignatures();
@@ -72,9 +72,9 @@ class ContractsController
             ];
         }
 
-        $Template = $this->Twig->load('contract.twig');
+        $Template = $this->Twig->load('document.twig');
         $data = [];
-        $data['contract'] = $Hash->jsonSerialize();
+        $data['document'] = $Hash->jsonSerialize();
         if ($NewHash = $Hash->getNewContract()) {
             $data['new_hash'] = $NewHash->jsonSerialize();
         }
@@ -82,7 +82,7 @@ class ContractsController
         return $Template->render($data);
     }
 
-    public function ContractText(string $hash): ?string
+    public function DocumentText(string $hash): ?string
     {
         $Hash = null;
 
@@ -95,9 +95,9 @@ class ContractsController
             return null;
         }
 
-        $Template = $this->Twig->load('contract_text.twig');
+        $Template = $this->Twig->load('document_text.twig');
         $data = [];
-        $data['contract'] = $Hash->jsonSerialize();
+        $data['document'] = $Hash->jsonSerialize();
         $calculated_hash = hash("sha256", $Hash->getText());
         if ($calculated_hash !== $Hash->hash) {
             $data['invalid_hash'] = true;
@@ -107,7 +107,7 @@ class ContractsController
         return $Template->render($data);
     }
 
-    public function ContractSign(string $hash): ?string
+    public function DocumentSign(string $hash): ?string
     {
         $Hash = null;
 
@@ -148,8 +148,8 @@ class ContractsController
 
         // TODO: находить устаревшие версии документа, предлагать обновиться
 
-        $Template = $this->Twig->load('contract_sign.twig');
-        $data['contract'] = $Hash->jsonSerialize();
+        $Template = $this->Twig->load('document_sign.twig');
+        $data['document'] = $Hash->jsonSerialize();
         return $Template->render($data);
     }
 }

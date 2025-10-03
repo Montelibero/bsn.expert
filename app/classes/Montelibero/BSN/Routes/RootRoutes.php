@@ -39,8 +39,21 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/assets'], function () use ($Container) {
             AssetsRouter::register($Container);
         });
-        SimpleRouter::group(['prefix' => '/contracts'], function () use ($Container) {
-            ContractsRoutes::register($Container);
+        // Редирект всех запросов /contracts/* на /documents/*
+        SimpleRouter::get('/contracts/{path?}', function($path = '') use ($Container) {
+            $query_string = $_SERVER['QUERY_STRING'] ?? '';
+            $redirect_url = '/documents';
+            if (!empty($path)) {
+                $redirect_url .= '/' . $path;
+            }
+            if (!empty($query_string)) {
+                $redirect_url .= '?' . $query_string;
+            }
+            SimpleRouter::response()->redirect($redirect_url, 301);
+        })->where(['path' => '.*']);
+
+        SimpleRouter::group(['prefix' => '/documents'], function () use ($Container) {
+            DocumentsRoutes::register($Container);
         });
         SimpleRouter::group(['prefix' => '/mtla'], function () use ($Container) {
             MtlaRouter::register($Container);

@@ -8,7 +8,7 @@ use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\AssetsController;
 use Montelibero\BSN\Controllers\ContactsController;
-use Montelibero\BSN\Controllers\ContractsController;
+use Montelibero\BSN\Controllers\DocumentsController;
 use Montelibero\BSN\Controllers\EditorController;
 use Montelibero\BSN\Controllers\ErrorController;
 use Montelibero\BSN\Controllers\FederationController;
@@ -202,7 +202,7 @@ $ContainerBuilder->addDefinitions([
     ContactsController::class => autowire(),
     TagsController::class => autowire(),
     AssetsController::class => autowire(),
-    ContractsController::class => autowire(),
+    DocumentsController::class => autowire(),
     MembershipDistributionController::class => autowire(),
     MtlaController::class => autowire(),
     PercentPayController::class => autowire(),

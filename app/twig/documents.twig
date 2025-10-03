@@ -1,0 +1,26 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'nav.documents'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="/documents/" aria-current="page">{{ 'nav.documents'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">{{ 'nav.documents'|trans }}</h1>
+
+    <p class="block">{{ 'documents.description'|trans }}</p>
+
+    <ul class="block">
+    {% for document in documents|sort((a, b) => b.using_count <=> a.using_count) %}
+        <li>
+            {% if document.name %}<b>{{ document.name }}</b><br>{% endif %}
+            <a href="/documents/{{ document.hash }}/" class="is-family-monospace">{{ document.hash }}</a>,<br>
+            {{ document.using_count }}
+        </li>
+    {% endfor %}
+    </ul>
+{% endblock %}
+

@@ -1,12 +1,12 @@
 {% extends "page.twig" %}
 
-{% block title %}{{ 'contract_sign.name'|trans }} — {{ contract.display_name }} — {{ 'nav.contracts'|trans }}{% endblock %}
+{% block title %}{{ 'document_sign.name'|trans }} — {{ document.display_name }} — {{ 'nav.documents'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
         <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
-        <li><a href="/contracts/" aria-current="page">{{ 'nav.contracts'|trans }}</a></li>
-        <li><a href="/contracts/{{ contract.hash }}/" aria-current="page">{{ contract.display_name }}</a></li>
-        <li class="is-active"><a href="#" aria-current="page">{{ 'contract_sign.name'|trans }}</a></li>
+        <li><a href="/documents/" aria-current="page">{{ 'nav.documents'|trans }}</a></li>
+        <li><a href="/documents/{{ document.hash }}/" aria-current="page">{{ document.display_name }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ 'document_sign.name'|trans }}</a></li>
 {% endblock %}
 
 {% block content %}
@@ -16,38 +16,38 @@
                 word-wrap: break-word;
         }
 </style>
-<h1 class="title">{{ 'contract_page.header'|trans }}: {{ contract.display_name }}</h1>
+<h1 class="title">{{ 'document_page.header'|trans }}: {{ document.display_name }}</h1>
 <h1 class="subtitle">
-        <span class="is-family-monospace">{{ contract.hash }}</span>
+        <span class="is-family-monospace">{{ document.hash }}</span>
 </h1>
 <h1 class="title">
-    {{ 'contract_sign.name_for'|trans }}
+    {{ 'document_sign.name_for'|trans }}
     {{ include('account_link.twig', {data: account}, with_context = false) }}
 </h1>
 
 <div class="box">
     <h2 class="title">
-        {{ 'contract_sign.current_status.header'|trans }}
+        {{ 'document_sign.current_status.header'|trans }}
     </h2>
     <p class="block">
         {% if is_signed %}
-            {{ 'contract_sign.current_status.signed'|trans }}
+            {{ 'document_sign.current_status.signed'|trans }}
         {% else %}
-            {{ 'contract_sign.current_status.unsigned'|trans }}
+            {{ 'document_sign.current_status.unsigned'|trans }}
         {% endif %}
     </p>
     {% if is_signed %}
         <p class="block">
-            {{ 'contract_sign.current_status.tag_name'|trans }}:
+            {{ 'document_sign.current_status.tag_name'|trans }}:
             {{ entry_names|join(', ') }}
             {% if entry_names|length > 1 %}
-                ({{ 'contract_sign.current_status.many_tags'|trans }})
+                ({{ 'document_sign.current_status.many_tags'|trans }})
             {% endif %}
         </p>
     {% endif %}
 </div>
 
-<form action="/contracts/{{ contract.hash }}/sign" method="get">
+<form action="/documents/{{ document.hash }}/sign" method="get">
     <div class="field">
         <label class="label" for="account_id">{{ 'editor.stellar_account'|trans }}</label>
         <input
@@ -59,7 +59,7 @@
                 value="{{ default_id }}"
                 maxlength="56"
         />
-        <p class="help">{{ 'contract_sign.sign_preform.help'|trans }}</p>
+        <p class="help">{{ 'document_sign.sign_preform.help'|trans }}</p>
     </div>
     <div class="field is-grouped">
         <div class="control">
