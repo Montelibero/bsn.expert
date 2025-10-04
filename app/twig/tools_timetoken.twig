@@ -1,0 +1,140 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_timetoken.name'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_timetoken.name'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">{{ 'tools_timetoken.name'|trans }}</h1>
+
+    <p class="block">
+        {{ 'tools_timetoken.description'|trans }}
+    </p>
+
+    {% if errors %}
+        <div class="notification is-danger">
+            <h2 class="title is-4">{{ 'tools_timetoken.errors.header'|trans }}</h2>
+            {% for error in errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if save %}
+        <div class="notification is-info">
+            <h2 class="title is-4">{{ 'tools_timetoken.transaction_ready'|trans }}</h2>
+            {% if not signing_form %}
+            <p class="block">{{ 'tools_timetoken.no_changes'|trans }}</p>
+            {% endif %}
+        </div>
+
+        {% if signing_form %}
+        {{ signing_form|raw }}
+        {% endif %}
+    {% endif %}
+
+    <form action="/tools/timetoken" method="post">
+        <div class="field">
+            <label class="label" for="account">{{ 'tools_timetoken.account'|trans }}</label>
+            <div class="field has-addons">
+                <div class="control is-expanded has-icons-left">
+                    <input
+                            id="account"
+                            class="input"
+                            type="text"
+                            name="account"
+                            placeholder="G..."
+                            value="{{ account }}"
+                            maxlength="56"
+                    />
+                    <span class="icon is-left">
+                        <i class="fas fa-user"></i>
+                    </span>
+                </div>
+                <div class="control">
+                    <button name="action" value="load" class="button is-primary">
+                        {{ 'tools_timetoken.load'|trans }}
+                    </button>
+                </div>
+            </div>
+            <p class="help">{{ 'tools_timetoken.account_help'|trans }}</p>
+        </div>
+
+            {% if account %}
+        <p class="block">
+            {{ 'tools_timetoken.code_description'|trans }}
+        </p>
+
+        <div class="field">
+            <label class="label" for="tt_code">{{ 'tools_timetoken.tt_code'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="tt_code"
+                        class="input"
+                        type="text"
+                        name="tt_code"
+                        placeholder="NAME"
+                        value="{{ tt_code }}"
+                        maxlength="12"
+                />
+                <span class="icon is-left has-text-success">
+                    <i class="fas fa-font"></i>
+                </span>
+            </div>
+            <p class="help">
+                {{ 'tools_timetoken.tt_code_help'|trans }}{% for variant in variants %},
+                <a href="{{ self_url }}?account={{ account }}&tt_code={{ variant }}">{{ variant }}</a>{% endfor %}
+            </p>
+        </div>
+
+        <div class="field">
+            <label class="label" for="tt_issuer">{{ 'tools_timetoken.tt_issuer'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="tt_issuer"
+                        class="input"
+                        type="text"
+                        name="tt_issuer"
+                        placeholder="G..."
+                        value="{{ tt_issuer }}"
+                        maxlength="56"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-building"></i>
+                </span>
+            </div>
+            <p class="help">{{ 'tools_timetoken.tt_issuer_help'|trans }}</p>
+        </div>
+
+        <div class="field">
+            <label class="label" for="tt_offer">{{ 'tools_timetoken.tt_offer'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="tt_offer"
+                        class="input"
+                        type="text"
+                        name="tt_offer"
+                        placeholder="123fa..."
+                        value="{{ tt_offer }}"
+                        maxlength="64"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-stamp"></i>
+                </span>
+            </div>
+            <p class="help">{{ 'tools_timetoken.tt_offer_help'|trans }}</p>
+        </div>
+
+        <div class="field">
+            <div class="control">
+                <input type="submit" name="action" class="button is-link" value="{{ 'tools_timetoken.buttons.save'|trans }}">
+            </div>
+        </div>
+        {% endif %}
+    </form>
+{% endblock %}
+

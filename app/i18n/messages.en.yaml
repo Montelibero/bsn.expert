@@ -12,6 +12,7 @@ nav:
   tools:
     title: Tools
     multisig: Multisig Editor
+    timetoken: Timetoken
     percent_pay: Percent Bulk Payment
   mtla: MTLA
   council: Council
@@ -220,3 +221,53 @@ contacts:
       save: Save the contact
       add: Add a new contact
       delete: Delete
+
+tools_multisig:
+  name: Multisig Editor
+  signer: Signer
+  buttons:
+    calculate: Create transaction
+  errors:
+    missing_account: No main account
+    wrong_account: The main account is not a valid Stellar address
+    wrong_low_threshold: The low threshold must be a normal number from 0 to 255
+    low_threshold_more_than_med_threshold: The low threshold cannot be greater than the medium threshold
+    wrong_med_threshold: The medium threshold must be a normal number from 0 to 255
+    med_threshold_more_than_high_threshold: The medium threshold cannot be greater than the high threshold
+    wrong_high_threshold: The high threshold must be a normal number from 0 to 255
+    wrong_master_key_weight: The master key weight must be a number from 0 (blocked) to 255
+    missing_signer_account: The signer account is missing
+    wrong_signer_account: The signer account is not a valid Stellar address
+    wrong_signer_weight: The signer weight must be a normal number from 0 (removed) to 255
+    doubled_signer_account: The signer account is duplicated
+    impossible_to_collect_signers: The sum of the weights of all signers is not enough to overcome the high threshold
+
+tools_timetoken:
+  name: Timetoken
+  description: >
+    Timetoken is a token that represents your hour of engagement.
+    On this page you can notify other participants of the timetoken market that you are releasing timetokens.
+  transaction_ready: Transaction ready
+  no_changes: No changes
+  account: Account
+  account_help: Stellar account for which we determine timetokens
+  load: Load
+  code_description: >
+    The minimum information about your timetoken is its name. You can release as many timetokens as you want from your account, but the timetoken itself should be one.
+  tt_code: Timetoken code
+  tt_code_help: >
+    1-12 characters, only letters and numbers. Unique within the account. Usually it is your name/nickname written in uppercase: NIRO, SOZ, ADUCHI
+  tt_issuer: Alternative timetoken issuer
+  tt_issuer_help: G..., Stellar address, only if your timetokens are released from another account
+  tt_offer: Offer
+  tt_offer_help: Hash of the offer text, by which your timetokens are released
+  buttons:
+    save: Save
+  errors:
+    header: Errors
+    missing_account: No main account
+    wrong_account: The main account is not a valid Stellar address
+    wrong_tt_code: The timetoken code is not a valid format. It should be a string from 1 to 12 characters containing only letters and numbers
+    wrong_tt_issuer: The timetoken issuer is not a valid Stellar address
+    wrong_tt_offer: Error in the hash format of the offer, it should be 64 characters 0-f.
+

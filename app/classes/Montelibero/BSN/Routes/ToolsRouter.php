@@ -7,6 +7,7 @@ use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\SendTimeTokensController;
+use Montelibero\BSN\Controllers\TimeTokenController;
 use Pecee\SimpleRouter\SimpleRouter;
 use Twig\Environment;
 
@@ -33,5 +34,9 @@ class ToolsRouter
         SimpleRouter::match(['get', 'post'], '/mtla/send_time_tokens', function () use ($Container) {
             return $Container->get(SendTimeTokensController::class)->MtlaSendTimeTokens();
         });
+
+        SimpleRouter::match(['get', 'post'], '/timetoken', function () use ($Container) {
+            return $Container->get(TimeTokenController::class)->TimeToken();
+        })->name('tool_timetoken');
     }
 } 
