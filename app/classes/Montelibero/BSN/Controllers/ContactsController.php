@@ -27,7 +27,7 @@ class ContactsController
 
     public function Contacts(): ?string
     {
-        if (!$_SESSION['account']) {
+        if (empty($_SESSION['account'])) {
             SimpleRouter::response()->redirect('/login/', 302);
         }
 
