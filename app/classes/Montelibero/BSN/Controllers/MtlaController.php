@@ -227,4 +227,45 @@ class MtlaController
         }
         apcu_store('mtla_members', $members, 3600);
     }
+
+    public function MtlaPrograms(): ?string
+    {
+        /*
+         * Получить список программ
+         * Про каждую узнать координатора
+         * Для каждой получить список участников
+         */
+        $MTLA = $this->BSN->getAccountById(self::MTLA_ACCOUNT);
+        $TagProgram = $this->BSN->makeTagByName('Program');
+        $TagProgramCoordinator = $this->BSN->makeTagByName('ProgramCoordinator');
+        $TagMyPart = $this->BSN->makeTagByName('MyPart');
+        $TagPartOf = $this->BSN->makeTagByName('PartOf');
+        $programs = $MTLA->getOutcomeLinks($TagProgram);
+        $programs_data = [];
+
+        foreach ($programs as $Program) {
+            $programs_data[$Program->getId()] = [
+                'data' => $Program->jsonSerialize(),
+                'coordinator' => null,
+                'participants' => [],
+            ];
+            $coordinators = $Program->getOutcomeLinks($TagProgramCoordinator);
+            if ($Coordinator = array_shift($coordinators)) {
+                $programs_data[$Program->getId()]['coordinator'] = $Coordinator->jsonSerialize();
+            }
+            foreach ($Program->getOutcomeLinks($TagMyPart) as $Participant) {
+                foreach ($Participant->getOutcomeLinks($TagPartOf) as $Part) {
+                    if ($Part === $Program) {
+                        $programs_data[$Program->getId()]['participants'][] = $Participant->jsonSerialize();
+                        break;
+                    }
+                }
+            }
+        }
+
+        $Template = $this->Twig->load('mtla_programs.twig');
+        return $Template->render([
+            'programs' => $programs_data,
+        ]);
+    }
 }

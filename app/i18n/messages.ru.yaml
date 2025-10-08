@@ -16,6 +16,7 @@ nav:
     percent_pay: Массовая выплата процентов
   mtla: Ассоциация
   council: Совет
+  programs: Программы
   contacts: Контакты
   preferences: Настройки
   login: Войти
@@ -182,6 +183,13 @@ mtla_council_page:
   header_current: Актуальный состав
   account: Аккаунт
   sign: Вес голоса
+
+mtla_programs_page:
+  header: Программы Ассоциации
+  coordinator: Координатор
+  coordinator_unknown: Неизвестен
+  participants: Участники
+  no_participants: Неизвестны
 
 editor:
   form:

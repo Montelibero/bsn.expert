@@ -1,0 +1,51 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'mtla_council_page.header'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/mtla/" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.council'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+    <style>
+        .delegation_tree li > ul {
+            margin-left: 2em;
+        }
+    </style>
+
+    <h1 class="title">{{ 'mtla_programs_page.header'|trans }}</h1>
+
+    {% for program in programs %}
+        <h2 class="title is-4">{{ include('account_link.twig', {data: program.data}, with_context = false) }}</h2>
+
+        <h3 class="title is-5">{{ 'mtla_programs_page.coordinator'|trans }}</h3>
+        <p class="block">
+        {% if program.coordinator %}
+            {{ include('account_link.twig', {data: program.coordinator}, with_context = false) }}
+        {% else %}
+            {{ 'mtla_programs_page.coordinator_unknown'|trans }}
+        {% endif %}
+
+        <h3 class="title is-5">{{ 'mtla_programs_page.participants'|trans }}</h3>
+        {% if program.participants %}
+        <ul class="block">
+            {% for participant in program.participants %}
+                <li>{{ include('account_link.twig', {data: participant}, with_context = false) }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+            <p class="block">{{ 'mtla_programs_page.no_participants'|trans }}</p>
+        {% endif %}
+
+    {% endfor %}
+
+{% endblock %}
+

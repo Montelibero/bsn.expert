@@ -16,6 +16,7 @@ nav:
     percent_pay: Percent Bulk Payment
   mtla: MTLA
   council: Council
+  programs: Programs
   contacts: Contacts
   preferences: Preferences
   login: Login
@@ -171,6 +172,13 @@ mtla_council_page:
   header_current: Current Council Members
   account: Account
   sign: Voice weight
+
+mtla_programs_page:
+  header: Programs
+  coordinator: Coordinator
+  coordinator_unknown: Unknown
+  participants: Participants
+  no_participants: No one
 
 editor:
   form:
