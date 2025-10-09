@@ -263,6 +263,24 @@ class MtlaController
             }
         }
 
+        // Сортировка: 1) с координатором первыми; 2) по кол-ву участников по убыванию
+        usort($programs_data, function (array $a, array $b): int {
+            $has_coordinator_a = !empty($a['coordinator']);
+            $has_coordinator_b = !empty($b['coordinator']);
+            if ($has_coordinator_a !== $has_coordinator_b) {
+                return $has_coordinator_b <=> $has_coordinator_a; // true раньше false
+            }
+
+            $count_a = is_countable($a['participants']) ? count($a['participants']) : 0;
+            $count_b = is_countable($b['participants']) ? count($b['participants']) : 0;
+            if ($count_a !== $count_b) {
+                return $count_b <=> $count_a; // по убыванию
+            }
+
+            // стабильный третий критерий: по имени аккаунта
+            return strcmp($a['data']['display_name'], $b['data']['display_name']);
+        });
+
         $Template = $this->Twig->load('mtla_programs.twig');
         return $Template->render([
             'programs' => $programs_data,
