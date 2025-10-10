@@ -41,3 +41,14 @@ ALTER TABLE `documents`
     ADD KEY `idx_new_version` (`new_version_hash`),
     ADD CONSTRAINT `fk_documents_new_version` FOREIGN KEY (`new_version_hash`) REFERENCES `documents` (`hash`) ON DELETE SET NULL ON UPDATE CASCADE;
 
+
+CREATE TABLE `sessions` (
+    `id` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    `data` mediumblob NOT NULL,
+    `expires_at` int UNSIGNED NOT NULL,
+    `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+ALTER TABLE `sessions`
+    ADD PRIMARY KEY (`id`),
+    ADD KEY `idx_expires_at` (`expires_at`);

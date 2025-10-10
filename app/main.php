@@ -18,6 +18,7 @@ use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\TagsController;
+use Montelibero\BSN\PdoSessionHandler;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
@@ -130,14 +131,23 @@ $functional_tags = [
 
 session_name("HELLOKITTY");
 //session_save_path(__DIR__ . '/../sessions');
+$session_ttl_seconds = 86400 * 14;
 session_set_cookie_params([
-    'lifetime' => 86400 * 14,
+    'lifetime' => $session_ttl_seconds,
     'path' => '/',
     'domain' => '', // Defaults to current domain
     'secure' => true,
     'httponly' => true,
     'samesite' => 'Lax'
 ]);
+
+// DB-backed session handler
+// Keep session TTL in sync with cookie lifetime
+ini_set('session.gc_maxlifetime', (string) $session_ttl_seconds);
+ini_set('session.gc_probability', '1');
+ini_set('session.gc_divisor', '100');
+
+session_set_save_handler(new PdoSessionHandler($PDO, $session_ttl_seconds), true);
 
 session_start();
 
