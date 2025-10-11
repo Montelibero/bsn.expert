@@ -34,6 +34,7 @@ class Account implements JsonSerializable
     private ?string $contact_name = null;
     /** @var Signature[] */
     private array $signatures = [];
+    private array $profile;
 
     public function __construct(string $id = null)
     {
@@ -131,13 +132,24 @@ class Account implements JsonSerializable
 
     //region Self-presentation
 
-    /**
-     * @param string[] $name
-     * @return void
-     */
-    public function setName(array $name): void
+    public function setProfile(array $data)
     {
-        $this->name = $name;
+        $this->profile = $data;
+    }
+
+    public function getProfile(): array
+    {
+        return $this->profile;
+    }
+
+    public function getProfileItem($name): array
+    {
+        return $this->profile[$name] ?? [];
+    }
+
+    public function getProfileSingleItem(string $name): ?string
+    {
+        return $this->profile[$name][0] ?? null;
     }
 
     /**
@@ -145,16 +157,7 @@ class Account implements JsonSerializable
      */
     public function getName(): array
     {
-        return $this->name;
-    }
-
-    /**
-     * @param string[] $about
-     * @return void
-     */
-    public function setAbout(array $about): void
-    {
-        $this->about = $about;
+        return $this->getProfileItem('Name');
     }
 
     /**
@@ -162,16 +165,7 @@ class Account implements JsonSerializable
      */
     public function getAbout(): array
     {
-        return $this->about;
-    }
-
-    /**
-     * @param string[] $website
-     * @return void
-     */
-    public function setWebsite(array $website): void
-    {
-        $this->website = $website;
+        return $this->getProfileItem('About');
     }
 
     /**
@@ -179,7 +173,7 @@ class Account implements JsonSerializable
      */
     public function getWebsite(): array
     {
-        return $this->website;
+        return $this->getProfileItem('Website');
     }
     //endregion Self-presentation
 

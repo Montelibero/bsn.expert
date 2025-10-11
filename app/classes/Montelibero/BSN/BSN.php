@@ -35,16 +35,7 @@ class BSN
             $Account = $this->makeAccountById($account_id);
 
             if (array_key_exists('profile', $data)) {
-                if (array_key_exists('Name', $data['profile'])) {
-                    $Account->setName($data['profile']['Name']);
-                }
-                if (array_key_exists('About', $data['profile'])) {
-                    $Account->setAbout($data['profile']['About']);
-                }
-                if (array_key_exists('Website', $data['profile'])) {
-                    $Account->setWebsite($data['profile']['Website']);
-                }
-
+                $Account->setProfile($data['profile']);
             }
 
             if (array_key_exists('tags', $data)) {
