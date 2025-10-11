@@ -6,6 +6,7 @@ nav:
   home: Home
   search: Search
   accounts: Accounts
+  tokens: Tokens
   tags: Tags
   documents: Documents
   editor: Editor
@@ -135,6 +136,19 @@ account_and_tag:
   display_only_paired: Display nly paired accounts.
   only_paired: Only paired contacts.
   only_paired_reset: Reset.
+
+tokens:
+  description: Tokens-shmojens. We haven't yet figured out what to place on this page.
+
+token_page:
+  issued: Issued
+  holders_count: Holders count
+  add_trustline:
+    header: Add trustline
+    description: To be able to have these tokens on your account, you need to give permission.
+  xlm_description: >
+    XLM, he also Lumen is the main token of the Stellar blockchain. First of all, it is used to pay the commission, 
+    but also needed for other operations.
 
 tags_page:
   tag: Tag

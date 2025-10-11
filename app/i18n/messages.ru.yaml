@@ -6,6 +6,7 @@ nav:
   home: Начало
   search: Поиск
   accounts: Аккаунты
+  tokens: Токены
   tags: Теги
   documents: Documents
   editor: Редактор
@@ -134,6 +135,19 @@ account_and_tag:
   display_only_paired: Отобразить только аккаунты с которыми есть парность тегов
   only_paired: Только аккаунты с парностью тегов
   only_paired_reset: Сбросить.
+
+tokens:
+  description: Токены-шмокены. Мы пока не придумали что именно разместить на этой странице.
+
+token_page:
+  issued: Всего выпущено
+  holders_count: Открыто линий доверия
+  add_trustline:
+    header: Открыть линию доверия
+    description: Чтобы на вашем аккаунте могли быть эти токены, нужно дать разрешение
+  xlm_description: >
+    XLM, он же Люмен — это основной токен блокчейна Stellar. Прежде всего он используется для оплаты комиссии, но также
+    нужен и для других операций.
 
 tags_page:
   tag: Тег

@@ -238,6 +238,7 @@ class AccountsController
             }
             $balances["$asset_name-{$base_code_to_issuer[$asset_name]}"] = [
                 'code' => $asset_name,
+                'issuer' => $base_code_to_issuer[$asset_name],
                 'amount' => $value,
                 'is_tokenomic' => true,
             ];
@@ -253,6 +254,7 @@ class AccountsController
                 if (!array_key_exists($asset_name, $balances)) {
                     $balances[$asset_name] = [
                         'code' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? 'XLM' : $Asset->getAssetCode(),
+                        'issuer' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer(),
                         'amount' => (float) $Asset->getBalance(),
                         'is_tokenomic' => false,
                     ];

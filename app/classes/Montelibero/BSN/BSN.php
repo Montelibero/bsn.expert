@@ -219,6 +219,15 @@ class BSN
         return preg_match('/^[a-z0-9_]+?$/i', $name);
     }
 
+    public static function validateTokenNameFormat(?string $name): bool
+    {
+        if (!$name) {
+            return false;
+        }
+
+        return preg_match('/^[a-z0-9]{1,12}}?$/i', $name);
+    }
+
     public function getSignatures(): SignatureCollection
     {
         return $this->Signatures;

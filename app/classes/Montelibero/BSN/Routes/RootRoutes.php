@@ -33,6 +33,12 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/accounts'], function () use ($Container) {
             AccountsRoutes::register($Container);
         });
+        SimpleRouter::group(['prefix' => '/tokens'], function () use ($Container) {
+            TokensRoutes::register($Container);
+        });
+        SimpleRouter::get('/token/{path?}', self::getRedirectCallbackTo('/tokens'))->where(['path' => '.*']);
+        SimpleRouter::get('/assets/{path?}', self::getRedirectCallbackTo('/tokens'))->where(['path' => '.*']);
+        SimpleRouter::get('/asset/{path?}', self::getRedirectCallbackTo('/tokens'))->where(['path' => '.*']);
         SimpleRouter::group(['prefix' => '/tags'], function () use ($Container) {
             TagsRouter::register($Container);
         });
@@ -40,17 +46,7 @@ class RootRoutes
             AssetsRouter::register($Container);
         });
         // Редирект всех запросов /contracts/* на /documents/*
-        SimpleRouter::get('/contracts/{path?}', function($path = '') use ($Container) {
-            $query_string = $_SERVER['QUERY_STRING'] ?? '';
-            $redirect_url = '/documents';
-            if (!empty($path)) {
-                $redirect_url .= '/' . $path;
-            }
-            if (!empty($query_string)) {
-                $redirect_url .= '?' . $query_string;
-            }
-            SimpleRouter::response()->redirect($redirect_url, 301);
-        })->where(['path' => '.*']);
+        SimpleRouter::get('/contracts/{path?}', self::getRedirectCallbackTo('/documents'))->where(['path' => '.*']);
 
         SimpleRouter::group(['prefix' => '/documents'], function () use ($Container) {
             DocumentsRoutes::register($Container);
@@ -94,5 +90,18 @@ class RootRoutes
 
             SimpleRouter::response()->httpCode(404);
         })->where(['username' => '\@?[a-zA-Z0-9_]+']);
+    }
+
+    private static function getRedirectCallbackTo(string $redirect_url): callable {
+        return function ($path = '') use ($redirect_url) {
+            $query_string = $_SERVER['QUERY_STRING'] ?? '';
+            if (!empty($path)) {
+                $redirect_url .= '/' . $path;
+            }
+            if (!empty($query_string)) {
+                $redirect_url .= '?' . $query_string;
+            }
+            SimpleRouter::response()->redirect($redirect_url, 301);
+        };
     }
 }

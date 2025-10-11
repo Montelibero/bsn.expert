@@ -91,7 +91,7 @@ class LoginController
                 message: "bsn.expert auth",
                 originDomain: "bsn.expert"
             );
-            $uri_signed = $this->getSignedUrl($uri, $ServerKeypair);
+            $uri_signed = $this::getSignedUrl($uri, $ServerKeypair);
 
             $data = [
                 'uri' => $uri_signed,
@@ -186,7 +186,7 @@ class LoginController
         ]);
     }
 
-    private function getSignedUrl(string $url, KeyPair $KeyPair): string
+    public static function getSignedUrl(string $url, KeyPair $KeyPair): string
     {
         $payloadStart = array();
         for ($i = 0; $i < 36; $i++) {

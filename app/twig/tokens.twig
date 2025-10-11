@@ -1,0 +1,16 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'nav.tokens'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="/tokens/" aria-current="page">{{ 'nav.tokens'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">{{ 'nav.tokens'|trans }}</h1>
+
+    <p class="block">{{ 'tokens.description'|trans }}</p>
+{% endblock %}
+

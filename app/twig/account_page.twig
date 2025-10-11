@@ -113,14 +113,14 @@
         <div class="field is-grouped is-grouped-multiline">
         {% for asset, balance in balances %}
                 <div class="control">
-                <div class="tags has-addons">
-                <span class="tag is-dark" title="{{ asset }}">
+                <a href="/tokens/{{ balance.code }}{% if balance.issuer %}-{{ balance.issuer }}{% endif %}" class="tags has-addons">
+                <span class="tag is-dark is-hoverable" title="{{ asset }}">
                 {{ balance.code }}
                 </span>
                 {% if balance.amount %}
-                <span class="tag {{ balance.is_tokenomic ? "is-info" : "" }}">{{ balance.amount }}</span>
+                <span class="tag is-hoverable {{ balance.is_tokenomic ? "is-info" : "" }}">{{ balance.amount }}</span>
                 {% endif %}
-                </div>
+                </a>
                 </div>
         {% endfor %}
         </div>

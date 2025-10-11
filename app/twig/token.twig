@@ -1,0 +1,38 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ code }} — {{ 'nav.tokens'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+        <li><a href="/" aria-current="page">BSN</a></li>
+        <li><a href="/tokens/" aria-current="page">{{ 'nav.tokens'|trans }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ code }}</a></li>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">{{ code }}, {{ include('account_link.twig', {data: issuer}, with_context = false) }}</h1>
+<h1 class="subtitle">
+        <span class="stellar_address is-family-monospace">{{ code }}</span>-<span class="stellar_address is-family-monospace">{{ issuer.id }}</span><br>
+
+        {{ 'account_page.alternatives'|trans }}: <a class="tag is-primary" href="https://stellar.expert/explorer/public/asset/{{ code }}-{{ issuer.id }}">Stellar.Expert</a>
+        <a class="tag is-info" href="https://scopuly.com/trade/{{ code }}-XLM/{{ issuer.id }}/native">Scopuly</a><br>
+</h1>
+
+<dl class="box">
+    <dt class="title is-4">{{ 'token_page.holders_count'|trans }}</dt>
+    <dd class="subtitle is-4">
+        {{ holders_count }}
+    </dd>
+    <dt class="title is-4">{{ 'token_page.issued'|trans }}</dt>
+    <dd class="subtitle is-4">
+        {{ issued }}
+    </dd>
+</dl>
+
+<div class="box">
+<h2 class="title">{{ 'token_page.add_trustline.header'|trans }}</h2>
+<p class="block">{{ 'token_page.add_trustline.description'|trans }}</p>
+{{ add_trustline_form|raw }}
+</div>
+
+{% endblock %}
+

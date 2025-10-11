@@ -1,0 +1,22 @@
+{% extends "page.twig" %}
+
+{% block title %}XLM — {{ 'nav.tokens'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+        <li><a href="/" aria-current="page">BSN</a></li>
+        <li><a href="/tokens/" aria-current="page">{{ 'nav.tokens'|trans }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">XLM</a></li>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">XLM</h1>
+<h1 class="subtitle">
+        <span class="stellar_address is-family-monospace">XLM</span><br>
+
+        {{ 'account_page.alternatives'|trans }}: <a class="tag is-primary" href="https://stellar.expert/explorer/public/asset/XLM">Stellar.Expert</a>
+        <a class="tag is-info" href="https://scopuly.com/native">Scopuly</a><br>
+</h1>
+
+    <p class="block">{{ 'token_page.xlm_description'|trans }}</p>
+{% endblock %}
+
