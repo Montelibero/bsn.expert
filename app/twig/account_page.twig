@@ -63,7 +63,7 @@
         </div>
 {% endif %}
 
-{% if name or about or website %}
+{% if name or about or website or timekoken.code %}
 <dl class="box">
     {% if name %}
         <dt class="title is-4">{{ 'account_page.name'|trans }}</dt>
@@ -87,6 +87,12 @@
             {% for item in website %}
                 <a href="{{ item }}">{{ item }}</a><br>
             {% endfor %}
+        </dd>
+    {% endif %}
+    {% if timetoken.code %}
+        <dt class="title is-4">{{ 'account_page.timetoken'|trans }}</dt>
+        <dd class="subtitle is-4">
+                <a href="https://stellar.expert/explorer/public/asset/{{ timetoken.code }}-{{ timetoken.issuer }}">{{ timetoken.code }}</a><br>
         </dd>
     {% endif %}
 </dl>

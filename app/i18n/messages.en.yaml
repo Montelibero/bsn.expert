@@ -89,6 +89,7 @@ account_page:
   name: Name
   about: About
   website: Website
+  timetoken: Timetoken
   signatures:
     header: Documents
   balances:

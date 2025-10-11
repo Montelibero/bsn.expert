@@ -275,6 +275,7 @@ class AccountsController
                 $outcome_tags = array_filter($outcome_tags, $filter_tags, ARRAY_FILTER_USE_KEY);
                 $income_tags = array_filter($income_tags, $filter_tags, ARRAY_FILTER_USE_KEY);
             }
+
             $result = [
                 'account' => $Account->jsonSerialize(),
                 'self_presentation' => [
@@ -306,6 +307,10 @@ class AccountsController
             'name' => $Account->getName(),
             'about' => $Account->getAbout(),
             'website' => array_values(array_filter(array_map(self::normalizeURL(...), $Account->getWebsite()))),
+            'timetoken' => [
+                'code' => $Account->getProfileSingleItem('TimeTokenCode'),
+                'issuer' => $Account->getProfileSingleItem('TimeTokenIssuer') ?? $Account->getId(),
+            ],
             'bsn_score' => $Account->calcBsnScore(),
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,

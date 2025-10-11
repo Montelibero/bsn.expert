@@ -88,6 +88,7 @@ account_page:
   name: Имя
   about: Описание
   website: Ссылка
+  timetoken: Таймтокен
   signatures:
     header: Документы
   balances:
