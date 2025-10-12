@@ -102,23 +102,35 @@ class WebApp
 
     public static function semantic_sort_keys(array &$data, array $sort_example): void
     {
-        uksort($data, function ($a, $b) use ($sort_example) {
-            $indexA = array_search($a, $sort_example);
-            $indexB = array_search($b, $sort_example);
+        // Создаём массив ключей, которые не присутствуют в sort_example, в их текущем порядке
+        $original_keys = array_keys($data);
+        $custom_keys_order = [];
+        foreach ($original_keys as $key) {
+            if (array_search($key, $sort_example, true) === false) {
+                $custom_keys_order[] = $key;
+            }
+        }
 
-            // Если оба ключа есть в массиве сортировки
+        uksort($data, function ($a, $b) use ($sort_example, $custom_keys_order) {
+            $indexA = array_search($a, $sort_example, true);
+            $indexB = array_search($b, $sort_example, true);
+
+            // Если оба ключа есть в sort_example
             if ($indexA !== false && $indexB !== false) {
                 return $indexA - $indexB;
-            } // Если ключ A в массиве сортировки, а B нет
-            elseif ($indexA !== false) {
-                return -1;
-            } // Если ключ B в массиве сортировки, а A нет
-            elseif ($indexB !== false) {
-                return 1;
-            } // Если ни один из ключей не в массиве сортировки, сортируем их по алфавиту
-            else {
-                return $a <=> $b;
             }
+            // Если ключ A есть в sort_example, а B нет
+            if ($indexA !== false) {
+                return -1;
+            }
+            // Если ключ B есть в sort_example, а A нет
+            if ($indexB !== false) {
+                return 1;
+            }
+            // Оба ключа не в sort_example — сортируем по порядку их появления в исходном массиве
+            $origA = array_search($a, $custom_keys_order, true);
+            $origB = array_search($b, $custom_keys_order, true);
+            return $origA - $origB;
         });
     }
 

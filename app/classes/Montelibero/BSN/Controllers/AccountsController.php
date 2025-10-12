@@ -220,14 +220,9 @@ class AccountsController
             "MTLRECT-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
             "BTCMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
             "SATSMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
-            "GPA-GBGGX7QD3JCPFKOJTLBRAFU3SIME3WSNDXETWI63EDCORLBB6HIP2CRR",
-            "Agora-GBGGX7QD3JCPFKOJTLBRAFU3SIME3WSNDXETWI63EDCORLBB6HIP2CRR",
-            "TIC-GBJ3HT6EDPWOUS3CUSIJW5A4M7ASIKNW4WFTLG76AAT5IE6VGVN47TIC",
-            "TOC-GBJ3HT6EDPWOUS3CUSIJW5A4M7ASIKNW4WFTLG76AAT5IE6VGVN47TIC",
-            "TPS-GAODFS2M4NSBFGKVNG6SEECI3DWU2GXQKG6MUBYJEIIINVIPZULCJTPS",
-            "EURTPS-GDEF73CXYOZXQ6XLUN55UBCW5YTIU4KVZEPOI6WJSREN3DMOBLVLZTOP",
-            "USDC-GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
         ];
+
+        $TokensController = $this->Container->get(TokensController::class);
 
         $base_code_to_issuer = [];
         foreach ($base_assets as $asset) {
@@ -242,9 +237,9 @@ class AccountsController
             }
             $balances["$asset_name-{$base_code_to_issuer[$asset_name]}"] = [
                 'code' => $asset_name,
-                'issuer' => $base_code_to_issuer[$asset_name],
+                'issuer' => '',
                 'amount' => $value,
-                'is_tokenomic' => true,
+                'is_known' => true,
             ];
         }
         try {
@@ -258,17 +253,30 @@ class AccountsController
                 if (!array_key_exists($asset_name, $balances)) {
                     $balances[$asset_name] = [
                         'code' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? 'XLM' : $Asset->getAssetCode(),
-                        'issuer' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer(),
-                        'amount' => (float) $Asset->getBalance(),
-                        'is_tokenomic' => false,
                     ];
+                }
+                $balances[$asset_name]['amount'] = (float) $Asset->getBalance();
+                if ($asset_name !== 'XLM'
+                    && ($kt = $TokensController->getKnownTokenByCode($balances[$asset_name]['code']))
+                    && $kt['issuer'] === $Asset->getAssetIssuer()
+                ) {
+                    $balances[$asset_name]['is_known'] = true;
                 } else {
-                    $balances[$asset_name]['amount'] = (float) $Asset->getBalance();
+                    $balances[$asset_name]['issuer'] = $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer();
                 }
             }
         } catch (\Exception $E) {
 
         }
+        // Сортировка $balances: is_known === true идут в начало, остальные в конец, при равенстве — по code
+        uasort($balances, function($a, $b) {
+            $a_known = isset($a['is_known']) && $a['is_known'];
+            $b_known = isset($b['is_known']) && $b['is_known'];
+            if ($a_known !== $b_known) {
+                return $a_known ? -1 : 1;
+            }
+            return strcmp($a['code'], $b['code']);
+        });
         WebApp::semantic_sort_keys($balances, $base_assets);
 
         if (($_SERVER['HTTP_ACCEPT'] ?? null) === 'application/json' || ($_GET['format'] ?? '') === 'json') {
@@ -304,7 +312,7 @@ class AccountsController
         if ($code = $Account->getProfileSingleItem('TimeTokenCode')) {
             $timetoken['code'] = $code;
             $timetoken['issuer'] = $Account->getProfileSingleItem('TimeTokenIssuer') ?? $Account->getId();
-            $timetoken['is_known'] = $this->Container->get(TokensController::class)->shortKnownTokenKey($code . '-' . $timetoken['issuer']) === $code;
+            $timetoken['is_known'] = $TokensController->shortKnownTokenKey($code . '-' . $timetoken['issuer']) === $code;
         }
         $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
