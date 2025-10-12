@@ -29,6 +29,8 @@ RUN apk add --no-cache \
 
 COPY ./custom-php.ini /usr/local/etc/php/conf.d/99-custom.ini
 
+COPY php-fpm-logs.conf /usr/local/etc/php-fpm.d/zz-logs.conf
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Development
