@@ -12,7 +12,7 @@ class TokensRoutes
         SimpleRouter::get('/', function () use ($Container) {
             return $Container->get(TokensController::class)->Tokens();
         });
-        SimpleRouter::get('/reload_known_tokens', function () use ($Container) {
+        SimpleRouter::match(['get', 'post'], '/reload_known_tokens', function () use ($Container) {
             TokensController::reloadKnownTokens();
             return 'OK';
         })->name('token_xlm');
