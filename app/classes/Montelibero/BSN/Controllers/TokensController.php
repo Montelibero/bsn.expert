@@ -24,6 +24,9 @@ class TokensController
 
     private Container $Container;
 
+    private array $known_tokens = [];
+    private array $known_tokens_by_code = [];
+
     public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container)
     {
         $this->BSN = $BSN;
@@ -35,6 +38,8 @@ class TokensController
         $this->Stellar = $Stellar;
 
         $this->Container = $Container;
+
+        $this->loadKnownTokens();
     }
 
     public function Tokens(): ?string
@@ -62,34 +67,20 @@ class TokensController
             return null;
         }
 
-        $base_assets = [
-            "EURMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
-            "USDM-GDHDC4GBNPMENZAOBB4NCQ25TGZPDRK6ZGWUGSI22TVFATOLRPSUUSDM",
-            "MTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
-            "MTLRECT-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
-            "BTCMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
-            "SATSMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
-            "GPA-GBGGX7QD3JCPFKOJTLBRAFU3SIME3WSNDXETWI63EDCORLBB6HIP2CRR",
-            "Agora-GBGGX7QD3JCPFKOJTLBRAFU3SIME3WSNDXETWI63EDCORLBB6HIP2CRR",
-            "TIC-GBJ3HT6EDPWOUS3CUSIJW5A4M7ASIKNW4WFTLG76AAT5IE6VGVN47TIC",
-            "TOC-GBJ3HT6EDPWOUS3CUSIJW5A4M7ASIKNW4WFTLG76AAT5IE6VGVN47TIC",
-            "TPS-GAODFS2M4NSBFGKVNG6SEECI3DWU2GXQKG6MUBYJEIIINVIPZULCJTPS",
-            "EURTPS-GDEF73CXYOZXQ6XLUN55UBCW5YTIU4KVZEPOI6WJSREN3DMOBLVLZTOP",
-            "USDC-GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
-        ];
-
-        $known_tokens = [];
-        foreach ($base_assets as $asset) {
-            [$asset_code, $asset_issuer] = explode('-', $asset);
-            $known_tokens[$asset_code] = $asset_issuer;
-        }
-
         if (!$issuer) {
-            if (!array_key_exists($code, $known_tokens)) {
+            $known_tag = $this->getKnownTokenByCode($code);
+            if (!$known_tag) {
                 SimpleRouter::response()->httpCode(403);
                 return null;
             }
-            $issuer = $known_tokens[$code];
+            $issuer = $known_tag['issuer'];
+        } else {
+            $known_tag = $this->getKnownTokenByCode($code);
+            if ($known_tag && $known_tag['issuer'] === $issuer) {
+                http_response_code(301);
+                header("Location: /tokens/" . $code);
+                return null;
+            }
         }
 
         $Issuer = $this->BSN->makeAccountById($issuer);
@@ -134,5 +125,69 @@ class TokensController
             'issued' => $issued,
             'add_trustline_form' => $signing_form,
         ]);
+    }
+
+    public static function reloadKnownTokens(): void
+    {
+        $grist_response = gristRequest(
+            'https://montelibero.getgrist.com/api/docs/gxZer88w3TotbWzkQCzvyw/tables/Assets/records',
+            'GET'
+        );
+        $known_tokens = [];
+        foreach ($grist_response['records'] as $item) {
+            $fields = $item['fields'];
+            if (
+                empty($fields['code'])
+                || empty($fields['issuer'])
+            ) {
+                continue;
+            }
+            $known_tokens[] = [
+                'code' => $fields['code'],
+                'issuer' => $fields['issuer'],
+                'offer_link' => $fields['offerta_link'],
+                'category' => $fields['category'],
+            ];
+        }
+        apcu_store('known_tokens', $known_tokens, 3600);
+    }
+
+    private function loadKnownTokens(): void
+    {
+        $known_tokens = apcu_fetch('known_tokens');
+        if (!$known_tokens) {
+            self::reloadKnownTokens();
+            $known_tokens = apcu_fetch('known_tokens');
+            if (!$known_tokens) {
+                return;
+            }
+        }
+
+        foreach ($known_tokens as $item) {
+            $key = $item['code'] . '-' . $item['issuer'];
+            $this->known_tokens[$key] = $item;
+            $this->known_tokens_by_code[$item['code']] = & $this->known_tokens[$key];
+        }
+    }
+
+    public function getKnownToken(string $key): ?array
+    {
+        return $this->known_tokens[$key] ?? null;
+    }
+
+    public function getKnownTokenByCode(string $code): ?array
+    {
+        return $this->known_tokens_by_code[$code] ?? null;
+    }
+
+    public function shortKnownTokenKey($key): string
+    {
+        [$code, $issuer] = explode('-', $key);
+        $known_tag = $this->getKnownTokenByCode($code);
+        if ($known_tag && $known_tag['issuer'] === $issuer) {
+            return $code;
+        }
+
+        return $key;
     }
 }

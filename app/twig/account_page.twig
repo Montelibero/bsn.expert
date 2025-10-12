@@ -92,7 +92,7 @@
     {% if timetoken.code %}
         <dt class="title is-4">{{ 'account_page.timetoken'|trans }}</dt>
         <dd class="subtitle is-4">
-                <a href="https://stellar.expert/explorer/public/asset/{{ timetoken.code }}-{{ timetoken.issuer }}">{{ timetoken.code }}</a><br>
+                <a href="/tokens/{{ timetoken.code }}{% if not timetoken.is_known %}-{{ timetoken.issuer }}{% endif %}">{{ timetoken.code }}</a><br>
         </dd>
     {% endif %}
 </dl>

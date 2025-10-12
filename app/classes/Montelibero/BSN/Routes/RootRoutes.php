@@ -43,9 +43,6 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/tags'], function () use ($Container) {
             TagsRouter::register($Container);
         });
-        SimpleRouter::group(['prefix' => '/assets'], function () use ($Container) {
-            AssetsRouter::register($Container);
-        });
         // Редирект всех запросов /contracts/* на /documents/*
         SimpleRouter::get('/contracts/{path?}', self::getRedirectCallbackTo('/documents'))->where(['path' => '.*']);
 
@@ -93,6 +90,7 @@ class RootRoutes
             }
 
             SimpleRouter::response()->httpCode(404);
+            return null;
         })->where(['username' => '\@?[a-zA-Z0-9_]+']);
     }
 

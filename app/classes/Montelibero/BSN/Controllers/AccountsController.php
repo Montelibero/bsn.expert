@@ -2,6 +2,7 @@
 
 namespace Montelibero\BSN\Controllers;
 
+use DI\Container;
 use League\Uri\Exceptions\SyntaxError;
 use League\Uri\Http;
 use Montelibero\BSN\Account;
@@ -51,8 +52,9 @@ class AccountsController
 
     private ?string $default_viewer = null;
     private StellarSDK $Stellar;
+    private Container $Container;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar)
+    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container)
     {
         $this->BSN = $BSN;
 
@@ -65,6 +67,8 @@ class AccountsController
         if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
             $this->default_viewer = $_COOKIE['default_viewer'];
         }
+
+        $this->Container = $Container;
     }
 
     /**
@@ -296,6 +300,12 @@ class AccountsController
             return json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
 
+        $timetoken = null;
+        if ($code = $Account->getProfileSingleItem('TimeTokenCode')) {
+            $timetoken['code'] = $code;
+            $timetoken['issuer'] = $Account->getProfileSingleItem('TimeTokenIssuer') ?? $Account->getId();
+            $timetoken['is_known'] = $this->Container->get(TokensController::class)->shortKnownTokenKey($code . '-' . $timetoken['issuer']) === $code;
+        }
         $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
             'canonical_url' => SimpleRouter::getUrl('account', ['id' => $Account->getId()]),
@@ -309,10 +319,7 @@ class AccountsController
             'name' => $Account->getName(),
             'about' => $Account->getAbout(),
             'website' => array_values(array_filter(array_map(self::normalizeURL(...), $Account->getWebsite()))),
-            'timetoken' => [
-                'code' => $Account->getProfileSingleItem('TimeTokenCode'),
-                'issuer' => $Account->getProfileSingleItem('TimeTokenIssuer') ?? $Account->getId(),
-            ],
+            'timetoken' => $timetoken,
             'bsn_score' => $Account->calcBsnScore(),
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,
