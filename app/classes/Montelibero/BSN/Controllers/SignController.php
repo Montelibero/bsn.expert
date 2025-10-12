@@ -116,20 +116,6 @@ class SignController
         $qr_svg = str_replace('fill="#000"', 'fill="currentColor"', $qr_svg);
         //        $qr_data = 'data:image/svg+xml;base64,' . base64_encode($qr_svg);
 
-        // MMWB integration
-        try {
-            $HttpClient = new Client();
-            $response = $HttpClient->post('https://eurmtl.me/remote/sep07/add', [
-                'json' => ['uri' => $uri],
-                'http_errors' => false
-            ]);
-            $response_body = (string) $response->getBody();
-            $parsed_response = json_decode($response_body, true);
-            $mmwb_url = $parsed_response['url'] ?? null;
-        } catch (\Exception $e) {
-            $mmwb_url = null;
-        }
-
         $sign = md5($xdr . $uri . $description . $_ENV['SERVER_STELLAR_SECRET_KEY']);
 
         $Template = $this->Twig->load('signing.twig');
@@ -137,7 +123,6 @@ class SignController
             'xdr' => $xdr,
             'uri' => $uri,
             'description' => $description,
-            'mmwb_url' => $mmwb_url,
             'qr_svg' => $qr_svg,
             'sign' => $sign,
         ]);
