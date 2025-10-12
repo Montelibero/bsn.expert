@@ -113,7 +113,7 @@ class TimeTokenController
                 if ($operations) {
                     $Transaction->addOperations($operations);
                     $xdr = $Transaction->build()->toEnvelopeXdrBase64();
-                    $signing_form = $this->Container->get(CommonController::class)->SignTransaction($xdr);
+                    $signing_form = $this->Container->get(SignController::class)->SignTransaction($xdr);
                 }
                 $save = true;
             }

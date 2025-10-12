@@ -40,7 +40,7 @@ login:
       After enabling, you need to reload this page.
   step_one:
     title: 1. First, sign
-    description: Sign a dummy transaction to prove you control the account. Sunce Wallet, Lobstr—bless their hearts—are your friends here.
+    description: Sign a dummy transaction to prove you control the account.
     time_limit: "This transaction is only good for:"
     button: Sign
   step_two:

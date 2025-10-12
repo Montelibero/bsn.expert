@@ -1,11 +1,9 @@
 <?php
-
 namespace Montelibero\BSN\Controllers;
 
-use chillerlan\QRCode\QRCode;
-use chillerlan\QRCode\QROptions;
 use DateInterval;
 use DateTime;
+use DI\Container;
 use GuzzleHttp\Client;
 use Memcached;
 use Montelibero\BSN\BSN;
@@ -33,9 +31,16 @@ class LoginController
     private StellarSDK $Stellar;
     private PDO $PDO;
     private Memcached $Memcached;
+    private Container $Container;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, PDO $PDO, Memcached $Memcached)
-    {
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        StellarSDK $Stellar,
+        PDO $PDO, Memcached
+        $Memcached,
+        Container $Container,
+    ) {
         $this->BSN = $BSN;
 
         $this->Twig = $Twig;
@@ -46,6 +51,8 @@ class LoginController
 
         $this->PDO = $PDO;
         $this->Memcached = $Memcached;
+
+        $this->Container = $Container;
     }
 
     public function Login(): ?string
@@ -155,18 +162,18 @@ class LoginController
          * Иначе — ошибка, отобразить, кнопка повторить.
          */
 
+
+        $signing_form = null;
         if (isset($uri_signed)) {
-            $QROptions = new QROptions();
-            $QROptions->outputBase64 = false;
-            $qr = (new QRCode($QROptions))->render($uri_signed);
-            $qr = str_replace('<svg ', '<svg width="600" height="600" ', $qr);
-            $qr = 'data:image/svg+xml;base64,' . base64_encode($qr);
+            $signing_form = $this->Container->get(SignController::class)->SignTransaction(null, $uri_signed);
         }
+
 
         $Template = $this->Twig->load('login.twig');
         return $Template->render([
             'return_to' => $_GET['return_to'] ?? '/',
             'no_cookie' => $_SERVER['QUERY_STRING'] === 'no_cookie',
+            'signing_form' => $signing_form,
             'sign_uri' => $uri_signed ?? null,
             'sign_qr' => $qr ?? null,
             'mmwb_url' => $mmwb_url,

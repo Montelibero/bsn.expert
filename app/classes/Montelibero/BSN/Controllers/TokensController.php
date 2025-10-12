@@ -123,7 +123,7 @@ class TokensController
         );
         $uri_signed = LoginController::getSignedUrl($uri, $ServerKeypair);
 
-        $signing_form = $this->Container->get(CommonController::class)->SignTransaction(null, $uri_signed);
+        $signing_form = $this->Container->get(SignController::class)->SignTransaction(null, $uri_signed);
 
 
         $Template = $this->Twig->load('token.twig');

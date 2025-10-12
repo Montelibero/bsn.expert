@@ -95,23 +95,8 @@
         <span id="timer">{{ (timer // 60)|format('%02d') }}:{{ timer|date('s', 'UTC') }}</span>
     </p>
 
-    <div class="buttons">
-        <a href="{{ sign_uri }}" class="button is-primary">
-            <span class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-            <span>{{ 'editor.sign.sep_07_button_name'|trans }}</span>
-        </a>
+{{ signing_form|raw }}
 
-        {% if mmwb_url %}
-            <a href="{{ mmwb_url }}" class="button is-link" target="_blank" rel="noopener noreferrer">
-            <span class="icon">
-                <i class="fa-brands fa-telegram"></i>
-            </span>
-                <span>@MyMTLWalletBot (MTL Wallet)</span>
-            </a>
-        {% endif %}
-    </div>
-
-    <p class="block qr"><img src="{{ sign_qr }}"></p>
     <h2 class="title is-4">{{ 'login.step_two.title'|trans }}</h2>
     <p class="block">{{ 'login.step_two.description'|trans }}</p>
     <a href="/login/?nonce={{ nonce }}" class="button is-link">{{ 'login.step_two.button'|trans }}</a>
