@@ -24,6 +24,12 @@
             <a href="/tokens/#category_{{ category }}">{{ category_name }}</a>
         </dd>
     {% endif %}
+    {% if offer_link %}
+        <dt class="title is-4">{{ 'token_page.offer_link'|trans }}</dt>
+        <dd class="subtitle is-4">
+            <a href="{{ offer_link }}">{{ offer_link }}</a>
+        </dd>
+    {% endif %}
     <dt class="title is-4">{{ 'token_page.holders_count'|trans }}</dt>
     <dd class="subtitle is-4">
         {{ holders_count }}

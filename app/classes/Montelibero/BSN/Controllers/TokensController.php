@@ -119,6 +119,7 @@ class TokensController
 
         $category = null;
         $category_name = null;
+        $offer_link = null;
 
         if (!$issuer) {
             $known_tag = $this->getKnownTokenByCode($code);
@@ -131,6 +132,7 @@ class TokensController
                 $Translator = $this->Container->get(Translator::class);
                 $category_name = $Translator->trans("tokens.categories." . $known_tag['category'] . '.name');
             }
+            $offer_link = $known_tag['offer_link'] ?? null;
 
         } else {
             $known_tag = $this->getKnownTokenByCode($code);
@@ -191,6 +193,7 @@ class TokensController
             'issued' => $issued,
             'category' => $category,
             'category_name' => $category_name,
+            'offer_link' => $offer_link,
             'add_trustline_form' => $signing_form,
             'holders' => $holders,
         ]);

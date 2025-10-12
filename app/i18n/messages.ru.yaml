@@ -183,6 +183,7 @@ token_page:
   issued: Всего выпущено
   holders_count: Открыто линий доверия
   category: Категория
+  offer_link: Ссылка
   add_trustline:
     header: Открыть линию доверия
     description: Чтобы на вашем аккаунте могли быть эти токены, нужно дать разрешение
