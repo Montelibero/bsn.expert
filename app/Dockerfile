@@ -44,6 +44,6 @@ RUN --mount=type=cache,target=/root/.composer/cache \
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer dump-autoload -o
 
 CMD ["sh", "-c", "sh /var/www/html/init.sh && php-fpm -F"]
