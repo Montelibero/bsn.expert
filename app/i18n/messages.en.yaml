@@ -139,6 +139,44 @@ account_and_tag:
 
 tokens:
   description: Tokens-shmojens. We haven't yet figured out what to place on this page.
+  categories:
+    membership:
+      name: Membership Tokens
+      description: These tokens are used to record membership in various organizations. They are usually not freely tradable.
+    mtl_shares:
+      name: MTL Fund Shares
+      description: These tokens provide stable dividend income and are backed by publicly available reports.
+    mtl_stables:
+      name: MTL Fund Stablecoins
+      description: Tokens whose value is pegged to a fiat (government-issued) currency.
+    mtl_wrapped:
+      name: MTL Fund Wrapped Assets
+      description: Similar to stablecoins, but pegged to other crypto assets, typically from different blockchains.
+    euro_notes:
+      name: Euro Notes
+      description: Tokens denominated in euros, serving primarily as euro-denominated debt instruments or receipts.
+    bonds:
+      name: Bonds
+      description: Tokens whose issuers promise predetermined benefits to holders, such as interest income.
+    shares_div:
+      name: Dividend Shares
+      description: Tokens representing ownership stakes that appear to generate dividend income for their holders.
+    shares_nodiv:
+      name: Non-Dividend Shares
+      description: Tokens that also represent ownership stakes but without promised or observed dividend income.
+    time_tokens:
+      name: Time Tokens
+      description: Personal tokens offering the issuer’s time according to their public offer.
+    donation:
+      name: Donation Tokens
+      description: Tokens purchased as a way to make a donation. The tokens themselves usually remain as souvenirs.
+    nft:
+      name: NFTs
+      description: Classic or non-standard non-fungible tokens. Each exists in a single, unique instance.
+    mtl_debt:
+      name: Treasury Debt Tokens
+      description: Service tokens used to define or track the treasury debt limit.
+
 
 token_page:
   issued: Issued

@@ -18,6 +18,12 @@
 </h1>
 
 <dl class="box">
+    {% if category %}
+        <dt class="title is-4">{{ 'token_page.category'|trans }}</dt>
+        <dd class="subtitle is-4">
+            <a href="/tokens/#category_{{ category }}">{{ category_name }}</a>
+        </dd>
+    {% endif %}
     <dt class="title is-4">{{ 'token_page.holders_count'|trans }}</dt>
     <dd class="subtitle is-4">
         {{ holders_count }}

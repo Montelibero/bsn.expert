@@ -12,5 +12,16 @@
     <h1 class="title">{{ 'nav.tokens'|trans }}</h1>
 
     <p class="block">{{ 'tokens.description'|trans }}</p>
+
+    {% for category in tokens %}
+    <h2 class="title is-4" id="category_{{ category.name_code }}">{{ category.name }}</h2>
+        <p class="block">{{ category.description }}</p>
+        <div class="tags are-medium">
+            {% for token in category.tokens %}
+                <a href="/tokens/{{ token.code }}" class="tag is-info">{{ token.code }}</a>
+            {% endfor %}
+        </div>
+    {% endfor %}
+
 {% endblock %}
 

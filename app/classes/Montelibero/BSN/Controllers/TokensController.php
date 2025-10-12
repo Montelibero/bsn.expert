@@ -3,6 +3,7 @@ namespace Montelibero\BSN\Controllers;
 
 use DI\Container;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Asset;
@@ -12,6 +13,7 @@ use Soneso\StellarSDK\Network;
 use Soneso\StellarSDK\SEP\URIScheme\URIScheme;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 class TokensController
@@ -44,8 +46,56 @@ class TokensController
 
     public function Tokens(): ?string
     {
+        $categories = [
+            'membership',
+            'mtl_shares',
+            'mtl_stables',
+            'mtl_wrapped',
+            'euro_notes',
+            'bonds',
+            'shares_div',
+            'shares_nodiv',
+            'time_tokens',
+            'donation',
+            'nft',
+            'mtl_debt',
+        ];
+        $promoted_assets = [
+            "EURMTL",
+            "USDM",
+            "MTL",
+            "MTLRECT",
+            "BTCMTL",
+            "SATSMTL",
+            "MTLCrowd",
+        ];
+        $tokens = [];
+        foreach ($this->known_tokens as $asset) {
+            // Ignore not categorized tokens
+            if (empty($asset['category'])) {
+                continue;
+            }
+            if (!array_key_exists($asset['category'], $tokens)) {
+                $tokens[$asset['category']] = [
+                    'tokens' => [],
+                ];
+            }
+            $tokens[$asset['category']]['tokens'][$asset['code']] = $asset;
+        }
+        WebApp::semantic_sort_keys($tokens, $categories);
+        $Translator = $this->Container->get(Translator::class);
+        foreach ($tokens as $category_name => & $category) {
+            $category['name_code'] = $category_name;
+            $category['name'] = $Translator->trans("tokens.categories." . $category_name . '.name');
+            $category['description'] = $Translator->trans("tokens.categories." . $category_name . '.description');
+            uasort($category['tokens'], function ($a, $b) {
+                return strcmp($a['code'], $b['code']);
+            });
+            WebApp::semantic_sort_keys($category['tokens'], $promoted_assets);
+        }
         $Template = $this->Twig->load('tokens.twig');
         return $Template->render([
+            'tokens' => $tokens,
         ]);
     }
 
@@ -67,6 +117,9 @@ class TokensController
             return null;
         }
 
+        $category = null;
+        $category_name = null;
+
         if (!$issuer) {
             $known_tag = $this->getKnownTokenByCode($code);
             if (!$known_tag) {
@@ -74,6 +127,11 @@ class TokensController
                 return null;
             }
             $issuer = $known_tag['issuer'];
+            if ($category = $known_tag['category']) {
+                $Translator = $this->Container->get(Translator::class);
+                $category_name = $Translator->trans("tokens.categories." . $known_tag['category'] . '.name');
+            }
+
         } else {
             $known_tag = $this->getKnownTokenByCode($code);
             if ($known_tag && $known_tag['issuer'] === $issuer) {
@@ -123,6 +181,8 @@ class TokensController
             'issuer' => $Issuer->jsonSerialize(),
             'holders_count' => $holders_count,
             'issued' => $issued,
+            'category' => $category,
+            'category_name' => $category_name,
             'add_trustline_form' => $signing_form,
         ]);
     }
