@@ -44,6 +44,6 @@ RUN --mount=type=cache,target=/root/.composer/cache \
 
 COPY . .
 
-RUN composer dump-autoload -o
+RUN composer dump-autoload --apcu
 
 CMD ["sh", "-c", "sh /var/www/html/init.sh && php-fpm -F"]
