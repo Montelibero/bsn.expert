@@ -68,7 +68,6 @@ class LoginController
         }
 
         $nonce = $_GET['nonce'] ?? null;
-        $mmwb_url = null;
         $error = null;
 
         if (!$nonce) {
@@ -106,19 +105,6 @@ class LoginController
                 'timestamp' => time(),
             ];
 
-            try {
-                $HttpClient = new Client();
-                $response = $HttpClient->post('https://eurmtl.me/remote/sep07/add', [
-                    'json' => ['uri' => $uri_signed],
-                    'http_errors' => false
-                ]);
-                $response_body = (string) $response->getBody();
-                $parsed_response = json_decode($response_body, true);
-                $data['mmwb_url'] = $parsed_response['url'] ?? null;
-                $mmwb_url = $parsed_response['url'] ?? null;
-            } catch (\Exception $E) {
-            }
-
             $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
         } else {
             $data = $this->Memcached->get("login_nonce_" . $nonce) ?: null;
@@ -136,9 +122,6 @@ class LoginController
                 $error = 'timeout';
             } elseif ($data['status'] === 'created') {
                 $uri_signed = $data['uri'];
-                if (isset($data['mmwb_url'])) {
-                    $mmwb_url = $data['mmwb_url'];
-                }
             } elseif ($data['status'] === 'OK') {
                 $_SESSION['account'] = $this->BSN->makeAccountById($data['account_id'])->jsonSerialize();
                 $Relation = $this->BSN->makeAccountById($data['account_id'])->getRelation();
@@ -176,7 +159,6 @@ class LoginController
             'signing_form' => $signing_form,
             'sign_uri' => $uri_signed ?? null,
             'sign_qr' => $qr ?? null,
-            'mmwb_url' => $mmwb_url,
             'nonce' => $nonce,
             'timer' => isset($data) ? (300 - (time() - $data['timestamp'])) : null,
             'error' => $error,
