@@ -240,6 +240,18 @@ class TokensController
         return $this->known_tokens_by_code[$code] ?? null;
     }
 
+    public function searchKnownTokenByCode(string $search): ?array
+    {
+        $search = strtolower($search);
+        foreach ($this->known_tokens_by_code as $code => $known_token) {
+            if (strtolower($code) === $search) {
+                return $known_token;
+            }
+        }
+
+        return null;
+    }
+
     public function shortKnownTokenKey($key): string
     {
         [$code, $issuer] = explode('-', $key);

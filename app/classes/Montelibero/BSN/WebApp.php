@@ -3,9 +3,8 @@ namespace Montelibero\BSN;
 
 use DI\Container;
 use Montelibero\BSN\Controllers\AccountsController;
-use Montelibero\BSN\Relations\Member;
+use Montelibero\BSN\Controllers\TokensController;
 use Pecee\SimpleRouter\SimpleRouter;
-use Soneso\StellarSDK\StellarSDK;
 use Twig\Environment;
 
 class WebApp
@@ -79,9 +78,20 @@ class WebApp
 
         if (BSN::validateStellarAccountIdFormat($q)) {
             SimpleRouter::response()->redirect(SimpleRouter::getUrl('account', ['id' => $q]));
+            return null;
         }
         if ($account_id = $this->AccountsManager->fetchAccountIdByUsername($q)) {
             SimpleRouter::response()->redirect(SimpleRouter::getUrl('account', ['id' => $account_id]));
+            return null;
+        }
+
+        if (BSN::validateTokenNameFormat($q)) {
+            $TokensController = $this->Container->get(TokensController::class);
+            $known_tag = $TokensController->searchKnownTokenByCode($q);
+            if ($known_tag) {
+                SimpleRouter::response()->redirect(SimpleRouter::getUrl('token_page', ['code' => $known_tag['code']]));
+                return null;
+            }
         }
 
         if (BSN::validateTagNameFormat($q)) {
@@ -93,6 +103,7 @@ class WebApp
                 }
             }
             SimpleRouter::response()->redirect(SimpleRouter::getUrl('tag', ['id' => $tag_name]));
+            return null;
         }
 
         $Template = $this->Twig->load('search.twig');
