@@ -37,6 +37,13 @@ CMD ["sh", "-c", "sh /var/www/html/init.sh && composer install --no-dev --optimi
 
 # Production
 FROM base AS prod
+
+COPY composer.json composer.lock ./
+RUN --mount=type=cache,target=/root/.composer/cache \
+    composer install --no-dev --prefer-dist --no-interaction --no-scripts --no-autoloader
+
 COPY . .
-RUN composer install --no-dev --optimize-autoloader
+
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
 CMD ["sh", "-c", "sh /var/www/html/init.sh && php-fpm -F"]
