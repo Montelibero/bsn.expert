@@ -248,6 +248,9 @@ class AccountsController
                 if ($Asset->getAssetType() === Asset::TYPE_NATIVE) {
                     $asset_name = 'XLM';
                 } else {
+                    if (!$Asset->getAssetCode()) {
+                        continue;
+                    }
                     $asset_name = $Asset->getAssetCode() . '-' . $Asset->getAssetIssuer();
                 }
                 if (!array_key_exists($asset_name, $balances)) {
