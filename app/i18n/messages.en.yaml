@@ -181,6 +181,7 @@ tokens:
 token_page:
   issued: Issued
   holders_count: Holders count
+  category: Category
   add_trustline:
     header: Add trustline
     description: To be able to have these tokens on your account, you need to give permission.
