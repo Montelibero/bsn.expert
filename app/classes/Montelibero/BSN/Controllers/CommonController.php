@@ -20,7 +20,7 @@ class CommonController
         $this->Stellar = $Stellar;
     }
 
-    public function SignTransaction(?string $tx = null, ?string $uri = null,): ?string
+    public function SignTransaction(?string $xdr = null, ?string $uri = null, ?string $description = null, ): ?string
     {
         /*
          * Есть либо транзакция, которую нужно подписать и отправить в блокчейн
@@ -29,12 +29,12 @@ class CommonController
          *  Тогда не отображаем TX, но показываем кнопы подписать и QR
          */
 
-        if (!$tx && !$uri) {
+        if (!$xdr && !$uri) {
             throw new \Exception('No transaction or uri provided');
         }
         if (!$uri) {
             $UriScheme = new URIScheme();
-            $uri = $UriScheme->generateSignTransactionURI($tx);
+            $uri = $UriScheme->generateSignTransactionURI($xdr);
         }
 
         $QROptions = new QROptions();
@@ -60,12 +60,52 @@ class CommonController
             $mmwb_url = null;
         }
 
+        $sign = md5($xdr . $uri . $description . $_ENV['SERVER_STELLAR_SECRET_KEY']);
+
         $Template = $this->Twig->load('signing.twig');
         return $Template->render([
-            'tx' => $tx,
+            'xdr' => $xdr,
             'uri' => $uri,
+            'description' => $description,
             'mmwb_url' => $mmwb_url,
             'qr_svg' => $qr_svg,
+            'sign' => $sign,
         ]);
     }
+
+    public static function pushTransactionToEurmtl(string $xdr, string $description): string
+    {
+        $curl = curl_init('https://eurmtl.me/remote/add_transaction');
+
+        $payload = json_encode([
+            'tx_body' => $xdr,
+            'tx_description' => $description
+        ]);
+
+        curl_setopt_array($curl, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $_ENV['EURMTL_KEY']
+            ],
+            CURLOPT_POSTFIELDS => $payload
+        ]);
+
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($httpCode !== 201) {
+            throw new \RuntimeException('Failed to push transaction to eurmtl.me. HTTP code: ' . $httpCode);
+        }
+
+        $data = json_decode($response, true);
+        if (!isset($data['hash'])) {
+            throw new \RuntimeException('Invalid response from eurmtl.me: hash not found');
+        }
+
+        return "https://eurmtl.me/sign_tools/" . $data['hash'];
+    }
+
 }

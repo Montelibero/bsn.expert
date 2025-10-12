@@ -1,3 +1,8 @@
+<form method="post" action="/sign">
+    <input type="hidden" name="xdr" value="{{ xdr }}">
+    <input type="hidden" name="uri" value="{{ uri }}">
+    <input type="hidden" name="description" value="{{ description }}">
+    <input type="hidden" name="sign" value="{{ sign }}">
 <style>
     .qr_svg svg {
         color: var(--bulma-body-color);
@@ -10,33 +15,37 @@
         <span>{{ 'editor.sign.sep_07_button_name'|trans }}</span>
     </a>
 
-    {% if mmwb_url %}
-        <a href="{{ mmwb_url }}" class="button is-link" target="_blank" rel="noopener noreferrer">
-            <span class="icon">
-                <i class="fa-brands fa-telegram"></i>
-            </span>
-            <span>@MyMTLWalletBot (MTL Wallet)</span>
-        </a>
-    {% endif %}
+    <button type="submit" name="action" value="mmwb" class="button is-link">
+        <span class="icon"><i class="fa-brands fa-telegram"></i></span>
+        <span>@MyMTLWalletBot (MTL Wallet)</span>
+    </button>
 
-    {% if tx %}
-    <a href="https://eurmtl.me/uri?xdr={{ tx|url_encode }}" class="button is-dark">
+    {% if xdr %}
+    <a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}" class="button is-dark">
             <span class="icon">
                 <i class="fa-solid fa-key"></i>
             </span>
         <span>Sign by secret key</span>
     </a>
     {% endif %}
+
+    {% if xdr and description %}
+        <button type="submit" name="action" value="eurmtl" class="button is-link">
+            <span class="icon"><i class="fa-solid fa-signature"></i></span>
+            <span>Collect multisig</span>
+        </button>
+    {% endif %}
 </div>
 
 <p class="block">{{ 'editor.sign.qr_text'|trans }}:</p>
 <p class="block qr_svg">{{ qr_svg|raw }}</p>
 
-{% if tx %}
+{% if xdr %}
 <div class="field">
     <label for="xdr_body">{{ 'editor.transaction_label'|trans }}:</label>
     <div class="control">
-        <textarea class="textarea" id="xdr_body">{{ tx }}</textarea>
+        <textarea class="textarea" id="xdr_body">{{ xdr }}</textarea>
     </div>
 </div>
 {% endif %}
+</form>
