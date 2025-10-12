@@ -1,7 +1,7 @@
 <?php
-
 namespace Montelibero\BSN;
 
+use DI\Container;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Relations\Member;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -45,9 +45,9 @@ class WebApp
         'WelcomeGuest',
     ];
     private ?string $default_viewer = null;
-    private StellarSDK $Stellar;
+    private Container $Container;
 
-    public function __construct(BSN $BSN, AccountsManager $AccountsManager, Environment $Twig, StellarSDK $Stellar)
+    public function __construct(BSN $BSN, AccountsManager $AccountsManager, Environment $Twig, Container $Container)
     {
         $this->BSN = $BSN;
         $this->AccountsManager = $AccountsManager;
@@ -56,7 +56,8 @@ class WebApp
         $this->Twig->addGlobal('session', $_SESSION);
         $this->Twig->addGlobal('server', $_SERVER);
 
-        $this->Stellar = $Stellar;
+
+        $this->Container = $Container;
 
         if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
             $this->default_viewer = $_COOKIE['default_viewer'];
@@ -68,7 +69,7 @@ class WebApp
         $Template = $this->Twig->load('index.twig');
         return $Template->render([
             'accounts_count' => $this->BSN->getAccountsCount(),
-            'adopters_count' => count((new AccountsController($this->BSN, $this->Twig, $this->Stellar))->getAdopters()),
+            'adopters_count' => count(($this->Container->get(AccountsController::class))->getAdopters()),
         ]);
     }
 
