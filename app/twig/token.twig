@@ -40,5 +40,30 @@
 {{ add_trustline_form|raw }}
 </div>
 
+{% if holders %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+    <h2 class="title">{{ 'token_page.holders.header'|trans }}</h2>
+    <table class="table"  data-sortlist="[[1,1],[0,0]]">
+        <thead>
+        <tr>
+            <th>{{ 'token_page.holders.account'|trans }}</th>
+            <th>{{ 'token_page.holders.amount'|trans }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for holder in holders %}
+            <tr>
+                <td>{{ include('account_link.twig', {data: holder.account}, with_context = false) }}</td>
+                <td>{{ holder.amount }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
 {% endblock %}
 

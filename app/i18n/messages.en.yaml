@@ -185,6 +185,10 @@ token_page:
   add_trustline:
     header: Add trustline
     description: To be able to have these tokens on your account, you need to give permission.
+  holders:
+    header: Holders
+    account: Account
+    amount: Amount
   xlm_description: >
     XLM, he also Lumen is the main token of the Stellar blockchain. First of all, it is used to pay the commission, 
     but also needed for other operations.

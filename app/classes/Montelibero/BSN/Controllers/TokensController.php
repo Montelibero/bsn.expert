@@ -154,6 +154,14 @@ class TokensController
         $holders_count = $Asset->getAccounts()->getAuthorized() + $Asset->getAccounts()->getUnauthorized();
         $issued = (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized();
 
+        $holders = [];
+        if ($holders_count <= 200) {
+            $holders = $this->fetchTokenHolders($code, $issuer);
+        }
+        foreach ($holders as & $balance) {
+            $balance['account'] = $this->BSN->makeAccountById($balance['id'])->jsonSerialize();
+        }
+
         // SEP-07 URL to open trustline
         $ServerKeypair = Keypair::fromSeed($_ENV['SERVER_STELLAR_SECRET_KEY']);
         $StellarAccount = new \Soneso\StellarSDK\Account($ServerKeypair->getAccountId(), new BigInteger(0));
@@ -184,6 +192,7 @@ class TokensController
             'category' => $category,
             'category_name' => $category_name,
             'add_trustline_form' => $signing_form,
+            'holders' => $holders,
         ]);
     }
 
@@ -261,5 +270,61 @@ class TokensController
         }
 
         return $key;
+    }
+
+    private function fetchTokenHolders(string $code, string $issuer): array
+    {
+        $apcu_cache_key = 'token_horders:' . $issuer . ':' . $code;
+        $holders = apcu_fetch($apcu_cache_key);
+        if ($holders) {
+            return $holders;
+        }
+
+        $holders = [];
+        $Asset = Asset::createNonNativeAsset($code, $issuer);
+        try {
+            $Accounts = $this->Stellar
+                ->accounts()
+                ->forAsset($Asset)
+                ->limit(200)
+                ->execute();
+            $accounts = [];
+    //        do {
+    //            $this->log('Got new ' . $Accounts->getAccounts()->count() . ' accounts');
+    //            foreach ($Accounts->getAccounts() as $Account) {
+    //                $accounts[] = $Account;
+    //            }
+    //            $Accounts = $Accounts->getNextPage();
+    //            $this->log('Fetch next accounts ' . $code);
+    //        } while ($Accounts->getAccounts()->count());
+            foreach ($Accounts->getAccounts() as $Account) {
+                $accounts[] = $Account;
+            }
+        } catch (\Exception $E) {
+
+        }
+
+        foreach ($accounts as $Account) {
+            foreach ($Account->getBalances() as $Balance) {
+                if ($Balance->getAssetType() === Asset::TYPE_NATIVE) {
+                    continue;
+                }
+                if ($Balance->getAssetIssuer() === $issuer && $Balance->getAssetCode() === $code) {
+                    $holders[] = [
+                        'id' => $Account->getAccountId(),
+                        'amount' => (float) $Balance->getBalance(),
+                    ];
+                    break;
+                }
+            }
+        }
+
+        usort($holders, function($a, $b) {
+            return $b['amount'] <=> $a['amount'];
+        });
+
+        apcu_store($apcu_cache_key, $holders, 300);
+
+        return $holders;
     }
 }
