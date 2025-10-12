@@ -93,8 +93,8 @@ class TokensController
         $AssetRequest = $this->Stellar->assets()->forAssetCode($code)->forAssetIssuer($issuer)->execute();
         $Asset = $AssetRequest->getAssets()->toArray()[0];
 
-        $holders_count = $Asset->getAccounts()->getAuthorized();
-        $issued = $Asset->getBalances()->getAuthorized();
+        $holders_count = $Asset->getAccounts()->getAuthorized() + $Asset->getAccounts()->getUnauthorized();
+        $issued = (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized();
 
         // SEP-07 URL to open trustline
         $ServerKeypair = Keypair::fromSeed($_ENV['SERVER_STELLAR_SECRET_KEY']);
