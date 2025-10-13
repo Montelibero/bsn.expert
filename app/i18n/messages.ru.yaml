@@ -92,6 +92,8 @@ account_page:
   timetoken: Таймтокен
   signatures:
     header: Документы
+  issued_tokens:
+    header: Выпущенные токены
   balances:
     header: Балансы
   income_tags:

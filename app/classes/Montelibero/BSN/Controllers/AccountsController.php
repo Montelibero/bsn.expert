@@ -213,6 +213,10 @@ class AccountsController
             ];
         }, $Account->getSignatures());
 
+        $TokensController = $this->Container->get(TokensController::class);
+
+        $issued_tokens = $this->fetchIssuedTokens($Account->getId(), $TokensController);
+
         $base_assets = [
             "EURMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
             "USDM-GDHDC4GBNPMENZAOBB4NCQ25TGZPDRK6ZGWUGSI22TVFATOLRPSUUSDM",
@@ -221,8 +225,6 @@ class AccountsController
             "BTCMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
             "SATSMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
         ];
-
-        $TokensController = $this->Container->get(TokensController::class);
 
         $base_code_to_issuer = [];
         foreach ($base_assets as $asset) {
@@ -335,6 +337,7 @@ class AccountsController
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,
             'signatures' => $signatures,
+            'issued_tokens' => $issued_tokens,
             'balances' => $balances,
         ]);
     }
@@ -525,5 +528,40 @@ class AccountsController
         }
 
         return '/accounts/' . $Account->getId();
+    }
+
+    public function fetchIssuedTokens(string $account_id, TokensController $TokensController): array
+    {
+        $cache_key = 'issued_tokens_' . $account_id;
+        if ($cached = apcu_fetch($cache_key)) {
+            return $cached;
+        }
+
+        $issued_tokens = [];
+        try {
+            $Assets = $this->Stellar->assets()->forAssetIssuer($account_id)->execute()->getAssets();
+            foreach ($Assets as $Asset) {
+                $amount = (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized();
+                if (!$amount) {
+                    continue;
+                }
+                $known_token = $TokensController->getKnownTokenByCode($Asset->getAssetCode());
+                $issued_tokens[] = [
+                    'code' => $Asset->getAssetCode(),
+                    'issuer' => $Asset->getAssetIssuer(),
+                    'amount' => $amount,
+                    'is_known' => $known_token && $known_token['issuer'] === $account_id,
+                ];
+            }
+            usort($issued_tokens, function($a, $b) {
+                return strcmp($a['code'], $b['code']);
+            });
+
+            apcu_store($cache_key, $issued_tokens, 3600);
+        } catch (\Exception $E) {
+
+        }
+
+        return $issued_tokens;
     }
 }

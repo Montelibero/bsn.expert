@@ -93,6 +93,8 @@ account_page:
   timetoken: Timetoken
   signatures:
     header: Documents
+  issued_tokens:
+    header: Issued tokens
   balances:
     header: Balances
   income_tags:

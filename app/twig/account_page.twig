@@ -107,6 +107,26 @@
 </div>
 {% endif %}
 
+{% if issued_tokens %}
+<div class="box">
+        <h2 class="title">{{ 'account_page.issued_tokens.header'|trans }}</h2>
+        <div class="field is-grouped is-grouped-multiline">
+        {% for token in issued_tokens %}
+                <div class="control">
+                <a href="/tokens/{{ token.code }}{% if not token.is_known %}-{{ token.issuer }}{% endif %}" class="tags has-addons">
+                <span class="tag is-dark is-hoverable">
+                {{ token.code }}
+                </span>
+                {% if token.amount %}
+                <span class="tag is-hoverable {{ token.is_known ? "is-info" : "" }}">{{ token.amount }}</span>
+                {% endif %}
+                </a>
+                </div>
+        {% endfor %}
+        </div>
+</div>
+{% endif %}
+
 {% if balances %}
 <div class="box">
         <h2 class="title">{{ 'account_page.balances.header'|trans }}</h2>
