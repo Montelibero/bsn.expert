@@ -352,7 +352,7 @@ class EditorController
 
         // Added
         $to_add = [];
-        foreach ($_POST['tag'] as $tag_name => $data) {
+        foreach (($_POST['tag'] ?? []) as $tag_name => $data) {
             $Tag = $this->BSN->getTag($tag_name);
             if ($Tag->isSingle()) {
                 if ($_POST['tag'][$tag_name] && $_POST['tag'][$tag_name] !== $current_values[$tag_name]) {
