@@ -171,7 +171,6 @@ class TokensController
         $Operation = new ChangeTrustOperationBuilder(Asset::createNonNativeAsset($code, $issuer));
         $Transaction->addOperation($Operation->build());
         $Transaction = $Transaction->build();
-        $Transaction->sign($ServerKeypair, Network::public());
         $tx = $Transaction->toEnvelopeXdrBase64();
         $UriScheme = new URIScheme();
         $uri = $UriScheme->generateSignTransactionURI(
