@@ -12,6 +12,7 @@ use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
+use Soneso\StellarSDK\Responses\Asset\AssetResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Twig\Environment;
 
@@ -532,15 +533,24 @@ class AccountsController
 
     public function fetchIssuedTokens(string $account_id, TokensController $TokensController): array
     {
-        $cache_key = 'issued_tokens_' . $account_id;
+        $cache_key = 'issued_tokens2_' . $account_id;
         if ($cached = apcu_fetch($cache_key)) {
             return $cached;
         }
 
         $issued_tokens = [];
         try {
-            $Assets = $this->Stellar->assets()->forAssetIssuer($account_id)->execute()->getAssets();
-            foreach ($Assets as $Asset) {
+            /** @var AssetResponse[] $all_assets */
+            $all_assets = [];
+            $Assets = $this->Stellar->assets()->forAssetIssuer($account_id)->execute();
+            do {
+                foreach ($Assets->getAssets() as $Asset) {
+                    $all_assets[] = $Asset;
+                }
+                $Assets = $Assets->getNextPage();
+            } while ($Assets->getAssets()->count());
+
+            foreach ($all_assets as $Asset) {
                 $amount = (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized();
                 if (!$amount) {
                     continue;
