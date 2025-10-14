@@ -542,7 +542,7 @@ class AccountsController
         try {
             /** @var AssetResponse[] $all_assets */
             $all_assets = [];
-            $Assets = $this->Stellar->assets()->forAssetIssuer($account_id)->execute();
+            $Assets = $this->Stellar->assets()->forAssetIssuer($account_id)->limit(200)->execute();
             do {
                 foreach ($Assets->getAssets() as $Asset) {
                     $all_assets[] = $Asset;
