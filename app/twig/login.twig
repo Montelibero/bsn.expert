@@ -99,8 +99,10 @@
 
     <h2 class="title is-4">{{ 'login.step_two.title'|trans }}</h2>
     <p class="block">{{ 'login.step_two.description'|trans }}</p>
-    <a href="/login/?nonce={{ nonce }}" class="button is-link">{{ 'login.step_two.button'|trans }}</a>
+    <p class="block"><a href="/login/?nonce={{ nonce }}" class="button is-link">{{ 'login.step_two.button'|trans }}</a></p>
 {% endif %}
+
+    <p class="block">{{ 'login.invite_to_manual'|trans|raw }}</p>
 
 {% endblock %}
 

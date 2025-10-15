@@ -12,16 +12,19 @@ use PDO;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Account;
+use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\ManageDataOperation;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\Network;
+use Soneso\StellarSDK\PaymentOperationBuilder;
 use Soneso\StellarSDK\SEP\URIScheme\URIScheme;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TimeBounds;
 use Soneso\StellarSDK\Transaction;
 use Soneso\StellarSDK\TransactionBuilder;
 use Soneso\StellarSDK\Xdr\XdrTransactionEnvelope;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 class LoginController
@@ -123,11 +126,7 @@ class LoginController
             } elseif ($data['status'] === 'created') {
                 $uri_signed = $data['uri'];
             } elseif ($data['status'] === 'OK') {
-                $_SESSION['account'] = $this->BSN->makeAccountById($data['account_id'])->jsonSerialize();
-                $Relation = $this->BSN->makeAccountById($data['account_id'])->getRelation();
-                if (($Relation instanceof Member) && $Relation->getLevel() >= 2) {
-                    $_SESSION['show_telegram_usernames'] = true;
-                }
+                $this->authenticate($data['account_id']);;
                 SimpleRouter::response()->redirect('/', 302);
             } else {
                 $error = $data['status'];
@@ -167,8 +166,7 @@ class LoginController
 
     private function dbCreateRequest(string $nonce)
     {
-        $stmt = $this->PDO->prepare('INSERT INTO stellar_auth (nonce, status)
-            VALUES (:nonce, :status);');
+        $stmt = $this->PDO->prepare('INSERT INTO stellar_auth (nonce, status) VALUES (:nonce, :status);');
         $stmt->execute([
             ':nonce' => $nonce,
             ':status' => 'created',
@@ -238,6 +236,30 @@ class LoginController
             return 'too old';
         }
 
+        $check_sign = $this->checkSignature($_POST['xdr']);
+
+        if (!$check_sign) {
+            $data['status'] = 'bad_signature';
+            $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
+            SimpleRouter::response()->httpCode(403);
+            return "Missing client signature";
+        }
+
+        $data['status'] = 'OK';
+        $data['account_id'] = $account_id;
+        $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
+
+        return 'OK';
+    }
+
+    public function checkSignature(string $xdr): bool
+    {
+        /** @var Transaction $Transaction */
+        $Transaction = Transaction::fromEnvelopeBase64XdrString($xdr);
+        $Envelope = XdrTransactionEnvelope::fromEnvelopeBase64XdrString($xdr);
+
+        $account_id = $Transaction->getSourceAccount()->getAccountId();
+
         $sign_weight_sum = 0;
         $count = 0;
         while (empty($StellarAccount) && $count++ < 4) {
@@ -273,17 +295,85 @@ class LoginController
             }
         }
 
-        if ($sign_weight_sum < $StellarAccount->getThresholds()->getMedThreshold()) {
-            $data['status'] = 'bad_signature';
-            $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
-            SimpleRouter::response()->httpCode(403);
-            return "Missing client signature";
+        return $sign_weight_sum >= $StellarAccount->getThresholds()->getMedThreshold();
+    }
+
+    public function LoginManual()
+    {
+        $Template = $this->Twig->load('login_manual.twig');
+
+        $account_id = $_POST['account_id'] ?? null;
+        $Account = null;
+
+        $error = null;
+        $Translator = $this->Container->get(Translator::class);
+        if ($account_id) {
+            if (!$this->BSN::validateStellarAccountIdFormat($account_id)) {
+                $error = $Translator->trans('login_manual.errors.invalid_account_id');
+            } else {
+                $Account = $this->Stellar->requestAccount($account_id);
+            }
         }
 
-        $data['status'] = 'OK';
-        $data['account_id'] = $account_id;
-        $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
+        $xdr = $_POST['xdr'] ?? null;
 
-        return 'OK';
+        if ($Account && !$xdr) {
+            $xdr = (new TransactionBuilder($Account))
+                ->addOperation(
+                    (new PaymentOperationBuilder(
+                        'GBDWGABTWCQHVARC7OQH4FC42O2SFI6FQRJRKVFMZ2U33RUGO3UMFBSN',
+                        Asset::createNonNativeAsset('EURMTL', 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V'),
+                        '0.10',
+                    ))->build()
+                )->build()->toEnvelopeXdrBase64();
+        }
+
+        $signed_xdr = $_POST['signed_xdr'] ?? null;
+
+        if ($Account && $signed_xdr) {
+            try {
+                /** @var Transaction $Transaction */
+                $Transaction = Transaction::fromEnvelopeBase64XdrString($signed_xdr);
+            } catch (\Exception $E) {
+                SimpleRouter::response()->httpCode(400);
+                $error = $Translator->trans('login_manual.errors.invalid_signed_xdr');
+            }
+
+            if (!$error && $Transaction->getSourceAccount()->getAccountId() !== $account_id) {
+                $error = $Translator->trans('login_manual.errors.wrong_account_id');
+            }
+
+            if (!$error && $Transaction->getSequenceNumber()->compare($Account->getIncrementedSequenceNumber()) !== 0) {
+                $error = $Translator->trans('login_manual.errors.wrong_seq_number');
+            }
+
+            if (!$error) {
+                $check_sign = $this->checkSignature($signed_xdr);
+
+                if ($check_sign) {
+                    $this->authenticate($account_id);
+                    SimpleRouter::response()->redirect('/', 302);
+                } else {
+                    $error = $Translator->trans('login_manual.errors.bad_signature');
+                }
+            }
+        }
+
+        return $Template->render([
+            'error' => $error,
+            'account_id' => $account_id,
+            'xdr' => $xdr,
+            'signed_xdr' => $signed_xdr,
+        ]);
+
+    }
+
+    private function authenticate($account_id): void
+    {
+        $_SESSION['account'] = $this->BSN->makeAccountById($account_id)->jsonSerialize();
+        $Relation = $this->BSN->makeAccountById($account_id)->getRelation();
+        if (($Relation instanceof Member) && $Relation->getLevel() >= 2) {
+            $_SESSION['show_telegram_usernames'] = true;
+        }
     }
 }

@@ -1,0 +1,75 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'nav.login'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.login'|trans }}</a></li>
+{% endblock %}
+
+
+{% block content %}
+    <h1 class="title">{{ 'nav.login'|trans }}</h1>
+    <p class="block">
+        {{ 'login_manual.description'|trans }}
+    </p>
+    <p class="block">
+        {{ 'login_manual.instruction'|trans }}
+    </p>
+
+    {% if no_cookie %}
+        <div class="notification is-danger">
+            <h2 class="title is-4">{{ 'login.no_cookie.title'|trans }}</h2>
+            <p class="block">{{ 'login.no_cookie.description'|trans }}</p>
+        </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="notification is-info">
+        <h2 class="title is-4">Чего-то не получилось</h2>
+        <p class="block">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <form action="/login/manual/" method="post">
+        <h2 class="title is-4">{{ 'login_manual.step_one.header'|trans }}</h2>
+        <div class="field">
+            <label class="label" for="account_id">{{ 'login_manual.step_one.account_id'|trans }}</label>
+            <input
+                    id="account_id"
+                    class="input"
+                    type="text"
+                    name="account_id"
+                    placeholder="G..."
+                    value="{{ account_id }}"
+                    maxlength="56"
+            />
+            <p class="help">{{ 'login_manual.step_one.account_id_hint'|trans }}</p>
+        </div>
+        <div class="field">
+            <div class="control">
+                <input type="submit" class="button is-link" value="{{ 'login_manual.step_one.button'|trans }}">
+            </div>
+        </div>
+        {% if xdr %}
+            <h2 class="title is-4">{{ 'login_manual.step_two.header'|trans }}</h2>
+            <div class="field">
+                <label class="label" for="xdr">{{ 'login_manual.step_two.xdr'|trans }}</label>
+                <textarea class="textarea" name="xdr" id="xdr" rows="3" readonly>{{ xdr }}</textarea>
+                <p class="help">{{ 'login_manual.step_two.xdr_hint'|trans }}</p>
+            </div>
+            <div class="field">
+                <label class="label" for="signed_xdr">{{ 'login_manual.step_two.signed_xdr'|trans }}</label>
+                <textarea class="textarea" name="signed_xdr" id="signed_xdr" rows="3"></textarea>
+                <p class="help">{{ 'login_manual.step_two.signed_xdr_hint'|trans }}</p>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <input type="submit" class="button is-link" value="{{ 'login_manual.step_two.button'|trans }}">
+                </div>
+            </div>
+        {% endif %}
+
+    </form>
+{% endblock %}
+

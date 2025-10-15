@@ -48,6 +48,37 @@ login:
     description: Once you’ve successfully signed the transaction, click this button to log in.
     button: Verify
   again_button: Authorize
+  invite_to_manual: >
+    Совсем не получается? Если у вас на руках есть секретный ключ, то можно попробовать 
+    <a href="/login/manual/">ручной режим авторизазии →</a>
+
+login_manual:
+  description: >
+    On this page you can do authorization in manual mode, without the convenience of the SEP-07 magic.
+    For this, you will need a simple Soviet secret key from your account. And even more precisely — a legitimate signature
+    of a transaction from your account. Even for users of multisig.
+  instruction: >
+    Below in the field, enter the Stellar address, click «Get transaction». Take this transaction, and, for example,
+    in the Stellar laboratory, add the necessary signatures. After that, insert the result in the field below, and click 
+    «Authorize».
+  step_one:
+    header: Specify your address
+    account_id: Stellar account
+    account_id_hint: Under which account do you want to authorize? You will need to correctly sign the transaction for it.
+    button: Get transaction
+  step_two:
+    header: Sign the transaction
+    xdr: Your transaction
+    xdr_hint: Copy and sign, for example, in the Stellar laboratory
+    signed_xdr: Signed transaction
+    signed_xdr_hint: Insert here the result of signing the transaction above
+    button: Authorize
+  errors:
+    invalid_account_id: Here you expect your Stellar address, which usually starts with G, and consists of 56 characters
+    invalid_signed_xdr: Error in the field of the signed transaction. There should be some kind of abracadabra, usually starting with AAAA...=
+    wrong_account_id: The account in the transaction does not match the specified account
+    wrong_seq_number: The transaction has expired, because a new transaction has been sent from this account
+    bad_signature: Problem with the signature. Maybe there are not enough votes, or the wrong key was signed.
 
 preferences:
   description: >
