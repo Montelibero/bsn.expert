@@ -209,7 +209,12 @@ tokens:
     mtl_debt:
       name: Treasury Debt Tokens
       description: Service tokens used to define or track the treasury debt limit.
-
+    rwa:
+      name: Real World Assets
+      description: Tokens representing real-world assets, such as real estate, transport, or other physical things.
+    game:
+      name: Game Tokens
+      description: Tokens used in games.
 
 token_page:
   issued: Issued
