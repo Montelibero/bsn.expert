@@ -151,10 +151,13 @@ class TokensController
         }
 
         $AssetRequest = $this->Stellar->assets()->forAssetCode($code)->forAssetIssuer($issuer)->execute();
+        $holders_count = 0;
+        $issued = 0.0;
         $Asset = $AssetRequest->getAssets()->toArray()[0];
-
-        $holders_count = $Asset->getAccounts()->getAuthorized() + $Asset->getAccounts()->getUnauthorized();
-        $issued = (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized();
+        if ($Asset) {
+            $holders_count = $Asset->getAccounts()->getAuthorized() + $Asset->getAccounts()->getUnauthorized();
+            $issued = (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized();
+        }
 
         $holders = [];
         if ($holders_count <= 200) {
