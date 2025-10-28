@@ -61,7 +61,7 @@ class SendTimeTokensController
                     continue;
                 }
                 if (preg_match(
-                    '/^(?:(?<amount>\d+)\s+)?(?:(?<tg>@\w+)|(?<token>[\da-z]{1,14}))(?:\s+(?<amount2>\d+))?$/i',
+                    '/^(?:(?<amount>\d+(?:\.\d+)?)\s+)?(?:(?<tg>@\w+)|(?<token>[\da-z]{1,14}))(?:\s+(?<amount2>\d+(?:\.\d+)?))?$/i',
                     $line,
                     $m
                 )) {
