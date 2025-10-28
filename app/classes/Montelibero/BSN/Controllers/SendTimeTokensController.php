@@ -159,17 +159,17 @@ class SendTimeTokensController
                         );
                         $operations[] = $Operation->build();
                     }
-                    $Transaction = new Transaction(
-                        $StellarAccount->getMuxedAccount(),
-                        $seq_num ? new BigInteger($seq_num) : $StellarAccount->getIncrementedSequenceNumber(),
-                        $operations,
-                        $memo ? Memo::text($memo) : Memo::none(),
-                        null,
-                        count($operations) * 10000,
-                    );
-
-                    $transaction = $Transaction->toEnvelopeXdrBase64();
                 }
+                $Transaction = new Transaction(
+                    $StellarAccount->getMuxedAccount(),
+                    $seq_num ? new BigInteger($seq_num) : $StellarAccount->getIncrementedSequenceNumber(),
+                    $operations,
+                    $memo ? Memo::text($memo) : Memo::none(),
+                    null,
+                    count($operations) * 10000,
+                );
+
+                $transaction = $Transaction->toEnvelopeXdrBase64();
             }
         }
 
