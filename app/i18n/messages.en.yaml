@@ -14,7 +14,7 @@ nav:
     title: Tools
     multisig: Multisig Editor
     timetoken: Timetoken
-    percent_pay: Percent Bulk Payment
+    percent_pay: Bulk Percent Payment
   mtla: MTLA
   council: Council
   programs: Programs
@@ -376,3 +376,28 @@ tools_timetoken:
     wrong_tt_issuer: The timetoken issuer is not a valid Stellar address
     wrong_tt_offer: Error in the hash format of the offer, it should be 64 characters 0-f.
 
+tools_percent_pay:
+  description: >
+    This tool is useful for conducting a bulk payment of percentages to holders of a certain token.
+    The program goes through the list of holders and makes a transaction with a transfer according to the rules you specified.
+    The minimum data here is the description of the token to which the payment will be made, and the percentage.
+  asset_issuer:
+    name: Token issuer
+    hint: A regular Stellar address, from which the target token is issued. Starts with G.
+  asset_code:
+    name: Token code
+    placeholder: MyToken
+    hint: The name of the token, from 1 to 12 characters.
+  percent:
+    name: Percent
+    hint: What percentage of the amount of these tokens will be transferred to the holder. From 0.001 to infinity.
+  payer_account:
+    name: Payer account
+    hint: From which account the payment will be made. By default, from the issuer's account, but you can specify an alternative.
+  memo:
+    name: Memo
+    placeholder: Payment to holders of the MyToken token
+    hint: A note to the transaction. To make the recipients understand the reason for the payment.
+  buttons:
+    reset: Reset
+    calculate: Calculate

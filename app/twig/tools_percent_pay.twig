@@ -1,10 +1,10 @@
 {% extends "page.twig" %}
 
-{% block title %}Percent Pay{% endblock %}
+{% block title %}{{ 'nav.tools.percent_pay'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">BSN</a></li>
-    <li class="is-active"><a href="#" aria-current="page">PercentPay</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.tools.percent_pay'|trans }}</a></li>
 {% endblock %}
 
 
@@ -15,77 +15,107 @@
         });
     </script>
 
-    <h1 class="title">Percent Pay</h1>
-    <h2 class="title is-4">Asset data</h2>
+    <h1 class="title">{{ 'nav.tools.percent_pay'|trans }}</h1>
+    <p class="block">{{ 'tools_percent_pay.description'|trans }}</p>
     <form action="/tools/percent_pay" method="get">
         <div class="field">
-            <label class="label" for="asset_issuer">Issuer (account)</label>
-            <input
-                    id="asset_issuer"
-                    class="input"
-                    type="text"
-                    name="asset_issuer"
-                    placeholder="G..."
-                    value="{{ asset_issuer }}"
-                    maxlength="56"
-            />
+            <label class="label" for="asset_issuer">{{ 'tools_percent_pay.asset_issuer.name'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="asset_issuer"
+                        class="input"
+                        type="text"
+                        name="asset_issuer"
+                        placeholder="G..."
+                        value="{{ asset_issuer }}"
+                        maxlength="56"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-user"></i>
+                </span>
+            </div>
+            <p class="help">{{ 'tools_percent_pay.asset_issuer.hint'|trans }}</p>
         </div>
         <div class="field">
-            <label class="label" for="asset_code">Asset code</label>
-            <input
-                    id="asset_code"
-                    class="input"
-                    type="text"
-                    name="asset_code"
-                    placeholder="MyToken"
-                    value="{{ asset_code }}"
-                    maxlength="12"
-            />
+            <label class="label" for="asset_code">{{ 'tools_percent_pay.asset_code.name'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="asset_code"
+                        class="input"
+                        type="text"
+                        name="asset_code"
+                        placeholder="{{ 'tools_percent_pay.asset_code.placeholder'|trans }}"
+                        value="{{ asset_code }}"
+                        maxlength="12"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-font"></i>
+                </span>
+            </div>
+            <p class="help">{{ 'tools_percent_pay.asset_code.hint'|trans }}</p>
         </div>
         <div class="field">
-            <label class="label" for="percent">Percent</label>
-            <input
-                    id="percent"
-                    class="input"
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    name="percent"
-                    placeholder="1.234"
-                    value="{{ percent }}"
-                    maxlength="6"
-            />
+            <label class="label" for="percent">{{ 'tools_percent_pay.percent.name'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="percent"
+                        class="input"
+                        type="number"
+                        min="0.001"
+                        step="0.1"
+                        name="percent"
+                        placeholder="1.234"
+                        value="{{ percent }}"
+                        maxlength="6"
+                />
+                <span class="icon is-left">
+                    <i class="fa-solid fa-percent"></i>
+                </span>
+            </div>
+            <p class="help">{{ 'tools_percent_pay.percent.hint'|trans }}</p>
         </div>
         <div class="field">
-            <label class="label" for="payer_account">Payer account</label>
-            <input
-                    id="payer_account"
-                    class="input"
-                    type="text"
-                    name="payer_account"
-                    placeholder="G..."
-                    value="{{ payer_account }}"
-                    maxlength="56"
-            />
+            <label class="label" for="payer_account">{{ 'tools_percent_pay.payer_account.name'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="payer_account"
+                        class="input"
+                        type="text"
+                        name="payer_account"
+                        placeholder="G..."
+                        value="{{ payer_account }}"
+                        maxlength="56"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-user"></i>
+                </span>
+            </div>
+            <p class="help">{{ 'tools_percent_pay.payer_account.hint'|trans }}</p>
         </div>
         <div class="field">
-            <label class="label" for="memo">Memo</label>
-            <input
-                    id="memo"
-                    class="input"
-                    type="text"
-                    name="memo"
-                    placeholder="Some text.."
-                    value="{{ memo }}"
-                    maxlength="28"
-            />
+            <label class="label" for="memo">{{ 'tools_percent_pay.memo.name'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="memo"
+                        class="input"
+                        type="text"
+                        name="memo"
+                        placeholder="{{ 'tools_percent_pay.memo.placeholder'|trans }}"
+                        value="{{ memo }}"
+                        maxlength="28"
+                />
+                <span class="icon is-left">
+                    <i class="fa-solid fa-comment"></i>
+                </span>
+            </div>
+            <p class="help">{{ 'tools_percent_pay.memo.hint'|trans }}</p>
         </div>
         <div class="field is-grouped">
             <div class="control">
-                <input type="reset" class="button is-light" value="Reset">
+                <input type="reset" class="button is-light" value="{{ 'tools_percent_pay.buttons.reset'|trans }}">
             </div>
             <div class="control">
-                <input type="submit" class="button is-link" value="Calculate">
+                <input type="submit" class="button is-link" value="{{ 'tools_percent_pay.buttons.calculate'|trans }}">
             </div>
         </div>
     </form>
