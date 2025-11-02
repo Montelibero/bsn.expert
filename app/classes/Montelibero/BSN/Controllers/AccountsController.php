@@ -317,7 +317,11 @@ class AccountsController
         $timetoken = null;
         if ($code = $Account->getProfileSingleItem('TimeTokenCode')) {
             $timetoken['code'] = $code;
-            $timetoken['issuer'] = $Account->getProfileSingleItem('TimeTokenIssuer') ?? $Account->getId();
+            if ($tt_issuers = $Account->getOutcomeLinks($this->BSN->makeTagByName('TimeTokenIssuer'))) {
+                $timetoken['issuer'] = $tt_issuers[0]->getId();
+            } else {
+                $timetoken['issuer'] = $Account->getId();
+            }
             $timetoken['is_known'] = $TokensController->shortKnownTokenKey($code . '-' . $timetoken['issuer']) === $code;
         }
         $Template = $this->Twig->load('account_page.twig');
