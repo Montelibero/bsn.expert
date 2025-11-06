@@ -112,10 +112,56 @@ class PercentPayController
         }
         unset($account);
 
+        $payment_token_options = [
+            [
+                'code' => 'EURMTL',
+                'issuer' => 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V',
+            ],
+            [
+                'code' => 'USDM',
+                'issuer' => 'GDHDC4GBNPMENZAOBB4NCQ25TGZPDRK6ZGWUGSI22TVFATOLRPSUUSDM',
+            ],
+            [
+                'code' => 'USDC',
+                'issuer' => 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
+            ],
+            [
+                'code' => 'SATSMTL',
+                'issuer' => 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V',
+            ],
+        ];
+        $payment_token = $payment_token_options[0];
+        if ($_GET['payment_token'] ?? null) {
+            $pt_code = $_GET['payment_token'];
+            $pt_issuer = null;
+            if (str_contains($_GET['payment_token'], "-")) {
+                [$pt_code, $pt_issuer] = explode('-', $_GET['payment_token']);
+            }
+            if ($this->BSN::validateTokenNameFormat($pt_code)) {
+                if (
+                    !$pt_issuer
+                    && $pt = $this->Container->get(TokensController::class)->getKnownTokenByCode($pt_code)
+                ) {
+                    $pt_issuer = $pt['issuer'];;
+                }
+            }
+            if ($pt_code && $pt_issuer) {
+                $payment_token = [
+                    'code' => $pt_code,
+                    'issuer' => $pt_issuer,
+                ];
+            }
+        }
+        foreach ($payment_token_options as $pt_option) {
+            if ($pt_option['code'] === $payment_token['code'] && $pt_option['issuer'] === $payment_token['issuer']) {
+                $payment_token['is_standard'] = true;
+                break;
+            }
+        }
         $signing_forms = [];
         if ($accounts) {
             $StellarAccount = $this->Stellar->requestAccount($asset_issuer ?: $payer_account);
-            $Asset = Asset::createNonNativeAsset('EURMTL', 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V');
+            $Asset = Asset::createNonNativeAsset($payment_token['code'], $payment_token['issuer']);
             $operations = [];
             $operations_limit = 100;
             foreach ($accounts as $account) {
@@ -145,6 +191,8 @@ class PercentPayController
             'asset_issuer' => $asset_issuer,
             'asset_code' => $asset_code,
             'percent' => $percent,
+            'payment_token_options' => $payment_token_options,
+            'payment_token' => $payment_token,
             'payer_account' => $payer_account,
             'memo' => $memo,
             'accounts' => $accounts,

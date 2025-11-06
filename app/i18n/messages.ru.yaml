@@ -409,6 +409,12 @@ tools_percent_pay:
   payer_account:
     name: Аккаунт плательщика
     hint: С какого счета будет уходить оплата. По-умолчанию со счета-эмитента, но можно указать альтернативный.
+  payment_token:
+    name: Переводить токен
+    hint_select: Какой токен получит каждый держатель основного токена.
+    hint_free: >
+      Какой токен получит каждый держатель основного токена. Формат TokenName-IssuerAddress, 
+      например EURMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V.
   memo:
     name: Мемо
     placeholder: Платёж держателям токена MyToken
@@ -418,6 +424,9 @@ tools_percent_pay:
     calculate: Рассчитать
   calculation:
     title: Расчёт
+    description: >
+      Держатели токена <a href="/tokens/%asset_code%-%asset_issuer%">%asset_code%</a> получат перевод 
+      в токенах <a href="/tokens/%payment_token_code%-%payment_token_issuer%">%payment_token_code%</a>.
     account: Аккаунт
     balance: Баланс
     to_pay: К оплате

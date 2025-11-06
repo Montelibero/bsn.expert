@@ -394,6 +394,12 @@ tools_percent_pay:
   payer_account:
     name: Payer account
     hint: From which account the payment will be made. By default, from the issuer's account, but you can specify an alternative.
+  payment_token:
+    name: Transfer token
+    hint_select: What token will each holder of the main token receive.
+    hint_free: >
+      What token will each holder of the main token receive. Format TokenName-IssuerAddress, 
+      for example EURMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V.
   memo:
     name: Memo
     placeholder: Payment to holders of the MyToken token
@@ -403,6 +409,9 @@ tools_percent_pay:
     calculate: Calculate
   calculation:
     title: Calculation
+    description: >
+      Holders of the token <a href="/tokens/%asset_code%-%asset_issuer%">%asset_code%</a> will receive a transfer
+      in tokens <a href="/tokens/%payment_token_code%-%payment_token_issuer%">%payment_token_code%</a>.
     account: Account
     balance: Balance
     to_pay: To pay

@@ -14,11 +14,6 @@
             $(".table").tablesorter();
         });
     </script>
-    <style>
-        table td.digit, table th.digit {
-            text-align: right;
-        }
-    </style>
 
     <h1 class="title">{{ 'nav.tools.percent_pay'|trans }}</h1>
     <p class="block">{{ 'tools_percent_pay.description'|trans }}</p>
@@ -95,6 +90,49 @@
             </div>
             <p class="help">{{ 'tools_percent_pay.payer_account.hint'|trans }}</p>
         </div>
+        {% if payment_token.is_standard %}
+            <div class="field">
+                <label class="label" for="payment_token">{{ 'tools_percent_pay.payment_token.name'|trans }}</label>
+                <div class="control has-icons-left">
+                    <span class="select is-fullwidth">
+                    <select
+                        id="payment_token"
+                        name="payment_token"
+                    >
+                        {% for token in payment_token_options %}
+                        <option value="{{ token.code }}-{{ token.issuer }}"
+                        {% if token.code == payment_token.code %}
+                            selected
+                        {% endif %}
+                        >{{ token.code }}</option>
+                        {% endfor %}
+                    </select>
+                    </span>
+                    <span class="icon is-left">
+                    <i class="fa-solid fa-coins"></i>
+                </span>
+                </div>
+                <p class="help">{{ 'tools_percent_pay.payment_token.hint_select'|trans }}</p>
+            </div>
+        {% else %}
+            <div class="field">
+                <label class="label" for="payment_token">{{ 'tools_percent_pay.payment_token.name'|trans }}</label>
+                <div class="control has-icons-left">
+                    <input
+                            id="payment_token"
+                            class="input"
+                            type="text"
+                            name="payment_token"
+                            value="{{ payment_token.code }}-{{ payment_token.issuer }}"
+                            maxlength="69"
+                    />
+                    <span class="icon is-left">
+                    <i class="fa-solid fa-coins"></i>
+                </span>
+                </div>
+                <p class="help">{{ 'tools_percent_pay.payment_token.hint_free'|trans }}</p>
+            </div>
+        {% endif %}
         <div class="field">
             <label class="label" for="memo">{{ 'tools_percent_pay.memo.name'|trans }}</label>
             <div class="control has-icons-left">
@@ -125,20 +163,26 @@
 
     {% if accounts %}
     <h2 class="title is-4">{{ 'tools_percent_pay.calculation.title'|trans }}</h2>
+    <p class="block">{{ 'tools_percent_pay.calculation.description'|trans({
+            '%asset_code%': asset_code,
+            '%asset_issuer%': asset_issuer,
+            '%payment_token_code%': payment_token.code,
+            '%payment_token_issuer%': payment_token.issuer,
+        })|raw }}</p>
     <table class="table" id="holders" data-sortlist="[[1,1]]">
         <thead>
         <tr>
             <th data-sorter="false">{{ 'tools_percent_pay.calculation.account'|trans }}</th>
-            <th data-sorter="digit" class="digit">{{ 'tools_percent_pay.calculation.balance'|trans }}</th>
-            <th data-sorter="digit" class="digit">{{ 'tools_percent_pay.calculation.to_pay'|trans }}</th>
+            <th data-sorter="digit" class="has-text-right">{{ 'tools_percent_pay.calculation.balance'|trans }}</th>
+            <th data-sorter="digit" class="has-text-right">{{ 'tools_percent_pay.calculation.to_pay'|trans }}</th>
         </tr>
         </thead>
         <tbody>
         {% for account in accounts %}
             <tr>
                 <td>{{ include('account_link.twig', {data: account}, with_context = false) }}</td>
-                <td class="digit">{{ account.balance }}</td>
-                <td class="digit">{{ account.to_pay }}</td>
+                <td class="has-text-right">{{ account.balance }}</td>
+                <td class="has-text-right">{{ account.to_pay }}</td>
             </tr>
         {% endfor %}
         </tbody>
