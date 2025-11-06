@@ -421,6 +421,7 @@ tools_percent_pay:
     account: Аккаунт
     balance: Баланс
     to_pay: К оплате
+    sum: Итого
     transaction: Транзакция
     transactions: Транзакции
     instruction_single: >

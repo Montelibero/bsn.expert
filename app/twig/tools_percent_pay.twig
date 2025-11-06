@@ -22,7 +22,7 @@
 
     <h1 class="title">{{ 'nav.tools.percent_pay'|trans }}</h1>
     <p class="block">{{ 'tools_percent_pay.description'|trans }}</p>
-    <form action="/tools/percent_pay" method="get">
+    <form action="/tools/percent_pay" method="get" class="block">
         <div class="field">
             <label class="label" for="asset_issuer">{{ 'tools_percent_pay.asset_issuer.name'|trans }}</label>
             <div class="control has-icons-left">
@@ -142,6 +142,13 @@
             </tr>
         {% endfor %}
         </tbody>
+        <tfoot>
+            <tr>
+                <td>{{ 'tools_percent_pay.calculation.sum'|trans }}:</td>
+                <td class="digit">{{ sum_balance }}</td>
+                <td class="digit">{{ sum_to_pay }}</td>
+            </tr>
+        </tfoot>
     </table>
     {% endif %}
 

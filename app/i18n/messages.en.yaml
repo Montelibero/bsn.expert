@@ -406,11 +406,12 @@ tools_percent_pay:
     account: Account
     balance: Balance
     to_pay: To pay
-  transaction: Transaction
-  transactions: Transactions
-  instruction_single: >
-    Below is a ready transaction with payments, which remains to be signed and sent to the blockchain.
-  instruction_multi: >
-    Since you have a lot of payments, there are several transactions below. They need to be signed and sent
-    to the blockchain one by one. The main thing is not to leave this page until you complete the process.
-  transaction_no: Transaction No
+    sum: Sum
+    transaction: Transaction
+    transactions: Transactions
+    instruction_single: >
+      Below is a ready transaction with payments, which remains to be signed and sent to the blockchain.
+    instruction_multi: >
+      Since you have a lot of payments, there are several transactions below. They need to be signed and sent
+      to the blockchain one by one. The main thing is not to leave this page until you complete the process.
+    transaction_no: Transaction No

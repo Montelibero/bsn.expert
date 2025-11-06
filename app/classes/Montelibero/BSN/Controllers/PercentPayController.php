@@ -63,6 +63,8 @@ class PercentPayController
         $memo = $_GET['memo'] ?? null;
 
         $accounts = [];
+        $sum_balance = "0.0000000";
+        $sum_to_pay = "0.0000000";
         if ($asset_issuer && $asset_code && $percent) {
             $Accounts = $this->Stellar
                 ->accounts()
@@ -99,10 +101,13 @@ class PercentPayController
         foreach ($accounts as & $account) {
             $Account = $this->BSN->makeAccountById($account['id']);
             $account = array_merge($account, $Account->jsonSerialize());
+            $sum_balance = bcadd($sum_balance, $account['balance'], 7);
 
             $account['to_pay'] = bcmul($account['balance'], bcdiv($percent, "100", 7), 7);
             if ((float) $account['to_pay'] === 0.0) {
                 $account['to_pay'] = null;
+            } else {
+                $sum_to_pay = bcadd($sum_to_pay, $account['to_pay'], 7);
             }
         }
         unset($account);
@@ -143,6 +148,8 @@ class PercentPayController
             'payer_account' => $payer_account,
             'memo' => $memo,
             'accounts' => $accounts,
+            'sum_balance' => $sum_balance,
+            'sum_to_pay' => $sum_to_pay,
             'signing_forms' => $signing_forms,
         ]);
     }
