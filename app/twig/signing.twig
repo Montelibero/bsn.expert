@@ -37,8 +37,12 @@
     {% endif %}
 </div>
 
+{% if qr_svg %}
 <p class="block">{{ 'editor.sign.qr_text'|trans }}:</p>
 <p class="block qr_svg">{{ qr_svg|raw }}</p>
+{% else %}
+<p class="block">{{ 'editor.sign.no_qr_text'|trans }}</p>
+{% endif %}
 
 {% if xdr %}
 <div class="field">

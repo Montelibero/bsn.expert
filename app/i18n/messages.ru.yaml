@@ -332,6 +332,7 @@ editor:
     sep_07_button_name: Sunce, Lobstr и подобные
     link_text: Специальная Стеллар-ссылка, которую умеет открыть, например, Sunce Wallet.
     qr_text: Волшебный QR для мобильного
+    no_qr_text: К сожалению без QR, уж очень большая транзакция.
 
 contacts:
   edit:

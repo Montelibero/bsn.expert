@@ -1,6 +1,7 @@
 <?php
 namespace Montelibero\BSN\Controllers;
 
+use chillerlan\QRCode\Data\QRCodeDataException;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use DI\Container;
@@ -110,11 +111,17 @@ class SignController
         $QROptions = new QROptions();
         $QROptions->outputBase64 = false;
         $QROptions->addQuietzone = false;
-        $qr_svg = (new QRCode($QROptions))->render($uri);
-        $qr_svg = str_replace('<svg ', '<svg width="600" height="600" ', $qr_svg);
-        $qr_svg = str_replace('fill="#fff"', 'fill="none"', $qr_svg);
-        $qr_svg = str_replace('fill="#000"', 'fill="currentColor"', $qr_svg);
-        //        $qr_data = 'data:image/svg+xml;base64,' . base64_encode($qr_svg);
+        $qr_svg = null;
+        try {
+
+            $qr_svg = (new QRCode($QROptions))->render($uri);
+            $qr_svg = str_replace('<svg ', '<svg width="600" height="600" ', $qr_svg);
+            $qr_svg = str_replace('fill="#fff"', 'fill="none"', $qr_svg);
+            $qr_svg = str_replace('fill="#000"', 'fill="currentColor"', $qr_svg);
+            //        $qr_data = 'data:image/svg+xml;base64,' . base64_encode($qr_svg);
+        } catch (QRCodeDataException $E) {
+            // Do nothing
+        }
 
         $sign = md5($xdr . $uri . $description . $_ENV['SERVER_STELLAR_SECRET_KEY']);
 

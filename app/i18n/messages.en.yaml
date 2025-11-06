@@ -319,6 +319,7 @@ editor:
     sep_07_button_name: Sunce, Lobstr etc
     link_text: A special Stellar link that can be opened, for example, by Sunce Wallet.
     qr_text: Magic QR for your mobile
+    no_qr_text: Unfortunately, without QR, it's too large a transaction.
 
 contacts:
   edit:
