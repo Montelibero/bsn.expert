@@ -14,6 +14,11 @@
             $(".table").tablesorter();
         });
     </script>
+    <style>
+        table td.digit, table th.digit {
+            text-align: right;
+        }
+    </style>
 
     <h1 class="title">{{ 'nav.tools.percent_pay'|trans }}</h1>
     <p class="block">{{ 'tools_percent_pay.description'|trans }}</p>
@@ -61,8 +66,6 @@
                         id="percent"
                         class="input"
                         type="number"
-                        min="0.001"
-                        step="0.1"
                         name="percent"
                         placeholder="1.234"
                         value="{{ percent }}"
@@ -121,39 +124,41 @@
     </form>
 
     {% if accounts %}
-    <h2 class="title is-4">Asset holders</h2>
+    <h2 class="title is-4">{{ 'tools_percent_pay.calculation.title'|trans }}</h2>
     <table class="table" id="holders" data-sortlist="[[1,1]]">
         <thead>
         <tr>
-            <th data-sorter="false">Account</th>
-            <th data-sorter="digit">Balance</th>
-            <th data-sorter="digit">To pay</th>
+            <th data-sorter="false">{{ 'tools_percent_pay.calculation.account'|trans }}</th>
+            <th data-sorter="digit" class="digit">{{ 'tools_percent_pay.calculation.balance'|trans }}</th>
+            <th data-sorter="digit" class="digit">{{ 'tools_percent_pay.calculation.to_pay'|trans }}</th>
         </tr>
         </thead>
         <tbody>
         {% for account in accounts %}
             <tr>
                 <td>{{ include('account_link.twig', {data: account}, with_context = false) }}</td>
-                <td>{{ account.balance }}</td>
-                <td>{{ account.to_pay }}</td>
+                <td class="digit">{{ account.balance }}</td>
+                <td class="digit">{{ account.to_pay }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
     {% endif %}
 
-    {% if transactions %}
-    <h2 class="title is-4">Transaction</h2>
-    {% for transaction in transactions %}
-    <div class="field">
-        <label for="xdr_body">You transaction (XDR) for signing & submitting to the blockchain:</label>
-        <div class="control">
-            <textarea class="textarea" id="xdr_body">{{ transaction }}</textarea>
-        </div>
-    </div>
-    <p class="block"><a href="web+stellar:tx?xdr={{ transaction|url_encode }}">Stellar-link</a></p>
 
-    {% endfor %}
+    {% if signing_forms %}
+    {% if signing_forms|length == 1 %}
+        <h2 class="title is-4">{{ 'tools_percent_pay.calculation.transaction'|trans }}</h2>
+        <p class="block">{{ 'tools_percent_pay.calculation.instruction_single'|trans }}</p>
+        {{ signing_forms[0]|raw }}
+    {% else %}
+        <h2 class="title is-4">{{ 'tools_percent_pay.calculation.transactions'|trans }}</h2>
+        <p class="block">{{ 'tools_percent_pay.calculation.instruction_multi'|trans }}</p>
+        {% for signing_form in signing_forms %}
+            <h3 class="title is-5">{{ 'tools_percent_pay.calculation.transaction_no'|trans }} {{ loop.index }}</h3>
+            {{ signing_form|raw }}
+        {% endfor %}
+    {% endif %}
     {% endif %}
 
 

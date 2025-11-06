@@ -2,8 +2,10 @@
 
 namespace Montelibero\BSN\Controllers;
 
+use DI\Container;
 use Montelibero\BSN\BSN;
 use Pecee\SimpleRouter\SimpleRouter;
+use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\PaymentOperationBuilder;
@@ -17,8 +19,9 @@ class PercentPayController
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
+    private Container $Container;
 
-    public function __construct(BSN $BSM, Environment $Twig, StellarSDK $Stellar)
+    public function __construct(BSN $BSM, Environment $Twig, StellarSDK $Stellar, Container $Container)
     {
         $this->BSN = $BSM;
 
@@ -27,6 +30,7 @@ class PercentPayController
         $this->Twig->addGlobal('server', $_SERVER);
         
         $this->Stellar = $Stellar;
+        $this->Container = $Container;
     }
 
     public function PercentPay(): ?string
@@ -103,34 +107,32 @@ class PercentPayController
         }
         unset($account);
 
-        $transactions = [];
-        if ($accounts && $payer_account) {
-            $StellarAccount = $this->Stellar->requestAccount($payer_account);
-            $Transaction = new TransactionBuilder($StellarAccount);
-            if ($memo) {
-                $Transaction->addMemo(Memo::text($memo));
-            }
-            $Transaction->setMaxOperationFee(10000);
+        $signing_forms = [];
+        if ($accounts) {
+            $StellarAccount = $this->Stellar->requestAccount($asset_issuer ?: $payer_account);
             $Asset = Asset::createNonNativeAsset('EURMTL', 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V');
             $operations = [];
-            $operations_limit = 50;
+            $operations_limit = 100;
             foreach ($accounts as $account) {
                 if (!$account['to_pay']) {
                     continue;
                 }
                 $Operation = new PaymentOperationBuilder($account['id'], $Asset, $account['to_pay']);
                 $operations[] = $Operation->build();
-                if (count($operations) > $operations_limit) {
-                    $TransactionNext = clone $Transaction;
-                    $TransactionNext->addOperations($operations);
-                    $transactions[] = $TransactionNext->build()->toEnvelopeXdrBase64();
-                    $operations = [];
+            }
+            foreach (array_chunk($operations, $operations_limit) as $bulk_of_operations) {
+                $Transaction = new TransactionBuilder($StellarAccount);
+                if ($memo) {
+                    $Transaction->addMemo(Memo::text($memo));
                 }
+                $Transaction->setMaxOperationFee(10000);
+                $Transaction->addOperations($bulk_of_operations);
+                $signing_forms[] = $this->Container->get(SignController::class)->SignTransaction(
+                    $Transaction->build()->toEnvelopeXdrBase64()
+                );
+
             }
-            if ($operations) {
-                $Transaction->addOperations($operations);
-                $transactions[] = $Transaction->build()->toEnvelopeXdrBase64();
-            }
+
         }
 
         $Template = $this->Twig->load('tools_percent_pay.twig');
@@ -141,7 +143,7 @@ class PercentPayController
             'payer_account' => $payer_account,
             'memo' => $memo,
             'accounts' => $accounts,
-            'transactions' => $transactions,
+            'signing_forms' => $signing_forms,
         ]);
     }
 }

@@ -1,4 +1,4 @@
-<form method="post" action="/sign" target="_blank">
+<form method="post" action="/sign" target="_blank" class="block">
     <input type="hidden" name="xdr" value="{{ xdr }}">
     <input type="hidden" name="uri" value="{{ uri }}">
     <input type="hidden" name="description" value="{{ description }}">
@@ -21,7 +21,7 @@
     </button>
 
     {% if xdr %}
-    <a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}" class="button is-dark">
+    <a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}" target="_blank" class="button is-dark">
             <span class="icon">
                 <i class="fa-solid fa-key"></i>
             </span>
