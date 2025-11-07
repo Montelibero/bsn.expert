@@ -321,7 +321,7 @@ class TokensController
             return $b['amount'] <=> $a['amount'];
         });
 
-        apcu_store($apcu_cache_key, $holders, 60*10);
+        apcu_store($apcu_cache_key, $holders, 60 * 60);
 
         return $holders;
     }
@@ -347,7 +347,7 @@ class TokensController
                 ),
         ];
 
-        apcu_store($apcu_key, $data, 60 * 30);
+        apcu_store($apcu_key, $data, 60 * 60);
 
         return $data;
     }

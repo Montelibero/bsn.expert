@@ -245,35 +245,8 @@ class AccountsController
                 'is_known' => true,
             ];
         }
-        try {
-            $StellarAccount = $this->Stellar->requestAccount($Account->getId());
-            foreach ($StellarAccount->getBalances()->toArray() as $Asset) {
-                if ($Asset->getAssetType() === Asset::TYPE_NATIVE) {
-                    $asset_name = 'XLM';
-                } else {
-                    if (!$Asset->getAssetCode()) {
-                        continue;
-                    }
-                    $asset_name = $Asset->getAssetCode() . '-' . $Asset->getAssetIssuer();
-                }
-                if (!array_key_exists($asset_name, $balances)) {
-                    $balances[$asset_name] = [
-                        'code' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? 'XLM' : $Asset->getAssetCode(),
-                    ];
-                }
-                $balances[$asset_name]['amount'] = (float) $Asset->getBalance();
-                if ($asset_name !== 'XLM'
-                    && ($kt = $TokensController->getKnownTokenByCode($balances[$asset_name]['code']))
-                    && $kt['issuer'] === $Asset->getAssetIssuer()
-                ) {
-                    $balances[$asset_name]['is_known'] = true;
-                } else {
-                    $balances[$asset_name]['issuer'] = $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer();
-                }
-            }
-        } catch (\Exception $E) {
+        $this->fetchAccountBalances($Account->getId(), $balances, $TokensController);
 
-        }
         // Сортировка $balances: is_known === true идут в начало, остальные в конец, при равенстве — по code
         uasort($balances, function($a, $b) {
             $a_known = isset($a['is_known']) && $a['is_known'];
@@ -571,11 +544,53 @@ class AccountsController
                 return strcmp($a['code'], $b['code']);
             });
 
-            apcu_store($cache_key, $issued_tokens, 3600);
+            apcu_store($cache_key, $issued_tokens, 60 * 60);
         } catch (\Exception $E) {
-
+            apcu_store($cache_key, $issued_tokens, 60 * 5);
         }
 
         return $issued_tokens;
+    }
+
+    private function fetchAccountBalances(string $id, array & $balances, TokensController $TokensController): void
+    {
+        $cache_key = 'account_balances_' . $id;
+        if ($cached = apcu_fetch($cache_key)) {
+            $balances = $cached;
+            return;
+        }
+
+        try {
+            $StellarAccount = $this->Stellar->requestAccount($id);
+            foreach ($StellarAccount->getBalances()->toArray() as $Asset) {
+                if ($Asset->getAssetType() === Asset::TYPE_NATIVE) {
+                    $asset_name = 'XLM';
+                } else {
+                    if (!$Asset->getAssetCode()) {
+                        continue;
+                    }
+                    $asset_name = $Asset->getAssetCode() . '-' . $Asset->getAssetIssuer();
+                }
+                if (!array_key_exists($asset_name, $balances)) {
+                    $balances[$asset_name] = [
+                        'code' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? 'XLM' : $Asset->getAssetCode(),
+                    ];
+                }
+                $balances[$asset_name]['amount'] = (float) $Asset->getBalance();
+                if ($asset_name !== 'XLM'
+                    && ($kt = $TokensController->getKnownTokenByCode($balances[$asset_name]['code']))
+                    && $kt['issuer'] === $Asset->getAssetIssuer()
+                ) {
+                    $balances[$asset_name]['is_known'] = true;
+                } else {
+                    $balances[$asset_name]['issuer'] = $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer();
+                }
+            }
+        } catch (\Exception $E) {
+            apcu_store($cache_key, $balances, 60 * 5);
+            return;
+        }
+
+        apcu_store($cache_key, $balances, 60 * 60);
     }
 }
