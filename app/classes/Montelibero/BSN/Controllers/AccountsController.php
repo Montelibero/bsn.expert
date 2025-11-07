@@ -247,6 +247,8 @@ class AccountsController
         }
         $this->fetchAccountBalances($Account->getId(), $balances, $TokensController);
 
+        $display_balances = $this->isDisplayBalances($Account, $balances, $base_assets);
+
         // Сортировка $balances: is_known === true идут в начало, остальные в конец, при равенстве — по code
         uasort($balances, function($a, $b) {
             $a_known = isset($a['is_known']) && $a['is_known'];
@@ -317,6 +319,7 @@ class AccountsController
             'signatures' => $signatures,
             'issued_tokens' => $issued_tokens,
             'balances' => $balances,
+            'display_balances' => $display_balances,
         ]);
     }
 
@@ -592,5 +595,28 @@ class AccountsController
         }
 
         apcu_store($cache_key, $balances, 60 * 60);
+    }
+
+    /**
+     * Do not display balances for unknown accounts
+     * @param Account $Account
+     * @param array $balances
+     * @param array $base_assets
+     * @return bool
+     */
+    private function isDisplayBalances(Account $Account, array $balances, array $base_assets): bool
+    {
+        // There are income tags
+        if ($Account->getIncomeTags()) {
+            return true;
+        }
+        // There are known tokens
+        foreach ($base_assets as $base_asset) {
+            if (array_key_exists($base_asset, $balances)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

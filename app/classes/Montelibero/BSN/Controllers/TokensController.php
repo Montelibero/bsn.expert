@@ -3,6 +3,7 @@ namespace Montelibero\BSN\Controllers;
 
 use DI\Container;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
@@ -155,7 +156,13 @@ class TokensController
         }
 
         $holders = [];
-        if ($holders_count <= 200) {
+        if ($holders_count <= 200
+            && (
+                ($Issuer->getRelation() instanceof Member)
+                || $Issuer->getIncomeTags()
+                || $Issuer->getBalance('EURMTL')
+            )
+        ) {
             $holders = $this->fetchTokenHolders($code, $issuer);
         }
         foreach ($holders as & $balance) {
