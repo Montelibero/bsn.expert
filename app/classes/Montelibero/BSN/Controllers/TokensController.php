@@ -133,7 +133,6 @@ class TokensController
                 $category_name = $Translator->trans("tokens.categories." . $known_tag['category'] . '.name');
             }
             $offer_link = $known_tag['offer_link'] ?? null;
-
         } else {
             $known_tag = $this->getKnownTokenByCode($code);
             if ($known_tag && $known_tag['issuer'] === $issuer) {
@@ -150,14 +149,9 @@ class TokensController
             return null;
         }
 
-        $AssetRequest = $this->Stellar->assets()->forAssetCode($code)->forAssetIssuer($issuer)->execute();
-        $AssetsResponse = $AssetRequest->getAssets();
-        $holders_count = 0;
-        $issued = 0.0;
-        if ($AssetsResponse->count()) {
-            $Asset = $AssetsResponse->toArray()[0];
-            $holders_count = $Asset->getAccounts()->getAuthorized() + $Asset->getAccounts()->getUnauthorized();
-            $issued = (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized();
+        if ($asset_data = $this->fetchAssetData($code, $issuer)) {
+            $issued = $asset_data['issued'];
+            $holders_count = $asset_data['holders_count'];
         }
 
         $holders = [];
@@ -186,7 +180,6 @@ class TokensController
         $uri_signed = LoginController::getSignedUrl($uri, $ServerKeypair);
 
         $signing_form = $this->Container->get(SignController::class)->SignTransaction(null, $uri_signed);
-
 
         $Template = $this->Twig->load('token.twig');
         return $Template->render([
@@ -241,7 +234,7 @@ class TokensController
         foreach ($known_tokens as $item) {
             $key = $item['code'] . '-' . $item['issuer'];
             $this->known_tokens[$key] = $item;
-            $this->known_tokens_by_code[$item['code']] = & $this->known_tokens[$key];
+            $this->known_tokens_by_code[$item['code']] = &$this->known_tokens[$key];
         }
     }
 
@@ -307,7 +300,6 @@ class TokensController
                 $accounts[] = $Account;
             }
         } catch (\Exception $E) {
-
         }
 
         foreach ($accounts as $Account) {
@@ -325,12 +317,38 @@ class TokensController
             }
         }
 
-        usort($holders, function($a, $b) {
+        usort($holders, function ($a, $b) {
             return $b['amount'] <=> $a['amount'];
         });
 
-        apcu_store($apcu_cache_key, $holders, 300);
+        apcu_store($apcu_cache_key, $holders, 60*10);
 
         return $holders;
+    }
+
+    private function fetchAssetData(string $code, mixed $issuer)
+    {
+        $apcu_key = 'token_data:' . $issuer . ':' . $code;
+        $data = apcu_fetch($apcu_key);
+        if ($data !== false) {
+            return $data;
+        }
+
+        $AssetRequest = $this->Stellar->assets()->forAssetCode($code)->forAssetIssuer($issuer)->execute();
+        $AssetsResponse = $AssetRequest->getAssets();
+        if (!$AssetsResponse->count()) {
+            apcu_store($apcu_key, null, 60 * 5);
+            return null;
+        }
+        $Asset = $AssetsResponse->toArray()[0];
+        $data = [
+            'holders_count' => $Asset->getAccounts()->getAuthorized() + $Asset->getAccounts()->getUnauthorized(),
+            'issued' => (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized(
+                ),
+        ];
+
+        apcu_store($apcu_key, $data, 60 * 30);
+
+        return $data;
     }
 }
