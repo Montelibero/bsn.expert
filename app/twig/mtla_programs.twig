@@ -38,7 +38,12 @@
         {% if program.participants %}
         <ul class="block">
             {% for participant in program.participants %}
-                <li>{{ include('account_link.twig', {data: participant}, with_context = false) }}</li>
+                <li>
+                    {{ include('account_link.twig', {data: participant}, with_context = false) }}
+                    {% if participant.tt_code %}
+                    (<a href="/tokens/{{ participant.tt_code }}-{{ participant.tt_issuer }}">{{ participant.tt_code }}</a>)
+                    {% endif %}
+                </li>
             {% endfor %}
         </ul>
         {% else %}

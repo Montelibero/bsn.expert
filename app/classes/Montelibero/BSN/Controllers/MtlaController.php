@@ -256,7 +256,13 @@ class MtlaController
             foreach ($Program->getOutcomeLinks($TagMyPart) as $Participant) {
                 foreach ($Participant->getOutcomeLinks($TagPartOf) as $Part) {
                     if ($Part === $Program) {
-                        $programs_data[$Program->getId()]['participants'][] = $Participant->jsonSerialize();
+                        $participant = $Participant->jsonSerialize();
+                        if ($tt_code = $Participant->getProfileSingleItem('TimeTokenCode')) {
+                            $participant['tt_code'] = $tt_code;
+                            $participant['tt_issuer'] = $Participant->getProfileSingleItem('TimeTokenIssuer')
+                                ?: $Participant->getId();
+                        }
+                        $programs_data[$Program->getId()]['participants'][] = $participant;
                         break;
                     }
                 }
