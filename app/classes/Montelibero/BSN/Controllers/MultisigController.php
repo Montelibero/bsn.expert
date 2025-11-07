@@ -165,7 +165,7 @@ class MultisigController
             // Possibility to collect signers
             $weight_sum = (int) $_POST['weight_0'];
             foreach ($signers as $weight) {
-                $weight_sum += $weight;
+                $weight_sum += (int) $weight;
             }
             if ($weight_sum < $_POST['high_threshold']) {
                 $errors[] = $this->Translator->trans(
