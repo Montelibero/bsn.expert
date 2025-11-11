@@ -9,9 +9,13 @@
 
 
 {% block content %}
-    <h1 class="title">{{ 'nav.mtla'|trans }}</h1>
-    <p class="block">
-        <a href="/mtla/council">{{ 'nav.council'|trans }}</a>
-    </p>
+    <h1 class="title">{{ 'mtla_page.title'|trans }}</h1>
+
+    <ul class="block">
+        <li>{{ 'mtla_page.account'|trans }}: {{ include('account_link.twig', {data: mtla_account}, with_context = false) }}</li>
+        <li>{{ 'mtla_page.website'|trans }}: <a href="https://mtla.me/">mtla.me</a></li>
+        <li>./<a href="/mtla/council">{{ 'nav.council'|trans }}</a></li>
+        <li>./<a href="/mtla/programs">{{ 'nav.programs'|trans }}</a></li>
+    </ul>
 {% endblock %}
 

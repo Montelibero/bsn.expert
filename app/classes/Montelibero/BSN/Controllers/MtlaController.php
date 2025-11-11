@@ -33,7 +33,10 @@ class MtlaController
     public function Mtla(): ?string
     {
         $Template = $this->Twig->load('mtla.twig');
-        return $Template->render();
+        $MtlaAccount = $this->BSN->makeAccountById(self::MTLA_ACCOUNT);
+        return $Template->render([
+            'mtla_account' => $MtlaAccount->jsonSerialize(),
+        ]);
     }
 
     private function fetchMtlaSigners(): array

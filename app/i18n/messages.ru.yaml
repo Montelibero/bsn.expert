@@ -278,6 +278,11 @@ document_sign:
     tag_name: Название
     many_tags: несколько тегов
 
+mtla_page:
+  title: Ассоциация Монтелиберо
+  account: Аккаунт
+  website: Сайт
+
 mtla_council_page:
   header: Совет Ассоциации Монтелиберо
   header_current: Актуальный состав

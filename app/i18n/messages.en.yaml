@@ -264,6 +264,11 @@ document_text_page:
     header: Right hash
     text: "The SHA-256 hash from this document is equal to the document hash."
 
+mtla_page:
+  title: Montelibero Association
+  account: Account
+  website: Website
+
 mtla_council_page:
   header: Council of Montelibero Association
   header_current: Current Council Members
