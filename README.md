@@ -18,3 +18,14 @@
 Стоит согласовать с @sozidatel (в телеграме одноимённый аккаунт) планируемый пул реквест.
 Приветствуется оптимизация и улучшение архитектуры, добавление новых tools в ответ на 
 боли участников МТЛА.
+
+## License
+
+This project is dedicated to the public domain under the [CC0 1.0 Universal license](https://creativecommons.org/publicdomain/zero/1.0/).
+
+You are free to copy, modify, and use it for any purpose, without permission.
+
+**На русском:**  
+Проект BSN Expert передан в общественное достояние по лицензии CC0 1.0 Universal.
+
+Вы можете свободно копировать, изменять и использовать материалы без ограничений и без разрешения автора.
