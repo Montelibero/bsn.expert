@@ -150,6 +150,8 @@ class TokensController
             return null;
         }
 
+        $issued = null;
+        $holders_count = null;
         if ($asset_data = $this->fetchAssetData($code, $issuer)) {
             $issued = $asset_data['issued'];
             $holders_count = $asset_data['holders_count'];
