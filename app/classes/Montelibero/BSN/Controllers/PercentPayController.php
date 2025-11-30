@@ -169,6 +169,9 @@ class PercentPayController
                     continue;
                 }
                 $Operation = new PaymentOperationBuilder($account['id'], $Asset, $account['to_pay']);
+                if ($payer_account) {
+                    $Operation->setSourceAccount($payer_account);
+                }
                 $operations[] = $Operation->build();
             }
             foreach (array_chunk($operations, $operations_limit) as $bulk_of_operations) {
