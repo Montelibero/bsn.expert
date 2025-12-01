@@ -160,7 +160,7 @@ class PercentPayController
         }
         $signing_forms = [];
         if ($accounts) {
-            $StellarAccount = $this->Stellar->requestAccount($asset_issuer ?: $payer_account);
+            $StellarAccount = $this->Stellar->requestAccount($payer_account ?: $asset_issuer);
             $Asset = Asset::createNonNativeAsset($payment_token['code'], $payment_token['issuer']);
             $operations = [];
             $operations_limit = 100;
@@ -169,9 +169,6 @@ class PercentPayController
                     continue;
                 }
                 $Operation = new PaymentOperationBuilder($account['id'], $Asset, $account['to_pay']);
-                if ($payer_account) {
-                    $Operation->setSourceAccount($payer_account);
-                }
                 $operations[] = $Operation->build();
             }
             foreach (array_chunk($operations, $operations_limit) as $bulk_of_operations) {
