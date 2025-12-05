@@ -7,6 +7,7 @@ nav:
   search: Поиск
   accounts: Аккаунты
   tokens: Токены
+  transactions: Транзакции
   tags: Теги
   documents: Documents
   editor: Редактор
@@ -96,6 +97,113 @@ search:
   placeholder_hint: Аккаунт, тег...
   action:
     search: Найти
+
+transactions:
+  title: Транзакции
+  description: >
+    Найдите транзакцию Stellar по её хешу.
+  index:
+    header: Поиск транзакции
+    hash_label: Хеш транзакции
+    placeholder_hint: Вставьте хеш транзакции, например 9e0b...
+    action: Показать транзакцию
+    invalid_hash: Похоже, это не хеш транзакции.
+  show:
+    header: "Транзакция %hash%"
+    status: Статус
+    success: Успешно
+    failed: Неуспешно
+    created_at: Создана
+    ledger: Леджер
+    operation_count: Операции
+    fee_charged: Фактическая комиссия
+    max_fee: Максимальная комиссия
+    source_account: Исходный аккаунт
+    fee_account: Аккаунт комиссии
+    memo: Мемо
+    memo_type: Тип мемо
+    memo_value: Значение мемо
+    memo_absent: Без мемо
+    alternatives: Альтернативные обозреватели
+    operations: Операции
+  operations:
+    source: Для аккаунта
+    unsupported: Подробное отображение этой операции ещё не готово.
+    types:
+      default: Операция
+      create_account: Создание аккаунта
+      payment: Перевод
+      path_payment_strict_receive: Платёж по пути (strict receive)
+      path_payment_strict_send: Платёж по пути (strict send)
+      manage_sell_offer: Управление оффером продажи
+      manage_buy_offer: Управление оффером покупки
+      create_passive_sell_offer: Пассивный оффер продажи
+      change_trust: Изменение линии доверия
+      set_trustline_flags: Флаги линии доверия
+      set_options: Настройки аккаунта
+      account_merge: Закрытие аккаунта (merge)
+      begin_sponsoring_future_reserves: Начало спонсорства резервов
+      end_sponsoring_future_reserves: Завершение спонсорства резервов
+      manage_data: Изменение данных
+      clawback: Отзыв токенов
+    fields:
+      from: От
+      to: Кому
+      account: Аккаунт
+      funder: Оплачивает
+      amount: Сумма
+      starting_balance: Начальный баланс
+      asset: Актив
+      buying_asset: Покупаемый актив
+      selling_asset: Продаваемый актив
+      limit: Лимит
+      price: Цена
+      offer_id: ID оффера
+      data_name: Ключ данных
+      data_value: Значение данных
+      trustor: Трастор
+      trustee: Трасти
+      mode: Режим
+      into: Куда переводится
+      sponsored: Спонсируемый аккаунт
+      begin_sponsor: Спонсор
+      min_amount: Минимум к получению
+    flags:
+      set: Устанавливаемые флаги
+      clear: Сбрасываемые флаги
+    manage_data:
+      cleared: Запись данных удалена
+      decoded_value: Декодированное значение
+      raw_value: Сырые данные (base64)
+      delete_title: Удаление данных
+    offer_actions:
+      manage_offer.create: Создание оффера обмена
+      manage_offer.update: Обновление оффера обмена
+      manage_offer.delete: Удаление оффера обмена
+    path_payment:
+      send: Отправляем
+      receive: Получаем
+      path: Путь
+    set_options:
+      signer: Сигнер
+      signer_actions:
+        upsert: Добавить/обновить сигнера
+        remove: Удалить сигнера
+      signer_weight: Вес
+      master_weight: Вес master-ключа
+      thresholds: Пороги (thresholds)
+      threshold_low: Низкий
+      threshold_med: Средний
+      threshold_high: Высокий
+      home_domain: Домашний домен
+      inflation_destination: Направление инфляции
+      flags_set: Установить флаги
+      flags_clear: Сбросить флаги
+    change_trust:
+      action: Действие
+      actions:
+        open: Линия доверия
+        close: Закрытие линии доверия
 
 error404:
   name: 404 Not Found

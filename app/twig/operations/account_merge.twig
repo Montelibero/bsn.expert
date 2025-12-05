@@ -1,0 +1,8 @@
+<ul>
+    <li>{{ 'transactions.operations.fields.account'|trans }}:
+        {{ include('account_link.twig', {data: op.data.account}, with_context = false) }}
+    </li>
+    <li>{{ 'transactions.operations.fields.into'|trans }}:
+        {{ include('account_link.twig', {data: op.data.into}, with_context = false) }}
+    </li>
+</ul>

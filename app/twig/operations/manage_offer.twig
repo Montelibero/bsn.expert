@@ -1,0 +1,17 @@
+<ul>
+    <li>{{ 'transactions.operations.fields.selling_asset'|trans }}:
+        {% if op.data.selling.url %}<a href="{{ op.data.selling.url }}">{{ op.data.selling.label }}</a>{% else %}{{ op.data.selling.label }}{% endif %}
+    </li>
+    <li>{{ 'transactions.operations.fields.buying_asset'|trans }}:
+        {% if op.data.buying.url %}<a href="{{ op.data.buying.url }}">{{ op.data.buying.label }}</a>{% else %}{{ op.data.buying.label }}{% endif %}
+    </li>
+    {% if op.data.amount %}
+        <li>{{ 'transactions.operations.fields.amount'|trans }}: {{ op.data.amount }}</li>
+    {% endif %}
+    {% if op.data.price %}
+        <li>{{ 'transactions.operations.fields.price'|trans }}: {{ op.data.price }}</li>
+    {% endif %}
+    {% if op.data.offer_id %}
+        <li>{{ 'transactions.operations.fields.offer_id'|trans }}: {{ op.data.offer_id }}</li>
+    {% endif %}
+</ul>

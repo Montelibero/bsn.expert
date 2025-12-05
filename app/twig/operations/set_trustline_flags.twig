@@ -1,0 +1,15 @@
+<ul>
+    <li>{{ 'transactions.operations.fields.trustor'|trans }}:
+        {{ include('account_link.twig', {data: op.data.trustor}, with_context = false) }}
+    </li>
+    {% set asset = op.data.asset %}
+    <li>{{ 'transactions.operations.fields.asset'|trans }}:
+        {% if asset.url %}<a href="{{ asset.url }}">{{ asset.label }}</a>{% else %}{{ asset.label }}{% endif %}
+    </li>
+    {% if op.data.set_flags %}
+        <li>{{ 'transactions.operations.flags.set'|trans }}: {{ op.data.set_flags|join(', ') }}</li>
+    {% endif %}
+    {% if op.data.clear_flags %}
+        <li>{{ 'transactions.operations.flags.clear'|trans }}: {{ op.data.clear_flags|join(', ') }}</li>
+    {% endif %}
+</ul>

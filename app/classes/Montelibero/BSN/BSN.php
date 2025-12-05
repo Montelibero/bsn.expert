@@ -228,6 +228,15 @@ class BSN
         return preg_match('/^[a-z0-9]{1,12}}?$/i', $name);
     }
 
+    public static function validateTransactionHashFormat(?string $hash): bool
+    {
+        if (!$hash) {
+            return false;
+        }
+
+        return preg_match('/^[a-f0-9]{64}$/i', $hash) === 1;
+    }
+
     public function getSignatures(): SignatureCollection
     {
         return $this->Signatures;

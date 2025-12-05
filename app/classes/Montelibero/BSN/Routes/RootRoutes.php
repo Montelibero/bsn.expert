@@ -37,6 +37,9 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/tokens'], function () use ($Container) {
             TokensRoutes::register($Container);
         });
+        SimpleRouter::group(['prefix' => '/transactions'], function () use ($Container) {
+            TransactionsRoutes::register($Container);
+        });
         SimpleRouter::get('/token/{path?}', self::getRedirectCallbackTo('/tokens'))->where(['path' => '.*']);
         SimpleRouter::get('/assets/{path?}', self::getRedirectCallbackTo('/tokens'))->where(['path' => '.*']);
         SimpleRouter::get('/asset/{path?}', self::getRedirectCallbackTo('/tokens'))->where(['path' => '.*']);

@@ -1,0 +1,96 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'transactions.show.header'|trans({'%hash%': tx_hash}) }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/transactions/" aria-current="page">{{ 'transactions.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ tx_hash }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'transactions.show.header'|trans({'%hash%': tx_hash}) }}</h1>
+    <p class="subtitle">
+        {{ 'transactions.show.alternatives'|trans }}:
+        <a class="tag is-primary" href="https://stellar.expert/explorer/public/tx/{{ tx_hash }}">Stellar.Expert</a>
+    </p>
+
+    <dl class="box">
+        <dt class="title is-5">{{ 'transactions.show.status'|trans }}</dt>
+        <dd class="subtitle is-5">
+            {% if transaction.successful %}
+                {{ 'transactions.show.success'|trans }}
+            {% else %}
+                {{ 'transactions.show.failed'|trans }}
+            {% endif %}
+        </dd>
+
+        <dt class="title is-5">{{ 'transactions.show.created_at'|trans }}</dt>
+        <dd class="subtitle is-5">{{ transaction.created_at|date('Y-m-d H:i:s') }} UTC</dd>
+
+        <dt class="title is-5">{{ 'transactions.show.ledger'|trans }}</dt>
+        <dd class="subtitle is-5">{{ transaction.ledger }}</dd>
+
+        <dt class="title is-5">{{ 'transactions.show.operation_count'|trans }}</dt>
+        <dd class="subtitle is-5">{{ transaction.operation_count }}</dd>
+
+        <dt class="title is-5">{{ 'transactions.show.fee_charged'|trans }}</dt>
+        <dd class="subtitle is-5">{{ transaction.fee_charged }}</dd>
+
+        <dt class="title is-5">{{ 'transactions.show.max_fee'|trans }}</dt>
+        <dd class="subtitle is-5">{{ transaction.max_fee }}</dd>
+
+        <dt class="title is-5">{{ 'transactions.show.source_account'|trans }}</dt>
+        <dd class="subtitle is-5">
+            {{ include('account_link.twig', {data: transaction.source_account_data}, with_context = false) }}
+        </dd>
+
+        {% if transaction.fee_account and transaction.fee_account_data.id != transaction.source_account_data.id %}
+            <dt class="title is-5">{{ 'transactions.show.fee_account'|trans }}</dt>
+            <dd class="subtitle is-5">
+                {{ include('account_link.twig', {data: transaction.fee_account_data}, with_context = false) }}
+            </dd>
+        {% endif %}
+
+        <dt class="title is-5">{{ 'transactions.show.memo'|trans }}</dt>
+        <dd class="subtitle is-5">
+            <div>{{ 'transactions.show.memo_type'|trans }}: {{ transaction.memo.type }}</div>
+            <div>{{ 'transactions.show.memo_value'|trans }}:
+                {% if transaction.memo.value %}
+                    {{ transaction.memo.value }}
+                {% else %}
+                    {{ 'transactions.show.memo_absent'|trans }}
+                {% endif %}
+            </div>
+        </dd>
+    </dl>
+
+    {% if transaction.operations %}
+        <h2 class="title is-4">{{ 'transactions.show.operations'|trans }}</h2>
+        <div class="box">
+            <ol class="content">
+                {% for op in transaction.operations %}
+                    {% set type_key = 'transactions.operations.types.' ~ op.type %}
+                    {% set type_label = type_key|trans %}
+                    {% if op.type == 'manage_data' and op.data.cleared is defined and op.data.cleared %}
+                        {% set type_label = 'transactions.operations.manage_data.delete_title'|trans %}
+                    {% elseif op.data.action_label is defined and op.data.action_label %}
+                        {% set type_label = op.data.action_label %}
+                    {% elseif type_label == type_key %}
+                        {% set type_label = 'transactions.operations.types.default'|trans ~ ' (' ~ op.type ~ ')' %}
+                    {% endif %}
+                    <li class="mb-5">
+                        <div><strong>{{ type_label }}</strong></div>
+                        <div>{{ 'transactions.operations.source'|trans }}:
+                            {{ include('account_link.twig', {data: op.source_account_data}, with_context = false) }}
+                        </div>
+                        {% include op.template ignore missing with {op: op} only %}
+                        {% if op.unsupported %}
+                            <div class="has-text-grey">{{ 'transactions.operations.unsupported'|trans }}</div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ol>
+        </div>
+    {% endif %}
+{% endblock %}

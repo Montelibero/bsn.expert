@@ -1,0 +1,32 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'transactions.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="/transactions/" aria-current="page">{{ 'transactions.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'transactions.index.header'|trans }}</h1>
+    <p class="block">{{ 'transactions.description'|trans }}</p>
+
+    {% if error %}
+        <div class="notification is-warning">{{ error|trans }}</div>
+    {% endif %}
+
+    <form method="post" action="/transactions/">
+        <label class="label" for="tx_hash">{{ 'transactions.index.hash_label'|trans }}</label>
+        <div class="field has-addons">
+            <div class="control has-icons-left is-expanded">
+                <input type="text" name="tx_hash" id="tx_hash" class="input is-large" placeholder="{{ 'transactions.index.placeholder_hint'|trans }}" value="{{ tx_hash }}" maxlength="64">
+                <span class="icon is-large is-left">
+                    <i class="fa-solid fa-hashtag"></i>
+                </span>
+            </div>
+            <div class="control">
+                <button type="submit" class="button is-link is-large">{{ 'transactions.index.action'|trans }}</button>
+            </div>
+        </div>
+    </form>
+{% endblock %}

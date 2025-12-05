@@ -1,0 +1,49 @@
+<ul>
+    {% if op.data.signer %}
+        <li>
+            {{ 'transactions.operations.set_options.signer'|trans }}:
+            {% if op.data.signer.account %}
+                {{ include('account_link.twig', {data: op.data.signer.account}, with_context = false) }}
+            {% else %}
+                <code>{{ op.data.signer.key }}</code>
+            {% endif %}
+            {% if op.data.signer_action %}
+                ({{ ('transactions.operations.set_options.signer_actions.' ~ op.data.signer_action)|trans }})
+            {% endif %}
+            {% if op.data.signer.weight is not null and op.data.signer.weight != 0 %}
+                — {{ 'transactions.operations.set_options.signer_weight'|trans }}: {{ op.data.signer.weight }}
+            {% endif %}
+        </li>
+    {% endif %}
+
+    {% if op.data.master_weight is not null %}
+        <li>{{ 'transactions.operations.set_options.master_weight'|trans }}: {{ op.data.master_weight }}</li>
+    {% endif %}
+
+    {% if op.data.thresholds %}
+        <li>{{ 'transactions.operations.set_options.thresholds'|trans }}:
+            <ul>
+                {% if op.data.thresholds.low is defined %}<li>{{ 'transactions.operations.set_options.threshold_low'|trans }}: {{ op.data.thresholds.low }}</li>{% endif %}
+                {% if op.data.thresholds.med is defined %}<li>{{ 'transactions.operations.set_options.threshold_med'|trans }}: {{ op.data.thresholds.med }}</li>{% endif %}
+                {% if op.data.thresholds.high is defined %}<li>{{ 'transactions.operations.set_options.threshold_high'|trans }}: {{ op.data.thresholds.high }}</li>{% endif %}
+            </ul>
+        </li>
+    {% endif %}
+
+    {% if op.data.home_domain %}
+        <li>{{ 'transactions.operations.set_options.home_domain'|trans }}: {{ op.data.home_domain }}</li>
+    {% endif %}
+
+    {% if op.data.inflation_destination %}
+        <li>{{ 'transactions.operations.set_options.inflation_destination'|trans }}:
+            {{ include('account_link.twig', {data: op.data.inflation_destination}, with_context = false) }}
+        </li>
+    {% endif %}
+
+    {% if op.data.flags.set %}
+        <li>{{ 'transactions.operations.set_options.flags_set'|trans }}: {{ op.data.flags.set|join(', ') }}</li>
+    {% endif %}
+    {% if op.data.flags.clear %}
+        <li>{{ 'transactions.operations.set_options.flags_clear'|trans }}: {{ op.data.flags.clear|join(', ') }}</li>
+    {% endif %}
+</ul>

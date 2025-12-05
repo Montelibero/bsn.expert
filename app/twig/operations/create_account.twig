@@ -1,0 +1,9 @@
+<ul>
+    <li>{{ 'transactions.operations.fields.funder'|trans }}:
+        {{ include('account_link.twig', {data: op.data.funder}, with_context = false) }}
+    </li>
+    <li>{{ 'transactions.operations.fields.account'|trans }}:
+        {{ include('account_link.twig', {data: op.data.account}, with_context = false) }}
+    </li>
+    <li>{{ 'transactions.operations.fields.starting_balance'|trans }}: {{ op.data.starting_balance }}</li>
+</ul>

@@ -17,6 +17,7 @@ use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
+use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
 use Montelibero\BSN\PdoSessionHandler;
 use Montelibero\BSN\Routes\RootRoutes;
@@ -219,6 +220,7 @@ $ContainerBuilder->addDefinitions([
     MultisigController::class => autowire(),
     FederationController::class => autowire(),
     ErrorController::class => autowire(),
+    TransactionsController::class => autowire(),
 ]);
 $Container = $ContainerBuilder->build();
 

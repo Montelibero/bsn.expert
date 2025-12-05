@@ -7,6 +7,7 @@ nav:
   search: Search
   accounts: Accounts
   tokens: Tokens
+  transactions: Transactions
   tags: Tags
   documents: Documents
   editor: Editor
@@ -96,6 +97,113 @@ search:
   placeholder_hint: Account id, tag name etc
   action:
     search: Find
+
+transactions:
+  title: Transactions
+  description: >
+    Find a Stellar transaction by its hash.
+  index:
+    header: Transaction lookup
+    hash_label: Transaction hash
+    placeholder_hint: Paste a transaction hash, e.g. 9e0b...
+    action: Show transaction
+    invalid_hash: This does not look like a transaction hash.
+  show:
+    header: "Transaction %hash%"
+    status: Status
+    success: Successful
+    failed: Failed
+    created_at: Created at
+    ledger: Ledger
+    operation_count: Operations
+    fee_charged: Fee charged
+    max_fee: Max fee
+    source_account: Source account
+    fee_account: Fee account
+    memo: Memo
+    memo_type: Memo type
+    memo_value: Memo value
+    memo_absent: No memo
+    alternatives: Alternative viewers
+    operations: Operations
+  operations:
+    source: For account
+    unsupported: Detailed view for this operation is not ready yet.
+    types:
+      default: Operation
+      create_account: Create account
+      payment: Payment
+      path_payment_strict_receive: Path payment (strict receive)
+      path_payment_strict_send: Path payment (strict send)
+      manage_sell_offer: Manage sell offer
+      manage_buy_offer: Manage buy offer
+      create_passive_sell_offer: Create passive sell offer
+      change_trust: Change trust
+      set_trustline_flags: Set trustline flags
+      set_options: Set options
+      account_merge: Account merge
+      begin_sponsoring_future_reserves: Begin sponsoring future reserves
+      end_sponsoring_future_reserves: End sponsoring future reserves
+      manage_data: Manage data
+      clawback: Clawback
+    fields:
+      from: From
+      to: To
+      account: Account
+      funder: Funder
+      amount: Amount
+      starting_balance: Starting balance
+      asset: Asset
+      buying_asset: Buying asset
+      selling_asset: Selling asset
+      limit: Limit
+      price: Price
+      offer_id: Offer ID
+      data_name: Data key
+      data_value: Data value
+      trustor: Trustor
+      trustee: Trustee
+      mode: Mode
+      into: Destination account
+      sponsored: Sponsored account
+      begin_sponsor: Sponsor
+      min_amount: Minimum receive
+    flags:
+      set: Set flags
+      clear: Clear flags
+    manage_data:
+      cleared: Data entry removed
+      decoded_value: Decoded value
+      raw_value: Raw (base64)
+      delete_title: Delete data
+    offer_actions:
+      manage_offer.create: Create exchange offer
+      manage_offer.update: Update exchange offer
+      manage_offer.delete: Delete exchange offer
+    path_payment:
+      send: Send
+      receive: Receive
+      path: Path
+    set_options:
+      signer: Signer
+      signer_actions:
+        upsert: Add/Update signer
+        remove: Remove signer
+      signer_weight: Weight
+      master_weight: Master key weight
+      thresholds: Thresholds
+      threshold_low: Low
+      threshold_med: Medium
+      threshold_high: High
+      home_domain: Home domain
+      inflation_destination: Inflation destination
+      flags_set: Set flags
+      flags_clear: Clear flags
+    change_trust:
+      action: Action
+      actions:
+        open: Trustline
+        close: Close trustline
 
 error404:
   name: 404 Not Found

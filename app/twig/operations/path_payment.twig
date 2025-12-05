@@ -1,0 +1,30 @@
+<ul>
+    <li>{{ 'transactions.operations.fields.from'|trans }}:
+        {{ include('account_link.twig', {data: op.data.from}, with_context = false) }}
+    </li>
+    <li>{{ 'transactions.operations.fields.to'|trans }}:
+        {{ include('account_link.twig', {data: op.data.to}, with_context = false) }}
+    </li>
+    {% set source_asset = op.data.source_asset %}
+    {% set dest_asset = op.data.dest_asset %}
+    <li>{{ 'transactions.operations.path_payment.send'|trans }}: {{ op.data.source_amount }}
+        {% if source_asset.url %}<a href="{{ source_asset.url }}">{{ source_asset.label }}</a>{% else %}{{ source_asset.label }}{% endif %}
+        {% if op.data.source_max %}
+            ({{ 'transactions.operations.fields.limit'|trans }} {{ op.data.source_max }})
+        {% endif %}
+    </li>
+    <li>{{ 'transactions.operations.path_payment.receive'|trans }}: {{ op.data.dest_amount }}
+        {% if dest_asset.url %}<a href="{{ dest_asset.url }}">{{ dest_asset.label }}</a>{% else %}{{ dest_asset.label }}{% endif %}
+        {% if op.data.destination_min %}
+            ({{ 'transactions.operations.fields.min_amount'|trans }} {{ op.data.destination_min }})
+        {% endif %}
+    </li>
+    {% if op.data.path %}
+        <li>{{ 'transactions.operations.path_payment.path'|trans }}:
+            {% for asset in op.data.path %}
+                {% if asset.url %}<a href="{{ asset.url }}">{{ asset.label }}</a>{% else %}{{ asset.label }}{% endif %}
+                {% if not loop.last %} → {% endif %}
+            {% endfor %}
+        </li>
+    {% endif %}
+</ul>
