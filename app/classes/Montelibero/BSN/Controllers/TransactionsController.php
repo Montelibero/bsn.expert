@@ -123,6 +123,8 @@ class TransactionsController
             'operation_count' => $Transaction->getOperationCount(),
             'fee_charged' => $Transaction->getFeeCharged(),
             'max_fee' => $Transaction->getMaxFee(),
+            'fee_charged_xlm' => $this->stroopToXlmString($Transaction->getFeeCharged()),
+            'max_fee_xlm' => $this->stroopToXlmString($Transaction->getMaxFee()),
             'source_account' => $Transaction->getSourceAccount(),
             'fee_account' => $Transaction->getFeeAccount(),
             'memo' => [
@@ -531,6 +533,15 @@ class TransactionsController
                 'amount' => $Operation->getAmount(),
             ],
         ];
+    }
+
+    private function stroopToXlmString(?int $stroops): ?string
+    {
+        if ($stroops === null) {
+            return null;
+        }
+
+        return number_format($stroops * 0.0000001, 7, '.', '');
     }
 
     private function normalizeSetOptions(OperationResponse $Operation): array

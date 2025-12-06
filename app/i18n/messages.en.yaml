@@ -109,15 +109,19 @@ transactions:
     action: Show transaction
     invalid_hash: This does not look like a transaction hash.
   show:
-    header: "Transaction %hash%"
+    header: Transaction
     status: Status
     success: Successful
     failed: Failed
+    failed_description: >
+      This transaction is in the blockchain, but it failed and had no effect.
+      All of its operations in the end were negligible.
     created_at: Created at
     ledger: Ledger
     operation_count: Operations
-    fee_charged: Fee charged
+    fee_charged: Fee
     max_fee: Max fee
+    fee_max: max
     source_account: Source account
     fee_account: Fee account
     memo: Memo

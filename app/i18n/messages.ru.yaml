@@ -109,15 +109,19 @@ transactions:
     action: Показать транзакцию
     invalid_hash: Похоже, это не хеш транзакции.
   show:
-    header: "Транзакция %hash%"
+    header: Транзакция
     status: Статус
     success: Успешно
     failed: Неуспешно
-    created_at: Создана
+    failed_description: >
+      Эта транзакция, хоть и находится в блокчейне, но она неуспешна, и никакого эффекта не имела.
+      Все её операции в итоге ничтожны.
+    created_at: Дата
     ledger: Леджер
-    operation_count: Операции
-    fee_charged: Фактическая комиссия
+    operation_count: Операций
+    fee_charged: Комиссия
     max_fee: Максимальная комиссия
+    fee_max: макс
     source_account: Исходный аккаунт
     fee_account: Аккаунт комиссии
     memo: Мемо

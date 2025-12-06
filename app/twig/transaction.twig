@@ -9,61 +9,47 @@
 {% endblock %}
 
 {% block content %}
-    <h1 class="title">{{ 'transactions.show.header'|trans({'%hash%': tx_hash}) }}</h1>
+    <h1 class="title">{{ 'transactions.show.header'|trans }} {{ include('account_link.twig', {data: transaction.source_account_data}, with_context = false) }}</h1>
     <p class="subtitle">
+        <span class="stellar_address is-family-monospace">{{ tx_hash }}</span><br>
         {{ 'transactions.show.alternatives'|trans }}:
         <a class="tag is-primary" href="https://stellar.expert/explorer/public/tx/{{ tx_hash }}">Stellar.Expert</a>
+        <a class="tag is-info" href="https://scopuly.com/transaction/{{ tx_hash }}">Scopuly</a>
     </p>
 
-    <dl class="box">
-        <dt class="title is-5">{{ 'transactions.show.status'|trans }}</dt>
-        <dd class="subtitle is-5">
-            {% if transaction.successful %}
-                {{ 'transactions.show.success'|trans }}
-            {% else %}
-                {{ 'transactions.show.failed'|trans }}
-            {% endif %}
-        </dd>
+    {% if not transaction.successful %}
+        <section class="block hero is-danger">
+            <div class="hero-body">
+                <p class="title">{{ 'transactions.show.status'|trans }}: {{ 'transactions.show.failed'|trans }}</p>
+                <p class="subtitle">{{ 'transactions.show.failed_description'|trans }}</p>
+            </div>
+        </section>
+    {% endif %}
 
-        <dt class="title is-5">{{ 'transactions.show.created_at'|trans }}</dt>
-        <dd class="subtitle is-5">{{ transaction.created_at|date('Y-m-d H:i:s') }} UTC</dd>
+    <p class="block">
+        {{ 'transactions.show.created_at'|trans }}: {{ transaction.created_at|date('Y-m-d H:i:s') }} UTC<br>
 
-        <dt class="title is-5">{{ 'transactions.show.ledger'|trans }}</dt>
-        <dd class="subtitle is-5">{{ transaction.ledger }}</dd>
-
-        <dt class="title is-5">{{ 'transactions.show.operation_count'|trans }}</dt>
-        <dd class="subtitle is-5">{{ transaction.operation_count }}</dd>
-
-        <dt class="title is-5">{{ 'transactions.show.fee_charged'|trans }}</dt>
-        <dd class="subtitle is-5">{{ transaction.fee_charged }}</dd>
-
-        <dt class="title is-5">{{ 'transactions.show.max_fee'|trans }}</dt>
-        <dd class="subtitle is-5">{{ transaction.max_fee }}</dd>
-
-        <dt class="title is-5">{{ 'transactions.show.source_account'|trans }}</dt>
-        <dd class="subtitle is-5">
-            {{ include('account_link.twig', {data: transaction.source_account_data}, with_context = false) }}
-        </dd>
+        {{ 'transactions.show.ledger'|trans }} {{ transaction.ledger }},
+        {{ 'transactions.show.operation_count'|trans }}: {{ transaction.operation_count }}<br>
 
         {% if transaction.fee_account and transaction.fee_account_data.id != transaction.source_account_data.id %}
-            <dt class="title is-5">{{ 'transactions.show.fee_account'|trans }}</dt>
-            <dd class="subtitle is-5">
-                {{ include('account_link.twig', {data: transaction.fee_account_data}, with_context = false) }}
-            </dd>
+            {{ 'transactions.show.fee_account'|trans }}: {{ include('account_link.twig', {data: transaction.fee_account_data}, with_context = false) }}<br>
         {% endif %}
 
-        <dt class="title is-5">{{ 'transactions.show.memo'|trans }}</dt>
-        <dd class="subtitle is-5">
-            <div>{{ 'transactions.show.memo_type'|trans }}: {{ transaction.memo.type }}</div>
-            <div>{{ 'transactions.show.memo_value'|trans }}:
-                {% if transaction.memo.value %}
-                    {{ transaction.memo.value }}
-                {% else %}
-                    {{ 'transactions.show.memo_absent'|trans }}
-                {% endif %}
-            </div>
-        </dd>
-    </dl>
+        {{ 'transactions.show.fee_charged'|trans }}:
+            {% include 'amount.twig' with {value: transaction.fee_charged_xlm} only %} XLM
+            {% if transaction.max_fee_xlm -%}
+                ({{ 'transactions.show.fee_max'|trans }} {% include 'amount.twig' with {value: transaction.max_fee_xlm} only %})
+            {%- endif -%}
+        <br>
+
+        {{ 'transactions.show.memo'|trans }}:
+        {% if transaction.memo.value %}
+            <code>{{ transaction.memo.value }}</code>
+        {% else %}
+            {{ 'transactions.show.memo_absent'|trans }}
+        {% endif %}
+    </p>
 
     {% if transaction.operations %}
         <h2 class="title is-4">{{ 'transactions.show.operations'|trans }}</h2>
