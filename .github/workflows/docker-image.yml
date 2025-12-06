@@ -8,7 +8,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: montelibero/bsn_app
+  IMAGE_APP_NAME: montelibero/bsn_app
+  IMAGE_WEB_NAME: montelibero/bsn_web
 
 jobs:
   build-and-push:
@@ -28,18 +29,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
+      - name: Build APP Docker image
         working-directory: ./app
         run: |
-          docker build --target prod -t $REGISTRY/$IMAGE_NAME:latest .
+          docker build --target prod -t $REGISTRY/$IMAGE_APP_NAME:latest .
 
-      - name: Push Docker image
+      - name: Push APP Docker image
         run: |
-          docker push $REGISTRY/$IMAGE_NAME:latest
+          docker push $REGISTRY/$IMAGE_APP_NAME:latest
+
+      - name: Build WEB Docker image
+        working-directory: ./web
+        run: |
+          docker build -t $REGISTRY/$IMAGE_WEB_NAME:latest .
+
+      - name: Push WEB Docker image
+        run: |
+          docker push $REGISTRY/$IMAGE_WEB_NAME:latest
 
       - name: Notify Telegram
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
-            -d '{"chat_id": "-1003339919065", "text": "Docker image pushed to registry /info_bsn_app"}'
+            -d '{"chat_id": "-1003339919065", "text": "Docker image pushed to registry /info_bsn_app or /info_bsn_web"}'
           
