@@ -7,13 +7,15 @@
     </li>
     {% set source_asset = op.data.source_asset %}
     {% set dest_asset = op.data.dest_asset %}
-    <li>{{ 'transactions.operations.path_payment.send'|trans }}: {{ op.data.source_amount }}
+    <li>{{ 'transactions.operations.path_payment.send'|trans }}:
+        {% include 'amount.twig' with {value: op.data.source_amount} only %}
         {% if source_asset.url %}<a href="{{ source_asset.url }}">{{ source_asset.label }}</a>{% else %}{{ source_asset.label }}{% endif %}
         {% if op.data.source_max %}
             ({{ 'transactions.operations.fields.limit'|trans }} {{ op.data.source_max }})
         {% endif %}
     </li>
-    <li>{{ 'transactions.operations.path_payment.receive'|trans }}: {{ op.data.dest_amount }}
+    <li>{{ 'transactions.operations.path_payment.receive'|trans }}:
+        {% include 'amount.twig' with {value: op.data.dest_amount} only %}
         {% if dest_asset.url %}<a href="{{ dest_asset.url }}">{{ dest_asset.label }}</a>{% else %}{{ dest_asset.label }}{% endif %}
         {% if op.data.destination_min %}
             ({{ 'transactions.operations.fields.min_amount'|trans }} {{ op.data.destination_min }})

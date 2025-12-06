@@ -1,5 +1,5 @@
 <ul>
-    <li>{{ 'transactions.operations.fields.data_name'|trans }}: {{ op.data.name }}</li>
+    <li>{{ 'transactions.operations.fields.data_name'|trans }}: <code>{{ op.data.name }}</code></li>
     {% if not op.data.cleared %}
         {% if op.data.decoded_value is not null %}
             <li>{{ 'transactions.operations.manage_data.decoded_value'|trans }}: <code>{{ op.data.decoded_value }}</code></li>

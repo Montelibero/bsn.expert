@@ -140,6 +140,7 @@ transactions:
       create_passive_sell_offer: Пассивный оффер продажи
       change_trust: Изменение линии доверия
       set_trustline_flags: Флаги линии доверия
+      set_trust_line_flags: Флаги линии доверия
       set_options: Настройки аккаунта
       account_merge: Закрытие аккаунта (merge)
       begin_sponsoring_future_reserves: Начало спонсорства резервов
@@ -159,8 +160,8 @@ transactions:
       limit: Лимит
       price: Цена
       offer_id: ID оффера
-      data_name: Ключ данных
-      data_value: Значение данных
+      data_name: Название
+      data_value: Значение
       trustor: Трастор
       trustee: Трасти
       mode: Режим
@@ -173,7 +174,7 @@ transactions:
       clear: Сбрасываемые флаги
     manage_data:
       cleared: Запись данных удалена
-      decoded_value: Декодированное значение
+      decoded_value: Значение
       raw_value: Сырые данные (base64)
       delete_title: Удаление данных
     offer_actions:

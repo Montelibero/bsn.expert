@@ -6,5 +6,7 @@
     <li>{{ 'transactions.operations.fields.asset'|trans }}:
         {% if asset.url %}<a href="{{ asset.url }}">{{ asset.label }}</a>{% else %}{{ asset.label }}{% endif %}
     </li>
-    <li>{{ 'transactions.operations.fields.amount'|trans }}: {{ op.data.amount }}</li>
+    <li>{{ 'transactions.operations.fields.amount'|trans }}:
+        {% include 'amount.twig' with {value: op.data.amount} only %}
+    </li>
 </ul>

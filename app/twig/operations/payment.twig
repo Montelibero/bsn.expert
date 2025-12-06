@@ -1,12 +1,10 @@
 <ul>
-    <li>{{ 'transactions.operations.fields.from'|trans }}:
-        {{ include('account_link.twig', {data: op.data.from}, with_context = false) }}
-    </li>
     <li>{{ 'transactions.operations.fields.to'|trans }}:
         {{ include('account_link.twig', {data: op.data.to}, with_context = false) }}
     </li>
     {% set asset = op.data.asset %}
-    <li>{{ 'transactions.operations.fields.amount'|trans }}: {{ op.data.amount }}
+    <li>{{ 'transactions.operations.fields.amount'|trans }}:
+        {% include 'amount.twig' with {value: op.data.amount} only %}
         {% if asset.url %}
             <a href="{{ asset.url }}">{{ asset.label }}</a>
         {% else %}

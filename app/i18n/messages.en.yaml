@@ -140,6 +140,7 @@ transactions:
       create_passive_sell_offer: Create passive sell offer
       change_trust: Change trust
       set_trustline_flags: Set trustline flags
+      set_trust_line_flags: Set trustline flags
       set_options: Set options
       account_merge: Account merge
       begin_sponsoring_future_reserves: Begin sponsoring future reserves
@@ -159,8 +160,8 @@ transactions:
       limit: Limit
       price: Price
       offer_id: Offer ID
-      data_name: Data key
-      data_value: Data value
+      data_name: Name
+      data_value: Value
       trustor: Trustor
       trustee: Trustee
       mode: Mode
@@ -173,7 +174,7 @@ transactions:
       clear: Clear flags
     manage_data:
       cleared: Data entry removed
-      decoded_value: Decoded value
+      decoded_value: Value
       raw_value: Raw (base64)
       delete_title: Delete data
     offer_actions:

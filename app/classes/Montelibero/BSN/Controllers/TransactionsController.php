@@ -90,7 +90,7 @@ class TransactionsController
 
     private function fetchTransaction(string $tx_hash): ?array
     {
-        $cache_key = 'transaction:' . strtolower($tx_hash) . ':1';
+        $cache_key = 'transaction:' . strtolower($tx_hash) . ':2';
         $cached = apcu_fetch($cache_key);
         if ($cached !== false) {
             return $cached;
@@ -145,7 +145,7 @@ class TransactionsController
 
     private function fetchOperations(string $tx_hash): ?array
     {
-        $cache_key = 'transaction_ops:' . strtolower($tx_hash);
+        $cache_key = 'transaction_ops:' . strtolower($tx_hash) . ':2';
         $cached = apcu_fetch($cache_key);
         if ($cached !== false) {
             return $cached;
@@ -191,7 +191,7 @@ class TransactionsController
             'payment' => $base + $this->normalizePayment($Operation),
             'path_payment_strict_receive', 'path_payment_strict_send' => $base + $this->normalizePathPayment($Operation),
             'change_trust' => $base + $this->normalizeChangeTrust($Operation),
-            'set_trustline_flags' => $base + $this->normalizeSetTrustlineFlags($Operation),
+            'set_trustline_flags', 'set_trust_line_flags' => $base + $this->normalizeSetTrustlineFlags($Operation),
             'manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer' => $base + $this->normalizeOffer($Operation),
             'account_merge' => $base + $this->normalizeAccountMerge($Operation),
             'begin_sponsoring_future_reserves' => $base + $this->normalizeBeginSponsoring($Operation),

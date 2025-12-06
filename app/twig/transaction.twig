@@ -67,8 +67,8 @@
 
     {% if transaction.operations %}
         <h2 class="title is-4">{{ 'transactions.show.operations'|trans }}</h2>
-        <div class="box">
-            <ol class="content">
+        <div class="block content">
+            <ol>
                 {% for op in transaction.operations %}
                     {% set type_key = 'transactions.operations.types.' ~ op.type %}
                     {% set type_label = type_key|trans %}

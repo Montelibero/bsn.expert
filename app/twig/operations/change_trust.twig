@@ -4,6 +4,8 @@
         {% if asset.url %}<a href="{{ asset.url }}">{{ asset.label }}</a>{% else %}{{ asset.label }}{% endif %}
     </li>
     {% if op.data.limit %}
-        <li>{{ 'transactions.operations.fields.limit'|trans }}: {{ op.data.limit }}</li>
+        <li>{{ 'transactions.operations.fields.limit'|trans }}:
+            {% include 'amount.twig' with {value: op.data.limit} only %}
+        </li>
     {% endif %}
 </ul>

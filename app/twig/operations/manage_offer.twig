@@ -6,10 +6,14 @@
         {% if op.data.buying.url %}<a href="{{ op.data.buying.url }}">{{ op.data.buying.label }}</a>{% else %}{{ op.data.buying.label }}{% endif %}
     </li>
     {% if op.data.amount %}
-        <li>{{ 'transactions.operations.fields.amount'|trans }}: {{ op.data.amount }}</li>
+        <li>{{ 'transactions.operations.fields.amount'|trans }}:
+            {% include 'amount.twig' with {value: op.data.amount} only %}
+        </li>
     {% endif %}
     {% if op.data.price %}
-        <li>{{ 'transactions.operations.fields.price'|trans }}: {{ op.data.price }}</li>
+        <li>{{ 'transactions.operations.fields.price'|trans }}:
+            {% include 'amount.twig' with {value: op.data.price} only %}
+        </li>
     {% endif %}
     {% if op.data.offer_id %}
         <li>{{ 'transactions.operations.fields.offer_id'|trans }}: {{ op.data.offer_id }}</li>
