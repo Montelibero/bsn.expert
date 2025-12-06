@@ -1,0 +1,14 @@
+{% set parts = value|split_amount -%}
+<span class="amount_container">
+    <span class="amount_int">{{ parts.int }}</span>
+    {%- if parts.has_fraction -%}
+        {%- if parts.all_zero_frac -%}
+            <span class="has-text-grey">.{{ parts.frac_trailing }}</span>
+        {%- else -%}
+            <span>.{{ parts.frac_main }}</span>
+            {%- if parts.frac_trailing -%}
+            <span class="has-text-grey">{{ parts.frac_trailing }}</span>
+            {%- endif -%}
+        {%- endif -%}
+    {%- endif -%}
+</span>
