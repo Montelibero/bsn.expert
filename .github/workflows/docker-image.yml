@@ -29,10 +29,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Pull previous WEB image for cache
+        run: |
+          docker pull $REGISTRY/$IMAGE_APP_NAME:latest || true
+
       - name: Build APP Docker image
         working-directory: ./app
         run: |
-          docker build --target prod -t $REGISTRY/$IMAGE_APP_NAME:latest .
+          docker build \
+            --target prod \
+            --cache-from $REGISTRY/$IMAGE_APP_NAME:latest \
+            -t $REGISTRY/$IMAGE_APP_NAME:latest .
 
       - name: Push APP Docker image
         run: |
