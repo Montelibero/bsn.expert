@@ -75,6 +75,11 @@ class TransactionsController
             return null;
         }
 
+        if ($tx_hash !== strtolower($tx_hash)) {
+            SimpleRouter::response()->redirect(SimpleRouter::getUrl('transaction_page', ['tx_hash' => strtolower($tx_hash)]));
+            return null;
+        }
+
         $transaction = $this->fetchTransaction($tx_hash);
         if (!$transaction) {
             SimpleRouter::response()->httpCode(404);

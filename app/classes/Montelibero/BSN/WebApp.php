@@ -85,6 +85,11 @@ class WebApp
             return null;
         }
 
+        if (BSN::validateTransactionHashFormat($q)) {
+            SimpleRouter::response()->redirect(SimpleRouter::getUrl('transaction_page', ['tx_hash' => $q]));
+            return null;
+        }
+
         if (BSN::validateTokenNameFormat($q)) {
             $TokensController = $this->Container->get(TokensController::class);
             $known_tag = $TokensController->searchKnownTokenByCode($q);
