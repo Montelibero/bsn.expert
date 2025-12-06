@@ -39,9 +39,8 @@ jobs:
           docker push $REGISTRY/$IMAGE_APP_NAME:latest
 
       - name: Build WEB Docker image
-        working-directory: ./web
         run: |
-          docker build -t $REGISTRY/$IMAGE_WEB_NAME:latest .
+          docker build -f web/Dockerfile -t $REGISTRY/$IMAGE_WEB_NAME:latest .
 
       - name: Push WEB Docker image
         run: |
