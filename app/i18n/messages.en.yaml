@@ -94,7 +94,7 @@ search:
   description: >
     The search is still simple and basic. It can only find results by a full Stellar address or a tag.
     At best, it can recognize that "like" is the tag "Like."
-  placeholder_hint: Account id, tag name etc
+  placeholder_hint: Account id, tag name, transaction hash etc
   action:
     search: Find
 
