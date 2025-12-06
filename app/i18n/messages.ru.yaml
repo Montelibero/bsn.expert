@@ -190,10 +190,10 @@ transactions:
       receive: Получаем
       path: Путь
     set_options:
-      signer: Сигнер
+      signer: Подписант
       signer_actions:
-        upsert: Добавить/обновить сигнера
-        remove: Удалить сигнера
+        upsert: добавлен/обновлён
+        remove: удалён
       signer_weight: Вес
       master_weight: Вес master-ключа
       thresholds: Пороги (thresholds)
