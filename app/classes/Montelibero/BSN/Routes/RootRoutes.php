@@ -8,6 +8,7 @@ use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\FederationController;
 use Montelibero\BSN\Controllers\SignController;
+use Montelibero\BSN\Controllers\TransactionsController;
 use Pecee\SimpleRouter\Exceptions\NotFoundHttpException;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
@@ -77,6 +78,28 @@ class RootRoutes
         SimpleRouter::get('/federation', function() use ($Container) {
             return $Container->get(FederationController::class)->Federation();
         });
+
+        SimpleRouter::get('/{username}/operations', function($username) use ($Container, $BSN, $AccountsManager) {
+            $has_at = str_starts_with($username, '@');
+            $username = trim($username, '@');
+            $account_id = $AccountsManager->fetchAccountIdByUsername($username);
+            if ($account_id ?? null) {
+                $Account = $BSN->makeAccountById($account_id);
+                $query_string = $_SERVER['QUERY_STRING'] ?? '';
+                if ($Account->getUsername() === $username && $has_at) {
+                    return $Container->get(TransactionsController::class)->AccountOperations($account_id);
+                }
+                $redirect_url = '/@' . $Account->getUsername() . '/operations';
+                if ($query_string) {
+                    $redirect_url .= '?' . $query_string;
+                }
+                SimpleRouter::response()->redirect($redirect_url, 302);
+                return null;
+            }
+
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        })->where(['username' => '\@?[a-zA-Z0-9_]+']);
 
         // Обработка "динамического" маршрута для user
         SimpleRouter::get('/{username}', function($username) use ($Container, $BSN, $AccountsManager) {

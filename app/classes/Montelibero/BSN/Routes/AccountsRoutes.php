@@ -5,6 +5,7 @@ namespace Montelibero\BSN\Routes;
 use DI\Container;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\Controllers\AccountsController;
+use Montelibero\BSN\Controllers\TransactionsController;
 use Pecee\SimpleRouter\SimpleRouter;
 
 class AccountsRoutes
@@ -14,6 +15,19 @@ class AccountsRoutes
         SimpleRouter::get('/', function () use ($Container) {
             return $Container->get(AccountsController::class)->Accounts();
         });
+        SimpleRouter::get('/{id}/operations', function ($id) use ($Container) {
+            $AccountsManager = $Container->get(AccountsManager::class);
+            if ($username = $AccountsManager->fetchUsername($id)) {
+                $query_string = $_SERVER['QUERY_STRING'] ?? '';
+                $redirect_url = '/@' . $username . '/operations';
+                if ($query_string) {
+                    $redirect_url .= '?' . $query_string;
+                }
+                SimpleRouter::response()->redirect($redirect_url);
+                return null;
+            }
+            return $Container->get(TransactionsController::class)->AccountOperations($id);
+        })->name('account_operations');
         SimpleRouter::get('/{id}', function ($id) use ($Container) {
             if ($username = $Container->get(AccountsManager::class)->fetchUsername($id)) {
                 SimpleRouter::response()->redirect('/@' . $username);

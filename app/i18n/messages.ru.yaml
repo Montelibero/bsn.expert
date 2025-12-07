@@ -254,6 +254,19 @@ account_page:
     red: Отсутствует встречное подтверждение тегом
   this_account_and: Этот аккаунт и...
 
+account_operations:
+  title: "%name% — операции"
+  breadcrumb: Операции
+  header: Операции аккаунта %name%
+  description: Последние операции этого аккаунта в сети Stellar.
+  meta: Показываем до %limit% последних операций, начиная с самых новых.
+  back_to_account: Вернуться к аккаунту
+  next_page: Более ранние операции
+  empty: Операций не найдено.
+  transaction_link: Посмотреть транзакцию
+  show_spam: Отобразить все операции, включая предположительный спам
+  hide_spam: Скрыть предположительный спам
+
 account_and:
   header: И?
   description: >

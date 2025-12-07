@@ -1,0 +1,64 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'account_operations.title'|trans({'%name%': display_name}) }}{% endblock %}
+
+{% block breadcrumbs %}
+        <li><a href="/" aria-current="page">BSN</a></li>
+        <li><a href="/accounts/" aria-current="page">{{ 'nav.accounts'|trans }}</a></li>
+        <li><a href="/accounts/{{ account.id }}" aria-current="page">{{ account_short_id }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ 'account_operations.breadcrumb'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">{{ 'account_operations.header'|trans({'%name%': display_name}) }}</h1>
+<p class="block">{{ 'account_operations.description'|trans }}</p>
+<p class="block is-size-6 has-text-grey">{{ 'account_operations.meta'|trans({'%limit%': 200}) }}</p>
+<p class="block">
+    <a href="/accounts/{{ account.id }}">← {{ 'account_operations.back_to_account'|trans }}</a>
+</p>
+<p class="block is-size-7">
+    {% if show_spam %}
+        <a href="{{ hide_spam_url }}">{{ 'account_operations.hide_spam'|trans }}</a>
+    {% else %}
+        <a href="{{ show_spam_url }}">{{ 'account_operations.show_spam'|trans }}</a>
+    {% endif %}
+</p>
+
+{% if operations %}
+    <div class="content">
+        <ol>
+        {% for op in operations %}
+            {% set type_key = 'transactions.operations.types.' ~ op.type %}
+            {% set type_label = type_key|trans %}
+            {% if op.type == 'manage_data' and op.data.cleared is defined and op.data.cleared %}
+                {% set type_label = 'transactions.operations.manage_data.delete_title'|trans %}
+            {% elseif op.data.action_label is defined and op.data.action_label %}
+                {% set type_label = op.data.action_label %}
+            {% elseif type_label == type_key %}
+                {% set type_label = 'transactions.operations.types.default'|trans ~ ' (' ~ op.type ~ ')' %}
+            {% endif %}
+            <li class="mb-5">
+                <div class="is-size-7 has-text-grey">{{ op.created_at|date('Y-m-d H:i:s') }} UTC</div>
+                <div><strong>{{ type_label }}</strong></div>
+                <div>{{ 'transactions.operations.source'|trans }}:
+                    {{ include('account_link.twig', {data: op.source_account_data}, with_context = false) }}
+                </div>
+                <div class="is-size-7"><a href="/transactions/{{ op.transaction_hash }}">{{ 'account_operations.transaction_link'|trans }}</a></div>
+                {% include op.template ignore missing with {op: op} only %}
+                {% if op.unsupported %}
+                    <div class="has-text-grey">{{ 'transactions.operations.unsupported'|trans }}</div>
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ol>
+    </div>
+{% else %}
+    <p class="block">{{ 'account_operations.empty'|trans }}</p>
+{% endif %}
+
+{% if next_url %}
+    <p class="block">
+        <a class="button is-light" href="{{ next_url }}">{{ 'account_operations.next_page'|trans }}</a>
+    </p>
+{% endif %}
+{% endblock %}

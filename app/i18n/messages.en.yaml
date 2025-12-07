@@ -255,6 +255,19 @@ account_page:
     red: Missing expected confirmation tag
   this_account_and: This account and...
 
+account_operations:
+  title: "%name% — operations"
+  breadcrumb: Operations
+  header: Operations of %name%
+  description: Latest Stellar operations performed by this account.
+  meta: Showing up to %limit% recent operations, newest first.
+  back_to_account: Back to the account
+  next_page: Older operations
+  empty: No operations found.
+  transaction_link: View transaction
+  show_spam: Show all operations, including possible spam
+  hide_spam: Hide suspected spam
+
 account_and:
   header: And?
   description: >
