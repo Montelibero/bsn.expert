@@ -142,6 +142,7 @@ transactions:
       manage_sell_offer: Управление оффером продажи
       manage_buy_offer: Управление оффером покупки
       create_passive_sell_offer: Пассивный оффер продажи
+      create_claimable_balance: Создание баланса для получения
       change_trust: Изменение линии доверия
       set_trustline_flags: Флаги линии доверия
       set_trust_line_flags: Флаги линии доверия
@@ -163,7 +164,7 @@ transactions:
       selling_asset: Продаваемый актив
       limit: Лимит
       price: Цена
-      offer_id: ID оффера
+      offer_id: ID офера
       data_name: Название
       data_value: Значение
       trustor: Трастор
@@ -173,6 +174,8 @@ transactions:
       sponsored: Спонсируемый аккаунт
       begin_sponsor: Спонсор
       min_amount: Минимум к получению
+      sponsor: Спонсор
+      claimants: Получатели
     flags:
       set: Устанавливаемые флаги
       clear: Сбрасываемые флаги
@@ -209,6 +212,16 @@ transactions:
       actions:
         open: Линия доверия
         close: Закрытие линии доверия
+    claimable:
+      claimants: Получатели
+      predicates:
+        unconditional: "Без условий (в любое время)"
+        before_abs: "До %time%"
+        before_rel: "До +%seconds% c"
+        and: "Все из: %items%"
+        or: "Любое из: %items%"
+        not: "Не (%inner%)"
+        unknown: "Неизвестное условие"
 
 error404:
   name: 404 Not Found

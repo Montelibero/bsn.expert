@@ -142,6 +142,7 @@ transactions:
       manage_sell_offer: Manage sell offer
       manage_buy_offer: Manage buy offer
       create_passive_sell_offer: Create passive sell offer
+      create_claimable_balance: Create claimable balance
       change_trust: Change trust
       set_trustline_flags: Set trustline flags
       set_trust_line_flags: Set trustline flags
@@ -173,6 +174,8 @@ transactions:
       sponsored: Sponsored account
       begin_sponsor: Sponsor
       min_amount: Minimum receive
+      sponsor: Sponsor
+      claimants: Claimants
     flags:
       set: Set flags
       clear: Clear flags
@@ -209,6 +212,16 @@ transactions:
       actions:
         open: Trustline
         close: Close trustline
+    claimable:
+      claimants: Claimants
+      predicates:
+        unconditional: "Unconditional (any time)"
+        before_abs: "Before %time%"
+        before_rel: "Before +%seconds%s"
+        and: "All of: %items%"
+        or: "Any of: %items%"
+        not: "Not (%inner%)"
+        unknown: "Unknown predicate"
 
 error404:
   name: 404 Not Found

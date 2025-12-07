@@ -1,0 +1,21 @@
+<ul>
+    <li>{{ 'transactions.operations.fields.sponsor'|trans }}:
+        {{ include('account_link.twig', {data: op.data.sponsor}, with_context = false) }}</li>
+    <li>{{ 'transactions.operations.fields.amount'|trans }}:
+        {% include 'amount.twig' with {value: op.data.amount} only %}
+    </li>
+    {% set asset = op.data.asset %}
+    <li>{{ 'transactions.operations.fields.asset'|trans }}:
+        {% if asset.url %}<a href="{{ asset.url }}">{{ asset.label }}</a>{% else %}{{ asset.label }}{% endif %}
+    </li>
+    <li>{{ 'transactions.operations.claimable.claimants'|trans }}:
+        <ul>
+        {% for claimant in op.data.claimants %}
+            <li>
+                {{ include('account_link.twig', {data: claimant.destination}, with_context = false) }}
+                — {{ claimant.predicate }}
+            </li>
+        {% endfor %}
+        </ul>
+    </li>
+</ul>

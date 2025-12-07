@@ -12,6 +12,7 @@ use Soneso\StellarSDK\Responses\Operations\BeginSponsoringFutureReservesOperatio
 use Soneso\StellarSDK\Responses\Operations\ChangeTrustOperationResponse;
 use Soneso\StellarSDK\Responses\Operations\ClawbackOperationResponse;
 use Soneso\StellarSDK\Responses\Operations\EndSponsoringFutureReservesOperationResponse;
+use Soneso\StellarSDK\Responses\Operations\CreateClaimableBalanceOperationResponse;
 use Soneso\StellarSDK\Responses\Operations\ManageBuyOfferOperationResponse;
 use Soneso\StellarSDK\Responses\Operations\ManageDataOperationResponse;
 use Soneso\StellarSDK\Responses\Operations\ManageSellOfferOperationResponse;
@@ -424,6 +425,7 @@ class TransactionsController
             'account_merge' => $base + $this->normalizeAccountMerge($Operation),
             'begin_sponsoring_future_reserves' => $base + $this->normalizeBeginSponsoring($Operation),
             'end_sponsoring_future_reserves' => $base + $this->normalizeEndSponsoring($Operation),
+            'create_claimable_balance' => $base + $this->normalizeCreateClaimableBalance($Operation),
             'manage_data' => $base + $this->normalizeManageData($Operation),
             'set_options' => $base + $this->normalizeSetOptions($Operation),
             'clawback' => $base + $this->normalizeClawback($Operation),
@@ -472,6 +474,49 @@ class TransactionsController
             'code' => $Asset->getCode(),
             'issuer' => $Asset->getIssuer(),
         ];
+    }
+
+    private function formatPredicate(\Soneso\StellarSDK\Responses\ClaimableBalances\ClaimantPredicateResponse $Predicate): string
+    {
+        $t = fn(string $key, array $params = []) => $this->Container->get(Translator::class)->trans($key, $params);
+
+        if ($Predicate->getUnconditional()) {
+            return $t('transactions.operations.claimable.predicates.unconditional');
+        }
+
+        if ($Predicate->getBeforeAbsoluteTime()) {
+            return $t('transactions.operations.claimable.predicates.before_abs', [
+                '%time%' => $Predicate->getBeforeAbsoluteTime(),
+            ]);
+        }
+
+        if ($Predicate->getBeforeRelativeTime()) {
+            return $t('transactions.operations.claimable.predicates.before_rel', [
+                '%seconds%' => $Predicate->getBeforeRelativeTime(),
+            ]);
+        }
+
+        if ($Predicate->getAnd()) {
+            $parts = array_map([$this, 'formatPredicate'], $Predicate->getAnd()->toArray());
+            return $t('transactions.operations.claimable.predicates.and', [
+                '%items%' => implode('; ', $parts),
+            ]);
+        }
+
+        if ($Predicate->getOr()) {
+            $parts = array_map([$this, 'formatPredicate'], $Predicate->getOr()->toArray());
+            return $t('transactions.operations.claimable.predicates.or', [
+                '%items%' => implode('; ', $parts),
+            ]);
+        }
+
+        if ($Predicate->getNot()) {
+            return $t('transactions.operations.claimable.predicates.not', [
+                '%inner%' => $this->formatPredicate($Predicate->getNot()),
+            ]);
+        }
+
+        return $t('transactions.operations.claimable.predicates.unknown');
     }
 
     private function accountData(?string $account_id): ?array
@@ -722,6 +767,34 @@ class TransactionsController
             'template' => 'operations/end_sponsoring.twig',
             'data' => [
                 'begin_sponsor' => $this->accountData($Operation->getBeginSponsor()),
+            ],
+        ];
+    }
+
+    private function normalizeCreateClaimableBalance(OperationResponse $Operation): array
+    {
+        if (!$Operation instanceof CreateClaimableBalanceOperationResponse) {
+            return $this->normalizeUnsupported();
+        }
+
+        $asset_parts = $this->assetParts($Operation->getAsset());
+        $claimants = [];
+        foreach ($Operation->getClaimants()->toArray() as $Claimant) {
+            $claimants[] = [
+                'destination' => $this->accountData($Claimant->getDestination()),
+                'predicate' => $this->formatPredicate($Claimant->getPredicate()),
+            ];
+        }
+
+        return [
+            'template' => 'operations/create_claimable_balance.twig',
+            'data' => [
+                'sponsor' => $this->accountData($Operation->getSponsor()),
+                'amount' => $Operation->getAmount(),
+                'asset' => $this->formatAsset($Operation->getAsset()),
+                'asset_code' => $asset_parts['code'],
+                'asset_issuer' => $asset_parts['issuer'],
+                'claimants' => $claimants,
             ],
         ];
     }
