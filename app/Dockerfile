@@ -8,6 +8,8 @@ RUN apk add --no-cache \
     freetype-dev \
     libzip-dev \
     libmemcached-dev \
+    openssl-dev \
+    cyrus-sasl-dev \
     zlib-dev \
     curl-dev \
     oniguruma-dev \
@@ -25,7 +27,8 @@ RUN apk add --no-cache \
         pcntl \
     && pecl install apcu \
     && pecl install memcached \
-    && docker-php-ext-enable apcu memcached
+    && pecl install mongodb \
+    && docker-php-ext-enable apcu memcached mongodb
 
 COPY ./custom-php.ini /usr/local/etc/php/conf.d/99-custom.ini
 
