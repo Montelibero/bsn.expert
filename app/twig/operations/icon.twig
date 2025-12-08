@@ -1,0 +1,49 @@
+{# Expects: op, context_account_id (optional) #}
+{% set icon_class = null %}
+{% set icon_color = null %}
+{% set ctx = context_account_id ?? null %}
+{% set type = op.type %}
+{% set data = op.data ?? {} %}
+
+{% if type == 'payment' %}
+    {% set to_id = data.to.id ?? null %}
+    {% if ctx and op.source_account == ctx %}
+        {% set icon_class = 'fa-right-long' %}
+        {% set icon_color = 'has-text-danger' %}
+    {% elseif ctx and to_id == ctx %}
+        {% set icon_class = 'fa-left-long' %}
+        {% set icon_color = 'has-text-success' %}
+    {% else %}
+        {% set icon_class = 'fa-right-long' %}
+    {% endif %}
+{% elseif type == 'manage_data' %}
+    {% if data.cleared is defined and data.cleared %}
+        {% set icon_class = 'fa-eraser' %}
+    {% else %}
+        {% set icon_class = 'fa-file-pen' %}
+    {% endif %}
+{% elseif type == 'change_trust' %}
+    {% if data.action is defined and data.action == 'close' %}
+        {% set icon_class = 'fa-link-slash' %}
+    {% else %}
+        {% set icon_class = 'fa-link' %}
+    {% endif %}
+{% elseif type in ['set_trustline_flags', 'set_trust_line_flags'] %}
+    {% set icon_class = 'fa-gears' %}
+{% elseif type == 'set_options' %}
+    {% set icon_class = 'fa-gear' %}
+{% elseif type == 'create_account' %}
+    {% set icon_class = 'fa-baby' %}
+{% elseif type == 'account_merge' %}
+    {% set icon_class = 'fa-skull' %}
+{% elseif type in ['path_payment_strict_receive', 'path_payment_strict_send'] %}
+    {% set icon_class = 'fa-right-left' %}
+{% elseif type == 'create_claimable_balance' %}
+    {% set icon_class = 'fa-box' %}
+{% elseif type in ['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'] %}
+    {% set icon_class = 'fa-arrow-trend-up' %}
+{% endif %}
+
+{% if icon_class %}
+    <span class="icon {{ icon_color }}"><i class="fa-solid {{ icon_class }}"></i></span>
+{% endif %}

@@ -63,10 +63,13 @@
                     {% elseif op.data.action_label is defined and op.data.action_label %}
                         {% set type_label = op.data.action_label %}
                     {% elseif type_label == type_key %}
-                        {% set type_label = 'transactions.operations.types.default'|trans ~ ' (' ~ op.type ~ ')' %}
+                    {% set type_label = 'transactions.operations.types.default'|trans ~ ' (' ~ op.type ~ ')' %}
                     {% endif %}
                     <li class="mb-5">
-                        <div><strong>{{ type_label }}</strong></div>
+                        <div>
+                            {% include 'operations/icon.twig' with {op: op, context_account_id: transaction.source_account} %}
+                            <strong>{{ type_label }}</strong>
+                        </div>
                         <div>{{ 'transactions.operations.source'|trans }}:
                             {{ include('account_link.twig', {data: op.source_account_data}, with_context = false) }}
                         </div>
