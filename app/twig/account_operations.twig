@@ -38,11 +38,11 @@
                 {% set type_label = 'transactions.operations.types.default'|trans ~ ' (' ~ op.type ~ ')' %}
             {% endif %}
             <li class="mb-5">
-                <div class="is-size-7 has-text-grey">{{ op.created_at|date('Y-m-d H:i:s') }} UTC</div>
                 <div>
                     {% include 'operations/icon.twig' with {op: op, context_account_id: account.id} %}
                     <strong>{{ type_label }}</strong>
                 </div>
+                <div class="is-size-7 has-text-grey">{{ op.created_at|date('Y-m-d H:i:s') }} UTC</div>
                 <div>{{ 'transactions.operations.source'|trans }}:
                     {{ include('account_link.twig', {data: op.source_account_data}, with_context = false) }}
                 </div>
