@@ -49,8 +49,8 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_BASENAME:-app_db}
     volumes:
       - mongo_data:/data/db
-    ports:
-      - "27017:27017"
+    expose:
+      - 27017
 
   db:
     image: mariadb:11

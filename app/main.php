@@ -19,13 +19,14 @@ use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
-use Montelibero\BSN\PdoSessionHandler;
+use Montelibero\BSN\MongoSessionHandler;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
 use Pecee\Http\Request;
 use Pecee\SimpleRouter\SimpleRouter;
+use MongoDB\Driver\Manager;
 use Soneso\StellarSDK\StellarSDK;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Component\Translation\Loader\YamlFileLoader;
@@ -49,6 +50,16 @@ $PDO = new PDO(
 );
 $PDO->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $PDO->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+$mongo_uri = sprintf(
+    'mongodb://%s:%s@%s:%s/?authSource=%s',
+    $_ENV['MONGO_ROOT_USERNAME'],
+    $_ENV['MONGO_ROOT_PASSWORD'],
+    $_ENV['MONGO_HOST'],
+    $_ENV['MONGO_PORT'],
+    $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
+);
+$MongoManager = new Manager($mongo_uri);
 
 $Memcached = new Memcached();
 $Memcached->addServer("cache", 11211);
@@ -137,7 +148,7 @@ session_set_cookie_params([
     'lifetime' => $session_ttl_seconds,
     'path' => '/',
     'domain' => '', // Defaults to current domain
-    'secure' => true,
+    'secure' => !($_ENV['PHP_SESSION_NO_SECURE'] ?? false),
     'httponly' => true,
     'samesite' => 'Lax'
 ]);
@@ -148,7 +159,15 @@ ini_set('session.gc_maxlifetime', (string) $session_ttl_seconds);
 ini_set('session.gc_probability', '1');
 ini_set('session.gc_divisor', '100');
 
-session_set_save_handler(new PdoSessionHandler($PDO, $session_ttl_seconds), true);
+session_set_save_handler(
+    new MongoSessionHandler(
+        $MongoManager, 
+        $_ENV['MONGO_BASENAME'], 
+        'sessions', 
+        $session_ttl_seconds
+    ),
+    true
+);
 
 session_start();
 

@@ -9,6 +9,7 @@
     "ext-curl": "*",
     "ext-gd": "*",
     "ext-memcached": "*",
+    "ext-mongodb": "*",
     "vlucas/phpdotenv": "5.4",
     "twig/twig": "^3.10",
     "pecee/simple-router": "^5.4",
