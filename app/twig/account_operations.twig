@@ -37,9 +37,51 @@
             {% elseif type_label == type_key %}
                 {% set type_label = 'transactions.operations.types.default'|trans ~ ' (' ~ op.type ~ ')' %}
             {% endif %}
+            {% set icon_class = null %}
+            {% set icon_color = null %}
+            {% if op.type == 'payment' %}
+                {% if op.source_account == account.id %}
+                    {% set icon_class = 'fa-right-long' %}
+                    {% set icon_color = 'has-text-danger' %}
+                {% elseif op.data.to is defined and op.data.to.id is defined and op.data.to.id == account.id %}
+                    {% set icon_class = 'fa-left-long' %}
+                    {% set icon_color = 'has-text-success' %}
+                {% endif %}
+            {% elseif op.type == 'manage_data' %}
+                {% if op.data.cleared is defined and op.data.cleared %}
+                    {% set icon_class = 'fa-eraser' %}
+                {% else %}
+                    {% set icon_class = 'fa-file-pen' %}
+                {% endif %}
+            {% elseif op.type == 'change_trust' %}
+                {% if op.data.action is defined and op.data.action == 'close' %}
+                    {% set icon_class = 'fa-link-slash' %}
+                {% else %}
+                    {% set icon_class = 'fa-link' %}
+                {% endif %}
+            {% elseif op.type in ['set_trustline_flags', 'set_trust_line_flags'] %}
+                {% set icon_class = 'fa-gears' %}
+            {% elseif op.type == 'set_options' %}
+                {% set icon_class = 'fa-gear' %}
+            {% elseif op.type == 'create_account' %}
+                {% set icon_class = 'fa-baby' %}
+            {% elseif op.type == 'account_merge' %}
+                {% set icon_class = 'fa-skull' %}
+            {% elseif op.type in ['path_payment_strict_receive', 'path_payment_strict_send'] %}
+                {% set icon_class = 'fa-right-left' %}
+            {% elseif op.type == 'create_claimable_balance' %}
+                {% set icon_class = 'fa-box' %}
+            {% elseif op.type in ['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'] %}
+                {% set icon_class = 'fa-arrow-trend-up' %}
+            {% endif %}
             <li class="mb-5">
                 <div class="is-size-7 has-text-grey">{{ op.created_at|date('Y-m-d H:i:s') }} UTC</div>
-                <div><strong>{{ type_label }}</strong></div>
+                <div>
+                    {% if icon_class %}
+                        <span class="icon {{ icon_color }}"><i class="fa-solid {{ icon_class }}"></i></span>
+                    {% endif %}
+                    <strong>{{ type_label }}</strong>
+                </div>
                 <div>{{ 'transactions.operations.source'|trans }}:
                     {{ include('account_link.twig', {data: op.source_account_data}, with_context = false) }}
                 </div>
