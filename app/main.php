@@ -2,7 +2,6 @@
 
 use DI\Container;
 use DI\ContainerBuilder;
-use Dotenv\Dotenv;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
@@ -26,7 +25,12 @@ use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
 use Pecee\Http\Request;
 use Pecee\SimpleRouter\SimpleRouter;
+use MongoDB\BSON\UTCDateTime;
+use MongoDB\Driver\BulkWrite;
+use MongoDB\Driver\Command;
 use MongoDB\Driver\Manager;
+use MongoDB\Driver\Query;
+use MongoDB\Driver\WriteConcern;
 use Soneso\StellarSDK\StellarSDK;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Component\Translation\Loader\YamlFileLoader;
@@ -42,6 +46,90 @@ const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
 //const JSON_DATA_FILE_PATH = '../BoR/bsn.json';
 
 //$memory1 = memory_get_usage();
+
+/**
+ * Если коллекция usernames пуста, переносим данные из MySQL.
+ * Создаём необходимые индексы (уникальность username, поиск по account_id).
+ */
+function migrateUsernamesFromMySQL(PDO $pdo, Manager $mongoManager, string $database): void
+{
+    $collection = 'usernames';
+    try {
+        // Убедиться, что индексы есть (команда idempotent)
+        ensureUsernamesIndexes($mongoManager, $database, $collection);
+
+        $cursor = $mongoManager->executeQuery(
+            sprintf('%s.%s', $database, $collection),
+            new Query([], ['limit' => 1])
+        );
+        if (current($cursor->toArray())) {
+            return; // Уже есть данные, миграция не нужна
+        }
+
+        $stmt = $pdo->query(
+            'SELECT username, account_id, the_last, created_at FROM usernames ORDER BY created_at ASC'
+        );
+        if (!$stmt) {
+            return;
+        }
+
+        $bulk = new BulkWrite();
+        $count = 0;
+        $tz = new DateTimeZone('UTC');
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $createdAt = isset($row['created_at'])
+                ? new DateTimeImmutable($row['created_at'], $tz)
+                : new DateTimeImmutable('now', $tz);
+
+            $bulk->insert([
+                'username' => $row['username'],
+                'account_id' => $row['account_id'],
+                'is_current' => (bool) $row['the_last'],
+                'created_at' => new UTCDateTime($createdAt->getTimestamp() * 1000),
+            ]);
+            $count++;
+        }
+
+        if ($count === 0) {
+            return;
+        }
+
+        $mongoManager->executeBulkWrite(
+            sprintf('%s.%s', $database, $collection),
+            $bulk,
+            ['writeConcern' => new WriteConcern(1, 1000)]
+        );
+
+        error_log(sprintf('[migrate_usernames] migrated %d rows from MySQL', $count));
+    } catch (\Throwable $e) {
+        error_log('[migrate_usernames] ' . $e->getMessage());
+    }
+}
+
+function ensureUsernamesIndexes(Manager $mongoManager, string $database, string $collection = 'usernames'): void
+{
+    try {
+        $mongoManager->executeCommand(
+            $database,
+            new Command([
+                'createIndexes' => $collection,
+                'indexes' => [
+                    [
+                        'key' => ['username' => 1],
+                        'name' => 'uniq_username_ci',
+                        'unique' => true,
+                        // Уникальность без учёта регистра
+                        'collation' => ['locale' => 'en', 'strength' => 2],
+                    ],
+                    ['key' => ['account_id' => 1], 'name' => 'idx_account'],
+                    ['key' => ['account_id' => 1, 'is_current' => 1], 'name' => 'idx_account_current'],
+                ],
+            ])
+        );
+    } catch (\Throwable $e) {
+        error_log('[ensure_usernames_indexes] ' . $e->getMessage());
+    }
+}
 
 $PDO = new PDO(
     'mysql:host=' . $_ENV['MYSQL_HOST'] . ';dbname=' . $_ENV['MYSQL_BASENAME'],
@@ -60,11 +148,13 @@ $mongo_uri = sprintf(
     $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
 );
 $MongoManager = new Manager($mongo_uri);
+ensureUsernamesIndexes($MongoManager, $_ENV['MONGO_BASENAME']);
+migrateUsernamesFromMySQL($PDO, $MongoManager, $_ENV['MONGO_BASENAME']);
 
 $Memcached = new Memcached();
 $Memcached->addServer("cache", 11211);
 
-$AccountsManager = new AccountsManager($PDO);
+$AccountsManager = new AccountsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $BSN = new BSN($AccountsManager);
 
 $BSN->makeTagByName('Signer')->isEditable(false);

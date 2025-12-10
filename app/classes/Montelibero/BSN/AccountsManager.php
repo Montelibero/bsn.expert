@@ -2,61 +2,68 @@
 
 namespace Montelibero\BSN;
 
-use PDO;
+use MongoDB\Driver\Manager;
+use MongoDB\Driver\Query;
 
 class AccountsManager
 {
-    private PDO $PDO;
+    private Manager $Mongo;
+    private string $database;
+    private string $collection = 'usernames';
 
     const USERNAME_REGEX = '/^[a-zA-Z0-9_]+$/';
 
-    public function __construct(PDO $PDO)
+    public function __construct(Manager $Mongo, string $database)
     {
-        $this->PDO = $PDO;
+        $this->Mongo = $Mongo;
+        $this->database = $database;
     }
 
     public function fetchUsername(string $account_id): ?string
     {
-        $sql = 'SELECT username FROM usernames 
-                WHERE account_id = :account_id AND the_last = TRUE 
-                ORDER BY created_at DESC 
-                LIMIT 1;';
-        $stmt = $this->PDO->prepare($sql);
-        $stmt->bindParam(':account_id', $account_id);
-        $stmt->execute();
-
-        return $stmt->fetchColumn();
+        $filter = [
+            'account_id' => $account_id,
+            'is_current' => true,
+        ];
+        $query = new Query($filter, ['limit' => 1, 'sort' => ['created_at' => -1]]);
+        $cursor = $this->Mongo->executeQuery($this->namespace(), $query);
+        $doc = current($cursor->toArray());
+        return $doc->username ?? null;
     }
 
     public function fetchUsernames(): array
     {
-        $sql = 'SELECT account_id, username FROM usernames 
-                WHERE the_last = TRUE 
-                ORDER BY created_at DESC;';
-        $stmt = $this->PDO->prepare($sql);
-        $stmt->execute();
-
         $result = [];
-
-        while ($row = $stmt->fetch()) {
-            $result[$row['account_id']] = $row['username'];
+        $query = new Query(
+            ['is_current' => true],
+            ['projection' => ['account_id' => 1, 'username' => 1]]
+        );
+        $cursor = $this->Mongo->executeQuery($this->namespace(), $query);
+        foreach ($cursor as $doc) {
+            $result[$doc->account_id] = $doc->username;
         }
-
         return $result;
     }
 
     public function fetchAccountIdByUsername(string $username): ?string
     {
-        $sql = 'SELECT account_id FROM usernames WHERE username = :username;';
-        $stmt = $this->PDO->prepare($sql);
-        $stmt->bindParam(':username', $username);
-        $stmt->execute();
-
-        return $stmt->fetchColumn();
+        $filter = ['username' => $username];
+        $query = new Query($filter, [
+            'limit' => 1,
+            'collation' => ['locale' => 'en', 'strength' => 2],
+        ]);
+        $cursor = $this->Mongo->executeQuery($this->namespace(), $query);
+        $doc = current($cursor->toArray());
+        return $doc->account_id ?? null;
     }
 
     public static function validateUsername($text): bool
     {
         return preg_match(self::USERNAME_REGEX, $text);
+    }
+
+    private function namespace(): string
+    {
+        return sprintf('%s.%s', $this->database, $this->collection);
     }
 }
