@@ -5,7 +5,6 @@ use DI\ContainerBuilder;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
-use Montelibero\BSN\Controllers\AssetsController;
 use Montelibero\BSN\Controllers\ContactsController;
 use Montelibero\BSN\Controllers\DocumentsController;
 use Montelibero\BSN\Controllers\EditorController;
@@ -16,6 +15,7 @@ use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
+use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
 use Montelibero\BSN\MongoSessionHandler;
@@ -47,51 +47,49 @@ const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
 
 //$memory1 = memory_get_usage();
 
-/**
- * Если коллекция usernames пуста, переносим данные из MySQL.
- * Создаём необходимые индексы (уникальность username, поиск по account_id).
- */
-function migrateUsernamesFromMySQL(PDO $pdo, Manager $mongoManager, string $database): void
+function migrateContactsFromMySQL(PDO $pdo, Manager $mongoManager, string $database): void
 {
-    $collection = 'usernames';
+    $collection = 'contacts';
     try {
-        // Убедиться, что индексы есть (команда idempotent)
-        ensureUsernamesIndexes($mongoManager, $database, $collection);
-
+        ensureContactsIndexes($mongoManager, $database, $collection);
         $cursor = $mongoManager->executeQuery(
             sprintf('%s.%s', $database, $collection),
             new Query([], ['limit' => 1])
         );
         if (current($cursor->toArray())) {
-            return; // Уже есть данные, миграция не нужна
+            return; // уже есть данные
         }
 
         $stmt = $pdo->query(
-            'SELECT username, account_id, the_last, created_at FROM usernames ORDER BY created_at ASC'
+            'SELECT account_id, stellar_address, name, updated_at, created_at FROM contacts ORDER BY updated_at ASC'
         );
         if (!$stmt) {
             return;
         }
 
-        $bulk = new BulkWrite();
-        $count = 0;
+        $byAccount = [];
         $tz = new DateTimeZone('UTC');
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $createdAt = isset($row['created_at'])
-                ? new DateTimeImmutable($row['created_at'], $tz)
-                : new DateTimeImmutable('now', $tz);
-
-            $bulk->insert([
-                'username' => $row['username'],
-                'account_id' => $row['account_id'],
-                'is_current' => (bool) $row['the_last'],
-                'created_at' => new UTCDateTime($createdAt->getTimestamp() * 1000),
-            ]);
-            $count++;
+            $accountId = $row['account_id'];
+            $updatedAtStr = $row['updated_at'] ?? $row['created_at'] ?? 'now';
+            $updatedAt = new DateTimeImmutable($updatedAtStr, $tz);
+            $byAccount[$accountId]['contacts'][$row['stellar_address']] = [
+                'name' => $row['name'],
+                'updated_at' => new UTCDateTime($updatedAt->getTimestamp() * 1000),
+            ];
         }
 
-        if ($count === 0) {
+        if (empty($byAccount)) {
             return;
+        }
+
+        $bulk = new BulkWrite();
+        foreach ($byAccount as $accountId => $payload) {
+            $bulk->insert([
+                'account_id' => $accountId,
+                'contacts' => $payload['contacts'] ?? [],
+                'updated_at' => new UTCDateTime(time() * 1000),
+            ]);
         }
 
         $mongoManager->executeBulkWrite(
@@ -100,13 +98,13 @@ function migrateUsernamesFromMySQL(PDO $pdo, Manager $mongoManager, string $data
             ['writeConcern' => new WriteConcern(1, 1000)]
         );
 
-        error_log(sprintf('[migrate_usernames] migrated %d rows from MySQL', $count));
+        error_log(sprintf('[migrate_contacts] migrated %d accounts from MySQL', count($byAccount)));
     } catch (\Throwable $e) {
-        error_log('[migrate_usernames] ' . $e->getMessage());
+        error_log('[migrate_contacts] ' . $e->getMessage());
     }
 }
 
-function ensureUsernamesIndexes(Manager $mongoManager, string $database, string $collection = 'usernames'): void
+function ensureContactsIndexes(Manager $mongoManager, string $database, string $collection = 'contacts'): void
 {
     try {
         $mongoManager->executeCommand(
@@ -114,20 +112,12 @@ function ensureUsernamesIndexes(Manager $mongoManager, string $database, string 
             new Command([
                 'createIndexes' => $collection,
                 'indexes' => [
-                    [
-                        'key' => ['username' => 1],
-                        'name' => 'uniq_username_ci',
-                        'unique' => true,
-                        // Уникальность без учёта регистра
-                        'collation' => ['locale' => 'en', 'strength' => 2],
-                    ],
-                    ['key' => ['account_id' => 1], 'name' => 'idx_account'],
-                    ['key' => ['account_id' => 1, 'is_current' => 1], 'name' => 'idx_account_current'],
+                    ['key' => ['account_id' => 1], 'name' => 'uniq_account', 'unique' => true],
                 ],
             ])
         );
     } catch (\Throwable $e) {
-        error_log('[ensure_usernames_indexes] ' . $e->getMessage());
+        error_log('[ensure_contacts_indexes] ' . $e->getMessage());
     }
 }
 
@@ -148,8 +138,8 @@ $mongo_uri = sprintf(
     $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
 );
 $MongoManager = new Manager($mongo_uri);
-ensureUsernamesIndexes($MongoManager, $_ENV['MONGO_BASENAME']);
-migrateUsernamesFromMySQL($PDO, $MongoManager, $_ENV['MONGO_BASENAME']);
+ensureContactsIndexes($MongoManager, $_ENV['MONGO_BASENAME']);
+migrateContactsFromMySQL($PDO, $MongoManager, $_ENV['MONGO_BASENAME']);
 
 $Memcached = new Memcached();
 $Memcached->addServer("cache", 11211);
@@ -321,7 +311,7 @@ $ContainerBuilder->addDefinitions([
     EditorController::class => autowire(),
     ContactsController::class => autowire(),
     TagsController::class => autowire(),
-    AssetsController::class => autowire(),
+    TokensController::class => autowire(),
     DocumentsController::class => autowire(),
     MembershipDistributionController::class => autowire(),
     MtlaController::class => autowire(),
@@ -368,7 +358,7 @@ function gristRequest($url, $method, $data = null)
 
     // Получаем информацию о последнем HTTP-ответе
     $status_line = $http_response_header[0];
-    preg_match('{HTTP\/\S*\s(\d{3})}', $status_line, $match);
+    preg_match('{HTTP/\S*\s(\d{3})}', $status_line, $match);
     $status = $match[1];
 
     if ($status >= 400) {

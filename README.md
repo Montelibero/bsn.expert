@@ -16,10 +16,7 @@
 ### MongoDB
 
 - В docker-compose добавлен сервис `mongo` (порт `27017`, volume `mongo_data`). Обновите `.env` по образцу и поднимите контейнеры `docker compose up`.
-- Подключение из IDE (DataGrip/IntelliJ): URI вида `mongodb://MONGO_ROOT_USERNAME:MONGO_ROOT_PASSWORD@localhost:27017/MONGO_BASENAME?authSource=admin`.
 - Быстрый доступ из терминала: `docker compose exec mongo mongosh -u "$MONGO_ROOT_USERNAME" -p "$MONGO_ROOT_PASSWORD"`.
-- PHP-сессии теперь пишутся в Mongo (`sessions`), TTL остаётся 14 дней, индекс создаётся автоматически.
-- Коллекция `usernames` заполняется автоматически из MySQL при первом запуске (если она пустая), индексы создаются в коде.
 
 ## Контрибуция
 
