@@ -11,14 +11,9 @@ services:
       - bsn_shared_data:/var/www/bsn
     expose:
       - "9000"  # php-fpm
-    environment:
-      MARIADB_DATABASE: app_db
-      MARIADB_USER: app_user
-      MARIADB_PASSWORD: app_pass
     env_file:
       - .env
     depends_on:
-      - db
       - cache
       - mongo
 
@@ -33,14 +28,6 @@ services:
     volumes:
       - bsn_shared_data:/var/www/bsn
 
-  adminer:
-    image: adminer
-    restart: unless-stopped
-    expose:
-      - "8080"
-    depends_on:
-      - db
-
   mongo:
     image: mongo:7
     restart: unless-stopped
@@ -53,26 +40,11 @@ services:
     expose:
       - 27017
 
-  db:
-    image: mariadb:11
-    restart: unless-stopped
-    environment:
-      MARIADB_PORT: 3306
-      MARIADB_ROOT_PASSWORD: n4dfN3asI5wLPkXx1Yqg
-      MARIADB_DATABASE: app_db
-      MARIADB_USER: app_user
-      MARIADB_PASSWORD: app_pass
-    expose:
-      - "3306"
-    volumes:
-      - db_data:/var/lib/mysql
-
   cache:
     image: memcached:alpine
     restart: unless-stopped
 
 volumes:
-  db_data:
   mongo_data:
   bsn_shared_data:
     external: true

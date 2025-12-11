@@ -8,7 +8,6 @@ use GuzzleHttp\Client;
 use Memcached;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Relations\Member;
-use PDO;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Account;
@@ -32,7 +31,6 @@ class LoginController
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
-    private PDO $PDO;
     private Memcached $Memcached;
     private Container $Container;
 
@@ -40,8 +38,7 @@ class LoginController
         BSN $BSN,
         Environment $Twig,
         StellarSDK $Stellar,
-        PDO $PDO, Memcached
-        $Memcached,
+        Memcached $Memcached,
         Container $Container,
     ) {
         $this->BSN = $BSN;
@@ -51,8 +48,6 @@ class LoginController
         $this->Twig->addGlobal('server', $_SERVER);
 
         $this->Stellar = $Stellar;
-
-        $this->PDO = $PDO;
         $this->Memcached = $Memcached;
 
         $this->Container = $Container;
@@ -161,15 +156,6 @@ class LoginController
             'nonce' => $nonce,
             'timer' => isset($data) ? (300 - (time() - $data['timestamp'])) : null,
             'error' => $error,
-        ]);
-    }
-
-    private function dbCreateRequest(string $nonce)
-    {
-        $stmt = $this->PDO->prepare('INSERT INTO stellar_auth (nonce, status) VALUES (:nonce, :status);');
-        $stmt->execute([
-            ':nonce' => $nonce,
-            ':status' => 'created',
         ]);
     }
 

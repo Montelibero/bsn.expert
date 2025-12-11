@@ -16,11 +16,8 @@ RUN apk add --no-cache \
     autoconf \
     g++ \
     make \
-    mariadb-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
-        pdo \
-        pdo_mysql \
         bcmath \
         curl \
         gd \

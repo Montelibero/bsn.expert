@@ -17,6 +17,7 @@
 
 - В docker-compose добавлен сервис `mongo` (порт `27017`, volume `mongo_data`). Обновите `.env` по образцу и поднимите контейнеры `docker compose up`.
 - Быстрый доступ из терминала: `docker compose exec mongo mongosh -u "$MONGO_ROOT_USERNAME" -p "$MONGO_ROOT_PASSWORD"`.
+- Индексы (`usernames`, `contacts`) создаются при старте контейнера `app` через `app/mongo-indexes.php` (запуск из `init.sh`).
 
 ## Контрибуция
 

@@ -4,7 +4,6 @@ namespace Montelibero\BSN;
 
 use Montelibero\BSN\Relations\Known;
 use Montelibero\BSN\Relations\Member;
-use PDO;
 
 class BSN
 {

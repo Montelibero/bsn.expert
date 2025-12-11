@@ -25,12 +25,7 @@ use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
 use Pecee\Http\Request;
 use Pecee\SimpleRouter\SimpleRouter;
-use MongoDB\BSON\UTCDateTime;
-use MongoDB\Driver\BulkWrite;
-use MongoDB\Driver\Command;
 use MongoDB\Driver\Manager;
-use MongoDB\Driver\Query;
-use MongoDB\Driver\WriteConcern;
 use Soneso\StellarSDK\StellarSDK;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Component\Translation\Loader\YamlFileLoader;
@@ -47,88 +42,6 @@ const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
 
 //$memory1 = memory_get_usage();
 
-function migrateContactsFromMySQL(PDO $pdo, Manager $mongoManager, string $database): void
-{
-    $collection = 'contacts';
-    try {
-        ensureContactsIndexes($mongoManager, $database, $collection);
-        $cursor = $mongoManager->executeQuery(
-            sprintf('%s.%s', $database, $collection),
-            new Query([], ['limit' => 1])
-        );
-        if (current($cursor->toArray())) {
-            return; // уже есть данные
-        }
-
-        $stmt = $pdo->query(
-            'SELECT account_id, stellar_address, name, updated_at, created_at FROM contacts ORDER BY updated_at ASC'
-        );
-        if (!$stmt) {
-            return;
-        }
-
-        $byAccount = [];
-        $tz = new DateTimeZone('UTC');
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $accountId = $row['account_id'];
-            $updatedAtStr = $row['updated_at'] ?? $row['created_at'] ?? 'now';
-            $updatedAt = new DateTimeImmutable($updatedAtStr, $tz);
-            $byAccount[$accountId]['contacts'][$row['stellar_address']] = [
-                'name' => $row['name'],
-                'updated_at' => new UTCDateTime($updatedAt->getTimestamp() * 1000),
-            ];
-        }
-
-        if (empty($byAccount)) {
-            return;
-        }
-
-        $bulk = new BulkWrite();
-        foreach ($byAccount as $accountId => $payload) {
-            $bulk->insert([
-                'account_id' => $accountId,
-                'contacts' => $payload['contacts'] ?? [],
-                'updated_at' => new UTCDateTime(time() * 1000),
-            ]);
-        }
-
-        $mongoManager->executeBulkWrite(
-            sprintf('%s.%s', $database, $collection),
-            $bulk,
-            ['writeConcern' => new WriteConcern(1, 1000)]
-        );
-
-        error_log(sprintf('[migrate_contacts] migrated %d accounts from MySQL', count($byAccount)));
-    } catch (\Throwable $e) {
-        error_log('[migrate_contacts] ' . $e->getMessage());
-    }
-}
-
-function ensureContactsIndexes(Manager $mongoManager, string $database, string $collection = 'contacts'): void
-{
-    try {
-        $mongoManager->executeCommand(
-            $database,
-            new Command([
-                'createIndexes' => $collection,
-                'indexes' => [
-                    ['key' => ['account_id' => 1], 'name' => 'uniq_account', 'unique' => true],
-                ],
-            ])
-        );
-    } catch (\Throwable $e) {
-        error_log('[ensure_contacts_indexes] ' . $e->getMessage());
-    }
-}
-
-$PDO = new PDO(
-    'mysql:host=' . $_ENV['MYSQL_HOST'] . ';dbname=' . $_ENV['MYSQL_BASENAME'],
-    $_ENV['MYSQL_USERNAME'],
-    $_ENV['MYSQL_PASSWORD']
-);
-$PDO->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$PDO->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
 $mongo_uri = sprintf(
     'mongodb://%s:%s@%s:%s/?authSource=%s',
     $_ENV['MONGO_ROOT_USERNAME'],
@@ -138,8 +51,6 @@ $mongo_uri = sprintf(
     $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
 );
 $MongoManager = new Manager($mongo_uri);
-ensureContactsIndexes($MongoManager, $_ENV['MONGO_BASENAME']);
-migrateContactsFromMySQL($PDO, $MongoManager, $_ENV['MONGO_BASENAME']);
 
 $Memcached = new Memcached();
 $Memcached->addServer("cache", 11211);
@@ -301,8 +212,6 @@ $ContainerBuilder->addDefinitions([
 //        }
         return $SDK;
     },
-
-    PDO::class => $PDO,
 
     WebApp::class => autowire(),
 
