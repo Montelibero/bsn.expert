@@ -163,6 +163,7 @@ class TokensController
                 ($Issuer->getRelation() instanceof Member)
                 || $Issuer->getIncomeTags()
                 || $Issuer->getBalance('EURMTL')
+                || $known_tag
             )
         ) {
             $holders = $this->fetchTokenHolders($code, $issuer);
@@ -282,7 +283,7 @@ class TokensController
 
     private function fetchTokenHolders(string $code, string $issuer): array
     {
-        $apcu_cache_key = 'token_horders:' . $issuer . ':' . $code;
+        $apcu_cache_key = 'token_horders:' . $issuer . ':' . $code . ":2";
         $holders = apcu_fetch($apcu_cache_key);
         if ($holders) {
             return $holders;
@@ -319,7 +320,8 @@ class TokensController
                 if ($Balance->getAssetIssuer() === $issuer && $Balance->getAssetCode() === $code) {
                     $holders[] = [
                         'id' => $Account->getAccountId(),
-                        'amount' => (float) $Balance->getBalance(),
+                        'amount' => $Balance->getBalance(),
+                        'amount_value' => (float) $Balance->getBalance(),
                     ];
                     break;
                 }
