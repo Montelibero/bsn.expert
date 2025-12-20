@@ -27,7 +27,9 @@
 <h1 class="subtitle">
         <span class="stellar_address is-family-monospace">{{ account_id }}</span><br>
         {% if username %}<span class="stellar_address is-family-monospace">{{ username }}*bsn.expert</span><br>{% endif %}
-        {{ 'account_page.alternatives'|trans }}: <a class="tag is-primary" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
+        {{ 'account_page.alternatives'|trans }}:
+        <a class="tag is-link" href="https://viewer.eurmtl.me/account/{{ account_id }}">Eurmtl.me</a>
+        <a class="tag is-primary" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
         <a class="tag is-info" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
         <a class="tag is-warning" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
         <br>
