@@ -13,6 +13,7 @@
     <p class="subtitle">
         <span class="stellar_address is-family-monospace">{{ tx_hash }}</span><br>
         {{ 'transactions.show.alternatives'|trans }}:
+        <a class="tag is-link" href="https://viewer.eurmtl.me/transaction/{{ tx_hash }}">Eurmtl.me</a>
         <a class="tag is-primary" href="https://stellar.expert/explorer/public/tx/{{ tx_hash }}">Stellar.Expert</a>
         <a class="tag is-info" href="https://scopuly.com/transaction/{{ tx_hash }}">Scopuly</a>
     </p>
