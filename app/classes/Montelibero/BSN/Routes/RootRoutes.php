@@ -6,6 +6,7 @@ use DI\Container;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
+use Montelibero\BSN\Controllers\ApiController;
 use Montelibero\BSN\Controllers\FederationController;
 use Montelibero\BSN\Controllers\SignController;
 use Montelibero\BSN\Controllers\TransactionsController;
@@ -69,6 +70,9 @@ class RootRoutes
         SimpleRouter::match(['get', 'post'], '/preferences', function () use ($Container) {
             return $Container->get(WebApp::class)->Preferences();
         });
+        SimpleRouter::match(['get', 'post'], '/preferences/api', function () use ($Container) {
+            return $Container->get(ApiController::class)->PreferencesApi();
+        });
         SimpleRouter::get('/defaults', function() {
             SimpleRouter::response()->redirect('/preferences', 301);
         });
@@ -77,6 +81,9 @@ class RootRoutes
         });
         SimpleRouter::get('/federation', function() use ($Container) {
             return $Container->get(FederationController::class)->Federation();
+        });
+        SimpleRouter::get('/api', function () use ($Container) {
+            return $Container->get(ApiController::class)->ApiIndex();
         });
 
         SimpleRouter::get('/{username}/operations', function($username) use ($Container, $BSN, $AccountsManager) {

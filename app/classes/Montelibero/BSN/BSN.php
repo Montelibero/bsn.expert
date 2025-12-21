@@ -21,10 +21,12 @@ class BSN
 
     public const IGNORE_MEMBER_TOKENS = 'GDGC46H4MQKRW3TZTNCWUU6R2C7IPXGN7HQLZBJTNQO6TW7ZOS6MSECR';
     private AccountsManager $AccountsManager;
+    private ContactsManager $ContactsManager;
 
-    public function __construct(AccountsManager $AccountsManager)
+    public function __construct(AccountsManager $AccountsManager, ContactsManager $ContactsManager)
     {
         $this->AccountsManager = $AccountsManager;
+        $this->ContactsManager = $ContactsManager;
         $this->Signatures = new SignatureCollection();
     }
 
@@ -90,8 +92,7 @@ class BSN
     public function loadContacts(): void
     {
         if ($_SESSION['account'] ?? false) {
-            $ContactsManager = new ContactsManager($_SESSION['account']['id']);
-            foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
+            foreach ($this->ContactsManager->getContacts($_SESSION['account']['id']) as $stellar_address => $item) {
                 $Account = $this->makeAccountById($stellar_address);
                 $Account->isContact(true);
                 $Account->setContactName($item['name'] ?? null);

@@ -54,8 +54,9 @@ class AccountsController
     private ?string $default_viewer = null;
     private StellarSDK $Stellar;
     private Container $Container;
+    private ContactsManager $ContactsManager;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container)
+    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container, ContactsManager $ContactsManager)
     {
         $this->BSN = $BSN;
 
@@ -70,6 +71,7 @@ class AccountsController
         }
 
         $this->Container = $Container;
+        $this->ContactsManager = $ContactsManager;
     }
 
     /**
@@ -168,8 +170,7 @@ class AccountsController
         $is_logged = false;
         if ($_SESSION['account'] ?? null) {
             $is_logged = true;
-            $ContactsManager = new ContactsManager($_SESSION['account']['id']);
-            $is_contact = (bool) $ContactsManager->getContact($Account->getId());
+            $is_contact = (bool) $this->ContactsManager->getContact($_SESSION['account']['id'], $Account->getId());
         }
 
         $income_tags = [];

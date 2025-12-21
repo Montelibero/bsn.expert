@@ -13,8 +13,9 @@ class ContactsController
     private BSN $BSN;
     private Environment $Twig;
     private Translator $Translator;
+    private ContactsManager $ContactsManager;
 
-    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator)
+    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator, ContactsManager $ContactsManager)
     {
         $this->BSN = $BSN;
 
@@ -23,6 +24,7 @@ class ContactsController
         $this->Twig->addGlobal('server', $_SERVER);
 
         $this->Translator = $Translator;
+        $this->ContactsManager = $ContactsManager;
     }
 
     public function Contacts(): ?string
@@ -31,9 +33,7 @@ class ContactsController
             SimpleRouter::response()->redirect('/login/', 302);
         }
 
-        $ContactsManager = new ContactsManager($_SESSION['account']['id']);
-
-        $contacts = $ContactsManager->getContacts();
+        $contacts = $this->ContactsManager->getContacts($_SESSION['account']['id']);
 
         foreach ($contacts as $stellar_account => &$contact) {
             $Account = $this->BSN->makeAccountById($stellar_account);
@@ -57,7 +57,7 @@ class ContactsController
                 && BSN::validateStellarAccountIdFormat($_POST['new_stellar_account_1'])
                 && !array_key_exists($_POST['new_stellar_account_1'], $contacts)
             ) {
-                $ContactsManager->addContact($_POST['new_stellar_account_1'], $_POST['new_name_1']);
+                $this->ContactsManager->addContact($_SESSION['account']['id'], $_POST['new_stellar_account_1'], $_POST['new_name_1']);
             }
 
             if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
@@ -74,14 +74,14 @@ class ContactsController
                     if (array_key_exists($address, $contacts)) {
                         if ($duplicates === 'update' && $name !== $contacts[$address]['name']) {
                             try {
-                                $ContactsManager->updateContact($address, $name);
+                                $this->ContactsManager->updateContact($_SESSION['account']['id'], $address, $name);
                             } catch (\Exception $e) {
                                 $errors[] = "Не смог обновить контакт $address: {$e->getMessage()}";
                             }
                         }
                     } elseif (!in_array($address, $new_accounts, true)) {
                         try {
-                            $ContactsManager->addContact($address, $name ?: null);
+                            $this->ContactsManager->addContact($_SESSION['account']['id'], $address, $name ?: null);
                             $new_accounts[] = $address;
                         } catch (\Exception $e) {
                             $errors[] = "Не смог добавить контакт $address: {$e->getMessage()}";
@@ -132,9 +132,9 @@ class ContactsController
             SimpleRouter::response()->redirect('/tg/', 302);
         }
 
-        $ContactsManager = new ContactsManager($_SESSION['account']['id']);
+        $ContactsManager = $this->ContactsManager;
 
-        $exists_contact = $ContactsManager->getContact($account_id);
+        $exists_contact = $ContactsManager->getContact($_SESSION['account']['id'], $account_id);
 
         $return_to = $_POST['return_to']
             ?? $_SERVER['HTTP_REFERER']
@@ -142,11 +142,11 @@ class ContactsController
 
         if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {
-                $ContactsManager->deleteContact($account_id);
+                $ContactsManager->deleteContact($_SESSION['account']['id'], $account_id);
             } elseif ($_POST['action'] && $exists_contact) {
-                $ContactsManager->updateContact($account_id, trim($_POST['name']));
+                $ContactsManager->updateContact($_SESSION['account']['id'], $account_id, trim($_POST['name']));
             } elseif ($_POST['action'] && !$exists_contact) {
-                $ContactsManager->addContact($account_id, trim($_POST['name']));
+                $ContactsManager->addContact($_SESSION['account']['id'], $account_id, trim($_POST['name']));
             }
             SimpleRouter::response()->redirect($return_to, 302);
         }

@@ -2,26 +2,14 @@
 
 namespace Montelibero\BSN\Controllers;
 
-use League\Uri\Exceptions\SyntaxError;
-use League\Uri\Http;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
-use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
-use Soneso\StellarSDK\Asset;
-use Soneso\StellarSDK\AssetTypeCreditAlphanum;
-use Soneso\StellarSDK\AssetTypeNative;
-use Soneso\StellarSDK\ClawbackOperationBuilder;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\Memo;
-use Soneso\StellarSDK\MuxedAccount;
-use Soneso\StellarSDK\PaymentOperationBuilder;
-use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
-use Soneso\StellarSDK\Responses\Account\AccountResponse;
-use Soneso\StellarSDK\SetTrustLineFlagsOperationBuilder;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
 use splitbrain\phpQRCode\QRCode;
@@ -33,8 +21,9 @@ class EditorController
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
+    private ContactsManager $ContactsManager;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Translator $Translator)
+    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, ContactsManager $ContactsManager)
     {
         $this->BSN = $BSN;
 
@@ -43,6 +32,7 @@ class EditorController
         $this->Twig->addGlobal('server', $_SERVER);
 
         $this->Stellar = $Stellar;
+        $this->ContactsManager = $ContactsManager;
     }
 
     public function EditorForm(): string
@@ -248,8 +238,7 @@ class EditorController
             }
             // Add from contact book
             if ($_SESSION['account'] ?? null) {
-                $ContactsManager = new ContactsManager($_SESSION['account']['id']);
-                foreach ($ContactsManager->getContacts() as $stellar_address => $item) {
+                foreach ($this->ContactsManager->getContacts($_SESSION['account']['id']) as $stellar_address => $item) {
                     if (!array_key_exists($stellar_address, $contacts)) {
                         $contacts[$stellar_address] = $this->BSN->makeAccountById($stellar_address);
                     }

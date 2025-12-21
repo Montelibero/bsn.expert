@@ -1,0 +1,129 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'preferences.api.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/preferences" aria-current="page">{{ 'nav.preferences'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'preferences.api.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'preferences.api.title'|trans }}</h1>
+    <p class="block">{{ 'preferences.api.description'|trans }}</p>
+    <div class="content">
+        <ul>
+            <li>{{ 'preferences.api.instructions.use_key_once'|trans }}</li>
+            <li>{{ 'preferences.api.instructions.permissions'|trans }}</li>
+            <li>{{ 'preferences.api.instructions.keep_secret'|trans }}</li>
+        </ul>
+    </div>
+
+    {% if errors %}
+        <div class="notification is-danger">
+            {% for error in errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="box">
+        <h2 class="subtitle">{{ 'preferences.api.new_key.title'|trans }}</h2>
+        <form action="/preferences/api" method="post">
+            <div class="field">
+                <label class="label" for="api_key_name">{{ 'preferences.api.new_key.name'|trans }}</label>
+                <div class="control">
+                    <input class="input" id="api_key_name" name="name" type="text" required value="{{ form_name }}" autocomplete="off">
+                </div>
+                <p class="help">{{ 'preferences.api.new_key.name_hint'|trans }}</p>
+            </div>
+
+            <div class="field">
+                <label class="label">{{ 'preferences.api.new_key.permissions'|trans }}</label>
+                <div class="control">
+                    <label class="checkbox">
+                        <input type="checkbox" name="permissions[contacts][read]" {% if form_permissions.contacts.read %}checked{% endif %}>
+                        {{ 'preferences.api.permissions.read'|trans }}
+                    </label>
+                    <br>
+                    <label class="checkbox">
+                        <input type="checkbox" name="permissions[contacts][create]" {% if form_permissions.contacts.create %}checked{% endif %}>
+                        {{ 'preferences.api.permissions.create'|trans }}
+                    </label>
+                    <br>
+                    <label class="checkbox">
+                        <input type="checkbox" name="permissions[contacts][update]" {% if form_permissions.contacts.update %}checked{% endif %}>
+                        {{ 'preferences.api.permissions.update'|trans }}
+                    </label>
+                    <br>
+                    <label class="checkbox">
+                        <input type="checkbox" name="permissions[contacts][delete]" {% if form_permissions.contacts.delete %}checked{% endif %}>
+                        {{ 'preferences.api.permissions.delete'|trans }}
+                    </label>
+                </div>
+                <p class="help">{{ 'preferences.api.permissions_hint'|trans }}</p>
+            </div>
+
+            <div class="field is-grouped">
+                <div class="control">
+                    <button type="submit" name="action" value="create" class="button is-primary">
+                        {{ 'preferences.api.new_key.submit'|trans }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <h2 class="subtitle">{{ 'preferences.api.list.title'|trans }}</h2>
+
+    {% if keys %}
+        {% for key in keys %}
+            <div class="box {% if key.is_new %}has-background-warning-light{% endif %}">
+                <div class="level">
+                    <div class="level-left">
+                        <div>
+                            <p class="title is-4">{{ key.name }}</p>
+                            <p class="subtitle is-family-monospace">
+                                {{ key.display_key }}
+                            </p>
+                            {% if key.show_full %}
+                                <p class="help">{{ 'preferences.api.list.show_full_hint'|trans }}</p>
+                            {% endif %}
+                            <div class="tags">
+                                <span class="tag is-primary">{{ 'preferences.api.scopes.contacts'|trans }}</span>
+                                {% for perm, allowed in key.permissions.contacts %}
+                                    {% if allowed %}
+                                        <span class="tag is-info">{{ ('preferences.api.permissions.' ~ perm)|trans }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <p class="help">
+                                {{ 'preferences.api.list.created_at'|trans }}: {{ key.created_at ?: '—' }},
+                                {{ 'preferences.api.list.last_used_at'|trans }}:
+                                {% if key.last_used_at %}
+                                    {{ key.last_used_at }}
+                                {% else %}
+                                    {{ 'preferences.api.list.never_used'|trans }}
+                                {% endif %},
+                                {{ 'preferences.api.list.last_ip'|trans }}: {{ key.last_ip ?: '—' }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <form action="/preferences/api" method="post" onsubmit="return confirm('{{ 'preferences.api.list.delete_confirm'|trans }}');">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="key_id" value="{{ key.id }}">
+                            <button class="button is-danger is-outlined" type="submit" title="{{ 'preferences.api.list.delete'|trans }}">
+                                <span class="icon is-small">
+                                    <i class="fa-solid fa-trash"></i>
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="help">{{ 'preferences.api.list.empty'|trans }}</p>
+    {% endif %}
+{% endblock %}

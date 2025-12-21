@@ -88,6 +88,41 @@ preferences:
     header: Default BSN viewer
     description: >
       The choice of default viewer that will open when navigating to a direct account page link.
+  api:
+    title: API keys
+    description: >
+      Create and manage personal API keys to integrate BSN contacts with other tools.
+    instructions:
+      use_key_once: Full key is visible until the first use—copy it and store securely.
+      permissions: Choose granular permissions; only Contacts scope is available for now.
+      keep_secret: Keep your key secret. If it leaks, delete and create a new one.
+    new_key:
+      title: Create a new API key
+      name: Key name
+      name_hint: For example, the app or service that will use this key.
+      permissions: Permissions for Contacts
+      submit: Create key
+    permissions:
+      read: Read
+      create: Create
+      update: Update
+      delete: Delete
+    permissions_hint: Contacts scope only; more scopes will appear later.
+    scopes:
+      contacts: Contacts
+    list:
+      title: Your API keys
+      show_full_hint: Full key is shown while it has never been used.
+      created_at: Created
+      last_used_at: Last used
+      last_ip: Last IP
+      never_used: Not used yet
+      delete: Delete
+      delete_confirm: Delete this key?
+      empty: No keys yet — create one above.
+    errors:
+      delete_failed: Could not delete the key.
+      name_required: Please set a key name.
 
 search:
   not_found: Could not find anything 🤷‍♂️

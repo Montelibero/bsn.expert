@@ -2,9 +2,13 @@
 
 use DI\Container;
 use DI\ContainerBuilder;
+use MongoDB\Driver\WriteConcern;
 use Montelibero\BSN\AccountsManager;
+use Montelibero\BSN\ApiKeysManager;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\ContactsManager;
 use Montelibero\BSN\Controllers\AccountsController;
+use Montelibero\BSN\Controllers\ApiController;
 use Montelibero\BSN\Controllers\ContactsController;
 use Montelibero\BSN\Controllers\DocumentsController;
 use Montelibero\BSN\Controllers\EditorController;
@@ -42,21 +46,27 @@ const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
 
 //$memory1 = memory_get_usage();
 
-$mongo_uri = sprintf(
-    'mongodb://%s:%s@%s:%s/?authSource=%s',
-    $_ENV['MONGO_ROOT_USERNAME'],
-    $_ENV['MONGO_ROOT_PASSWORD'],
-    $_ENV['MONGO_HOST'],
-    $_ENV['MONGO_PORT'],
-    $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
+$MongoManager = new Manager(
+    sprintf(
+        'mongodb://%s:%s@%s:%s/?authSource=%s',
+        $_ENV['MONGO_ROOT_USERNAME'],
+        $_ENV['MONGO_ROOT_PASSWORD'],
+        $_ENV['MONGO_HOST'],
+        $_ENV['MONGO_PORT'],
+        $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
+    ),
+    [],
+    [
+        'writeConcern' => new WriteConcern(1, 1000, false),
+    ]
 );
-$MongoManager = new Manager($mongo_uri);
 
 $Memcached = new Memcached();
 $Memcached->addServer("cache", 11211);
 
 $AccountsManager = new AccountsManager($MongoManager, $_ENV['MONGO_BASENAME']);
-$BSN = new BSN($AccountsManager);
+$ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME']);
+$BSN = new BSN($AccountsManager, $ContactsManager);
 
 $BSN->makeTagByName('Signer')->isEditable(false);
 
@@ -177,7 +187,12 @@ $ContainerBuilder->addDefinitions([
     // Базовые сервисы
     BSN::class => $BSN,
     Memcached::class => $Memcached,
+    Manager::class => $MongoManager,
     AccountsManager::class => $AccountsManager,
+    ContactsManager::class => $ContactsManager,
+    ApiKeysManager::class => function() use ($MongoManager) {
+        return new ApiKeysManager($MongoManager, $_ENV['MONGO_BASENAME']);
+    },
 
     Translator::class => function() {
         $locale = 'en';
@@ -217,6 +232,7 @@ $ContainerBuilder->addDefinitions([
 
     LoginController::class => autowire(),
     AccountsController::class => autowire(),
+    ApiController::class => autowire(),
     EditorController::class => autowire(),
     ContactsController::class => autowire(),
     TagsController::class => autowire(),
