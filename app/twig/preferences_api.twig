@@ -113,8 +113,8 @@
                         <form action="/preferences/api" method="post" onsubmit="return confirm('{{ 'preferences.api.list.delete_confirm'|trans }}');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="key_id" value="{{ key.id }}">
-                            <button class="button is-danger is-outlined" type="submit" title="{{ 'preferences.api.list.delete'|trans }}">
-                                <span class="icon is-small">
+                            <button class="button is-small is-danger is-outlined" type="submit" title="{{ 'preferences.api.list.delete'|trans }}">
+                                <span class="icon">
                                     <i class="fa-solid fa-trash"></i>
                                 </span>
                             </button>
