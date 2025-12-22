@@ -22,20 +22,39 @@ class ContactsManager
     public function getContacts(string $host_account_id, ?string $stellar_address = null): array
     {
         $filter = ['account_id' => $host_account_id];
-        $query = new Query($filter, ['limit' => 1]);
-        $cursor = $this->Mongo->executeQuery($this->namespace(), $query);
-        $doc = current($cursor->toArray());
-        $contacts = (array) ($doc->contacts ?? []);
+        $options = ['limit' => 1];
 
-        if ($stellar_address) {
+        if ($stellar_address !== null) {
+            $filter["contacts.$stellar_address"] = ['$exists' => true];
+            $options['projection'] = [
+                "contacts.$stellar_address" => 1,
+                '_id' => 0,
+            ];
+        }
+
+        $query = new Query($filter, $options);
+        $cursor = $this->Mongo->executeQuery($this->namespace(), $query);
+        $doc = current($cursor->toArray()) ?: null;
+        $contacts = (array) (($doc?->contacts) ?? []);
+
+        if ($stellar_address !== null) {
             if (!isset($contacts[$stellar_address])) {
                 return [];
             }
-            return [$stellar_address => $this->normalizeContact((array) $contacts[$stellar_address])];
+            $contact = (array) $contacts[$stellar_address];
+            if (($contact['name'] ?? null) === null) {
+                return [];
+            }
+            return [$stellar_address => $this->normalizeContact($contact)];
         }
 
         foreach ($contacts as $address => $value) {
-            $contacts[$address] = $this->normalizeContact((array) $value);
+            $value = (array) $value;
+            if (($value['name'] ?? null) === null) {
+                unset($contacts[$address]);
+                continue;
+            }
+            $contacts[$address] = $this->normalizeContact($value);
         }
 
         return $contacts;
@@ -63,12 +82,12 @@ class ContactsManager
 
     public function addContact(string $host_account_id, string $stellar_account, ?string $name = null): void
     {
-        $this->upsertContact($host_account_id, $stellar_account, $name);
+        $this->upsertContact($host_account_id, $stellar_account, $name ?? '');
     }
 
     public function updateContact(string $host_account_id, string $stellar_account, ?string $name): void
     {
-        $this->upsertContact($host_account_id, $stellar_account, $name);
+        $this->upsertContact($host_account_id, $stellar_account, $name ?? '');
     }
 
     public function deleteContact(string $host_account_id, $stellar_account): void
@@ -77,8 +96,13 @@ class ContactsManager
         $Bulk->update(
             ['account_id' => $host_account_id],
             [
-                '$unset' => ["contacts.$stellar_account" => ""],
-                '$set' => ['updated_at' => new UTCDateTime(time() * 1000)],
+                '$set' => [
+                    "contacts.$stellar_account" => [
+                        'name' => null,
+                        'updated_at' => new UTCDateTime(time() * 1000),
+                    ],
+                    'updated_at' => new UTCDateTime(time() * 1000),
+                ],
             ]
         );
         $this->Mongo->executeBulkWrite(

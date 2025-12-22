@@ -57,7 +57,11 @@ class ContactsController
                 && BSN::validateStellarAccountIdFormat($_POST['new_stellar_account_1'])
                 && !array_key_exists($_POST['new_stellar_account_1'], $contacts)
             ) {
-                $this->ContactsManager->addContact($_SESSION['account']['id'], $_POST['new_stellar_account_1'], $_POST['new_name_1']);
+                $this->ContactsManager->addContact(
+                    $_SESSION['account']['id'],
+                    $_POST['new_stellar_account_1'],
+                    $_POST['new_name_1'] ?: ''
+                );
             }
 
             if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
@@ -81,7 +85,7 @@ class ContactsController
                         }
                     } elseif (!in_array($address, $new_accounts, true)) {
                         try {
-                            $this->ContactsManager->addContact($_SESSION['account']['id'], $address, $name ?: null);
+                            $this->ContactsManager->addContact($_SESSION['account']['id'], $address, $name ?: '');
                             $new_accounts[] = $address;
                         } catch (\Exception $e) {
                             $errors[] = "Не смог добавить контакт $address: {$e->getMessage()}";
