@@ -52,9 +52,42 @@ function ensureContactsIndexes(Manager $manager, string $database, string $colle
     );
 }
 
+function ensureApiKeysIndexes(Manager $manager, string $database, string $collection = 'api_keys'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['key' => 1], 'name' => 'uniq_key', 'unique' => true],
+                ['key' => ['account_id' => 1], 'name' => 'account_idx'],
+            ],
+        ])
+    );
+}
+
+function ensureSessionsIndexes(Manager $manager, string $database, string $collection = 'sessions'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                [
+                    'key' => ['expiresAt' => 1],
+                    'name' => 'expires_ttl',
+                    'expireAfterSeconds' => 0,
+                ],
+            ],
+        ])
+    );
+}
+
 try {
     ensureUsernamesIndexes($manager, $database);
     ensureContactsIndexes($manager, $database);
+    ensureApiKeysIndexes($manager, $database);
+    ensureSessionsIndexes($manager, $database);
     echo "Mongo indexes ensured\n";
 } catch (\Throwable $e) {
     fwrite(STDERR, "[mongo-indexes] " . $e->getMessage() . PHP_EOL);

@@ -5,7 +5,6 @@ namespace Montelibero\BSN;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\Driver\BulkWrite;
-use MongoDB\Driver\Command;
 use MongoDB\Driver\Manager;
 use MongoDB\Driver\Query;
 
@@ -15,17 +14,10 @@ class ApiKeysManager
     private string $database;
     private string $collection = 'api_keys';
 
-    private static bool $indexes_ensured = false;
-
     public function __construct(Manager $Mongo, ?string $database = null)
     {
         $this->Mongo = $Mongo;
         $this->database = $database;
-
-        if (!self::$indexes_ensured) {
-            $this->ensureIndexes();
-            self::$indexes_ensured = true;
-        }
     }
 
     public function createKey(string $account_id, string $name, array $permissions): array
@@ -135,24 +127,6 @@ class ApiKeysManager
             $this->namespace(),
             $Bulk
         );
-    }
-
-    private function ensureIndexes(): void
-    {
-        try {
-            $this->Mongo->executeCommand(
-                $this->database,
-                new Command([
-                    'createIndexes' => $this->collection,
-                    'indexes' => [
-                        ['key' => ['key' => 1], 'name' => 'uniq_key', 'unique' => true],
-                        ['key' => ['account_id' => 1], 'name' => 'account_idx'],
-                    ],
-                ])
-            );
-        } catch (\Throwable $e) {
-            error_log('[api_keys_indexes] ' . $e->getMessage());
-        }
     }
 
     private function generateUniqueKey(): string

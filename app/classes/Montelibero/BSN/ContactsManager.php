@@ -4,7 +4,6 @@ namespace Montelibero\BSN;
 
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\Driver\BulkWrite;
-use MongoDB\Driver\Command;
 use MongoDB\Driver\Manager;
 use MongoDB\Driver\Query;
 
@@ -14,17 +13,10 @@ class ContactsManager
     private string $database;
     private string $collection = 'contacts';
 
-    private static bool $indexes_ensured = false;
-
     public function __construct(Manager $Mongo, string $database)
     {
         $this->Mongo = $Mongo;
         $this->database = $database;
-
-        if (!self::$indexes_ensured) {
-            $this->ensureIndexes();
-            self::$indexes_ensured = true;
-        }
     }
 
     public function getContacts(string $host_account_id, ?string $stellar_address = null): array
@@ -117,23 +109,6 @@ class ContactsManager
             $this->namespace(),
             $Bulk
         );
-    }
-
-    private function ensureIndexes(): void
-    {
-        try {
-            $this->Mongo->executeCommand(
-                $this->database,
-                new Command([
-                    'createIndexes' => $this->collection,
-                    'indexes' => [
-                        ['key' => ['account_id' => 1], 'name' => 'uniq_account', 'unique' => true],
-                    ],
-                ])
-            );
-        } catch (\Throwable $e) {
-            error_log('[contacts_indexes] ' . $e->getMessage());
-        }
     }
 
     private function namespace(): string

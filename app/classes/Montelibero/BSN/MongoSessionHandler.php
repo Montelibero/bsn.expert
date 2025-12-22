@@ -4,7 +4,6 @@ namespace Montelibero\BSN;
 
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\Driver\BulkWrite;
-use MongoDB\Driver\Command;
 use MongoDB\Driver\Exception\Exception;
 use MongoDB\Driver\Manager;
 use MongoDB\Driver\Query;
@@ -27,8 +26,6 @@ class MongoSessionHandler implements SessionHandlerInterface
         $this->ttlSeconds = $ttlSeconds;
         // Одноузловый инстанс: w=1 надёжнее, чем MAJORITY (который требует реплику)
         $this->writeConcern = new WriteConcern(1, 1000);
-
-        $this->ensureIndexes();
     }
 
     public function open($path, $name): bool
@@ -130,26 +127,6 @@ class MongoSessionHandler implements SessionHandlerInterface
         } catch (Exception $e) {
             $this->logException('gc', $e);
             return false;
-        }
-    }
-
-    private function ensureIndexes(): void
-    {
-        try {
-            $command = new Command([
-                'createIndexes' => $this->collection,
-                'indexes' => [
-                    [
-                        'key' => ['expiresAt' => 1],
-                        'name' => 'expires_ttl',
-                        'expireAfterSeconds' => 0,
-                    ],
-                ],
-            ]);
-            $this->manager->executeCommand($this->database, $command);
-        } catch (Exception $e) {
-            // Best-effort: если не получилось создать индекс, сессии все равно работают, но cleanup ляжет на gc()
-            $this->logException('ensureIndexes', $e);
         }
     }
 
