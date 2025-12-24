@@ -25,9 +25,9 @@ class ContactsManager
         $options = ['limit' => 1];
 
         if ($stellar_address !== null) {
-            $filter["contacts.$stellar_address"] = ['$exists' => true];
+            $filter["$this->collection.$stellar_address"] = ['$exists' => true];
             $options['projection'] = [
-                "contacts.$stellar_address" => 1,
+                "$this->collection.$stellar_address" => 1,
                 '_id' => 0,
             ];
         }
@@ -97,11 +97,11 @@ class ContactsManager
             ['account_id' => $host_account_id],
             [
                 '$set' => [
-                    "contacts.$stellar_account" => [
+                    "$this->collection.$stellar_account" => [
                         'name' => null,
-                        'updated_at' => new UTCDateTime(time() * 1000),
+                        'updated_at' => new UTCDateTime((int) (microtime(true) * 1000)),
                     ],
-                    'updated_at' => new UTCDateTime(time() * 1000),
+                    'updated_at' => new UTCDateTime((int) (microtime(true) * 1000)),
                 ],
             ]
         );
@@ -113,13 +113,13 @@ class ContactsManager
 
     private function upsertContact(string $host_account_id, string $stellar_account, ?string $name): void
     {
-        $Now = new UTCDateTime(time() * 1000);
+        $Now = new UTCDateTime((int) (microtime(true) * 1000));
         $Bulk = new BulkWrite();
         $Bulk->update(
             ['account_id' => $host_account_id],
             [
                 '$set' => [
-                    "contacts.$stellar_account" => [
+                    "$this->collection.$stellar_account" => [
                         'name' => $name,
                         'updated_at' => $Now,
                     ],
@@ -138,5 +138,50 @@ class ContactsManager
     private function namespace(): string
     {
         return sprintf('%s.%s', $this->database, $this->collection);
+    }
+
+    public function getAllItems(string $host_account_id): array
+    {
+        $filter = ['account_id' => $host_account_id];
+        $options = ['limit' => 1];
+        $query = new Query($filter, $options);
+        $cursor = $this->Mongo->executeQuery($this->namespace(), $query);
+        $doc = current($cursor->toArray()) ?: null;
+        $contacts = (array) (($doc?->contacts) ?? []);
+
+        foreach ($contacts as $address => $value) {
+            $value = (array) $value;
+            /** @var UTCDateTime $updated_at */
+            $updated_at = $value['updated_at'];
+            $contacts[$address] = [
+                'label' => $value['name'],
+                'updated_at' => (int)(string) $updated_at,
+            ];
+        }
+
+        return $contacts;
+    }
+
+    public function bulkUpdate(string $account_id, array $bulk_update): void
+    {
+        if (empty($bulk_update)) {
+            return;
+        }
+
+        $bulk_update_prep = [];
+        foreach ($bulk_update as $key => $value) {
+            $bulk_update_prep["$this->collection.$key"] = $value;
+        }
+
+        $Bulk = new BulkWrite();
+        $Bulk->update(
+            ['account_id' => $account_id],
+            ['$set' => $bulk_update_prep],
+            ['multi' => true]
+        );
+        $this->Mongo->executeBulkWrite(
+            $this->namespace(),
+            $Bulk
+        );
     }
 }

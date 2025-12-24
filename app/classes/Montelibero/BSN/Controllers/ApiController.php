@@ -126,7 +126,7 @@ class ApiController
         }
 
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $this->ApiKeysManager->markUsed($token, $ip);
+        $this->ApiKeysManager->markUsed($key["id"], $ip);
         $key['last_used_at'] = date('Y-m-d H:i:s');
         $key['last_used_at_ts'] = time();
         $key['last_ip'] = $ip;

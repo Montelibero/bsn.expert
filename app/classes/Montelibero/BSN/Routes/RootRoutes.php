@@ -7,10 +7,10 @@ use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ApiController;
+use Montelibero\BSN\Controllers\ApiContactsController;
 use Montelibero\BSN\Controllers\FederationController;
 use Montelibero\BSN\Controllers\SignController;
 use Montelibero\BSN\Controllers\TransactionsController;
-use Pecee\SimpleRouter\Exceptions\NotFoundHttpException;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
 
@@ -82,8 +82,8 @@ class RootRoutes
         SimpleRouter::get('/federation', function() use ($Container) {
             return $Container->get(FederationController::class)->Federation();
         });
-        SimpleRouter::get('/api', function () use ($Container) {
-            return $Container->get(ApiController::class)->ApiIndex();
+        SimpleRouter::group(['prefix' => '/api'], function () use ($Container) {
+            ApiRoutes::register($Container);
         });
 
         SimpleRouter::get('/{username}/operations', function($username) use ($Container, $BSN, $AccountsManager) {

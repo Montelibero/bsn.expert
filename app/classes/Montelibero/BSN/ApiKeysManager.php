@@ -110,17 +110,20 @@ class ApiKeysManager
         return $Doc ? $this->formatKeyDoc($Doc) : null;
     }
 
-    public function markUsed(string $key, string $ip): void
+    public function markUsed(string $id, string $ip): void
+    {
+        $this->updateKey($id, [
+            'last_used_at' => new UTCDateTime((int) (microtime(true) * 1000)),
+            'last_ip' => $ip,
+        ]);
+    }
+
+    public function updateKey(string $id, array $data): void
     {
         $Bulk = new BulkWrite();
         $Bulk->update(
-            ['key' => $key],
-            [
-                '$set' => [
-                    'last_used_at' => new UTCDateTime(time() * 1000),
-                    'last_ip' => $ip,
-                ],
-            ],
+            ['_id' => new ObjectId($id)],
+            ['$set' => $data],
             ['limit' => 1]
         );
         $this->Mongo->executeBulkWrite(
@@ -176,6 +179,7 @@ class ApiKeysManager
             'last_used_at' => $last_used_dt ? $last_used_dt->format('Y-m-d H:i:s') : null,
             'last_used_at_ts' => $last_used_dt?->getTimestamp(),
             'last_ip' => $doc->last_ip ?? null,
+            'last_succeed_contacts_sync_at' => (int)(string) $doc->last_succeed_contacts_sync_at,
         ];
     }
 
