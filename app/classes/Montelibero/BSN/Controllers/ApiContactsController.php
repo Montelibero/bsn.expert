@@ -216,7 +216,9 @@ class ApiContactsController
 
     private function jsonResponse(array $data): string
     {
+        header('Access-Control-Allow-Origin *');
         header('Content-Type: application/json');
+
         return json_encode(
             $data,
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES

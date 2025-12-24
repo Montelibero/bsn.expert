@@ -142,6 +142,7 @@ class ApiController
 
     private function jsonResponse(array $data): string
     {
+        header('Access-Control-Allow-Origin *');
         header('Content-Type: application/json');
         return json_encode(
             $data,
