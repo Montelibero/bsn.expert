@@ -93,13 +93,14 @@ class ApiContactsController
             ]);
         }
 
-        if (!array_key_exists('items', $request_data) || !is_array($request_data['items'])) {
+        if (array_key_exists('items', $request_data) && !is_array($request_data['items'])) {
             SimpleRouter::response()->httpCode(400);
             return $this->jsonResponse([
                 'status' => 'error',
-                'message' => 'Missing `items` array',
+                'message' => 'Wrong `items` type',
             ]);
         }
+        $new_items = $request_data['items'] ?? [];
 
         $contacts = $this->ContactsManager->getAllItems($account_id);
 
@@ -109,7 +110,7 @@ class ApiContactsController
         $to_add = [];
         $to_update = [];
         $to_delete = [];
-        foreach ($request_data['items'] as $address => $new_item) {
+        foreach ($new_items as $address => $new_item) {
             if (($error = $this->validateSyncItem($address, $new_item)) !== true) {
                 $errors[] = $error;
                 continue;
