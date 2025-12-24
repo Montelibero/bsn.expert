@@ -179,7 +179,9 @@ class ApiKeysManager
             'last_used_at' => $last_used_dt ? $last_used_dt->format('Y-m-d H:i:s') : null,
             'last_used_at_ts' => $last_used_dt?->getTimestamp(),
             'last_ip' => $doc->last_ip ?? null,
-            'last_succeed_contacts_sync_at' => (int)(string) $doc->last_succeed_contacts_sync_at,
+            'last_succeed_contacts_sync_at' => isset($doc->last_succeed_contacts_sync_at)
+                ? (int)(string) $doc->last_succeed_contacts_sync_at
+                : null,
         ];
     }
 

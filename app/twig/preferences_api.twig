@@ -78,48 +78,41 @@
 
     {% if keys %}
         {% for key in keys %}
-            <div class="box {% if key.is_new %}has-background-warning-light{% endif %}">
-                <div class="level">
-                    <div class="level-left">
-                        <div>
-                            <p class="title is-4">{{ key.name }}</p>
-                            <p class="subtitle is-family-monospace">
-                                {{ key.display_key }}
-                            </p>
-                            {% if key.show_full %}
-                                <p class="help">{{ 'preferences.api.list.show_full_hint'|trans }}</p>
+            <div class="message {% if key.is_new %}is-primary{% endif %}">
+                <div class="message-header">
+                    <p>{{ key.name }}</p>
+
+                    <form action="/preferences/api" method="post" onsubmit="return confirm('{{ 'preferences.api.list.delete_confirm'|trans }}');" style="margin: 0;">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="key_id" value="{{ key.id }}">
+                        <button class="delete" type="submit" aria-label="delete" title="{{ 'preferences.api.list.delete'|trans }}"></button>
+                    </form>
+                </div>
+                <div class="message-body">
+                    <p class="subtitle is-family-monospace">
+                        {{ key.display_key }}
+                    </p>
+                    {% if key.show_full %}
+                        <p class="block">{{ 'preferences.api.list.show_full_hint'|trans }}</p>
+                    {% endif %}
+                    <div class="tags">
+                        <span class="tag is-primary">{{ 'preferences.api.scopes.contacts'|trans }}</span>
+                        {% for perm, allowed in key.permissions.contacts %}
+                            {% if allowed %}
+                                <span class="tag is-info">{{ ('preferences.api.permissions.' ~ perm)|trans }}</span>
                             {% endif %}
-                            <div class="tags">
-                                <span class="tag is-primary">{{ 'preferences.api.scopes.contacts'|trans }}</span>
-                                {% for perm, allowed in key.permissions.contacts %}
-                                    {% if allowed %}
-                                        <span class="tag is-info">{{ ('preferences.api.permissions.' ~ perm)|trans }}</span>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                            <p class="help">
-                                {{ 'preferences.api.list.created_at'|trans }}: {{ key.created_at ?: '—' }},
-                                {{ 'preferences.api.list.last_used_at'|trans }}:
-                                {% if key.last_used_at %}
-                                    {{ key.last_used_at }}
-                                {% else %}
-                                    {{ 'preferences.api.list.never_used'|trans }}
-                                {% endif %},
-                                {{ 'preferences.api.list.last_ip'|trans }}: {{ key.last_ip ?: '—' }}
-                            </p>
-                        </div>
+                        {% endfor %}
                     </div>
-                    <div class="level-right">
-                        <form action="/preferences/api" method="post" onsubmit="return confirm('{{ 'preferences.api.list.delete_confirm'|trans }}');">
-                            <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="key_id" value="{{ key.id }}">
-                            <button class="button is-small is-danger is-outlined" type="submit" title="{{ 'preferences.api.list.delete'|trans }}">
-                                <span class="icon">
-                                    <i class="fa-solid fa-trash"></i>
-                                </span>
-                            </button>
-                        </form>
-                    </div>
+                    <p class="help">
+                        {{ 'preferences.api.list.created_at'|trans }}: {{ key.created_at ?: '—' }},
+                        {{ 'preferences.api.list.last_used_at'|trans }}:
+                        {% if key.last_used_at %}
+                            {{ key.last_used_at }}
+                        {% else %}
+                            {{ 'preferences.api.list.never_used'|trans }}
+                        {% endif %},
+                        {{ 'preferences.api.list.last_ip'|trans }}: {{ key.last_ip ?: '—' }}
+                    </p>
                 </div>
             </div>
         {% endfor %}
