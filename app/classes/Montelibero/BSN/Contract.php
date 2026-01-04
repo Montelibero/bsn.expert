@@ -12,6 +12,7 @@ class Contract implements \JsonSerializable, \Stringable
     private ?string $url = null;
     private ?string $text = null;
     private ?Contract $NewContract = null;
+    private ?string $source = null;
 
     public function __construct($hash)
     {
@@ -113,5 +114,15 @@ class Contract implements \JsonSerializable, \Stringable
     public function setText(?string $text): void
     {
         $this->text = $text;
+    }
+
+    public function getSource(): ?string
+    {
+        return $this->source;
+    }
+
+    public function setSource(?string $source): void
+    {
+        $this->source = $source;
     }
 }

@@ -52,6 +52,20 @@ function ensureContactsIndexes(Manager $manager, string $database, string $colle
     );
 }
 
+function ensureDocumentsIndexes(Manager $manager, string $database, string $collection = 'documents'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['hash' => 1], 'name' => 'uniq_hash', 'unique' => true],
+                ['key' => ['source' => 1], 'name' => 'idx_source'],
+            ],
+        ])
+    );
+}
+
 function ensureApiKeysIndexes(Manager $manager, string $database, string $collection = 'api_keys'): void
 {
     $manager->executeCommand(
@@ -86,6 +100,7 @@ function ensureSessionsIndexes(Manager $manager, string $database, string $colle
 try {
     ensureUsernamesIndexes($manager, $database);
     ensureContactsIndexes($manager, $database);
+    ensureDocumentsIndexes($manager, $database);
     ensureApiKeysIndexes($manager, $database);
     ensureSessionsIndexes($manager, $database);
     echo "Mongo indexes ensured\n";

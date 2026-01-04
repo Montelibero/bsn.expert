@@ -10,9 +10,11 @@ class SignatureCollection
     private array $signatures = [];
     private array $account_contract_to_signatures = [];
     private array $contract_to_signatures = [];
+    private DocumentsManager $DocumentsManager;
 
-    public function __construct()
+    public function __construct(DocumentsManager $DocumentsManager)
     {
+        $this->DocumentsManager = $DocumentsManager;
         $this->loadContractsData();
     }
 
@@ -89,36 +91,7 @@ class SignatureCollection
 
     public function loadContractsData(): void
     {
-        $key = 'contracts_hashes_data';
-
-        if (apcu_exists($key)) {
-            $data = apcu_fetch($key);
-        } else {
-            $data = [];
-            $grist_response = \gristRequest(
-                'https://montelibero.getgrist.com/api/docs/4ZvHAqR5wB33KedcdjQC1r/tables/Hashes/records',
-                'GET'
-            );
-            $grist_records = [];
-            foreach ($grist_response['records'] as $item) {
-                $grist_records[$item['id']] = $item['fields'];
-            }
-            foreach ($grist_records as $id => $row) {
-                $data_item = [
-                    'hash' => $row['Hash'],
-                    'name' => $row['Name'],
-                    'type' => $row['Type'],
-                    'url' => $row['Document_URL'],
-                    'text' => $row['Document_Text'],
-                    'is_obsolete' => $row['Obsolete'],
-                    'new_hash' => ($row['Obsolete'] && $row['New_version'])
-                        ? $grist_records[$row['New_version']]['Hash']
-                        : null,
-                ];
-                $data[$row['Hash']] = $data_item;
-            }
-            apcu_store($key, $data, 3600);
-        }
+        $data = $this->DocumentsManager->getDocuments();
 
         foreach ($data as $hash => $item) {
             $Contract = $this->makeContract($hash);
@@ -126,6 +99,7 @@ class SignatureCollection
             $Contract->setType($item['type']);
             $Contract->setUrl($item['url']);
             $Contract->setText($item['text']);
+            $Contract->setSource($item['source'] ?? null);
             if ($item['new_hash']) {
                 $Contract->setNewContract($this->makeContract($item['new_hash']));
             }

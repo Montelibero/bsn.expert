@@ -1,11 +1,9 @@
 <?php
-
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
-use Montelibero\BSN\ContactsManager;
 use Montelibero\BSN\Contract;
-use Montelibero\BSN\WebApp;
+use Montelibero\BSN\DocumentsManager;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\StellarSDK;
 use Twig\Environment;
@@ -15,8 +13,9 @@ class DocumentsController
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
+    private DocumentsManager $DocumentsManager;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar)
+    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, DocumentsManager $DocumentsManager)
     {
         $this->BSN = $BSN;
 
@@ -25,6 +24,7 @@ class DocumentsController
         $this->Twig->addGlobal('server', $_SERVER);
         
         $this->Stellar = $Stellar;
+        $this->DocumentsManager = $DocumentsManager;
 
     }
 
@@ -151,5 +151,26 @@ class DocumentsController
         $Template = $this->Twig->load('document_sign.twig');
         $data['document'] = $Hash->jsonSerialize();
         return $Template->render($data);
+    }
+
+    public function UpdateFromGrist(): string
+    {
+        try {
+            $result = $this->DocumentsManager->refreshFromGrist();
+        } catch (\Throwable $E) {
+            SimpleRouter::response()->httpCode(500);
+            SimpleRouter::response()->header('Content-Type', 'application/json; charset=utf-8');
+            return json_encode([
+                'status' => 'error',
+                'message' => $E->getMessage(),
+            ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }
+
+        SimpleRouter::response()->header('Content-Type: application/json; charset=utf-8');
+
+        return json_encode([
+            'status' => 'ok',
+            'updated' => $result['count'],
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 }

@@ -22,12 +22,14 @@ class BSN
     public const IGNORE_MEMBER_TOKENS = 'GDGC46H4MQKRW3TZTNCWUU6R2C7IPXGN7HQLZBJTNQO6TW7ZOS6MSECR';
     private AccountsManager $AccountsManager;
     private ContactsManager $ContactsManager;
+    private DocumentsManager $DocumentsManager;
 
-    public function __construct(AccountsManager $AccountsManager, ContactsManager $ContactsManager)
+    public function __construct(AccountsManager $AccountsManager, ContactsManager $ContactsManager, DocumentsManager $DocumentsManager)
     {
         $this->AccountsManager = $AccountsManager;
         $this->ContactsManager = $ContactsManager;
-        $this->Signatures = new SignatureCollection();
+        $this->DocumentsManager = $DocumentsManager;
+        $this->Signatures = new SignatureCollection($DocumentsManager);
     }
 
     public function loadFromJson(array $json): void

@@ -22,6 +22,7 @@ use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
+use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\MongoSessionHandler;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
@@ -66,7 +67,8 @@ $Memcached->addServer("cache", 11211);
 
 $AccountsManager = new AccountsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME']);
-$BSN = new BSN($AccountsManager, $ContactsManager);
+$DocumentsManager = new DocumentsManager($MongoManager, $_ENV['MONGO_BASENAME']);
+$BSN = new BSN($AccountsManager, $ContactsManager, $DocumentsManager);
 
 $BSN->makeTagByName('Signer')->isEditable(false);
 
@@ -190,6 +192,7 @@ $ContainerBuilder->addDefinitions([
     Manager::class => $MongoManager,
     AccountsManager::class => $AccountsManager,
     ContactsManager::class => $ContactsManager,
+    DocumentsManager::class => $DocumentsManager,
     ApiKeysManager::class => function() use ($MongoManager) {
         return new ApiKeysManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },

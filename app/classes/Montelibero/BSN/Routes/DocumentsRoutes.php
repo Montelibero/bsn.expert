@@ -13,6 +13,9 @@ class DocumentsRoutes
         SimpleRouter::get('/', function () use ($Container) {
             return $Container->get(DocumentsController::class)->Documents();
         });
+        SimpleRouter::get('/update_from_grist', function () use ($Container) {
+            return $Container->get(DocumentsController::class)->UpdateFromGrist();
+        });
         SimpleRouter::get('/{id}', function ($id) use ($Container) {
             return $Container->get(DocumentsController::class)->Document($id);
         })->name('contract');
