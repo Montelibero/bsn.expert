@@ -74,20 +74,27 @@
     </div>
     <div class="navbar-menu">
         <div class="navbar-start">
-            <a class="navbar-item" href="/accounts/">
-                {{ 'nav.accounts'|trans }}
-            </a>
-            <a class="navbar-item" href="/tokens/">
-                {{ 'nav.tokens'|trans }}
-            </a>
-            <!--
-            <a class="navbar-item" href="/transactions/">
-                {{ 'nav.transactions'|trans }}
-            </a>
-            -->
-            <a class="navbar-item" href="/tags/">
-                {{ 'nav.tags'|trans }}
-            </a>
+
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link" href="/accounts/">
+                    {{ 'nav.accounts'|trans }}
+                </a>
+                <div class="navbar-dropdown">
+                    <a class="navbar-item" href="/tags/">
+                        {{ 'nav.tags'|trans }}
+                    </a>
+                    <a class="navbar-item" href="/tokens/">
+                        {{ 'nav.tokens'|trans }}
+                    </a>
+                    <a class="navbar-item" href="/documents/">
+                        {{ 'nav.documents'|trans }}
+                    </a>
+                    <a class="navbar-item" href="/transactions/">
+                        {{ 'nav.transactions'|trans }}
+                    </a>
+                </div>
+            </div>
+
             <a class="navbar-item" href="/editor/">
                 {{ 'nav.editor'|trans }}
             </a>
