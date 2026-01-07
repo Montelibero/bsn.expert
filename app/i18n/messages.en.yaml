@@ -489,6 +489,9 @@ document_page:
   obsolete: This document is marked as obsolete.
   new_version: New version
   text:
+    switcher:
+      original: Original
+      markdown: Markdown
     header: Text of the document
     wrong_hash:
       header: Wrong hash

@@ -484,7 +484,7 @@ documents:
       text_hash_mismatch: Хеш текста не совпадает с хешем документа. Создайте новый документ с этим текстом.
 
 document_page:
-  header: Контракт
+  header: Документ
   account: Аккаунт
   signature_name: Название
   link: Ссылка на документ →
@@ -492,6 +492,9 @@ document_page:
   obsolete: Этот документ отмечен как устаревший.
   new_version: Новая версия
   text:
+    switcher:
+      original: Оригинал
+      markdown: Markdown
     header: Текст документа
     wrong_hash:
       header: Не совпадение хеша

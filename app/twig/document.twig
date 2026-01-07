@@ -2,6 +2,15 @@
 
 {% block title %}{{ document.display_name }} — {{ 'nav.documents'|trans }}{% endblock %}
 
+{% block head %}
+<style>
+    .original_text {
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+</style>
+{% endblock %}
+
 {% block breadcrumbs %}
         <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
         <li><a href="/documents/" aria-current="page">{{ 'nav.documents'|trans }}</a></li>
@@ -19,11 +28,6 @@
         <span class="is-family-monospace">{{ document.hash }}</span>
 </h1>
 
-
-{% if document.url %}
-<p class="block"><a href="{{ document.url }}">{{ 'document_page.link'|trans }}</a></p>
-{% endif %}
-
 {% if document.is_obsolete or new_hash %}
 <article class="message is-warning">
     <div class="message-body">
@@ -38,29 +42,37 @@
 {% endif %}
 
 {% if document.text %}
-    <div class="box">
-        <h2 class="title">{{ 'document_page.text.header'|trans }}</h2>
-        {% if invalid_hash %}
-            <section class="hero is-small is-warning">
-                <div class="hero-body">
-                    <p class="title">{{ 'document_page.text.wrong_hash.header'|trans }}</p>
-                    <p class="subtitle">{{ 'document_page.text.wrong_hash.text'|trans }}<br>
-                        <span class="is-family-monospace">{{ calculated_hash }}</span></p>
-                </div>
-            </section>
-        {% else %}
-            <section class="hero is-small is-success">
-                <div class="hero-body">
-                    <p class="title">{{ 'document_page.text.right_hash.header'|trans }}</p>
-                    <p class="subtitle">{{ 'document_page.text.right_hash.text'|trans }}</p>
-                </div>
-            </section>
+    {% if text_html %}
+    <div class="tabs is-toggle is-small">
+        <ul>
+            <li class="{% if not show_original %}is-active{% endif %}"><a href="{{ page_url }}">{{ 'document_page.text.switcher.markdown'|trans }}</a></li>
+            <li class="{% if show_original %}is-active{% endif %}"><a href="{{ page_url }}?show=original">{{ 'document_page.text.switcher.original'|trans }}</a></li>
+        </ul>
+    </div>
+    {% endif %}
+    <div class="message">
+        <div class="message-header">
+            {{ 'document_page.text.header'|trans }}
+            {% if invalid_hash %}
+                <span class="tag is-warning" title="{{ 'document_page.text.wrong_hash.text'|trans }}">{{ 'document_page.text.wrong_hash.header'|trans }}</span>
+            {% else %}
+                <span class="tag is-success" title="{{ 'document_page.text.right_hash.text'|trans }}">{{ 'document_page.text.right_hash.header'|trans }}</span>
+            {% endif %}
+        </div>
+        <div class="message-body">
+
+        <div class="original_text {% if text_html and not show_original %}is-hidden{% endif %}">{{ document.text }}</div>
+        {% if text_html %}
+        <div class="content {% if show_original %}is-hidden{% endif %}">{{ text_html|raw }}</div>
         {% endif %}
-        <pre>{{ document.text }}</pre>
+
+        </div>
     </div>
 
     {% if session.account.username == "sozidatel" %}
-        <h1 class="title">{{ 'document_sign.sign_preform.name'|trans }}</h1>
+        <h1 class="title">
+            {{ 'document_sign.sign_preform.name'|trans }}123
+        </h1>
         <form action="/documents/{{ document.hash }}/sign" method="get">
             <div class="field">
                 <label class="label" for="account_id">{{ 'editor.stellar_account'|trans }}</label>
@@ -85,6 +97,10 @@
             </div>
         </form>
     {% endif %}
+{% endif %}
+
+{% if document.url %}
+    <p class="block"><a href="{{ document.url }}">{{ 'document_page.link'|trans }}</a></p>
 {% endif %}
 
     <table class="table" data-sortlist="[[0,0],[1,0]]">

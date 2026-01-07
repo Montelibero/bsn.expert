@@ -21,7 +21,8 @@
     "symfony/yaml": "^7.2",
     "php-di/php-di": "^7.0",
     "endroid/qr-code": "^6.0",
-    "chillerlan/php-qrcode": "^5.0"
+    "chillerlan/php-qrcode": "^5.0",
+    "erusev/parsedown": "^1.7"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest"

@@ -5,6 +5,7 @@ use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Contract;
 use Montelibero\BSN\DocumentsManager;
+use Parsedown;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\StellarSDK;
 use Symfony\Component\Translation\Translator;
@@ -117,7 +118,15 @@ class DocumentsController
 
         $Template = $this->Twig->load('document.twig');
         $data = [];
+        $data['page_url'] = SimpleRouter::getUrl('document_page', ['id' => $hash]);
         $data['document'] = $Hash->jsonSerialize();
+        $data['text_like_markdown'] = self::looksLikeMarkdown($Hash->getText());
+        if ($data['text_like_markdown']) {
+            $Parsedown = new Parsedown();
+            $data['text_html'] = $Parsedown->text($Hash->getText());
+        }
+        $data['show_original'] = isset($_GET['show']) && $_GET['show'] === 'original';
+
         if ($NewHash = $Hash->getNewContract()) {
             $data['new_hash'] = $NewHash->jsonSerialize();
         }
@@ -465,4 +474,43 @@ class DocumentsController
 
         return function_exists('mb_strlen') ? mb_strlen($text) : strlen($text);
     }
+
+    public static function looksLikeMarkdown(?string $text): bool
+    {
+        if ($text === null) {
+            return false;
+        }
+
+        // List of common Markdown patterns
+        $patterns = [
+            '/^#{1,6}\s+/m',           // Headings: #, ##, ### ...
+            '/\*\*.+?\*\*/',           // Bold text: **text**
+            '/\*[^*\n]+\*/',           // Italic text: *text*
+            '/`{1,3}.+?`{1,3}/s',      // Inline or block code: `code` or ```code```
+            '/^\s*[-*+]\s+/m',         // Unordered lists: - item, * item
+            '/^\s*\d+\.\s+/m',         // Ordered lists: 1. item
+            '/\[[^\]]+\]\([^)]+\)/',   // Links: [text](url)
+            '/^>\s+/m',                // Blockquotes: > quote
+        ];
+
+        $hits = 0;
+
+        foreach ($patterns as $pattern) {
+            // If this Markdown pattern is found in the text
+            if (preg_match($pattern, $text)) {
+                $hits++;
+            }
+
+            // If we found enough Markdown features,
+            // we can safely assume this is Markdown
+            if ($hits >= 2) {
+                return true;
+            }
+        }
+
+        // Not enough Markdown features found
+        return false;
+    }
+
+
 }
