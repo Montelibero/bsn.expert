@@ -418,9 +418,68 @@ tag_page:
 
 documents:
   description: >
-    Contracts are signatures on certain documents secured in the blockchain. Some of them are widely known, 
-    like public offers of tokens, and some, on the contrary, are private, the contents of which are known 
-    only to those who signed them.
+    Documents are signatures that are fixed in the blockchain under certain entities. Some of them are widely known, such as
+    public token offers, while others are private, whose content is known only to those who signed them.
+  signing_count: Signing count
+  new_version: New version
+  status_obsolete: Obsolete
+  link_to_my: Manage my documents
+  my:
+    title: My documents
+    create: Create new document
+    empty: You have no documents yet.
+    table:
+      name: Name
+      hash: Hash
+      usage: Usages
+      status: Status
+      link: link
+      new_version: New version
+    status:
+      obsolete: Obsolete
+      actual: Actual
+  form:
+    title_add: New document
+    title_edit: Edit document
+    breadcrumbs:
+      add: Add
+      edit: Edit
+    hash:
+      label: SHA256
+      placeholder: 0f5e…
+      help_add: You may leave empty if text is provided — hash will be calculated automatically.
+      help_edit: Hash cannot be changed; create a new document for new text.
+      calculated: "Calculated hash"
+    name:
+      label: Name
+    url:
+      label: Source link
+      placeholder: https://…
+    text:
+      label: Document text
+      placeholder: Paste text to calculate hash
+      help_add: "Optional. If filled, hash will be verified against the text. Limit %limit% chars."
+      help_edit: "Changed text must produce the same hash. Empty text deletes it. Limit %limit% chars."
+    obsolete:
+      label: Document is obsolete
+    new_hash:
+      label: New version hash
+      placeholder: Replacement document hash
+      help: "Optional: hash of the document that replaces the current one"
+    actions:
+      save: Save
+      cancel: Cancel
+    errors:
+      name_required: Please provide a document name.
+      text_too_long: "Text is too long, limit is %limit% characters."
+      url_invalid: URL must be valid.
+      hash_or_text_required: Provide a valid SHA256 or enter text to calculate the hash.
+      hash_invalid: Hash must be a valid SHA256.
+      new_hash_invalid: New version hash must be a valid SHA256.
+      hash_mismatch: Hash does not match the document text.
+      hash_exists: Document with this hash already exists; use editing instead.
+      save_failed: Failed to save the document.
+      text_hash_mismatch: Text hash does not match the document hash. Create a new document with this text.
 
 document_page:
   header: Document
@@ -428,6 +487,9 @@ document_page:
   signature_name: Name
   link: Link to the document →
   link_to_text: Text of the document →
+  obsolete: This document is marked as obsolete.
+  new_version: New version
+  edit_link: Edit document
 
 document_text_page:
   name: Text of the document

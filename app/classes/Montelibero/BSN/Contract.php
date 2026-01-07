@@ -7,12 +7,14 @@ class Contract implements \JsonSerializable, \Stringable
     public const REGEX_SHA256 = '/^[0-9a-f]{64}$/';
 
     public readonly string $hash;
+    public readonly string $hash_short;
     private ?string $name = null;
     private ?string $type = null;
     private ?string $url = null;
     private ?string $text = null;
     private ?Contract $NewContract = null;
     private ?string $source = null;
+    private bool $is_obsolete = false;
 
     public function __construct($hash)
     {
@@ -23,6 +25,7 @@ class Contract implements \JsonSerializable, \Stringable
         }
 
         $this->hash = $hash;
+        $this->hash_short = substr($hash, 0, 6) . '…' . substr($hash, -6);
     }
 
     /**
@@ -52,11 +55,14 @@ class Contract implements \JsonSerializable, \Stringable
     {
         return [
             'hash' => $this->hash,
+            'hash_short' => $this->hash_short,
             'name' => $this->getName(),
             'display_name' => $this->getDisplayName(),
             'type' => $this->getType(),
             'url' => $this->getUrl(),
             'text' => $this->getText(),
+            'is_obsolete' => $this->is_obsolete,
+            'new_hash' => $this->NewContract?->getHash(),
         ];
     }
 
@@ -124,5 +130,15 @@ class Contract implements \JsonSerializable, \Stringable
     public function setSource(?string $source): void
     {
         $this->source = $source;
+    }
+
+    public function isObsolete(): bool
+    {
+        return $this->is_obsolete;
+    }
+
+    public function setIsObsolete(bool $is_obsolete): void
+    {
+        $this->is_obsolete = $is_obsolete;
     }
 }

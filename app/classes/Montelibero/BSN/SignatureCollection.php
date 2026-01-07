@@ -100,6 +100,7 @@ class SignatureCollection
             $Contract->setUrl($item['url']);
             $Contract->setText($item['text']);
             $Contract->setSource($item['source'] ?? null);
+            $Contract->setIsObsolete((bool) ($item['is_obsolete'] ?? false));
             if ($item['new_hash']) {
                 $Contract->setNewContract($this->makeContract($item['new_hash']));
             }

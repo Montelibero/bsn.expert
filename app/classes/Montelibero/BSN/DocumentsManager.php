@@ -7,11 +7,10 @@ use MongoDB\Driver\BulkWrite;
 use MongoDB\Driver\Manager;
 use MongoDB\Driver\Query;
 
+use function gristRequest;
+
 class DocumentsManager
 {
-    private const CACHE_KEY = 'contracts_hashes_data';
-    private const CACHE_TTL = 3600;
-
     private Manager $Mongo;
     private string $database;
     private string $collection = 'documents';
@@ -22,21 +21,14 @@ class DocumentsManager
         $this->database = $database;
     }
 
-    public function getDocuments(): array
+    public function getDocuments(?string $source = null): array
     {
-        if ($this->cacheExists()) {
-            $cached = apcu_fetch(self::CACHE_KEY);
-            if (is_array($cached)) {
-                return $cached;
-            }
-        }
+        $documents = $this->fetchFromDb($source);
 
-        $documents = $this->fetchFromDb();
-        if (empty($documents)) {
-            $documents = $this->refreshFromGrist()['documents'];
+        if (!$source && empty($documents)) {
+            $this->refreshFromGrist()['documents'];
+            $documents = $this->fetchFromDb($source);
         }
-
-        $this->storeCache($documents);
 
         return $documents;
     }
@@ -46,7 +38,7 @@ class DocumentsManager
      */
     public function refreshFromGrist(): array
     {
-        $grist_response = \gristRequest(
+        $grist_response = gristRequest(
             'https://montelibero.getgrist.com/api/docs/4ZvHAqR5wB33KedcdjQC1r/tables/Hashes/records',
             'GET'
         );
@@ -71,9 +63,8 @@ class DocumentsManager
             ];
         }
 
-        $this->clearCache();
         $this->saveDocuments($documents);
-        $this->storeCache($documents);
+        $documents = $this->fetchFromDb();
 
         return [
             'documents' => $documents,
@@ -81,16 +72,45 @@ class DocumentsManager
         ];
     }
 
-    public function clearCache(): void
+    public function getDocument(string $hash): ?array
     {
-        if (function_exists('apcu_delete')) {
-            apcu_delete(self::CACHE_KEY);
-        }
+        $hash = strtolower($hash);
+        $documents = $this->fetchFromDb(null, $hash);
+
+        return $documents[$hash] ?? null;
     }
 
-    private function fetchFromDb(): array
+    public function upsertDocument(array $document): ?array
     {
-        $query = new Query([], ['projection' => ['_id' => 0]]);
+        if (!isset($document['hash'])) {
+            return null;
+        }
+
+        $this->saveDocuments([$document['hash'] => $document]);
+        $documents = $this->fetchFromDb();
+
+        return $documents[$document['hash']] ?? null;
+    }
+
+    private function fetchFromDb(?string $source = null, ?string $hash = null): array
+    {
+        $filter = [];
+        if ($source !== null) {
+            $filter['source'] = $source;
+        }
+        if ($hash !== null) {
+            $filter['hash'] = strtolower($hash);
+        }
+
+        $options = [
+            'projection' => ['_id' => 0],
+            'sort' => ['created_at' => -1, 'updated_at' => -1],
+        ];
+        if ($hash !== null) {
+            $options['limit'] = 1;
+        }
+
+        $query = new Query($filter, $options);
         $cursor = $this->Mongo->executeQuery($this->namespace(), $query);
         $documents = [];
 
@@ -120,18 +140,19 @@ class DocumentsManager
         $Now = new UTCDateTime((int) (microtime(true) * 1000));
         $Bulk = new BulkWrite();
         foreach ($documents as $document) {
+            $document['hash'] = strtolower($document['hash']);
             $Bulk->update(
                 ['hash' => $document['hash']],
                 [
                     '$set' => [
                         'hash' => $document['hash'],
-                        'name' => $document['name'],
-                        'type' => $document['type'],
-                        'url' => $document['url'],
-                        'text' => $document['text'],
-                        'is_obsolete' => $document['is_obsolete'],
-                        'new_hash' => $document['new_hash'],
-                        'source' => $document['source'],
+                        'name' => $document['name'] ?? null,
+                        'type' => $document['type'] ?? null,
+                        'url' => $document['url'] ?? null,
+                        'text' => $document['text'] ?? null,
+                        'is_obsolete' => (bool) ($document['is_obsolete'] ?? false),
+                        'new_hash' => $document['new_hash'] ?? null,
+                        'source' => $document['source'] ?? null,
                         'updated_at' => $Now,
                     ],
                     '$setOnInsert' => [
@@ -150,17 +171,5 @@ class DocumentsManager
     private function namespace(): string
     {
         return sprintf('%s.%s', $this->database, $this->collection);
-    }
-
-    private function cacheExists(): bool
-    {
-        return function_exists('apcu_exists') && apcu_exists(self::CACHE_KEY);
-    }
-
-    private function storeCache(array $documents): void
-    {
-        if (function_exists('apcu_store')) {
-            apcu_store(self::CACHE_KEY, $documents, self::CACHE_TTL);
-        }
     }
 }

@@ -1,0 +1,15 @@
+{% set hash = hash ?: data.hash %}
+{% set name = name ?: data.name %}
+{% set using_count = using_count ?: data.using_count %}
+{% set is_obsolete = is_obsolete ?: data.is_obsolete %}
+{% set new_hash = new_hash ?: data.new_hash %}
+
+{% if name %}{{ name }}<br>{% endif %}
+<a href="/documents/{{ hash }}/" class="is-family-monospace">{{ hash|hash_short }}</a>,
+{{ 'documents.signing_count'|trans }}: {{ using_count }}
+{% if is_obsolete %}<br>
+    <span class="tag is-warning">{{ 'documents.status_obsolete'|trans }}</span>
+    {% if new_hash %}
+        {{ 'documents.new_version'|trans }}: <a href="/documents/{{ new_hash }}/" class="is-family-monospace">{{ new_hash|hash_short }}</a>
+    {% endif %}
+{% endif %}

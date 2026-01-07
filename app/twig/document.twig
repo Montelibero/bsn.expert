@@ -27,6 +27,19 @@
 <p class="block"><a href="/documents/{{ document.hash }}/text">{{ 'document_page.link_to_text'|trans }}</a></p>
 {% endif %}
 
+{% if document.is_obsolete or new_hash %}
+<article class="message is-warning">
+    <div class="message-body">
+        {% if document.is_obsolete %}
+            {{ 'document_page.obsolete'|trans }}
+        {% endif %}
+        {% if new_hash %}
+            {{ 'document_page.new_version'|trans }} <a href="/documents/{{ new_hash.hash }}/" class="is-family-monospace">{{ new_hash.hash|hash_short }}</a>.
+        {% endif %}
+    </div>
+</article>
+{% endif %}
+
 <table class="table" data-sortlist="[[0,0],[1,0]]">
         <thead>
         <tr>
@@ -43,5 +56,11 @@
         {% endfor %}
         </tbody>
 </table>
+
+{% if can_edit %}
+<p class="block">
+    <a href="/documents/{{ document.hash }}/edit" class="xis-link">{{ 'document_page.edit_link'|trans }}</a>
+</p>
+{% endif %}
 
 {% endblock %}

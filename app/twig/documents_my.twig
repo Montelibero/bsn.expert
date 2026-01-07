@@ -1,0 +1,33 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'documents.my.title'|trans }} — {{ 'nav.documents'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/documents/" aria-current="page">{{ 'nav.documents'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'documents.my.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'documents.my.title'|trans }}</h1>
+
+    {% if can_add %}
+        <p class="block">
+            <a class="button is-link is-light" href="/documents/add/">{{ 'documents.my.create'|trans }}</a>
+        </p>
+    {% endif %}
+
+    {% if documents %}
+    <div class="content">
+        <ul>
+            {% for document in documents %}
+                <li>
+                    {{ include('document_item.twig', {data: document}, with_context = false) }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+        <p class="block">{{ 'documents.my.empty'|trans }}</p>
+    {% endif %}
+{% endblock %}

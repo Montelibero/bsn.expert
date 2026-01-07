@@ -1,0 +1,134 @@
+{% extends "page.twig" %}
+
+{% set is_edit = mode == 'edit' %}
+{% set title_text = is_edit ? ('documents.form.title_edit'|trans) : ('documents.form.title_add'|trans) %}
+
+{% block title %}{{ title_text }} — {{ 'nav.documents'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/documents/" aria-current="page">{{ 'nav.documents'|trans }}</a></li>
+    {% if is_edit %}
+        <li><a href="/documents/{{ values.hash }}/" aria-current="page">{{ document_title ?: (values.name ?: values.hash) }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ 'documents.form.breadcrumbs.edit'|trans }}</a></li>
+    {% else %}
+        <li class="is-active"><a href="#" aria-current="page">{{ 'documents.form.breadcrumbs.add'|trans }}</a></li>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ title_text }}</h1>
+
+    {% if errors %}
+        <article class="message is-danger">
+            <div class="message-body">
+                <ul>
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </article>
+    {% endif %}
+
+    <form method="post">
+        <div class="field">
+            <label class="label" for="hash">{{ 'documents.form.hash.label'|trans }}</label>
+            <div class="control">
+                <input
+                    class="input"
+                    type="text"
+                    id="hash"
+                    name="hash"
+                    value="{{ values.hash }}"
+                    maxlength="64"
+                    pattern="[0-9a-fA-F]{64}"
+                    {% if is_edit %}readonly{% endif %}
+                    placeholder="{{ 'documents.form.hash.placeholder'|trans }}"
+                >
+            </div>
+            {% if not is_edit %}
+                <p class="help">{{ 'documents.form.hash.help_add'|trans }}</p>
+            {% else %}
+                <p class="help">{{ 'documents.form.hash.help_edit'|trans }}</p>
+            {% endif %}
+        </div>
+
+        <div class="field">
+            <label class="label" for="name">{{ 'documents.form.name.label'|trans }}</label>
+            <div class="control">
+                <input class="input" type="text" id="name" name="name" value="{{ values.name }}" required>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="url">{{ 'documents.form.url.label'|trans }}</label>
+            <div class="control">
+                <input class="input" type="url" id="url" name="url" value="{{ values.url }}" placeholder="{{ 'documents.form.url.placeholder'|trans }}">
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="text">{{ 'documents.form.text.label'|trans }}</label>
+            <div class="control">
+                <textarea
+                    class="textarea"
+                    id="text"
+                    name="text"
+                    rows="10"
+                    placeholder="{{ 'documents.form.text.placeholder'|trans }}"
+                >{% if values.text is not null %}{{ values.text }}{% endif %}</textarea>
+            </div>
+            <p class="help">
+                {% if is_edit %}
+                    {{ 'documents.form.text.help_edit'|trans({'%limit%': max_text_length}) }}
+                {% else %}
+                    {{ 'documents.form.text.help_add'|trans({'%limit%': max_text_length}) }}
+                {% endif %}
+            </p>
+        </div>
+
+        {% if calculated_hash %}
+            <div class="field">
+                <p class="help">{{ 'documents.form.hash.calculated'|trans }} <span class="is-family-monospace">{{ calculated_hash }}</span></p>
+            </div>
+        {% endif %}
+
+        <div class="field">
+            <label class="checkbox">
+                <input type="checkbox" name="is_obsolete" {% if values.is_obsolete %}checked{% endif %}>
+                {{ 'documents.form.obsolete.label'|trans }}
+            </label>
+        </div>
+
+        <div class="field">
+            <label class="label" for="new_hash">{{ 'documents.form.new_hash.label'|trans }}</label>
+            <div class="control">
+                <input
+                    class="input"
+                    type="text"
+                    id="new_hash"
+                    name="new_hash"
+                    value="{{ values.new_hash }}"
+                    maxlength="64"
+                    pattern="[0-9a-fA-F]{64}"
+                    placeholder="{{ 'documents.form.new_hash.placeholder'|trans }}"
+                >
+            </div>
+            <p class="help">{{ 'documents.form.new_hash.help'|trans }}</p>
+        </div>
+
+        <div class="field is-grouped">
+            <div class="control">
+                <button class="button is-link" type="submit">{{ 'documents.form.actions.save'|trans }}</button>
+            </div>
+            <div class="control">
+                {% if is_edit %}
+                    <a class="button is-text" href="/documents/{{ values.hash }}/">{{ 'documents.form.actions.cancel'|trans }}</a>
+                {% else %}
+                    <a class="button is-text" href="/documents/">{{ 'documents.form.actions.cancel'|trans }}</a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+{% endblock %}
