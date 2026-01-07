@@ -486,19 +486,17 @@ document_page:
   account: Account
   signature_name: Name
   link: Link to the document →
-  link_to_text: Text of the document →
   obsolete: This document is marked as obsolete.
   new_version: New version
+  text:
+    header: Text of the document
+    wrong_hash:
+      header: Wrong hash
+      text: "The SHA-256 hash from this document is not equal to the document hash:"
+    right_hash:
+      header: Right hash
+      text: "The SHA-256 hash from this document is equal to the document hash."
   edit_link: Edit document
-
-document_text_page:
-  name: Text of the document
-  wrong_hash:
-    header: Wrong hash
-    text: "The SHA-256 hash from this document is not equal to the document hash:"
-  right_hash:
-    header: Right hash
-    text: "The SHA-256 hash from this document is equal to the document hash."
 
 mtla_page:
   title: Montelibero Association

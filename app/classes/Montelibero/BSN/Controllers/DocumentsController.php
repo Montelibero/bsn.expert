@@ -129,31 +129,6 @@ class DocumentsController
         return $Template->render($data);
     }
 
-    public function DocumentText(string $hash): ?string
-    {
-        $Hash = null;
-
-        if (Contract::validate($hash)) {
-            $Hash = $this->BSN->getSignatures()->makeContract($hash);
-        }
-
-        if (!$Hash || !$Hash->getText()) {
-            SimpleRouter::response()->httpCode(404);
-            return null;
-        }
-
-        $Template = $this->Twig->load('document_text.twig');
-        $data = [];
-        $data['document'] = $Hash->jsonSerialize();
-        $calculated_hash = hash("sha256", $Hash->getText());
-        if ($calculated_hash !== $Hash->hash) {
-            $data['invalid_hash'] = true;
-            $data['calculated_hash'] = $calculated_hash;
-        }
-        $data['default_id'] = isset($_SESSION['account']) ? $_SESSION['account']['id'] : null;
-        return $Template->render($data);
-    }
-
     public function DocumentSign(string $hash): ?string
     {
         $Hash = null;

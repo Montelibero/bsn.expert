@@ -26,13 +26,13 @@ class DocumentsRoutes
             return $Container->get(DocumentsController::class)->Edit($id);
         });
         SimpleRouter::get('/{id}/text', function ($id) use ($Container) {
-            return $Container->get(DocumentsController::class)->DocumentText($id);
-        })->name('contract_text');
+            SimpleRouter::response()->redirect(SimpleRouter::getUrl('document_page', ['id' => $id]));
+        });
         SimpleRouter::match(['get', 'post'], '/{id}/sign', function ($id) use ($Container) {
             return $Container->get(DocumentsController::class)->DocumentSign($id);
         });
         SimpleRouter::get('/{id}', function ($id) use ($Container) {
             return $Container->get(DocumentsController::class)->Document($id);
-        })->name('contract');
+        })->name('document_page');
     }
 }
