@@ -19,7 +19,7 @@ class DocumentsRoutes
         SimpleRouter::match(['get', 'post'], '/add', function () use ($Container) {
             return $Container->get(DocumentsController::class)->Add();
         });
-        SimpleRouter::get('/update_from_grist', function () use ($Container) {
+        SimpleRouter::match(['get', 'post'], '/update_from_grist', function () use ($Container) {
             return $Container->get(DocumentsController::class)->UpdateFromGrist();
         });
         SimpleRouter::match(['get', 'post'], '/{id}/edit', function ($id) use ($Container) {
