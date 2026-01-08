@@ -1,5 +1,4 @@
 <?php
-
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
@@ -7,7 +6,6 @@ use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\AssetTypeCreditAlphanum;
-use Soneso\StellarSDK\AssetTypeNative;
 use Soneso\StellarSDK\ClawbackOperationBuilder;
 use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\MuxedAccount;
@@ -123,12 +121,6 @@ class MembershipDistributionController
                         $Operation->setSourceAccount($account_main);
                         $operations[] = $Operation->build();
                     }
-
-                    $xlm_amount = $this->getAmountOfXlm($Account);
-                    if ($xlm_amount < 10 && $data['token'] === 'MTLAP') {
-                        $Operation = new PaymentOperationBuilder($data['account'], new AssetTypeNative(), 1);
-                        $operations[] = $Operation->build();
-                    }
                 }
                 $Transaction = new Transaction(
                     $StellarAccount->getMuxedAccount(),
@@ -174,19 +166,6 @@ class MembershipDistributionController
         }
 
         return false;
-    }
-
-    private function getAmountOfXlm(AccountResponse $Account): float
-    {
-        foreach ($Account->getBalances()->toArray() as $Asset) {
-            if (($Asset instanceof AccountBalanceResponse)
-                && $Asset->getAssetType() === Asset::TYPE_NATIVE
-            ) {
-                return (float) $Asset->getBalance();
-            }
-        }
-
-        return .0;
     }
 
     /**
