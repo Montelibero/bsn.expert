@@ -26,8 +26,7 @@ class DocumentsManager
         $documents = $this->fetchFromDb($source);
 
         if (!$source && empty($documents)) {
-            $this->refreshFromGrist()['documents'];
-            $documents = $this->fetchFromDb($source);
+            $this->refreshFromGrist();
         }
 
         return $documents;
@@ -64,7 +63,6 @@ class DocumentsManager
         }
 
         $this->saveDocuments($documents);
-        $documents = $this->fetchFromDb();
 
         return [
             'documents' => $documents,
