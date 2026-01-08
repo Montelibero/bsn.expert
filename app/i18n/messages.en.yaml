@@ -82,6 +82,16 @@ login_manual:
     bad_signature: Problem with the signature. Maybe there are not enough votes, or the wrong key was signed.
 
 preferences:
+  auth:
+    header: Authentication
+    not_logged_in: You are not logged in.
+    logged_in: You are logged in as 
+    login: Login
+    logout: Logout
+  contacts:
+    header: Contacts
+    link_no_cintacts: You have no contacts yet.
+    link_contacts: "Contacts in the contact book: %contacts_count%"
   description: >
     Your preferences that we save in cookies.
   default_viewer:

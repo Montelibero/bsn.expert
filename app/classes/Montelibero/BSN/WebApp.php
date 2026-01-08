@@ -154,7 +154,7 @@ class WebApp
     public function Preferences(): ?string
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $variants = ['this', 'brainbox'];
+            $variants = ['this', 'eurmtl', 'brainbox'];
             $viewer = in_array($_POST['viewer'], $variants) ? $_POST['viewer'] : 'this';
             $time = $viewer === 'this' ? time() - 86400 : time() + (6 * 30 * 24 * 60 * 60); // delete or 6 months
             setcookie(
@@ -173,8 +173,18 @@ class WebApp
         }
 
         $Template = $this->Twig->load('preferences.twig');
+
+        $Account = null;
+        $contacts_count = null;
+        if ($_SESSION['account']['id'] ?? null) {
+            $Account = $this->BSN->makeAccountById($_SESSION['account']['id']);
+            $contacts_count = count(($this->Container->get(ContactsManager::class))->getContacts($_SESSION['account']['id']));
+        }
+
         return $Template->render([
             'current_value' => $this->default_viewer,
+            'account' => $Account ? $Account->jsonSerialize() : [],
+            'contacts_count' => $contacts_count,
         ]);
     }
 }

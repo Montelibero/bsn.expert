@@ -11,6 +11,38 @@
 {% block content %}
     <h1 class="title">{{ 'nav.preferences'|trans }}</h1>
 
+    <h2 class="title">{{ 'preferences.auth.header'|trans }}</h2>
+    {% if session.account %}
+    <p class="block">
+        {{ 'preferences.auth.logged_in'|trans }}
+        {{ include('account_link.twig', {data: account}, with_context = false) -}}
+        {%- if session.account.username %}, @{{ session.account.username }}{% endif %}
+    </p>
+    <p class="block">
+        <a href="/logout" class="button is-danger is-outlined">{{ 'preferences.auth.logout'|trans }}</a>
+    </p>
+    {% else %}
+    <p class="block">
+        {{ 'preferences.auth.not_logged_in'|trans }}<br>
+    </p>
+    <p class="block">
+        <a href="/login?return_to={{ server.REQUEST_URI }}" class="button is-link">{{ 'preferences.auth.login'|trans }}</a>
+    </p>
+    {% endif %}
+
+    {% if session.account %}
+    <h2 class="title">{{ 'preferences.contacts.header'|trans }}</h2>
+    <p class="block">
+        <a href="/contacts" class="button is-link">
+            {% if contacts_count == 0 %}
+            {{ 'preferences.contacts.link_no_cintacts'|trans }}
+            {% else %}
+            {{ 'preferences.contacts.link_contacts'|trans({ '%contacts_count%': contacts_count }) }}
+            {% endif %}
+        </a>
+    </p>
+    {% endif %}
+
     <p class="block">
         {{ 'preferences.description'|trans }}
     </p>
@@ -27,6 +59,7 @@
                 <div class="select">
                     <select id="default_bsn_viewer" name="viewer">
                         <option value="this">bsn.mtla.me</option>
+                        <option value="eurmtl" {% if current_value == 'eurmtl' %}selected{% endif %}>viewer.eurmtl.me</option>
                         <option value="brainbox" {% if current_value == 'brainbox' %}selected{% endif %}>bsn.brainbox.no</option>
                     </select>
                 </div>
@@ -36,10 +69,7 @@
 
         <div class="field is-grouped">
             <div class="control">
-                <input type="submit" class="button is-link" value="Submit">
-            </div>
-            <div class="control">
-                <input type="reset" class="button is-light" value="Reset">
+                <input type="submit" class="button is-primary" value="Submit">
             </div>
         </div>
     </form>

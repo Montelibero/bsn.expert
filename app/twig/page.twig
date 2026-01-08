@@ -65,7 +65,21 @@
         <a class="navbar-item has-background-primary has-text-black" href="/">
             {{ 'common.short_name'|trans }}
         </a>
-        <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
+        {% if session.account %}
+        <a class="navbar-item" href="/preferences">
+            {% if session.account.username %}
+            @{{ session.account.username }}
+            {% else %}
+            {{ session.account.short_id }}
+            {% endif %}
+        </a>
+        {% else %}
+        <a class="navbar-item" href="/login?return_to={{ server.REQUEST_URI }}">
+            <span class="icon"><i class="fa-solid fa-arrow-right-to-bracket"></i></span>
+            {{ 'nav.login'|trans }}
+        </a>
+        {% endif %}
+            <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
             <span aria-hidden="true"></span>
             <span aria-hidden="true"></span>
             <span aria-hidden="true"></span>
@@ -77,6 +91,7 @@
 
             <div class="navbar-item has-dropdown is-hoverable">
                 <a class="navbar-link" href="/accounts/">
+                    <i class="fa-regular fa-rectangle-list"></i>
                     {{ 'nav.accounts'|trans }}
                 </a>
                 <div class="navbar-dropdown">
@@ -96,11 +111,13 @@
             </div>
 
             <a class="navbar-item" href="/editor/">
+                <i class="fa-regular fa-square-check"></i>
                 {{ 'nav.editor'|trans }}
             </a>
 
             <div class="navbar-item has-dropdown is-hoverable">
                 <a class="navbar-link" href="/tools/">
+                    <i class="fa-solid fa-screwdriver"></i>
                     {{ 'nav.tools.title'|trans }}
                 </a>
                 <div class="navbar-dropdown">
@@ -118,6 +135,7 @@
 
             <div class="navbar-item has-dropdown is-hoverable">
                 <a class="navbar-link" href="/mtla">
+                    <i class="fa-regular fa-building"></i>
                     {{ 'nav.mtla'|trans }}
                 </a>
                 <div class="navbar-dropdown">
@@ -131,44 +149,10 @@
             </div>
         </div>
         <div class="navbar-end">
-            {% if session.account %}
-                <div class="navbar-item has-dropdown is-hoverable">
-                    {% if session.account.username %}
-                    <a class="navbar-link" href="/@{{ session.account.username }}">
-                    @{{ session.account.username }}
-                    </a>
-                    {% else %}
-                    <a class="navbar-link" href="/accounts/{{ session.account.id }}">
-                    {{ session.account.short_id }}
-                    </a>
-                        {% endif %}
-                    <div class="navbar-dropdown">
-                        <a class="navbar-item" href="/contacts">
-                            {{ 'nav.contacts'|trans }}
-                        </a>
-                        <a class="navbar-item" href="/editor/{{ session.account.id }}">
-                            {{ 'nav.editor'|trans }}
-                        </a>
-                        <a class="navbar-item" href="/preferences">
-                            {{ 'nav.preferences'|trans }}
-                        </a>
-                        <hr class="navbar-divider">
-                        <a class="navbar-item" href="/logout?return_to={{ server.REQUEST_URI }}">
-                            {{ 'nav.logout'|trans }}
-                        </a>
-                    </div>
-                </div>
-            {% else %}
-            <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link" href="/login?return_to={{ server.REQUEST_URI }}">
-                    {{ 'nav.login'|trans }}
-                </a>
-                <div class="navbar-dropdown">
-                    <a class="navbar-item" href="/preferences">
-                        {{ 'nav.preferences'|trans }}
-                    </a>
-                </div>
-            {% endif %}
+            <a class="navbar-item" href="/preferences">
+                <i class="fa-solid fa-gears"></i>
+                {{ 'nav.preferences'|trans }}
+            </a>
         </div>
     </div>
 </nav>

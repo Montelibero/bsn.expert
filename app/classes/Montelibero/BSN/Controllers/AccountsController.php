@@ -157,13 +157,12 @@ class AccountsController
             return null;
         }
 
-        if ($this->default_viewer === 'brainbox'
-            && (
-                !isset($_SERVER['HTTP_REFERER'])
-                || !str_contains($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST'])
-            )
-        ) {
-            SimpleRouter::response()->redirect('https://bsn.brainbox.no/accounts/' . $Account->getId(), 302);
+        if (!isset($_SERVER['HTTP_REFERER']) || !str_contains($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST'])) {
+            if ($this->default_viewer === 'eurmtl') {
+                SimpleRouter::response()->redirect('https://viewer.eurmtl.me/account/' . $Account->getId(), 302);
+            } elseif ($this->default_viewer === 'brainbox') {
+                SimpleRouter::response()->redirect('https://bsn.brainbox.no/accounts/' . $Account->getId(), 302);
+            }
         }
 
         $is_contact = false;
