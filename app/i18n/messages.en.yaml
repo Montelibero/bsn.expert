@@ -98,6 +98,9 @@ preferences:
     header: Default BSN viewer
     description: >
       The choice of default viewer that will open when navigating to a direct account page link.
+  default_language:
+    header: Default language
+    description: The choice of default language that will be used on the site.
   api:
     title: API keys
     description: >

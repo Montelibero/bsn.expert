@@ -5,6 +5,7 @@ use DI\Container;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\TokensController;
 use Pecee\SimpleRouter\SimpleRouter;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 class WebApp
@@ -154,14 +155,29 @@ class WebApp
     public function Preferences(): ?string
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $time = time() + (6 * 30 * 24 * 60 * 60); // 6 months
             $variants = ['this', 'eurmtl', 'brainbox'];
-            $viewer = in_array($_POST['viewer'], $variants) ? $_POST['viewer'] : 'this';
-            $time = $viewer === 'this' ? time() - 86400 : time() + (6 * 30 * 24 * 60 * 60); // delete or 6 months
+            $viewer = in_array($_POST['viewer'], $variants) ? $_POST['viewer'] : '';
             setcookie(
                 'default_viewer',
                 $viewer,
                 [
-                    "expires" => $time,
+                    "expires" => $time * ($viewer ? 1 : -1),
+                    "path" => "/",
+                    "domain" => "",
+                    "secure" => true,
+                    "httponly" => true,
+                    "samesite" => "Strict"
+                ]
+            );
+            // Language
+            $variants = ['en', 'ru'];
+            $language = in_array($_POST['language'], $variants) ? $_POST['language'] : '';
+            setcookie(
+                'language',
+                $language,
+                [
+                    "expires" => $time * ($language ? 1 : -1),
                     "path" => "/",
                     "domain" => "",
                     "secure" => true,
@@ -183,6 +199,7 @@ class WebApp
 
         return $Template->render([
             'current_value' => $this->default_viewer,
+            'current_language' => $this->Container->get(Translator::class)->getLocale(),
             'account' => $Account ? $Account->jsonSerialize() : [],
             'contacts_count' => $contacts_count,
         ]);

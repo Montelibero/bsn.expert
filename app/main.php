@@ -202,6 +202,7 @@ $ContainerBuilder->addDefinitions([
         if (stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false) {
             $locale = 'ru';
         }
+        $locale = $_COOKIE['language'] ?? $locale;
         $translator = new Translator($locale);
         $translator->addLoader('yaml', new YamlFileLoader());
         $translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');

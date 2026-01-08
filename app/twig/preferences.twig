@@ -66,6 +66,18 @@
             </div>
             <p class="help">{{ 'preferences.default_viewer.description'|trans }}</p>
         </div>
+        <div class="field">
+            <label class="label" for="default_language">{{ 'preferences.default_language.header'|trans }}</label>
+            <div class="control">
+                <div class="select">
+                    <select id="default_language" name="language">
+                        <option value="en" {% if current_language == 'en' %}selected{% endif %}>English</option>
+                        <option value="ru" {% if current_language == 'ru' %}selected{% endif %}>Russian</option>
+                    </select>
+                </div>
+            </div>
+            <p class="help">{{ 'preferences.default_language.description'|trans }}</p>
+        </div>
 
         <div class="field is-grouped">
             <div class="control">

@@ -97,6 +97,9 @@ preferences:
   default_viewer:
     header: Вьювер по умолчанию
     description: Выбор вьювера по умолчанию, который будет открыт при переходе по прямой ссылке на страницу аккаунта.
+  default_language:
+    header: Язык по умолчанию
+    description: Выбор языка по умолчанию, который будет использоваться на сайте.
   api:
     title: API ключи
     description: >
