@@ -58,7 +58,7 @@
             <div class="control">
                 <div class="select">
                     <select id="default_bsn_viewer" name="viewer">
-                        <option value="this">bsn.mtla.me</option>
+                        <option value="this">bsn.expert</option>
                         <option value="eurmtl" {% if current_value == 'eurmtl' %}selected{% endif %}>viewer.eurmtl.me</option>
                         <option value="brainbox" {% if current_value == 'brainbox' %}selected{% endif %}>bsn.brainbox.no</option>
                     </select>
@@ -81,7 +81,7 @@
 
         <div class="field is-grouped">
             <div class="control">
-                <input type="submit" class="button is-primary" value="Submit">
+                <input type="submit" class="button is-primary" value="{{ 'preferences.save'|trans }}">
             </div>
         </div>
     </form>

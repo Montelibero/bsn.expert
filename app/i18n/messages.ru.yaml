@@ -100,6 +100,7 @@ preferences:
   default_language:
     header: Язык по умолчанию
     description: Выбор языка по умолчанию, который будет использоваться на сайте.
+  save: Сохранить
   api:
     title: API ключи
     description: >

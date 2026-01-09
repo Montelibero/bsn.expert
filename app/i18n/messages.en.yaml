@@ -101,6 +101,7 @@ preferences:
   default_language:
     header: Default language
     description: The choice of default language that will be used on the site.
+  save: Save
   api:
     title: API keys
     description: >
