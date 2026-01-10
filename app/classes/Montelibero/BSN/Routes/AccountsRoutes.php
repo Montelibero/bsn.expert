@@ -30,7 +30,7 @@ class AccountsRoutes
         })->name('account_operations');
         SimpleRouter::get('/{id}', function ($id) use ($Container) {
             if ($username = $Container->get(AccountsManager::class)->fetchUsername($id)) {
-                SimpleRouter::response()->redirect('/@' . $username);
+                SimpleRouter::response()->redirect('/@' . $username . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : ''));
             }
             return $Container->get(AccountsController::class)->Account($id);
         })->name('account');
