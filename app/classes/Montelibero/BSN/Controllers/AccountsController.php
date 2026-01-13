@@ -291,6 +291,7 @@ class AccountsController
 
         $timetoken = null;
         if ($code = $Account->getProfileSingleItem('TimeTokenCode')) {
+            $timetoken = [];
             $timetoken['code'] = $code;
             if ($tt_issuers = $Account->getOutcomeLinks($this->BSN->makeTagByName('TimeTokenIssuer'))) {
                 $timetoken['issuer'] = $tt_issuers[0]->getId();
@@ -298,6 +299,12 @@ class AccountsController
                 $timetoken['issuer'] = $Account->getId();
             }
             $timetoken['is_known'] = $TokensController->shortKnownTokenKey($code . '-' . $timetoken['issuer']) === $code;
+        }
+        $nostr = null;
+        if (($nostr_tag = $Account->getProfileSingleItem('Nostr'))
+            && ($nostr = $this->validateNostrNpub($nostr_tag))
+        ) {
+            $nostr = $nostr_tag;
         }
         $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
@@ -313,6 +320,7 @@ class AccountsController
             'about' => $Account->getAbout(),
             'website' => array_values(array_filter(array_map(self::normalizeURL(...), $Account->getWebsite()))),
             'timetoken' => $timetoken,
+            'nostr' => $nostr,
             'bsn_score' => $Account->calcBsnScore(),
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,
@@ -618,5 +626,13 @@ class AccountsController
         }
 
         return false;
+    }
+
+    private function validateNostrNpub(?string $nostr_tag): bool
+    {
+        if (!$nostr_tag) {
+            return false;
+        }
+        return preg_match('/^npub1[023456789acdefghjklmnpqrstuvwxyz]{58}$/', $nostr_tag) === 1;
     }
 }
