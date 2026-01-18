@@ -2,9 +2,11 @@
 
 namespace Montelibero\BSN\Controllers;
 
+use DI\Container;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
+use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -22,9 +24,15 @@ class EditorController
     private Environment $Twig;
     private StellarSDK $Stellar;
     private ContactsManager $ContactsManager;
+    private Container $Container;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, ContactsManager $ContactsManager)
-    {
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        StellarSDK $Stellar,
+        ContactsManager $ContactsManager,
+        Container $Container,
+    ) {
         $this->BSN = $BSN;
 
         $this->Twig = $Twig;
@@ -33,6 +41,7 @@ class EditorController
 
         $this->Stellar = $Stellar;
         $this->ContactsManager = $ContactsManager;
+        $this->Container = $Container;
     }
 
     public function EditorForm(): string
@@ -62,7 +71,7 @@ class EditorController
 
         $Template = $this->Twig->load('editor_form.twig');
         return $Template->render([
-            'default_id' => $_GET['id'] ?? $_SESSION['account']['id'] ?? '',
+            'default_id' => $_GET['id'] ?? $this->Container->get(CurrentUser::class)->getCurrentAccountId() ?? '',
             'single_tag' => $single_tag,
             'single_contact' => $single_contact,
         ]);

@@ -18,8 +18,10 @@
            href="/contacts/{{ account_id }}"
            title="{% if is_contact  %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}"
         ><span class="icon"><i class="fa-regular fa-address-book"></i></span></a>
+        {% endif %}
+        {% if current_user.currentAccountId %}
         <a class="button is-outlined is-primary"
-           href="/editor/{{ current_user.account.id }}/?id={{ account_id }}"
+           href="/editor/{{ current_user.currentAccountId }}/?id={{ account_id }}"
            title="{{ 'account_page.edit_button'|trans }}"
         ><span class="icon"><i class="fa-regular fa-square-check"></i></span></a>
         {% endif %}
