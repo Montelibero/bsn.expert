@@ -4,7 +4,6 @@ namespace Montelibero\BSN\Controllers;
 use DateInterval;
 use DateTime;
 use DI\Container;
-use GuzzleHttp\Client;
 use Memcached;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Relations\Member;

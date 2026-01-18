@@ -22,6 +22,7 @@ use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
+use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\MongoSessionHandler;
 use Montelibero\BSN\Routes\RootRoutes;
@@ -183,6 +184,7 @@ $BSN->loadMtlaMembersFromJson($mtla_members);
 $BSN->loadContacts();
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
+$CurrentUser = new CurrentUser($_SESSION, $BSN);
 
 $ContainerBuilder = new ContainerBuilder();
 $ContainerBuilder->addDefinitions([
@@ -193,6 +195,7 @@ $ContainerBuilder->addDefinitions([
     AccountsManager::class => $AccountsManager,
     ContactsManager::class => $ContactsManager,
     DocumentsManager::class => $DocumentsManager,
+    CurrentUser::class => $CurrentUser,
     ApiKeysManager::class => function() use ($MongoManager) {
         return new ApiKeysManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },
@@ -212,13 +215,14 @@ $ContainerBuilder->addDefinitions([
         return $translator;
     },
 
-    Environment::class => function(Container $container) {
+    Environment::class => function(Container $container) use ($CurrentUser) {
         $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'));
         $twig->addExtension(new TwigExtension());
         $twig->addExtension(new TranslationExtension($container->get(Translator::class)));
         $twig->addExtension(new TwigPluralizeExtension($container->get(Translator::class)));
         $twig->addGlobal('session', $_SESSION);
         $twig->addGlobal('server', $_SERVER);
+        $twig->addGlobal('current_user', $CurrentUser);
 
         return $twig;
     },

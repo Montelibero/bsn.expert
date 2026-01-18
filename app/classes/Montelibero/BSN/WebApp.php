@@ -4,6 +4,7 @@ namespace Montelibero\BSN;
 use DI\Container;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\TokensController;
+use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
@@ -13,6 +14,7 @@ class WebApp
     private BSN $BSN;
     private AccountsManager $AccountsManager;
     private Environment $Twig;
+    private CurrentUser $CurrentUser;
 
     public static array $sort_tags_example = [
         'Friend',
@@ -47,8 +49,13 @@ class WebApp
     private ?string $default_viewer = null;
     private Container $Container;
 
-    public function __construct(BSN $BSN, AccountsManager $AccountsManager, Environment $Twig, Container $Container)
-    {
+    public function __construct(
+        BSN $BSN,
+        AccountsManager $AccountsManager,
+        Environment $Twig,
+        Container $Container,
+        CurrentUser $CurrentUser,
+    ) {
         $this->BSN = $BSN;
         $this->AccountsManager = $AccountsManager;
 
@@ -58,6 +65,7 @@ class WebApp
 
 
         $this->Container = $Container;
+        $this->CurrentUser = $CurrentUser;
 
         if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
             $this->default_viewer = $_COOKIE['default_viewer'];
@@ -154,10 +162,18 @@ class WebApp
 
     public function Preferences(): ?string
     {
+        $Translator = $this->Container->get(Translator::class);
+
+        $current_account_error = null;
+        $current_account_value = $this->CurrentUser->getCurrentAccountId();
+        $current_account_input_value = $this->CurrentUser->isAuthorized() ? '' : $current_account_value;
+        $current_language = $Translator->getLocale();
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $time = time() + (6 * 30 * 24 * 60 * 60); // 6 months
             $variants = ['this', 'eurmtl', 'brainbox'];
             $viewer = in_array($_POST['viewer'], $variants) ? $_POST['viewer'] : '';
+            $this->default_viewer = $viewer;
             setcookie(
                 'default_viewer',
                 $viewer,
@@ -173,6 +189,7 @@ class WebApp
             // Language
             $variants = ['en', 'ru'];
             $language = in_array($_POST['language'], $variants) ? $_POST['language'] : '';
+            $current_language = $language ?: $current_language;
             setcookie(
                 'language',
                 $language,
@@ -185,23 +202,129 @@ class WebApp
                     "samesite" => "Strict"
                 ]
             );
-            SimpleRouter::response()->redirect('/preferences', 302);
+
+            $posted_input = trim((string) ($_POST['current_account_id'] ?? ''));
+            $posted_radio = trim((string) ($_POST['current_account_radio'] ?? ''));
+            $current_account_input = strtoupper($posted_input);
+            if ($current_account_input === '') {
+                $current_account_input = $posted_radio;
+            }
+
+            if ($current_account_input === '') {
+                $this->CurrentUser->setCurrentAccountId(null);
+                $current_account_value = $this->CurrentUser->getCurrentAccountId();
+            } elseif (!$this->CurrentUser->setCurrentAccountId($current_account_input)) {
+                $current_account_error = $Translator->trans('preferences.current_account.errors.invalid_account_id');
+                $current_account_value = $current_account_input;
+                $current_account_input_value = $current_account_input;
+            } else {
+                $current_account_value = $this->CurrentUser->getCurrentAccountId();
+                if ($this->CurrentUser->isAuthorized()) {
+                    $current_account_input_value = '';
+                } else {
+                    $current_account_input_value = $current_account_value;
+                }
+            }
+
+            if ($current_account_error === null) {
+                SimpleRouter::response()->redirect('/preferences', 302);
+            }
         }
 
         $Template = $this->Twig->load('preferences.twig');
 
         $Account = null;
         $contacts_count = null;
-        if ($_SESSION['account']['id'] ?? null) {
-            $Account = $this->BSN->makeAccountById($_SESSION['account']['id']);
-            $contacts_count = count(($this->Container->get(ContactsManager::class))->getContacts($_SESSION['account']['id']));
+        $account_id = $this->CurrentUser->getAccountId();
+        if ($account_id) {
+            $Account = $this->BSN->makeAccountById($account_id);
+            $contacts_count = count(($this->Container->get(ContactsManager::class))->getContacts($account_id));
         }
+
+        $current_account_options = $this->buildCurrentAccountOptions();
+
+        $this->Twig->addGlobal('session', $_SESSION);
 
         return $Template->render([
             'current_value' => $this->default_viewer,
-            'current_language' => $this->Container->get(Translator::class)->getLocale(),
+            'current_language' => $current_language,
             'account' => $Account ? $Account->jsonSerialize() : [],
             'contacts_count' => $contacts_count,
+            'current_account_value' => $current_account_value,
+            'current_account_input_value' => $current_account_input_value,
+            'current_account_options' => $current_account_options,
+            'current_account_error' => $current_account_error,
         ]);
+    }
+
+    private function buildCurrentAccountOptions(): array
+    {
+        $options = [];
+        if (!$this->CurrentUser->isAuthorized()) {
+            return $options;
+        }
+
+        $account_id = $this->CurrentUser->getAccountId();
+        if ($account_id) {
+            $Account = $this->BSN->makeAccountById($account_id);
+            $options[$account_id] = array_merge(
+                $Account->jsonSerialize(),
+                ['source' => 'self']
+            );
+        }
+
+        foreach ($this->getOwnedAccounts($account_id) as $Account) {
+            $options[$Account->getId()] = array_merge(
+                $Account->jsonSerialize(),
+                ['source' => 'owned']
+            );
+        }
+
+        foreach ($this->CurrentUser->getCurrentAccountHistory() as $history_account_id) {
+            if (!BSN::validateStellarAccountIdFormat($history_account_id)) {
+                continue;
+            }
+            if (array_key_exists($history_account_id, $options)) {
+                continue;
+            }
+            $Account = $this->BSN->makeAccountById($history_account_id);
+            $options[$history_account_id] = array_merge(
+                $Account->jsonSerialize(),
+                ['source' => 'history']
+            );
+        }
+
+        return array_values($options);
+    }
+
+    private function getOwnedAccounts(?string $owner_id): array
+    {
+        if (!$owner_id) {
+            return [];
+        }
+
+        $OwnerTag = Tag::fromName('Owner');
+        $OwnershipFullTag = Tag::fromName('OwnershipFull');
+        $owned = [];
+        foreach ($this->BSN->getAccounts() as $Account) {
+            $owners = $Account->getOutcomeLinks($OwnerTag);
+            if (count($owners) !== 1) {
+                continue;
+            }
+
+            $Owner = $owners[0];
+            if ($Owner->getId() !== $owner_id || $Account->getId() === $owner_id) {
+                continue;
+            }
+
+            foreach ($Owner->getOutcomeLinks($OwnershipFullTag) as $OutcomeLink) {
+                if ($OutcomeLink->getId() === $Account->getId()) {
+                    $owned[$Account->getId()] = $Account;
+                    break;
+                }
+            }
+        }
+
+        return array_values($owned);
     }
 }

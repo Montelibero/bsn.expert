@@ -65,21 +65,31 @@
         <a class="navbar-item has-background-primary has-text-black" href="/">
             {{ 'common.short_name'|trans }}
         </a>
-        {% if session.account %}
+        {% set current_account %}
+        {% set current_id = current_user.currentAccountId %}
+        {% set auth_id = current_user.account.id %}
+        {% if current_id and current_id != auth_id %}
+            <span class="tag is-info">{{ current_user.getCurrentAccount.getShortId }}</span>
+        {% endif %}
+        {% endset %}
+
+        {% if current_user.account %}
         <a class="navbar-item" href="/preferences">
-            {% if session.account.username %}
-            @{{ session.account.username }}
+            {% if current_user.account.username %}
+            @{{ current_user.account.username }}
             {% else %}
-            {{ session.account.short_id }}
+            {{ current_user.account.short_id }}
             {% endif %}
+            {{ current_account }}
         </a>
         {% else %}
         <a class="navbar-item" href="/login?return_to={{ server.REQUEST_URI }}">
             <span class="icon"><i class="fa-solid fa-arrow-right-to-bracket"></i></span>
             {{ 'nav.login'|trans }}
+            {{ current_account }}
         </a>
         {% endif %}
-            <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
+        <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
             <span aria-hidden="true"></span>
             <span aria-hidden="true"></span>
             <span aria-hidden="true"></span>

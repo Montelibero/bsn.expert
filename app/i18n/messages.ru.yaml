@@ -92,6 +92,19 @@ preferences:
     header: Контакты
     link_no_cintacts: У вас пока нет контактов.
     link_contacts: "Контактов в записной книжке: %contacts_count%"
+  current_account:
+    header: Текущий аккаунт
+    description: Выберите адрес, от имени которого сейчас используете сайт.
+    choose: Быстрый выбор
+    radio_hint: Можно выбрать вариант выше или указать другой адрес ниже.
+    input_label: Указать другой аккаунт
+    input_hint: Стеллар-адрес, начинающийся на G
+    tags:
+      self: Вы
+      owned: Владею
+      history: Использовал раньше
+    errors:
+      invalid_account_id: Тут ожидается корректный Stellar-адрес (56 символов, начинается на G).
   description: >
     Настройки, которые мы сохраняем в куках чтобы учитывать ваши предпочтения.
   default_viewer:

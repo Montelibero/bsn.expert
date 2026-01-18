@@ -12,14 +12,12 @@
     <h1 class="title">{{ 'nav.preferences'|trans }}</h1>
 
     <h2 class="title">{{ 'preferences.auth.header'|trans }}</h2>
-    {% if session.account %}
+    {% if current_user.account %}
     <p class="block">
         {{ 'preferences.auth.logged_in'|trans }}
         {{ include('account_link.twig', {data: account}, with_context = false) -}}
-        {%- if session.account.username %}, @{{ session.account.username }}{% endif %}
-    </p>
-    <p class="block">
-        <a href="/logout" class="button is-danger is-outlined">{{ 'preferences.auth.logout'|trans }}</a>
+        {%- if current_user.account.username %}, @{{ current_user.account.username }}{% endif -%}
+            , <a href="/logout" class="button is-danger is-outlined is-small">{{ 'preferences.auth.logout'|trans }}</a>
     </p>
     {% else %}
     <p class="block">
@@ -30,29 +28,69 @@
     </p>
     {% endif %}
 
-    {% if session.account %}
-    <h2 class="title">{{ 'preferences.contacts.header'|trans }}</h2>
-    <p class="block">
-        <a href="/contacts" class="button is-link">
-            {% if contacts_count == 0 %}
-            {{ 'preferences.contacts.link_no_cintacts'|trans }}
-            {% else %}
-            {{ 'preferences.contacts.link_contacts'|trans({ '%contacts_count%': contacts_count }) }}
-            {% endif %}
-        </a>
-    </p>
-    {% endif %}
-
-    <p class="block">
-        {{ 'preferences.description'|trans }}
-    </p>
-    <!--
-    <p class="block">
-        <a class="button is-link is-light" href="/preferences/api">{{ 'preferences.api.title'|trans }}</a>
-    </p>
-    -->
-
     <form action="/preferences" method="post">
+        <h2 class="title">{{ 'preferences.current_account.header'|trans }}</h2>
+        <p class="block">
+            {{ 'preferences.current_account.description'|trans }}
+        </p>
+
+        {% if current_account_options %}
+        <div class="field">
+            <label class="label">{{ 'preferences.current_account.choose'|trans }}</label>
+            <div class="control">
+                {% for option in current_account_options %}
+                <div class="block">
+                    <label class="radio">
+                        <input type="radio" name="current_account_radio" value="{{ option.id }}" {% if option.id == current_account_value %}checked{% endif %}>
+                        {{ include('account_link.twig', {data: option}, with_context = false) -}}
+                        {% if option.source == 'self' %}
+                        <span class="tag is-info">{{ 'preferences.current_account.tags.self'|trans }}</span>
+                        {% elseif option.source == 'owned' %}
+                        <span class="tag">{{ 'preferences.current_account.tags.owned'|trans }}</span>
+                        {% elseif option.source == 'history' %}
+                        <span class="tag">{{ 'preferences.current_account.tags.history'|trans }}</span>
+                        {% endif %}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            <p class="help">{{ 'preferences.current_account.radio_hint'|trans }}</p>
+        </div>
+        {% endif %}
+
+        <div class="field">
+            <label class="label" for="current_account_id">{{ 'preferences.current_account.input_label'|trans }}</label>
+            <div class="control">
+                <input class="input" type="text" id="current_account_id" name="current_account_id" value="{{ current_account_input_value }}" placeholder="G...">
+            </div>
+            {% if current_account_error %}
+            <p class="help is-danger">{{ current_account_error }}</p>
+            {% endif %}
+            <p class="help">{{ 'preferences.current_account.input_hint'|trans }}</p>
+        </div>
+
+        {% if current_user.account %}
+        <h2 class="title">{{ 'preferences.contacts.header'|trans }}</h2>
+        <p class="block">
+            <a href="/contacts" class="button is-link">
+                {% if contacts_count == 0 %}
+                {{ 'preferences.contacts.link_no_cintacts'|trans }}
+                {% else %}
+                {{ 'preferences.contacts.link_contacts'|trans({ '%contacts_count%': contacts_count }) }}
+                {% endif %}
+            </a>
+        </p>
+        {% endif %}
+
+        <p class="block">
+            {{ 'preferences.description'|trans }}
+        </p>
+        <!--
+        <p class="block">
+            <a class="button is-link is-light" href="/preferences/api">{{ 'preferences.api.title'|trans }}</a>
+        </p>
+        -->
+
         <div class="field">
             <label class="label" for="default_bsn_viewer">{{ 'preferences.default_viewer.header'|trans }}</label>
             <div class="control">

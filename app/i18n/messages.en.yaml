@@ -92,6 +92,19 @@ preferences:
     header: Contacts
     link_no_cintacts: You have no contacts yet.
     link_contacts: "Contacts in the contact book: %contacts_count%"
+  current_account:
+    header: Current account
+    description: Choose which Stellar account you are acting as right now.
+    choose: Quick pick
+    radio_hint: Pick an account above or type another one below.
+    input_label: Custom current account
+    input_hint: Stellar account ID starting with G
+    tags:
+      self: You
+      owned: Owned
+      history: Used before
+    errors:
+      invalid_account_id: This should be a valid Stellar account ID (starts with G and has 56 characters).
   description: >
     Your preferences that we save in cookies.
   default_viewer:
