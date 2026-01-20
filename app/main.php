@@ -3,6 +3,8 @@
 use DI\Container;
 use DI\ContainerBuilder;
 use MongoDB\Driver\WriteConcern;
+use MongoDB\Driver\Command;
+use MongoDB\Driver\Exception\Exception as MongoException;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\ApiKeysManager;
 use Montelibero\BSN\BSN;
@@ -48,27 +50,82 @@ const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
 
 //$memory1 = memory_get_usage();
 
-$MongoManager = new Manager(
-    sprintf(
-        'mongodb://%s:%s@%s:%s/?authSource=%s',
-        $_ENV['MONGO_ROOT_USERNAME'],
-        $_ENV['MONGO_ROOT_PASSWORD'],
-        $_ENV['MONGO_HOST'],
-        $_ENV['MONGO_PORT'],
-        $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
-    ),
-    [],
-    [
-        'writeConcern' => new WriteConcern(1, 1000, false),
-    ]
-);
+$is_read_only_mode = false;
+$primary_down_key = 'mongo_primary_down';
+
+// Check if primary is known to be down
+if (apcu_exists($primary_down_key)) {
+    $is_read_only_mode = true;
+} else {
+    try {
+        // Try connecting to primary
+        $MongoManager = new Manager(
+            sprintf(
+                'mongodb://%s:%s@%s:%s/?authSource=%s',
+                $_ENV['MONGO_ROOT_USERNAME'],
+                $_ENV['MONGO_ROOT_PASSWORD'],
+                $_ENV['MONGO_HOST'],
+                $_ENV['MONGO_PORT'],
+                $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
+            ),
+            [
+                'serverSelectionTimeoutMS' => 2000,
+            ],
+            [
+                'writeConcern' => new WriteConcern(1, 1000, false),
+            ]
+        );
+        // Ping to verify connection
+        $MongoManager->executeCommand('admin', new Command(['ping' => 1]));
+    } catch (MongoException $e) {
+        // Primary is down
+        apcu_store($primary_down_key, true, 120); // Remember for 2 minutes
+        $is_read_only_mode = true;
+    }
+}
+
+if ($is_read_only_mode) {
+    if (isset($_ENV['MONGO_LOCAL_HOST'])) {
+        $MongoManager = new Manager(
+            sprintf(
+                'mongodb://%s:%s@%s:%s/?authSource=%s',
+                $_ENV['MONGO_ROOT_USERNAME'],
+                $_ENV['MONGO_ROOT_PASSWORD'],
+                $_ENV['MONGO_LOCAL_HOST'],
+                $_ENV['MONGO_LOCAL_PORT'] ?? '27017',
+                $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
+            ),
+            [],
+            [
+                'writeConcern' => new WriteConcern(1, 1000, false),
+            ]
+        );
+    } elseif (!isset($MongoManager)) {
+        // If no local replica and primary failed, we can't do much but re-throw or let it fail later
+        // But for now let's assume if we are here and MongoManager is not set, we try to reconnect to primary to let it throw exception
+         $MongoManager = new Manager(
+            sprintf(
+                'mongodb://%s:%s@%s:%s/?authSource=%s',
+                $_ENV['MONGO_ROOT_USERNAME'],
+                $_ENV['MONGO_ROOT_PASSWORD'],
+                $_ENV['MONGO_HOST'],
+                $_ENV['MONGO_PORT'],
+                $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
+            ),
+            [],
+            [
+                'writeConcern' => new WriteConcern(1, 1000, false),
+            ]
+        );
+    }
+}
 
 $Memcached = new Memcached();
 $Memcached->addServer("cache", 11211);
 
-$AccountsManager = new AccountsManager($MongoManager, $_ENV['MONGO_BASENAME']);
-$ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME']);
-$DocumentsManager = new DocumentsManager($MongoManager, $_ENV['MONGO_BASENAME']);
+$AccountsManager = new AccountsManager($MongoManager, $_ENV['MONGO_BASENAME'], $is_read_only_mode);
+$ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME'], $is_read_only_mode);
+$DocumentsManager = new DocumentsManager($MongoManager, $_ENV['MONGO_BASENAME'], $is_read_only_mode);
 $BSN = new BSN($AccountsManager, $ContactsManager, $DocumentsManager);
 
 $BSN->makeTagByName('Signer')->isEditable(false);
@@ -216,6 +273,7 @@ $ContainerBuilder->addDefinitions([
     },
 
     Environment::class => function(Container $container) use ($CurrentUser) {
+        global $is_read_only_mode;
         $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'));
         $twig->addExtension(new TwigExtension());
         $twig->addExtension(new TranslationExtension($container->get(Translator::class)));
@@ -223,6 +281,7 @@ $ContainerBuilder->addDefinitions([
         $twig->addGlobal('session', $_SESSION);
         $twig->addGlobal('server', $_SERVER);
         $twig->addGlobal('current_user', $CurrentUser);
+        $twig->addGlobal('is_read_only_mode', $is_read_only_mode);
 
         return $twig;
     },

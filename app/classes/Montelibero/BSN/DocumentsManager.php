@@ -14,11 +14,13 @@ class DocumentsManager
     private Manager $Mongo;
     private string $database;
     private string $collection = 'documents';
+    private bool $isReadOnly;
 
-    public function __construct(Manager $Mongo, string $database)
+    public function __construct(Manager $Mongo, string $database, bool $isReadOnly = false)
     {
         $this->Mongo = $Mongo;
         $this->database = $database;
+        $this->isReadOnly = $isReadOnly;
     }
 
     public function getDocuments(?string $source = null): array
@@ -37,6 +39,10 @@ class DocumentsManager
      */
     public function refreshFromGrist(): array
     {
+        if ($this->isReadOnly) {
+            throw new \Exception('Database is in read-only mode.');
+        }
+
         $grist_response = gristRequest(
             'https://montelibero.getgrist.com/api/docs/4ZvHAqR5wB33KedcdjQC1r/tables/Hashes/records',
             'GET'
@@ -80,6 +86,10 @@ class DocumentsManager
 
     public function upsertDocument(array $document): ?array
     {
+        if ($this->isReadOnly) {
+            throw new \Exception('Database is in read-only mode.');
+        }
+
         if (!isset($document['hash'])) {
             return null;
         }

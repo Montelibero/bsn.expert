@@ -21,6 +21,11 @@
     {% endif %}
 
     <h2 class="title is-4">Import</h2>
+    {% if is_read_only_mode %}
+        <div class="notification is-warning">
+            Import is disabled in read-only mode.
+        </div>
+    {% else %}
     <form method="post" action="/contacts" enctype="multipart/form-data">
         <div class="field">
             <label class="label" for="import_file">Contacts file</label>
@@ -48,6 +53,7 @@
             </div>
         </div>
     </form>
+    {% endif %}
 
     {% if contacts %}
         <h2 class="title is-4">Export</h2>
@@ -57,6 +63,11 @@
     {% endif %}
 
     <h2 class="title is-4">New contact</h2>
+    {% if is_read_only_mode %}
+        <div class="notification is-warning">
+            Adding contacts is disabled in read-only mode.
+        </div>
+    {% else %}
     <form method="post" action="/contacts">
     <div class="field">
         <label class="label" for="new_name_1">Address</label>
@@ -79,6 +90,7 @@
         </div>
     </div>
     </form>
+    {% endif %}
 
     {% if contacts %}
     <h2 class="title is-4">All contacts</h2>
