@@ -78,7 +78,7 @@
             {% if current_user.account.username %}
             @{{ current_user.account.username }}
             {% else %}
-            {{ current_user.account.short_id }}
+            {{ current_user.account.getShortId }}
             {% endif %}
             {{ current_account }}
         </a>
