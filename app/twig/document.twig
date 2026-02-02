@@ -68,41 +68,135 @@
 
         </div>
     </div>
-
-    {% if current_user.account.id == "GDUMK6YJZ6ZC72CAMVHLUHLIFTNSLD7WFWO75Q3T2EOEW75XWH4PNSOZ" %}
-        <h1 class="title">
-            {{ 'document_sign.sign_preform.name'|trans }}123
-        </h1>
-        <form action="/documents/{{ document.hash }}/sign" method="get">
-            <div class="field">
-                <label class="label" for="account_id">{{ 'editor.stellar_account'|trans }}</label>
-                <input
-                        id="account_id"
-                        class="input"
-                        type="text"
-                        name="id"
-                        placeholder="G..."
-                        value="{{ default_id }}"
-                        maxlength="56"
-                />
-                <p class="help">{{ 'document_sign.sign_preform.help'|trans }}</p>
-            </div>
-            <div class="field is-grouped">
-                <div class="control">
-                    <input type="reset" class="button is-light" value="Reset">
-                </div>
-                <div class="control">
-                    <input type="submit" class="button is-link" value="Edit →">
-                </div>
-            </div>
-        </form>
-    {% endif %}
 {% endif %}
 
 {% if document.url %}
     <p class="block"><a href="{{ document.url }}">{{ 'document_page.link'|trans }}</a></p>
 {% endif %}
 
+<div id="document-sign"></div>
+{% if sign %}
+    {% if not sign.show_form %}
+        <p class="block"><a href="{{ sign.link }}">{{ 'document_sign.sign_preform.show_form'|trans }}</a></p>
+    {% else %}
+        <div class="box">
+            <h1 class="title">
+                {{ 'document_sign.sign_preform.name'|trans }}
+            </h1>
+            <p class="block">{{ 'document_sign.form.sign_hint'|trans }}</p>
+
+            {% if not sign.account %}
+                <p class="block">{{ 'document_sign.form.unknown_account'|trans }}</p>
+            {% endif %}
+
+            {% if sign.errors %}
+                <div class="notification is-danger">
+                    <ul>
+                        {% for error in sign.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <form action="{{ page_url }}#document-sign" method="get">
+                <input type="hidden" name="sign_form" value="yes">
+                <div class="field">
+                    <label class="label" for="account_id">{{ 'editor.stellar_account'|trans }}</label>
+                    <div class="field has-addons">
+                        <div class="control is-expanded has-icons-left">
+                            <input
+                                    id="account_id"
+                                    class="input"
+                                    type="text"
+                                    name="account_id"
+                                    placeholder="G..."
+                                    value="{{ sign.form_account_id }}"
+                                    maxlength="56"
+                            />
+                            <span class="icon is-left"><i class="fas fa-user"></i></span>
+                        </div>
+                        <div class="control">
+                            <button type="submit" class="button is-primary">
+                                {{ 'document_sign.sign_preform.button_change_account'|trans }}
+                            </button>
+                        </div>
+                    </div>
+                    <p class="help">{{ 'document_sign.sign_preform.help'|trans }}</p>
+                </div>
+            </form>
+
+            {% if sign.account %}
+            <form action="{{ page_url }}#document-sign" method="get">
+                <input type="hidden" name="sign_form" value="yes">
+                <input type="hidden" name="account_id" value="{{ sign.account.id }}">
+                    <p class="block">
+                        {{ 'document_sign.form.account'|trans }}:
+                        {{ include('account_link.twig', {data: sign.account}, with_context = false) }}
+                    </p>
+
+                    {% if sign.existing_signature %}
+                        <p class="block">
+                            {{ 'document_sign.form.signed_as'|trans({
+                                '%name%': sign.existing_signature.name|e
+                            })|raw }}
+                        </p>
+                        <p class="block">{{ 'document_sign.form.rename_hint'|trans }}</p>
+                    {% else %}
+                        <p class="block">{{ 'document_sign.form.unsigned'|trans }}</p>
+                    {% endif %}
+
+                    <div class="field">
+                        <label class="label" for="signature_name">{{ 'document_sign.form.name_label'|trans }}</label>
+                        <input
+                                id="signature_name"
+                                class="input"
+                                type="text"
+                                name="signature_name"
+                                value="{{ sign.signature_name }}"
+                                maxlength="{{ sign.max_name_length }}"
+                                required
+                        />
+                        <p class="help">{{ 'document_sign.form.name_help'|trans({'%default%': document.display_name}) }}</p>
+                    </div>
+
+                    <div class="buttons">
+                        {% if sign.existing_signature %}
+                            <button type="submit" class="button is-link" name="sign_action" value="rename">
+                                {{ 'document_sign.actions.rename'|trans }}
+                            </button>
+                            <button type="submit" class="button is-danger is-light" name="sign_action" value="revoke">
+                                {{ 'document_sign.actions.revoke'|trans }}
+                            </button>
+                        {% else %}
+                            <button type="submit" class="button is-primary" name="sign_action" value="sign">
+                                {{ 'document_sign.actions.sign'|trans }}
+                            </button>
+                        {% endif %}
+                    </div>
+
+                {% endif %}
+
+            </form>
+
+            {% if sign.signing_form %}
+                <article class="message is-warning">
+                    <div class="message-body">
+                        {{ 'document_sign.form.delay_notice'|trans }}
+                    </div>
+                </article>
+                {{ sign.signing_form|raw }}
+            {% endif %}
+        </div>
+    {% endif %}
+{% endif %}
+
+
+    <h1 class="title">
+        {{ 'document_sign.signers.header'|trans }}
+    </h1>
+
+    {% if signatures %}
     <table class="table" data-sortlist="[[0,0],[1,0]]">
         <thead>
         <tr>
@@ -118,7 +212,10 @@
         </tr>
         {% endfor %}
         </tbody>
-</table>
+    </table>
+    {% else %}
+    <p class="block">{{ 'document_page.signers.no_signers'|trans }}</p>
+    {% endif %}
 
 {% if can_edit %}
 <p class="block">

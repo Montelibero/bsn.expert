@@ -528,6 +528,40 @@ document_page:
       text: "The SHA-256 hash from this document is equal to the document hash."
   edit_link: Edit document
 
+document_sign:
+  sign_preform:
+    name: Sign the document
+    button_change_account: Set
+    help: Manage the signature for this contract.
+    show_form: I know what this document is and want to sign it
+  form:
+    sign_hint: >
+      We will store the document's hash (SHA-256) in the Data Entry of the account.
+      This is equivalent to a manual signature, or an official stamp from the organization.
+    signed_as: "The document signed using the name „%name%“."
+    rename_hint: You can adjust the name, but on-chain it will look like a new signature.
+    unsigned: No signature was found for this account.
+    account: Account
+    unknown_account: Specify the account you want to sign with.
+    name_label: Short signature name
+    name_help: "Required. Default value: \"%default%\"."
+    delay_notice: The change will appear on this page within 10 minutes after the transaction reaches the blockchain.
+  actions:
+    sign: Prepare signature
+    rename: Update signature name
+    revoke: Revoke signature
+  errors:
+    invalid_account: Please provide a valid Stellar account.
+    missing_account: Choose the account you want to sign with.
+    name_required: Please provide a name for the Manage Data entry.
+    name_too_long: Manage Data name must be 64 characters or fewer.
+    not_signed_yet: No signature exists for this account.
+    account_not_loaded: Failed to load the account from the blockchain.
+    unknown_action: Unknown action.
+  signers:
+    header: Signers
+    no_signers: No signers found
+
 mtla_page:
   title: Montelibero Association
   account: Account

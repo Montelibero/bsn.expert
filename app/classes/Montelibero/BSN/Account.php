@@ -76,7 +76,11 @@ class Account implements JsonSerializable
         ) {
             $result .= ' @' . $tg_username;
         }
-        $result .= ' ' . $this->getEmoji();
+
+        if ($emoji = $this->getEmoji()) {
+            $result .= ' ' . $emoji;
+        }
+
         return $result;
     }
 

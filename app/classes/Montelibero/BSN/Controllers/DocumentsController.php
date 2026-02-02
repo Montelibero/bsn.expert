@@ -1,27 +1,43 @@
 <?php
 namespace Montelibero\BSN\Controllers;
 
+use DI\Container;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Contract;
+use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
 use Parsedown;
 use Pecee\SimpleRouter\SimpleRouter;
+use Soneso\StellarSDK\ManageDataOperationBuilder;
+use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\StellarSDK;
+use Soneso\StellarSDK\TransactionBuilder;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 class DocumentsController
 {
     private const MAX_TEXT_LENGTH = 20000;
+    private const MAX_MANAGE_DATA_NAME_LENGTH = 64;
 
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
     private DocumentsManager $DocumentsManager;
     private Translator $Translator;
+    private Container $Container;
+    private CurrentUser $CurrentUser;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, DocumentsManager $DocumentsManager, Translator $Translator)
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        StellarSDK $Stellar,
+        DocumentsManager $DocumentsManager,
+        Translator $Translator,
+        Container $Container,
+        CurrentUser $CurrentUser
+    )
     {
         $this->BSN = $BSN;
 
@@ -32,6 +48,8 @@ class DocumentsController
         $this->Stellar = $Stellar;
         $this->DocumentsManager = $DocumentsManager;
         $this->Translator = $Translator;
+        $this->Container = $Container;
+        $this->CurrentUser = $CurrentUser;
 
     }
 
@@ -120,13 +138,17 @@ class DocumentsController
         $data = [];
         $data['page_url'] = SimpleRouter::getUrl('document_page', ['id' => $hash]);
         $data['document'] = $Hash->jsonSerialize();
-        $data['text_like_markdown'] = self::looksLikeMarkdown($Hash->getText());
+        $document_text = $Hash->getText();
+        $data['text_like_markdown'] = self::looksLikeMarkdown($document_text);
         if ($data['text_like_markdown']) {
             $Parsedown = new Parsedown();
-            $data['text_html'] = $Parsedown->text($Hash->getText());
+            $data['text_html'] = $Parsedown->text($document_text);
         }
         $data['show_original'] = isset($_GET['show']) && $_GET['show'] === 'original';
-
+        if ($document_text) {
+            $data['calculated_hash'] = hash("sha256", $document_text);
+            $data['hash_is_correct'] = $data['calculated_hash'] === $Hash->hash;
+        }
         if ($NewHash = $Hash->getNewContract()) {
             $data['new_hash'] = $NewHash->jsonSerialize();
         }
@@ -134,54 +156,118 @@ class DocumentsController
 
         $document_data = $this->DocumentsManager->getDocument($Hash->hash);
         $data['can_edit'] = $this->canEdit($document_data);
+        $data['sign'] = $this->prepareSigningData($Hash);
+        $data['sign']['link'] = $data['page_url'] . '?sign_form=yes#document-sign';
 
         return $Template->render($data);
     }
 
-    public function DocumentSign(string $hash): ?string
+    private function prepareSigningData(Contract $Hash): array
     {
-        $Hash = null;
+        $data = [
+            'max_name_length' => self::MAX_MANAGE_DATA_NAME_LENGTH,
+        ];
+        $data['force_form'] = ($_GET['sign_form'] ?? '') === 'yes';
+        $data['show_form'] = $Hash->getText() || $data['force_form'];
 
-        if (Contract::validate($hash)) {
-            $Hash = $this->BSN->getSignatures()->makeContract($hash);
-        }
+        $sign_errors = [];
 
-        if (!$Hash || !$Hash->getText()) {
-            SimpleRouter::response()->httpCode(404);
-            return null;
-        }
+        $account_id = $this->CurrentUser->getCurrentAccountId() ?? '';
 
-        $account_id = $_GET['id'] ?? null;
-        if (!$account_id || !BSN::validateStellarAccountIdFormat($account_id)) {
-            SimpleRouter::response()->httpCode(400);
-            return null;
-        }
-        
-        $data_set = $this->Stellar->requestAccount($account_id)->getData()->getData();
-        $entry_names = [];
-        foreach ($data_set as $key => $value) {
-            $value = base64_decode($value);
-            if ($value === $Hash->hash) {
-                $entry_names[] = $key;
+        if (array_key_exists('account_id', $_GET) && trim($_GET['account_id']) !== '') {
+            if (BSN::validateStellarAccountIdFormat(trim($_GET['account_id']))) {
+                $account_id = trim($_GET['account_id']);
+            } else {
+                $account_id = null;
+                $sign_errors[] = $this->Translator->trans('document_sign.errors.invalid_account');
             }
         }
 
-        $data = [];
-        $data['account'] = $this->BSN->makeAccountById($account_id)->jsonSerialize();
-        $data['is_signed'] = !!$entry_names;
-        $data['entry_names'] = $entry_names;
+        $sign_action = $_GET['sign_action'] ?? null;
+        $signature_name = trim($_GET['signature_name'] ?? '');
 
-        /*
-         * Если ключа не найдено, предлагаем добавить (с каким именем?)
-         * Если ключ есть, предлагаем удалить, или переопределить его имя
-         * Старое имя показываем, если оно одно, если больше одного, то тоже об этом говорим.
-         */
+        $existing_signature = null;
 
-        // TODO: находить устаревшие версии документа, предлагать обновиться
+        if ($account_id) {
+            $data['account'] = $this->BSN->makeAccountById($account_id)->jsonSerialize();
+            foreach ($this->BSN->getSignatures()->getAccountsByContract($Hash) as $Signature) {
+                if ($Signature->getAccount()->getId() === $account_id) {
+                    $existing_signature = [
+                        'name' => $Signature->getName(),
+                        'account' => $Signature->getAccount()->jsonSerialize(),
+                    ];
+                    if ($signature_name === '') {
+                        $signature_name = $Signature->getName();
+                    }
+                    break;
+                }
+            }
+        }
 
-        $Template = $this->Twig->load('document_sign.twig');
-        $data['document'] = $Hash->jsonSerialize();
-        return $Template->render($data);
+        if ($signature_name === '') {
+            $signature_name = $Hash->getName() ?: '';
+        }
+
+        $allowed_actions = ['sign', 'rename', 'revoke'];
+        if ($sign_action && !in_array($sign_action, $allowed_actions, true)) {
+            $sign_errors[] = $this->Translator->trans('document_sign.errors.unknown_action');
+        }
+
+        if ($data['show_form'] && $sign_action && !$sign_errors) {
+            if (!$account_id) {
+                $sign_errors[] = $this->Translator->trans('document_sign.errors.missing_account');
+            }
+
+            if ($sign_action !== 'revoke') {
+                $signature_name_length = function_exists('mb_strlen')
+                    ? mb_strlen($signature_name)
+                    : strlen($signature_name);
+                if ($signature_name === '') {
+                    $sign_errors[] = $this->Translator->trans('document_sign.errors.name_required');
+                } elseif ($signature_name_length > self::MAX_MANAGE_DATA_NAME_LENGTH) {
+                    $sign_errors[] = $this->Translator->trans('document_sign.errors.name_too_long');
+                }
+            }
+
+            if (in_array($sign_action, ['rename', 'revoke'], true) && !$existing_signature) {
+                $sign_errors[] = $this->Translator->trans('document_sign.errors.not_signed_yet');
+            }
+
+            if (!$sign_errors) {
+                try {
+                    $StellarAccount = $this->Stellar->requestAccount($account_id);
+                } catch (\Throwable $e) {
+                    $sign_errors[] = $this->Translator->trans('document_sign.errors.account_not_loaded');
+                }
+            }
+
+            if (!$sign_errors) {
+                $Transaction = new TransactionBuilder($StellarAccount);
+                $Transaction->setMaxOperationFee(10000);
+                $Transaction->addMemo(Memo::text('BSN Document'));
+                $operations = [];
+
+                if ($sign_action === 'revoke') {
+                    $operations[] = (new ManageDataOperationBuilder($existing_signature['name'], null))->build();
+                } else {
+                    if ($sign_action === 'rename' && $existing_signature && $existing_signature['name'] !== $signature_name) {
+                        $operations[] = (new ManageDataOperationBuilder($existing_signature['name'], null))->build();
+                    }
+                    $operations[] = (new ManageDataOperationBuilder($signature_name, $Hash->hash))->build();
+                }
+
+                $Transaction->addOperations($operations);
+                $xdr = $Transaction->build()->toEnvelopeXdrBase64();
+                $data['signing_form'] = $this->Container->get(SignController::class)->SignTransaction($xdr);
+            }
+        }
+
+        return array_merge($data, [
+            'form_account_id' => ($_GET['account_id'] ?? null) ? trim($_GET['account_id']) : $account_id,
+            'existing_signature' => $existing_signature,
+            'signature_name' => $signature_name,
+            'errors' => $sign_errors,
+        ]);
     }
 
     public function Add(): ?string
@@ -511,6 +597,4 @@ class DocumentsController
         // Not enough Markdown features found
         return false;
     }
-
-
 }

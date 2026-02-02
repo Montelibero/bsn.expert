@@ -28,9 +28,6 @@ class DocumentsRoutes
         SimpleRouter::get('/{id}/text', function ($id) use ($Container) {
             SimpleRouter::response()->redirect(SimpleRouter::getUrl('document_page', ['id' => $id]));
         });
-        SimpleRouter::match(['get', 'post'], '/{id}/sign', function ($id) use ($Container) {
-            return $Container->get(DocumentsController::class)->DocumentSign($id);
-        });
         SimpleRouter::get('/{id}', function ($id) use ($Container) {
             return $Container->get(DocumentsController::class)->Document($id);
         })->name('document_page');
