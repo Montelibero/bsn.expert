@@ -132,7 +132,7 @@ class DecisionTransactionsController
                         $operations_positive,
                         $memo_positive,
                         $preconditions,
-                        null,
+                        10000,
                         $soroban_data
                     );
 
@@ -145,7 +145,7 @@ class DecisionTransactionsController
                         [$payment_operation],
                         Memo::text('MTLA ' . $decision_number . ' decline'),
                         $decline_preconditions,
-                        null,
+                        10000,
                         $soroban_data
                     );
 
