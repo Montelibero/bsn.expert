@@ -1,0 +1,110 @@
+{% extends "page.twig" %}
+
+{% block title %}Подготовка транзакций решения — MTLA{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li class="is-active"><a href="#" aria-current="page">MTLA Decision</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">Подготовка транзакций решения</h1>
+
+    {% if error %}
+        <div class="notification is-danger">
+            {{ error|e|nl2br }}
+        </div>
+    {% endif %}
+
+    <form action="/tools/mtla/decision_transactions" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <h2 class="title is-4">Данные</h2>
+        <div class="field">
+            <label class="label" for="decision_number">Номер решения *</label>
+            <div class="control has-icons-left">
+                <input
+                    id="decision_number"
+                    class="input"
+                    type="text"
+                    name="decision_number"
+                    placeholder="123"
+                    value="{{ decision_number }}"
+                    required
+                />
+                <span class="icon is-left"><i class="fas fa-list-ol"></i></span>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="decision_text">Текст решения (если нет XDR)</label>
+            <div class="control">
+                <textarea
+                    id="decision_text"
+                    class="textarea"
+                    name="decision_text"
+                    placeholder="Решение Совета MTLA..."
+                    rows="4"
+                >{{ decision_text }}</textarea>
+                <p class="help">Если XDR не передан — текст обязателен. Хеш текста пойдёт в MEMO типа HASH.</p>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="xdr">Исходный XDR (опционально)</label>
+            <div class="control">
+                <textarea
+                    id="xdr"
+                    class="textarea"
+                    name="xdr"
+                    placeholder="AAAAAgAAA..."
+                    rows="4"
+                    style="font-family: monospace;"
+                >{{ xdr }}</textarea>
+                <p class="help">Если указан, берем его операции и параметры, но добавляем свою первую операцию, заменяем MEMO и номер последовательности.</p>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="seq_num">Seq number (опционально)</label>
+            <div class="control has-icons-left">
+                <input
+                    id="seq_num"
+                    class="input"
+                    type="text"
+                    name="seq_num"
+                    placeholder="По-умолчанию — следующий"
+                    value="{{ seq_num }}"
+                />
+                <span class="icon is-left"><i class="fas fa-hashtag"></i></span>
+            </div>
+        </div>
+
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="submit" class="button is-link" value="Собрать транзакции">
+            </div>
+        </div>
+    </form>
+
+    {% if positive_xdr or decline_xdr %}
+        <h2 class="title is-4">Результат</h2>
+        {% if decision_hash %}
+            <div class="notification is-info">
+                Хеш текста решения (SHA-256): <code>{{ decision_hash }}</code>
+            </div>
+        {% endif %}
+        {% if positive_xdr %}
+            <div class="field">
+                <label class="label">Положительная транзакция (XDR)</label>
+                <textarea class="textarea" rows="4" readonly style="font-family: monospace;">{{ positive_xdr }}</textarea>
+            </div>
+        {% endif %}
+        {% if decline_xdr %}
+            <div class="field">
+                <label class="label">Отменяющая транзакция (XDR)</label>
+                <textarea class="textarea" rows="4" readonly style="font-family: monospace;">{{ decline_xdr }}</textarea>
+            </div>
+        {% endif %}
+    {% endif %}
+
+{% endblock %}
