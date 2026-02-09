@@ -9,6 +9,7 @@ use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Memo;
+use Soneso\StellarSDK\MuxedAccount;
 use Soneso\StellarSDK\PaymentOperationBuilder;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TimeBounds;
@@ -46,6 +47,14 @@ class DecisionTransactionsController
         $decision_text = $_POST['decision_text'] ?? '';
         $xdr_input = trim($_POST['xdr'] ?? '');
         $seq_num_input = trim($_POST['seq_num'] ?? '');
+        $seq_num_default = '';
+
+        try {
+            $DefaultAccount = $this->Stellar->requestAccount(self::ASSOCIATION_ACCOUNT);
+            $seq_num_default = (string)$DefaultAccount->getIncrementedSequenceNumber();
+        } catch (\Throwable $E) {
+            // Если недоступно, оставляем пустым.
+        }
 
         if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($decision_number === '' || !preg_match('/^\d+$/', $decision_number)) {
@@ -88,6 +97,19 @@ class DecisionTransactionsController
                 }
 
                 if (!$error) {
+                    try {
+                        $AccountForCheck = $SourceAccount ?? $this->Stellar->requestAccount($source_account_id);
+                        $SourceAccount = $SourceAccount ?? $AccountForCheck;
+                        $actual_next_seq = $AccountForCheck->getIncrementedSequenceNumber();
+                        if ($sequence_number->compare($actual_next_seq) < 0) {
+                            $sequence_number = $actual_next_seq;
+                        }
+                    } catch (\Throwable $E) {
+                        $error .= "Не удалось получить данные аккаунта источника\n";
+                    }
+                }
+
+                if (!$error) {
                     $asset_question = Asset::createNonNativeAsset('Question', self::QUESTION_ISSUER);
                     $payment_operation = (new PaymentOperationBuilder(
                         self::ASSOCIATION_ACCOUNT,
@@ -122,7 +144,9 @@ class DecisionTransactionsController
 
                     $source_account_muxed = $base_transaction
                         ? $base_transaction->getSourceAccount()
-                        : $SourceAccount->getMuxedAccount();
+                        : ($SourceAccount
+                            ? $SourceAccount->getMuxedAccount()
+                            : MuxedAccount::fromAccountId($source_account_id));
 
                     $soroban_data = $base_transaction ? $base_transaction->getSorobanTransactionData() : null;
 
@@ -159,7 +183,7 @@ class DecisionTransactionsController
             'decision_number' => $decision_number,
             'decision_text' => $decision_text,
             'xdr' => $xdr_input,
-            'seq_num' => $seq_num_input,
+            'seq_num' => $seq_num_input !== '' ? $seq_num_input : $seq_num_default,
             'error' => $error,
             'positive_xdr' => $positive_xdr,
             'decline_xdr' => $decline_xdr,
