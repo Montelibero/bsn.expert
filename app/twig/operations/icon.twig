@@ -36,6 +36,12 @@
     {% set icon_class = 'fa-baby' %}
 {% elseif type == 'account_merge' %}
     {% set icon_class = 'fa-skull' %}
+{% elseif type == 'begin_sponsoring_future_reserves' %}
+    {% set icon_class = 'fa-hand-holding-dollar' %}
+    {% set icon_color = 'has-text-success' %}
+{% elseif type == 'end_sponsoring_future_reserves' %}
+    {% set icon_class = 'fa-hand-holding-dollar' %}
+    {% set icon_color = 'has-text-danger' %}
 {% elseif type in ['path_payment_strict_receive', 'path_payment_strict_send'] %}
     {% set icon_class = 'fa-right-left' %}
 {% elseif type == 'create_claimable_balance' %}
