@@ -293,6 +293,7 @@ class DocumentsController
             $values['hash'] = strtolower($values['hash']);
             $values['is_obsolete'] = isset($_POST['is_obsolete']);
             $values['new_hash'] = trim($_POST['new_hash'] ?? '');
+            $values['text'] = $this->normalizeLineEndingsToLf($values['text']);
 
             if ($values['name'] === '') {
                 $errors[] = $this->Translator->trans('documents.form.errors.name_required');
@@ -326,7 +327,15 @@ class DocumentsController
                 if ($values['hash'] === '') {
                     $values['hash'] = $calculated_hash;
                 } elseif ($values['hash'] !== $calculated_hash) {
-                    $errors[] = $this->Translator->trans('documents.form.errors.hash_mismatch');
+                    $windows_text = $this->convertLfToCrlf($values['text']);
+                    $windows_hash = hash('sha256', $windows_text);
+
+                    if ($values['hash'] === $windows_hash) {
+                        $calculated_hash = $windows_hash;
+                        $values['text'] = $windows_text;
+                    } else {
+                        $errors[] = $this->Translator->trans('documents.form.errors.hash_mismatch') . ' (' . $calculated_hash . ')';
+                    }
                 }
             }
 
@@ -410,7 +419,6 @@ class DocumentsController
             $values['is_obsolete'] = isset($_POST['is_obsolete']);
             $values['new_hash'] = trim($_POST['new_hash'] ?? '');
             $posted_text = $_POST['text'] ?? null;
-            $existing_text = $values['text'] ?? '';
 
             if ($values['name'] === '') {
                 $errors[] = $this->Translator->trans('documents.form.errors.name_required');
@@ -425,6 +433,7 @@ class DocumentsController
             }
 
             if ($posted_text !== null) {
+                $posted_text = $this->normalizeLineEndingsToLf($posted_text);
                 if ($this->getTextLength($posted_text) > self::MAX_TEXT_LENGTH) {
                     $errors[] = $this->Translator->trans(
                         'documents.form.errors.text_too_long',
@@ -438,7 +447,15 @@ class DocumentsController
                 } else {
                     $calculated_hash = hash('sha256', $posted_text);
                     if ($calculated_hash !== $values['hash']) {
-                        $errors[] = $this->Translator->trans('documents.form.errors.text_hash_mismatch');
+                        $windows_text = $this->convertLfToCrlf($posted_text);
+                        $windows_hash = hash('sha256', $windows_text);
+
+                        if ($windows_hash !== $values['hash']) {
+                            $errors[] = $this->Translator->trans('documents.form.errors.text_hash_mismatch');
+                        } else {
+                            $calculated_hash = $windows_hash;
+                            $values['text'] = $windows_text;
+                        }
                     } else {
                         $values['text'] = $posted_text;
                     }
@@ -559,6 +576,16 @@ class DocumentsController
         }
 
         return function_exists('mb_strlen') ? mb_strlen($text) : strlen($text);
+    }
+
+    private function normalizeLineEndingsToLf(string $text): string
+    {
+        return str_replace(["\r\n", "\r"], "\n", $text);
+    }
+
+    private function convertLfToCrlf(string $text): string
+    {
+        return str_replace("\n", "\r\n", $text);
     }
 
     public static function looksLikeMarkdown(?string $text): bool
