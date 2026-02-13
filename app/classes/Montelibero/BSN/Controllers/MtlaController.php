@@ -111,6 +111,32 @@ class MtlaController
         return $accounts_to_delegate;
     }
 
+    private function fetchMtlaTokenHolders(string $code, float $min_amount = 0): array
+    {
+        $holders = [];
+        foreach ($this->BSN->getAccounts() as $Account) {
+            $amount = $Account->getBalance($code);
+            if ($amount < $min_amount) {
+                continue;
+            }
+
+            $holders[] = [
+                'id' => $Account->getId(),
+                'amount' => $amount,
+            ];
+        }
+
+        usort($holders, function (array $a, array $b): int {
+            if ($a['amount'] === $b['amount']) {
+                return strcmp($a['id'], $b['id']);
+            }
+
+            return $b['amount'] <=> $a['amount'];
+        });
+
+        return $holders;
+    }
+
     public function MtlaCouncil(): ?string
     {
         $Template = $this->Twig->load('mtla_council.twig');
@@ -237,6 +263,7 @@ class MtlaController
          * Получить список программ
          * Про каждую узнать координатора
          * Для каждой получить список участников
+         * Отобразить список активистов без программ
          */
         $MTLA = $this->BSN->getAccountById(self::MTLA_ACCOUNT);
         $TagProgram = $this->BSN->makeTagByName('Program');
@@ -245,8 +272,10 @@ class MtlaController
         $TagPartOf = $this->BSN->makeTagByName('PartOf');
         $programs = $MTLA->getOutcomeLinks($TagProgram);
         $programs_data = [];
+        $mentioned_accounts = [];
 
         foreach ($programs as $Program) {
+            $mentioned_accounts[$Program->getId()] = true;
             $programs_data[$Program->getId()] = [
                 'data' => $Program->jsonSerialize(),
                 'coordinator' => null,
@@ -255,6 +284,7 @@ class MtlaController
             $coordinators = $Program->getOutcomeLinks($TagProgramCoordinator);
             if ($Coordinator = array_shift($coordinators)) {
                 $programs_data[$Program->getId()]['coordinator'] = $Coordinator->jsonSerialize();
+                $mentioned_accounts[$Coordinator->getId()] = true;
             }
             foreach ($Program->getOutcomeLinks($TagMyPart) as $Participant) {
                 foreach ($Participant->getOutcomeLinks($TagPartOf) as $Part) {
@@ -266,6 +296,7 @@ class MtlaController
                                 ?: $Participant->getId();
                         }
                         $programs_data[$Program->getId()]['participants'][] = $participant;
+                        $mentioned_accounts[$Participant->getId()] = true;
                         break;
                     }
                 }
@@ -290,9 +321,19 @@ class MtlaController
             return strcmp($a['data']['display_name'], $b['data']['display_name']);
         });
 
+        $activists_without_programs = [];
+        foreach ($this->fetchMtlaTokenHolders('MTLAP', 4) as $holder) {
+            if (isset($mentioned_accounts[$holder['id']])) {
+                continue;
+            }
+
+            $activists_without_programs[] = $this->BSN->makeAccountById($holder['id'])->jsonSerialize();
+        }
+
         $Template = $this->Twig->load('mtla_programs.twig');
         return $Template->render([
             'programs' => $programs_data,
+            'activists_without_programs' => $activists_without_programs,
         ]);
     }
 }

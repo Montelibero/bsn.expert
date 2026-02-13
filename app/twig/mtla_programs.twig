@@ -52,5 +52,15 @@
 
     {% endfor %}
 
-{% endblock %}
+    <h2 class="title is-4">{{ 'mtla_programs_page.activists_without_programs'|trans }}</h2>
+    {% if activists_without_programs %}
+        <ul class="block">
+            {% for activist in activists_without_programs %}
+                <li>{{ include('account_link.twig', {data: activist}, with_context = false) }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'mtla_programs_page.no_activists_without_programs'|trans }}</p>
+    {% endif %}
 
+{% endblock %}

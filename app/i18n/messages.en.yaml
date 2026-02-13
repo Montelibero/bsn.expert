@@ -579,6 +579,8 @@ mtla_programs_page:
   coordinator_unknown: Unknown
   participants: Participants
   no_participants: No one
+  activists_without_programs: Activists without programs
+  no_activists_without_programs: Not found
 
 editor:
   form:
