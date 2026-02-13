@@ -577,6 +577,7 @@ mtla_council_page:
 
 mtla_programs_page:
   header: Программы Ассоциации
+  program_prefix: 'Программа:'
   coordinator: Координатор
   coordinator_unknown: Неизвестен
   participants: Участники

@@ -24,7 +24,11 @@
     <h1 class="title">{{ 'mtla_programs_page.header'|trans }}</h1>
 
     {% for program in programs %}
-        <h2 class="title is-4">{{ include('account_link.twig', {data: program.data}, with_context = false) }}</h2>
+        <h2 class="title is-4">
+            <i class="fa-regular fa-file-lines"></i>
+            {{ 'mtla_programs_page.program_prefix'|trans }}
+            {{ include('account_link.twig', {data: program.data}, with_context = false) }}
+        </h2>
 
         <h3 class="title is-5">{{ 'mtla_programs_page.coordinator'|trans }}</h3>
         <p class="block">

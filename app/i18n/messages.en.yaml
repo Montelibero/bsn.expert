@@ -575,6 +575,7 @@ mtla_council_page:
 
 mtla_programs_page:
   header: Programs
+  program_prefix: 'Program:'
   coordinator: Coordinator
   coordinator_unknown: Unknown
   participants: Participants
