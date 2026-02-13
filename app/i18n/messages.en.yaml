@@ -581,7 +581,6 @@ mtla_programs_page:
   participants: Participants
   no_participants: No one
   activists_without_programs: Activists without programs
-  no_activists_without_programs: Not found
 
 editor:
   form:
