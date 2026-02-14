@@ -85,6 +85,11 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/api'], function () use ($Container) {
             ApiRoutes::register($Container);
         });
+        SimpleRouter::get('/health', function () {
+            SimpleRouter::response()->header('Content-Type', 'application/json; charset=utf-8');
+            SimpleRouter::response()->httpCode(200);
+            return json_encode(['status' => 'ok']);
+        });
 
         SimpleRouter::get('/{username}/operations', function($username) use ($Container, $BSN, $AccountsManager) {
             $has_at = str_starts_with($username, '@');
