@@ -534,6 +534,7 @@ document_sign:
     button_change_account: Set
     help: Manage the signature for this contract.
     show_form: I know what this document is and want to sign it
+    show_form_known_text: Sign this document
   form:
     sign_hint: >
       We will store the document's hash (SHA-256) in the Data Entry of the account.

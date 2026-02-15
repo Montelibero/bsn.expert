@@ -536,6 +536,7 @@ document_sign:
     button_change_account: Установить
     help: Управлять подписью под этим контрактом
     show_form: Я знаю, что это за документ и хочу подписать
+    show_form_known_text: Подписать этот документ
   form:
     sign_hint: >
       Сохраняем хеш (SHA-256) документа в Data Entry аккаунта.

@@ -168,7 +168,7 @@ class DocumentsController
             'max_name_length' => self::MAX_MANAGE_DATA_NAME_LENGTH,
         ];
         $data['force_form'] = ($_GET['sign_form'] ?? '') === 'yes';
-        $data['show_form'] = $Hash->getText() || $data['force_form'];
+        $data['show_form'] = $data['force_form'];
 
         $sign_errors = [];
 

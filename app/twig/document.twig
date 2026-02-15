@@ -77,7 +77,16 @@
 <div id="document-sign"></div>
 {% if sign %}
     {% if not sign.show_form %}
-        <p class="block"><a href="{{ sign.link }}">{{ 'document_sign.sign_preform.show_form'|trans }}</a></p>
+        <p class="block">
+            <a href="{{ sign.link }}">
+                <i class="fa-solid fa-file-signature"></i>
+                {% if document.text %}
+                    {{ 'document_sign.sign_preform.show_form_known_text'|trans }}
+                {% else %}
+                    {{ 'document_sign.sign_preform.show_form'|trans }}
+                {% endif %}
+            </a>
+        </p>
     {% else %}
         <div class="box">
             <h1 class="title">
