@@ -3,6 +3,7 @@ namespace Montelibero\BSN\Controllers;
 
 use DI\Container;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\Relations\Person;
 use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -205,13 +206,14 @@ class TokensController
         ]);
     }
 
-    public static function reloadKnownTokens(): void
+    public function reloadKnownTokens(): void
     {
         $grist_response = gristRequest(
             'https://montelibero.getgrist.com/api/docs/gxZer88w3TotbWzkQCzvyw/tables/Assets/records',
             'GET'
         );
         $known_tokens = [];
+        $known_codes = [];
         foreach ($grist_response['records'] as $item) {
             $fields = $item['fields'];
             if (
@@ -220,13 +222,62 @@ class TokensController
             ) {
                 continue;
             }
+            $code = trim((string) $fields['code']);
+            $issuer = trim((string) $fields['issuer']);
+            if (
+                !BSN::validateTokenNameFormat($code)
+                || !BSN::validateStellarAccountIdFormat($issuer)
+            ) {
+                continue;
+            }
             $known_tokens[] = [
-                'code' => $fields['code'],
-                'issuer' => $fields['issuer'],
+                'code' => $code,
+                'issuer' => $issuer,
                 'offer_link' => $fields['offerta_link'],
                 'category' => $fields['category'],
             ];
+            $known_codes[strtolower($code)] = true;
         }
+
+        $TagTimeTokenIssuer = $this->BSN->makeTagByName('TimeTokenIssuer');
+        foreach ($this->BSN->getAccounts() as $Account) {
+            if (
+                !($Account->getRelation() instanceof Person)
+                || $Account->getBalance('MTLAP') < 1
+            ) {
+                continue;
+            }
+
+            $code = trim((string) $Account->getProfileSingleItem('TimeTokenCode'));
+            if (!BSN::validateTokenNameFormat($code)) {
+                continue;
+            }
+
+            $issuer = $Account->getId();
+            if ($tt_issuers = $Account->getOutcomeLinks($TagTimeTokenIssuer)) {
+                $issuer = $tt_issuers[0]->getId();
+            } elseif ($tt_issuer_profile = $Account->getProfileSingleItem('TimeTokenIssuer')) {
+                $issuer = trim((string) $tt_issuer_profile);
+            }
+
+            if (!BSN::validateStellarAccountIdFormat($issuer)) {
+                continue;
+            }
+
+            $code_key = strtolower($code);
+            if (array_key_exists($code_key, $known_codes)) {
+                continue;
+            }
+
+            $known_tokens[] = [
+                'code' => $code,
+                'issuer' => $issuer,
+                'offer_link' => null,
+                'category' => 'time_tokens',
+            ];
+            $known_codes[$code_key] = true;
+        }
+
         apcu_store('known_tokens', $known_tokens, 3600);
     }
 
@@ -234,7 +285,7 @@ class TokensController
     {
         $known_tokens = apcu_fetch('known_tokens');
         if (!$known_tokens) {
-            self::reloadKnownTokens();
+            $this->reloadKnownTokens();
             $known_tokens = apcu_fetch('known_tokens');
             if (!$known_tokens) {
                 return;
