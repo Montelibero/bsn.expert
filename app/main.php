@@ -124,7 +124,7 @@ $promoted_tags = [
 foreach ($promoted_tags as $tag_name) {
     $BSN->makeTagByName($tag_name)->isPromote(true);
 }
-$known_tags = json_decode(file_get_contents('./known_tags.json'), JSON_OBJECT_AS_ARRAY);
+$known_tags = json_decode(file_get_contents('./list.json'), JSON_OBJECT_AS_ARRAY);
 foreach ($known_tags['links'] as $link_name => $link_data) {
     if ($pair = ($link_data['pair'] ?? false)) {
         $Tag = $BSN->makeTagByName($link_name);
