@@ -1,143 +1,143 @@
 {
   "presentation": {
-    "Name": {},
     "About": {},
-    "Website": {},
-    "TimeTokenCode": {}
+    "Name": {},
+    "TimeTokenCode": {},
+    "Website": {}
   },
   "links": {
     "A": {
       "standard": true
     },
+    "Ambassador": {},
     "B": {
       "standard": true
     },
     "C": {
       "standard": true
     },
+    "Client": {
+      "pair": "Vendor",
+      "standard": true
+    },
+    "Collaboration": {
+      "pair": true,
+      "standard": true
+    },
+    "Contractor": {
+      "standard": true
+    },
     "D": {
       "standard": true
     },
-    "Spouse": {
-      "standard": true,
-      "pair": true,
-      "strong_pair": true
-    },
-    "Love": {
-      "standard": true,
-      "pair": true
-    },
-    "OneFamily": {
-      "standard": true,
-      "pair": true,
-      "strong_pair": true
-    },
-    "Guardian": {
-      "standard": true,
-      "pair": "Ward",
-      "strong_pair": true
-    },
-    "Ward": {
-      "standard": true,
-      "pair": "Guardian",
-      "strong_pair": true
-    },
-    "Sympathy": {
-      "standard": true,
+    "Dislike": {
       "pair": true
     },
     "Divorce": {
       "standard": true
     },
-    "Employer": {
-      "standard": true,
-      "pair": "Employee"
-    },
     "Employee": {
-      "standard": true,
-      "pair": "Employer"
-    },
-    "Contractor": {
+      "pair": "Employer",
       "standard": true
     },
-    "Client": {
-      "standard": true,
-      "pair": "Vendor"
-    },
-    "Vendor": {
-      "pair": "Client"
-    },
-    "Partnership": {
-      "standard": true,
-      "pair": true
-    },
-    "Collaboration": {
-      "standard": true,
-      "pair": true
-    },
-    "Owner": {
-      "standard": true,
-      "pair": "OwnershipFull",
-      "single": true,
-      "strong_pair": true
-    },
-    "OwnershipFull": {
-      "standard": true,
-      "pair": "Owner",
-      "strong_pair": true
-    },
-    "OwnerMajority": {
-      "standard": true,
-      "pair": "OwnershipMajority",
-      "strong_pair": true
-    },
-    "OwnershipMajority": {
-      "standard": true,
-      "pair": "OwnerMajority",
-      "strong_pair": true
-    },
-    "OwnerMinority": {
+    "Employer": {
+      "pair": "Employee",
       "standard": true
-    },
-    "FactionMember": {
-      "standard": true,
-      "pair": true
-    },
-    "WelcomeGuest": {
-      "standard": true,
-      "pair": true
-    },
-    "Ambassador": {},
-    "Like": {
-      "pair": true
-    },
-    "Dislike": {
-      "pair": true
     },
     "Expert": {},
+    "FactionMember": {
+      "pair": true,
+      "standard": true
+    },
     "Friend": {
       "pair": true
+    },
+    "Guardian": {
+      "pair": "Ward",
+      "standard": true,
+      "strong_pair": true
     },
     "IAmVolunteerFor": {},
     "LeaderForMTLA": {
       "single": true
     },
+    "Like": {
+      "pair": true
+    },
+    "Love": {
+      "pair": true,
+      "standard": true
+    },
     "MyJudge": {},
     "MyMediator": {},
-    "RecommendForVerification": {},
-    "RecommendToMTLA": {},
-    "VerifiedByRecommendation": {},
-    "ResidentME": {},
     "MyPart": {
       "pair": "PartOf",
       "strong_pair": true
+    },
+    "OneFamily": {
+      "pair": true,
+      "standard": true,
+      "strong_pair": true
+    },
+    "Owner": {
+      "pair": "OwnershipFull",
+      "single": true,
+      "standard": true,
+      "strong_pair": true
+    },
+    "OwnerMajority": {
+      "pair": "OwnershipMajority",
+      "standard": true,
+      "strong_pair": true
+    },
+    "OwnerMinority": {
+      "standard": true
+    },
+    "OwnershipFull": {
+      "pair": "Owner",
+      "standard": true,
+      "strong_pair": true
+    },
+    "OwnershipMajority": {
+      "pair": "OwnerMajority",
+      "standard": true,
+      "strong_pair": true
+    },
+    "Partnership": {
+      "pair": true,
+      "standard": true
     },
     "PartOf": {
       "pair": "MyPart",
       "strong_pair": true
     },
+    "RecommendForVerification": {},
+    "RecommendToMTLA": {},
+    "ResidentME": {},
+    "Spouse": {
+      "pair": true,
+      "standard": true,
+      "strong_pair": true
+    },
+    "Sympathy": {
+      "pair": true,
+      "standard": true
+    },
     "TimeTokenIssuer": {
       "single": true
+    },
+    "Vendor": {
+      "pair": "Client"
+    },
+    "VerifiedByRecommendation": {},
+    "Ward": {
+      "pair": "Guardian",
+      "standard": true,
+      "strong_pair": true
+    },
+    "WelcomeGuest": {
+      "pair": true,
+      "standard": true
     }
   }
 }
