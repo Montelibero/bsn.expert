@@ -95,7 +95,15 @@ class WebApp
         }
 
         if (BSN::validateTransactionHashFormat($q)) {
-            SimpleRouter::response()->redirect(SimpleRouter::getUrl('transaction_page', ['tx_hash' => $q]));
+            $hash = strtolower($q);
+            $known_document = $this->Container->get(DocumentsManager::class)->getDocument($hash) !== null;
+
+            if ($known_document) {
+                SimpleRouter::response()->redirect(SimpleRouter::getUrl('document_page', ['id' => $hash]));
+                return null;
+            }
+
+            SimpleRouter::response()->redirect(SimpleRouter::getUrl('transaction_page', ['tx_hash' => $hash]));
             return null;
         }
 
