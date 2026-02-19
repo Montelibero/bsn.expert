@@ -308,6 +308,7 @@ account_page:
     add: Add to contacts
     edit: Edit the contact
   edit_button: Edit tags for this account
+  operations_button: Open account operations
   alternatives: Alternative viewers
   owner_account: Parent account
   ownership_full_accounts: Subsidiary accounts

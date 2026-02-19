@@ -25,6 +25,12 @@
            title="{{ 'account_page.edit_button'|trans }}"
         ><span class="icon"><i class="fa-regular fa-square-check"></i></span></a>
         {% endif %}
+        {% if current_user.account %}
+        <a class="button is-outlined is-primary"
+           href="/accounts/{{ account_id }}/operations"
+           title="{{ 'account_page.operations_button'|trans }}"
+        ><span class="icon"><i class="fa-solid fa-list"></i></span></a>
+        {% endif %}
 </h1>
 <h1 class="subtitle">
         <span class="stellar_address is-family-monospace">{{ account_id }}</span><br>

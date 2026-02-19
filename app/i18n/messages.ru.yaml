@@ -306,6 +306,7 @@ account_page:
     add: Добавить в контакты
     edit: Редактировать контакт
   edit_button: Редактировать теги для этого контакта
+  operations_button: Открыть операции аккаунта
   alternatives: Альтернативные обозреватели
   owner_account: Родительский аккаунт
   ownership_full_accounts: Дочерние аккаунты
