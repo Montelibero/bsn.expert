@@ -715,12 +715,43 @@ class TransactionsController
             $action_key = $is_delete ? 'manage_offer.delete' : 'manage_offer.update';
         }
 
+        $selling_parts = $this->assetParts($selling);
+        $buying_parts = $this->assetParts($buying);
+
+        $exchange_amount = null;
+        $target_amount = null;
+        $direct_rate = null;
+        $reverse_rate = null;
+
+        if (!$is_delete) {
+            $amount_value = (float) $amount;
+            $price_value = (float) $price;
+
+            if ($mode === 'manage_buy_offer') {
+                $exchange_amount = number_format($amount_value * $price_value, 7, '.', '');
+                $target_amount = number_format($amount_value, 7, '.', '');
+                $direct_rate = number_format($price_value, 7, '.', '');
+                $reverse_rate = $price_value != 0.0 ? number_format(1 / $price_value, 7, '.', '') : null;
+            } else {
+                $exchange_amount = number_format($amount_value, 7, '.', '');
+                $target_amount = number_format($amount_value * $price_value, 7, '.', '');
+                $direct_rate = $price_value != 0.0 ? number_format(1 / $price_value, 7, '.', '') : null;
+                $reverse_rate = number_format($price_value, 7, '.', '');
+            }
+        }
+
         return [
             'template' => $template,
             'data' => [
                 'action_label' => $this->Container->get(Translator::class)->trans('transactions.operations.offer_actions.' . $action_key),
                 'selling' => $this->formatAsset($selling),
                 'buying' => $this->formatAsset($buying),
+                'selling_code' => $selling_parts['code'],
+                'buying_code' => $buying_parts['code'],
+                'exchange_amount' => $exchange_amount,
+                'target_amount' => $target_amount,
+                'direct_rate' => $direct_rate,
+                'reverse_rate' => $reverse_rate,
                 'amount' => $is_delete ? null : $amount,
                 'price' => $is_delete ? null : $price,
                 'offer_id' => $offer_id,

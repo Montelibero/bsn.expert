@@ -224,6 +224,11 @@ transactions:
       asset: Asset
       buying_asset: Buying asset
       selling_asset: Selling asset
+      exchange: Exchanges
+      exchange_for: For
+      direct_rate: Direct rate
+      reverse_rate: Reverse rate
+      per: per
       limit: Limit
       price: Price
       offer_id: Offer ID

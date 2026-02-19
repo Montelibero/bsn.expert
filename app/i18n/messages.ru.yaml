@@ -223,6 +223,11 @@ transactions:
       asset: Актив
       buying_asset: Покупаемый актив
       selling_asset: Продаваемый актив
+      exchange: Меняет
+      exchange_for: На
+      direct_rate: Курс прямой
+      reverse_rate: Курс обратный
+      per: за
       limit: Лимит
       price: Цена
       offer_id: ID офера

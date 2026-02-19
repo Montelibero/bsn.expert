@@ -1,18 +1,24 @@
 <ul>
-    <li>{{ 'transactions.operations.fields.selling_asset'|trans }}:
-        {% if op.data.selling.url %}<a href="{{ op.data.selling.url }}">{{ op.data.selling.label }}</a>{% else %}{{ op.data.selling.label }}{% endif %}
-    </li>
-    <li>{{ 'transactions.operations.fields.buying_asset'|trans }}:
-        {% if op.data.buying.url %}<a href="{{ op.data.buying.url }}">{{ op.data.buying.label }}</a>{% else %}{{ op.data.buying.label }}{% endif %}
-    </li>
-    {% if op.data.amount %}
-        <li>{{ 'transactions.operations.fields.amount'|trans }}:
-            {% include 'amount.twig' with {value: op.data.amount} only %}
+    {% if op.data.exchange_amount and op.data.target_amount %}
+        <li>{{ 'transactions.operations.fields.exchange'|trans }}:
+            {% include 'amount.twig' with {value: op.data.exchange_amount} only %}
+            {% if op.data.selling.url %}<a href="{{ op.data.selling.url }}">{{ op.data.selling.label }}</a>{% else %}{{ op.data.selling.label }}{% endif %}
+        </li>
+        <li>{{ 'transactions.operations.fields.exchange_for'|trans }}:
+            {% include 'amount.twig' with {value: op.data.target_amount} only %}
+            {% if op.data.buying.url %}<a href="{{ op.data.buying.url }}">{{ op.data.buying.label }}</a>{% else %}{{ op.data.buying.label }}{% endif %}
         </li>
     {% endif %}
-    {% if op.data.price %}
-        <li>{{ 'transactions.operations.fields.price'|trans }}:
-            {% include 'amount.twig' with {value: op.data.price} only %}
+    {% if op.data.direct_rate %}
+        <li>{{ 'transactions.operations.fields.direct_rate'|trans }}:
+            {% include 'amount.twig' with {value: op.data.direct_rate} only %}
+            {{ op.data.selling_code }} {{ 'transactions.operations.fields.per'|trans }} {{ op.data.buying_code }}
+        </li>
+    {% endif %}
+    {% if op.data.reverse_rate %}
+        <li>{{ 'transactions.operations.fields.reverse_rate'|trans }}:
+            ≈{% include 'amount.twig' with {value: op.data.reverse_rate} only %}
+            {{ op.data.buying_code }} {{ 'transactions.operations.fields.per'|trans }} {{ op.data.selling_code }}
         </li>
     {% endif %}
     {% if op.data.offer_id %}
