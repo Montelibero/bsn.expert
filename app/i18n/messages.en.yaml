@@ -397,9 +397,6 @@ tokens:
     membership:
       name: Membership Tokens
       description: These tokens are used to record membership in various organizations. They are usually not freely tradable.
-    mtl_shares:
-      name: MTL Fund Shares
-      description: These tokens provide stable dividend income and are backed by publicly available reports.
     mtl_stables:
       name: MTL Fund Stablecoins
       description: Tokens whose value is pegged to a fiat (government-issued) currency.
@@ -433,9 +430,9 @@ tokens:
     rwa:
       name: Real World Assets
       description: Tokens representing real-world assets, such as real estate, transport, or other physical things.
-    game:
-      name: Game Tokens
-      description: Tokens used in games.
+    other:
+      name: Other
+      description: Tokens, for which we haven't come up with categories yet.
 
 token_page:
   issued: Issued
