@@ -26,8 +26,22 @@ nav:
 
 index_page:
   accounts: "{0} No accounts|{1} 1 account|]1,Inf] %count% accounts"
-  tags: "List of all known tags"
-  mtla_council: "Council of Montelibero Association"
+  empty: "No data yet"
+  top_accounts:
+    title: "Top Accounts"
+    corporate: "Corporate participants"
+    personal: "Personal participants"
+    all: "All accounts"
+  top_documents:
+    title: "Popular documents"
+    all: "All documents"
+  top_tags:
+    title: "Popular tags"
+    all: "All tags"
+  developers:
+    title: "For Developers"
+    raw_json: "If you are looking RAW JSON data: %json_link%."
+    known_tags: "An organized list of well-known tags %tags_link% (%schema_link%)"
 
 login:
   description: >

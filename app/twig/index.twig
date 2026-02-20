@@ -5,35 +5,118 @@
 {% block content %}
     <h1 class="title">{{ 'common.full_name'|trans }}</h1>
 
-    <form method="get" action="/search/">
-        <div class="field has-addons">
-            <div class="control has-icons-left is-expanded">
-                <input type="text" name="q" class="input is-large" placeholder="{{ 'search.placeholder_hint'|trans }}" size="32" maxlength="64" value="{{ q }}">
-                <span class="icon is-large is-left">
-                    <i class="fas fa-search"></i>
-                </span>
+    <div class="box">
+        <form method="get" action="/search/">
+            <div class="field has-addons">
+                <div class="control has-icons-left is-expanded">
+                    <input type="text" name="q" class="input is-large" placeholder="{{ 'search.placeholder_hint'|trans }}" size="32" maxlength="64" value="{{ q }}">
+                    <span class="icon is-large is-left">
+                        <i class="fas fa-search"></i>
+                    </span>
+                </div>
+                <div class="control">
+                    <input type="submit" class="button is-link is-large"  value="{{ 'search.action.search'|trans }}">
+                </div>
             </div>
-            <div class="control">
-                <input type="submit" class="button is-link is-large"  value="{{ 'search.action.search'|trans }}">
+        </form>
+        <p class="is-size-7 has-text-grey">{{ 'index_page.accounts'|trans({'%count%': accounts_count}) }}</p>
+    </div>
+
+    <div class="columns is-multiline">
+        <div class="column is-12">
+            <div class="card">
+                <div class="card-content">
+                    <p class="title is-4">{{ 'index_page.top_accounts.title'|trans }}</p>
+                    <div class="columns">
+                        <div class="column">
+                            <h3 class="title is-6">{{ 'index_page.top_accounts.corporate'|trans }}</h3>
+                            <ol>
+                                {% for account in top_corporate_accounts %}
+                                    <li class="mb-2">
+                                        {% include 'account_link.twig' with { data: account } %}
+                                    </li>
+                                {% else %}
+                                    <li class="has-text-grey">{{ 'index_page.empty'|trans }}</li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                        <div class="column">
+                            <h3 class="title is-6">{{ 'index_page.top_accounts.personal'|trans }}</h3>
+                            <ol>
+                                {% for account in top_personal_accounts %}
+                                    <li class="mb-2">
+                                        {% include 'account_link.twig' with { data: account } %}
+                                    </li>
+                                {% else %}
+                                    <li class="has-text-grey">{{ 'index_page.empty'|trans }}</li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <footer class="card-footer">
+                    <a class="card-footer-item" href="/accounts/">{{ 'index_page.top_accounts.all'|trans }}</a>
+                </footer>
             </div>
         </div>
-    </form>
 
-    <p class="block">
-        <a href="/accounts/">{{ 'index_page.accounts'|trans({'%count%': accounts_count}) }}</a>
-        (<a href="/accounts/?adopters=true">{{ adopters_count }}</a>)
-    </p>
-    <p class="block">
-        <a href="/tags/">{{ 'index_page.tags'|trans }}</a>
-    </p>
-    <p class="block">
-        <a href="/mtla/council">{{ 'index_page.mtla_council'|trans }}</a>
-    </p>
-    <p class="block">
-        For the legacy HTML page: <a href="/html">/html</a>.
-    </p>
-    <p class="block">
-        If you are looking RAW JSON data: <a href="/json">/json</a>.<br>
-        An organized list of well-known tags <a href="/known_tags.json">/known_tags.json</a> (<a href="/schemas/known_tags_schema.json">schema</a>)
-    </p>
+        <div class="column is-6">
+            <div class="card is-fullheight">
+                <div class="card-content">
+                    <p class="title is-5">{{ 'index_page.top_documents.title'|trans }}</p>
+                    <ol>
+                        {% for document in top_documents %}
+                            <li class="mb-2">
+                                <a href="/documents/{{ document.hash }}">{{ document.display_name }}</a>
+                                <span class="tag is-link is-light">{{ document.using_count }}</span>
+                            </li>
+                        {% else %}
+                            <li class="has-text-grey">{{ 'index_page.empty'|trans }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                <footer class="card-footer">
+                    <a class="card-footer-item" href="/documents/">{{ 'index_page.top_documents.all'|trans }}</a>
+                </footer>
+            </div>
+        </div>
+
+        <div class="column is-6">
+            <div class="card is-fullheight">
+                <div class="card-content">
+                    <p class="title is-5">{{ 'index_page.top_tags.title'|trans }}</p>
+                    <ol>
+                        {% for tag in top_tags %}
+                            <li class="mb-2">
+                                <a href="/tags/{{ tag.name }}">{{ tag.name }}</a>
+                                <span class="tag is-primary is-light">{{ tag.links_count }}</span>
+                            </li>
+                        {% else %}
+                            <li class="has-text-grey">{{ 'index_page.empty'|trans }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                <footer class="card-footer">
+                    <a class="card-footer-item" href="/tags/">{{ 'index_page.top_tags.all'|trans }}</a>
+                </footer>
+            </div>
+        </div>
+
+        <div class="column is-6">
+            <div class="card is-fullheight">
+                <div class="card-content">
+                    <p class="title is-5">{{ 'index_page.developers.title'|trans }}</p>
+                    <p class="mb-2">
+                        {{ 'index_page.developers.raw_json'|trans({'%json_link%': '<a href="/json">/json</a>'})|raw }}
+                    </p>
+                    <p>
+                        {{ 'index_page.developers.known_tags'|trans({
+                            '%tags_link%': '<a href="/known_tags.json">/known_tags.json</a>',
+                            '%schema_link%': '<a href="/schemas/known_tags_schema.json">schema</a>'
+                        })|raw }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

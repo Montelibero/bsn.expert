@@ -9,6 +9,7 @@ use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ApiController;
 use Montelibero\BSN\Controllers\ApiContactsController;
 use Montelibero\BSN\Controllers\FederationController;
+use Montelibero\BSN\Controllers\HomeController;
 use Montelibero\BSN\Controllers\SignController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -19,7 +20,7 @@ class RootRoutes
     public static function register(Container $Container, BSN $BSN, AccountsManager $AccountsManager): void
     {
         SimpleRouter::get('/', function () use ($Container) {
-            return $Container->get(WebApp::class)->Index();
+            return $Container->get(HomeController::class)->Index();
         })->name('root');
 
         SimpleRouter::get('/search/', function () use ($Container) {

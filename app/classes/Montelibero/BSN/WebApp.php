@@ -72,15 +72,6 @@ class WebApp
         }
     }
 
-    public function Index(): ?string
-    {
-        $Template = $this->Twig->load('index.twig');
-        return $Template->render([
-            'accounts_count' => $this->BSN->getAccountsCount(),
-            'adopters_count' => count(($this->Container->get(AccountsController::class))->getAdopters()),
-        ]);
-    }
-
     public function Search(): ?string
     {
         $q = isset($_GET['q']) ? trim((string) $_GET['q']) : '';

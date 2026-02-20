@@ -26,8 +26,22 @@ nav:
 
 index_page:
   accounts: "Всего известно %count% аккаунт|Всего известно %count% аккаунта|Всего известно %count% аккаунтов"
-  tags: "Список всех знакомых тегов"
-  mtla_council: "Состав Совета Ассоциации Монтелиберо"
+  empty: "Пока данных нет"
+  top_accounts:
+    title: "Топ аккаунтов"
+    corporate: "Корпоративные участники"
+    personal: "Персональные участники"
+    all: "Все аккаунты"
+  top_documents:
+    title: "Популярные документы"
+    all: "Все документы"
+  top_tags:
+    title: "Популярные теги"
+    all: "Все теги"
+  developers:
+    title: "Разработчикам"
+    raw_json: "Если вам нужны RAW JSON данные: %json_link%."
+    known_tags: "Организованный список известных тегов %tags_link% (%schema_link%)"
 
 login:
   description: >
