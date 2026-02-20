@@ -12,11 +12,13 @@ class ContactsManager
     private Manager $Mongo;
     private string $database;
     private string $collection = 'contacts';
+    private bool $isReadOnly;
 
-    public function __construct(Manager $Mongo, string $database)
+    public function __construct(Manager $Mongo, string $database, bool $isReadOnly = false)
     {
         $this->Mongo = $Mongo;
         $this->database = $database;
+        $this->isReadOnly = $isReadOnly;
     }
 
     public function getContacts(string $host_account_id, ?string $stellar_address = null): array
@@ -82,16 +84,25 @@ class ContactsManager
 
     public function addContact(string $host_account_id, string $stellar_account, ?string $name = null): void
     {
+        if ($this->isReadOnly) {
+            throw new \Exception('Database is in read-only mode.');
+        }
         $this->upsertContact($host_account_id, $stellar_account, $name ?? '');
     }
 
     public function updateContact(string $host_account_id, string $stellar_account, ?string $name): void
     {
+        if ($this->isReadOnly) {
+            throw new \Exception('Database is in read-only mode.');
+        }
         $this->upsertContact($host_account_id, $stellar_account, $name ?? '');
     }
 
     public function deleteContact(string $host_account_id, $stellar_account): void
     {
+        if ($this->isReadOnly) {
+            throw new \Exception('Database is in read-only mode.');
+        }
         $Bulk = new BulkWrite();
         $Bulk->update(
             ['account_id' => $host_account_id],
@@ -164,6 +175,10 @@ class ContactsManager
 
     public function bulkUpdate(string $account_id, array $bulk_update): void
     {
+        if ($this->isReadOnly) {
+            throw new \Exception('Database is in read-only mode.');
+        }
+
         if (empty($bulk_update)) {
             return;
         }

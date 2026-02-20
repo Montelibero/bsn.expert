@@ -10,13 +10,15 @@ class AccountsManager
     private Manager $Mongo;
     private string $database;
     private string $collection = 'usernames';
+    private bool $isReadOnly;
 
     const USERNAME_REGEX = '/^[a-zA-Z0-9_]+$/';
 
-    public function __construct(Manager $Mongo, string $database)
+    public function __construct(Manager $Mongo, string $database, bool $isReadOnly = false)
     {
         $this->Mongo = $Mongo;
         $this->database = $database;
+        $this->isReadOnly = $isReadOnly;
     }
 
     public function fetchUsername(string $account_id): ?string
