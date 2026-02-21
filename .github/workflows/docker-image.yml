@@ -57,5 +57,5 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
-            -d '{"chat_id": "-1003339919065", "text": "Docker image pushed to registry /info_bsn_app or /info_bsn_web"}'
+            -d '{"chat_id": "-1003339919065", "text": "Docker image pushed to registry /info_bsn_app or /info_bsn_web (@sozidatel!)"}'
           
