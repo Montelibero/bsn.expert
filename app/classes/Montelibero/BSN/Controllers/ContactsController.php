@@ -29,11 +29,26 @@ class ContactsController
 
     public function Contacts(): ?string
     {
+        $is_json_request = $this->isJsonContactsRequest();
+
         if (empty($_SESSION['account'])) {
+            if ($is_json_request) {
+                $this->setJsonSecurityHeaders();
+                SimpleRouter::response()->header('Content-Type: application/json; charset=utf-8');
+                SimpleRouter::response()->httpCode(401);
+                return json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            }
             SimpleRouter::response()->redirect('/login/', 302);
+            return null;
         }
 
         $contacts = $this->ContactsManager->getContacts($_SESSION['account']['id']);
+
+        if ($is_json_request) {
+            $this->setJsonSecurityHeaders();
+            SimpleRouter::response()->header('Content-Type: application/json; charset=utf-8');
+            return $this->jsonContactsResponse($contacts);
+        }
 
         foreach ($contacts as $stellar_account => &$contact) {
             $Account = $this->BSN->makeAccountById($stellar_account);
@@ -95,10 +110,12 @@ class ContactsController
             }
             if (!$errors) {
                 SimpleRouter::response()->redirect('/contacts', 302);
+                return null;
             }
         }
 
         if (($_GET['export'] ?? null) === 'json') {
+            $this->setJsonSecurityHeaders();
             header('Content-Disposition: attachment; filename="contacts.json"');
             header('Content-Type: application/json');
 
@@ -121,6 +138,57 @@ class ContactsController
         }
     }
 
+    private function isJsonContactsRequest(): bool
+    {
+        if (($_GET['format'] ?? null) === 'json') {
+            return true;
+        }
+
+        return $this->acceptHeaderContainsJson($_SERVER['HTTP_ACCEPT'] ?? '');
+    }
+
+    private function acceptHeaderContainsJson(string $accept): bool
+    {
+        if ($accept === '') {
+            return false;
+        }
+
+        foreach (explode(',', strtolower($accept)) as $accept_part) {
+            $accept_type = trim(explode(';', $accept_part, 2)[0]);
+            if ($accept_type === 'application/json' || str_ends_with($accept_type, '+json')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function jsonContactsResponse(array $contacts): string
+    {
+        $formatted_contacts = [];
+        foreach ($contacts as $address => $contact) {
+            $formatted_contacts[$address] = [
+                'label' => (string) ($contact['name'] ?? ''),
+            ];
+        }
+
+        return json_encode(
+            ['contacts' => $formatted_contacts],
+            JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
+        );
+    }
+
+    private function setJsonSecurityHeaders(): void
+    {
+        SimpleRouter::response()->header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        SimpleRouter::response()->header('Pragma: no-cache');
+        SimpleRouter::response()->header('Vary: Accept');
+        SimpleRouter::response()->header('X-Content-Type-Options: nosniff');
+        SimpleRouter::response()->header('X-Frame-Options: SAMEORIGIN');
+        SimpleRouter::response()->header("Content-Security-Policy: frame-ancestors 'self'");
+        SimpleRouter::response()->header('Cross-Origin-Resource-Policy: same-origin');
+    }
+
     public function ContactsEdit($account_id): ?string
     {
         if (!$this->BSN::validateStellarAccountIdFormat($account_id)) {
@@ -130,11 +198,12 @@ class ContactsController
 
         $csrf_token = md5(session_id() . 'contacts');
 
-        $Account = $this->BSN->makeAccountById($account_id);
-
-        if (!$_SESSION['account']) {
+        if (empty($_SESSION['account'])) {
             SimpleRouter::response()->redirect('/tg/', 302);
+            return null;
         }
+
+        $Account = $this->BSN->makeAccountById($account_id);
 
         $ContactsManager = $this->ContactsManager;
 
