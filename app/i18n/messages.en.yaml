@@ -63,6 +63,13 @@ graph_page:
     title: Filters
     apply: Apply
     only_mtla: MTLA members only
+    link_types: Link types
+    unknown_tags: Unknown tags
+    without_signer: Without Signer
+    only_known: Known only
+    only_standard: Standard only
+    families: Families
+    ownership_rights: Ownership rights
   summary:
     title: Summary
     created_at: Data date
@@ -82,7 +89,8 @@ graph_page:
     incoming: Incoming
     outgoing: Outgoing
     cluster: Cluster
-    open_account: Open account
+    open_account: Go to account page
+    node_link: Link to node
   edge:
     source: Source
     target: Target

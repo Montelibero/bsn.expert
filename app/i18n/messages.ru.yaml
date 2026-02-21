@@ -63,6 +63,13 @@ graph_page:
     title: Фильтры
     apply: Применить
     only_mtla: Только участники MTLA
+    link_types: Тип ссылок
+    unknown_tags: Незнакомые теги
+    without_signer: Без Signer
+    only_known: Только знакомые
+    only_standard: Только стандартные
+    families: Семьи
+    ownership_rights: Права владения
   summary:
     title: Сводка
     created_at: Дата данных
@@ -82,7 +89,8 @@ graph_page:
     incoming: Входящих
     outgoing: Исходящих
     cluster: Кластер
-    open_account: Открыть аккаунт
+    open_account: Перейти на страницу аккаунта
+    node_link: Ссылка на ноду
   edge:
     source: От
     target: К
