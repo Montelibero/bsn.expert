@@ -56,6 +56,13 @@ graph_page:
     run_layout: Перестроить
     min_incoming: Мин. входящих
     hide_isolated: Скрыть изолированные узлы
+    find_node: Поиск ноды
+    find_placeholder: Адрес, имя BSN или label контакта
+    find_no_matches: Ничего не найдено
+  filters:
+    title: Фильтры
+    apply: Применить
+    only_mtla: Только участники MTLA
   summary:
     title: Сводка
     created_at: Дата данных

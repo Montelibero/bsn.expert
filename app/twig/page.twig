@@ -172,7 +172,10 @@
     </div>
 </nav>
 <section class="section">
+    {% set is_wide_page = is_wide_page|default(false) %}
+    {% if not is_wide_page %}
     <div class="container">
+    {% endif %}
     <nav class="breadcrumb" aria-label="breadcrumbs">
         <ul>
             {% block breadcrumbs %}
@@ -182,7 +185,9 @@
     </nav>
 
 {% block content %}{% endblock %}
+    {% if not is_wide_page %}
     </div>
+    {% endif %}
 </section>
 
 <div class="footer">

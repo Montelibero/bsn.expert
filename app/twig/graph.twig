@@ -1,16 +1,60 @@
 {% extends "page.twig" %}
 
 {% block title %}{{ 'graph_page.title'|trans }}{% endblock %}
+{% set is_wide_page = true %}
 
 {% block head %}
     <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
     <style>
-        section.section > .container {
-            max-width: 98vw;
-            width: 98vw;
-        }
         .graph-stage {
             position: relative;
+        }
+        .graph-search-control {
+            position: relative;
+            width: 100%;
+        }
+        #node-search-suggestions {
+            position: absolute;
+            top: calc(100% + 2px);
+            left: 0;
+            right: 0;
+            z-index: 45;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #ffffff;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+            overflow: hidden;
+            max-height: 17rem;
+            overflow-y: auto;
+        }
+        .graph-search-item {
+            padding: 0.45rem 0.55rem;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+        }
+        .graph-search-item:last-child {
+            border-bottom: none;
+        }
+        .graph-search-item:hover {
+            background: #eff6ff;
+        }
+        .graph-search-item-title {
+            font-size: 0.76rem;
+            color: #0f172a;
+            line-height: 1.2;
+            margin-bottom: 0.1rem;
+        }
+        .graph-search-item-meta {
+            font-size: 0.66rem;
+            color: #475569;
+            line-height: 1.2;
+            font-family: monospace;
+            word-break: break-word;
+        }
+        .graph-search-item-empty {
+            padding: 0.45rem 0.55rem;
+            font-size: 0.74rem;
+            color: #64748b;
         }
         #cy {
             width: 100%;
@@ -54,11 +98,18 @@
             justify-content: space-between;
             gap: 0.75rem;
         }
+        .graph-controls-box .field + .field {
+            margin-top: 0.75rem;
+        }
+        .graph-filters-box .field + .field {
+            margin-top: 0.85rem;
+        }
+        .graph-filters-box .checkbox {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
         @media (max-width: 1023px) {
-            section.section > .container {
-                max-width: 100vw;
-                width: 100vw;
-            }
             #cy {
                 height: 68vh;
                 min-height: 420px;
@@ -76,35 +127,42 @@
     <h1 class="title">{{ 'graph_page.title'|trans }}</h1>
     <p class="block">{{ 'graph_page.description'|trans }}</p>
 
-    <div class="box">
-        <div class="field is-grouped is-grouped-multiline mb-3">
-            <div class="control">
-                <label class="label is-size-7 mb-1">{{ 'graph_page.controls.layout'|trans }}</label>
-                <div class="select is-small">
-                    <select id="layout-select">
-                        <option value="cose">CoSE</option>
-                        <option value="concentric">Concentric</option>
-                        <option value="breadthfirst">Breadthfirst</option>
-                        <option value="circle">Circle</option>
-                    </select>
+    <div class="box graph-controls-box">
+        <div class="columns is-variable is-3 mb-1">
+            <div class="column is-6-desktop is-12-tablet">
+                <div class="field">
+                    <label class="label is-size-7 mb-1">{{ 'graph_page.controls.layout'|trans }}</label>
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <div class="select is-small is-fullwidth">
+                                <select id="layout-select">
+                                    <option value="cose">CoSE</option>
+                                    <option value="concentric">Concentric</option>
+                                    <option value="breadthfirst">Breadthfirst</option>
+                                    <option value="circle">Circle</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control">
+                            <button id="layout-run" class="button is-small is-link is-light" type="button">
+                                {{ 'graph_page.controls.run_layout'|trans }}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="control">
-                <label class="label is-size-7 mb-1">&nbsp;</label>
-                <button id="layout-run" class="button is-small is-link is-light" type="button">
-                    {{ 'graph_page.controls.run_layout'|trans }}
-                </button>
-            </div>
-            <div class="control">
-                <label class="label is-size-7 mb-1">{{ 'graph_page.controls.min_incoming'|trans }}</label>
-                <input id="min-incoming" class="input is-small" type="number" min="0" value="0" style="width: 7rem;">
-            </div>
-            <div class="control">
-                <label class="label is-size-7 mb-1">&nbsp;</label>
-                <label class="checkbox is-size-7">
-                    <input id="hide-isolated" type="checkbox">
-                    {{ 'graph_page.controls.hide_isolated'|trans }}
-                </label>
+            <div class="column is-6-desktop is-12-tablet">
+                <div class="field graph-search-control">
+                    <label class="label is-size-7 mb-1">{{ 'graph_page.controls.find_node'|trans }}</label>
+                    <input
+                        id="node-search-input"
+                        class="input is-small"
+                        type="text"
+                        autocomplete="off"
+                        placeholder="{{ 'graph_page.controls.find_placeholder'|trans }}"
+                    >
+                    <div id="node-search-suggestions" class="is-hidden"></div>
+                </div>
             </div>
         </div>
         <p id="status-text" class="is-size-7 has-text-grey mb-2">{{ 'graph_page.loading'|trans }}</p>
@@ -115,7 +173,41 @@
     </div>
 
     <div class="columns is-variable is-4">
-        <div class="column is-8">
+        <div class="column is-4">
+            <div class="box">
+                <h2 class="title is-6">{{ 'graph_page.details.title'|trans }}</h2>
+                <div id="selection-details" class="is-size-7 has-text-grey">
+                    {{ 'graph_page.details.empty'|trans }}
+                </div>
+            </div>
+        </div>
+        <div class="column is-4">
+            <div class="box graph-filters-box">
+                <h2 class="title is-6 mb-3">{{ 'graph_page.filters.title'|trans }}</h2>
+                <div class="field">
+                    <label class="label is-size-7 mb-1">{{ 'graph_page.controls.min_incoming'|trans }}</label>
+                    <input id="min-incoming" class="input is-small" type="number" min="0" value="0">
+                </div>
+                <div class="field">
+                    <label class="checkbox is-size-7">
+                        <input id="hide-isolated" type="checkbox">
+                        {{ 'graph_page.controls.hide_isolated'|trans }}
+                    </label>
+                </div>
+                <div class="field">
+                    <label class="checkbox is-size-7">
+                        <input id="only-mtla" type="checkbox">
+                        {{ 'graph_page.filters.only_mtla'|trans }}
+                    </label>
+                </div>
+                <div class="field">
+                    <button id="filters-apply" class="button is-primary is-small is-fullwidth" type="button">
+                        {{ 'graph_page.filters.apply'|trans }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="column is-4">
             <div class="box">
                 <h2 class="title is-6">{{ 'graph_page.summary.title'|trans }}</h2>
                 <ul class="graph-summary-list is-size-7">
@@ -133,14 +225,6 @@
                 <ol id="top-incoming" class="is-size-7"></ol>
             </div>
         </div>
-        <div class="column is-4">
-            <div class="box">
-                <h2 class="title is-6">{{ 'graph_page.details.title'|trans }}</h2>
-                <div id="selection-details" class="is-size-7 has-text-grey">
-                    {{ 'graph_page.details.empty'|trans }}
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -150,10 +234,20 @@
             const layoutRun = document.getElementById('layout-run');
             const minIncomingInput = document.getElementById('min-incoming');
             const hideIsolatedInput = document.getElementById('hide-isolated');
+            const onlyMtlaInput = document.getElementById('only-mtla');
+            const filtersApplyButton = document.getElementById('filters-apply');
             const statusText = document.getElementById('status-text');
             const selectionDetails = document.getElementById('selection-details');
             const topIncomingList = document.getElementById('top-incoming');
             const tooltip = document.getElementById('graph-tooltip');
+            const searchInput = document.getElementById('node-search-input');
+            const searchSuggestions = document.getElementById('node-search-suggestions');
+            const urlQuery = new URLSearchParams(window.location.search);
+            const queryNodeIdRaw = urlQuery.get("id") || "";
+            const queryNodeId = queryNodeIdRaw.trim().toUpperCase();
+            const pinnedNodeId = stellarIdRe.test(queryNodeId) ? queryNodeId : "";
+            const queryOnlyMtlaRaw = (urlQuery.get("only_mtla") || "").trim().toLowerCase();
+            const queryOnlyMtla = queryOnlyMtlaRaw === "yes";
 
             const i18n = {
                 loading: "{{ 'graph_page.loading'|trans|e('js') }}",
@@ -166,10 +260,14 @@
                 edgeSource: "{{ 'graph_page.edge.source'|trans|e('js') }}",
                 edgeTarget: "{{ 'graph_page.edge.target'|trans|e('js') }}",
                 edgeCount: "{{ 'graph_page.edge.count'|trans|e('js') }}",
-                edgeTags: "{{ 'graph_page.edge.tags'|trans|e('js') }}"
+                edgeTags: "{{ 'graph_page.edge.tags'|trans|e('js') }}",
+                searchNoMatches: "{{ 'graph_page.controls.find_no_matches'|trans|e('js') }}"
             };
 
             let cy = null;
+            let searchIndex = [];
+            let sourceGraphData = null;
+            let sourceContactLabels = {};
 
             function showTooltip(node, renderedPosition) {
                 tooltip.innerHTML =
@@ -289,20 +387,109 @@
                 return shortAccount(id);
             }
 
-            function buildGraph(data, contactLabels) {
+            function hasMtlaBalanceCode(balances, code) {
+                if (!balances || typeof balances !== "object") {
+                    return false;
+                }
+                return code in balances;
+            }
+
+            function collectMtlaAccounts(accounts, maxDepth) {
+                const ownersByAccount = new Map();
+                const ownershipByAccount = new Map();
+                const directMtlaMembers = new Set();
+
+                for (const [accountId, accountData] of Object.entries(accounts)) {
+                    const balances = accountData && accountData.balances ? accountData.balances : {};
+                    if (hasMtlaBalanceCode(balances, "MTLAP") || hasMtlaBalanceCode(balances, "MTLAC")) {
+                        directMtlaMembers.add(accountId);
+                    }
+
+                    const tags = accountData && accountData.tags ? accountData.tags : {};
+                    const ownerTargets = Array.isArray(tags.Owner) ? tags.Owner.filter((value) => typeof value === "string") : [];
+                    const ownershipTargets = Array.isArray(tags.OwnershipFull) ? tags.OwnershipFull.filter((value) => typeof value === "string") : [];
+                    ownersByAccount.set(accountId, new Set(ownerTargets));
+                    ownershipByAccount.set(accountId, new Set(ownershipTargets));
+                }
+
+                const ownershipAdjacency = new Map();
+                const addAdjacency = function (from, to) {
+                    if (!ownershipAdjacency.has(from)) {
+                        ownershipAdjacency.set(from, new Set());
+                    }
+                    ownershipAdjacency.get(from).add(to);
+                };
+
+                for (const [sourceId, ownershipTargets] of ownershipByAccount.entries()) {
+                    for (const targetId of ownershipTargets) {
+                        if (!accounts[targetId]) {
+                            continue;
+                        }
+                        const reverseOwners = ownersByAccount.get(targetId);
+                        if (!reverseOwners || !reverseOwners.has(sourceId)) {
+                            continue;
+                        }
+                        addAdjacency(sourceId, targetId);
+                        addAdjacency(targetId, sourceId);
+                    }
+                }
+
+                const result = new Set(directMtlaMembers);
+                const queue = [];
+                for (const accountId of directMtlaMembers) {
+                    queue.push({id: accountId, depth: 0});
+                }
+
+                while (queue.length) {
+                    const current = queue.shift();
+                    if (!current || current.depth >= maxDepth) {
+                        continue;
+                    }
+                    const neighbors = ownershipAdjacency.get(current.id);
+                    if (!neighbors) {
+                        continue;
+                    }
+                    for (const neighborId of neighbors) {
+                        if (result.has(neighborId)) {
+                            continue;
+                        }
+                        result.add(neighborId);
+                        queue.push({id: neighborId, depth: current.depth + 1});
+                    }
+                }
+
+                return result;
+            }
+
+            function getFilterOptions() {
+                return {
+                    minIncoming: Math.max(0, parseInt(minIncomingInput.value || "0", 10) || 0),
+                    hideIsolated: Boolean(hideIsolatedInput.checked),
+                    onlyMtla: Boolean(onlyMtlaInput && onlyMtlaInput.checked)
+                };
+            }
+
+            function buildGraph(data, contactLabels, filterOptions) {
                 const accounts = data.accounts || {};
+                const allowedMtlaAccounts = filterOptions.onlyMtla ? collectMtlaAccounts(accounts, 3) : null;
                 const nodesMap = new Map();
                 const incomingRaw = new Map();
                 const outgoingRaw = new Map();
                 const edgeMap = new Map();
 
                 for (const [accountId, accountData] of Object.entries(accounts)) {
+                    if (allowedMtlaAccounts && !allowedMtlaAccounts.has(accountId)) {
+                        continue;
+                    }
                     const profile = accountData && accountData.profile ? accountData.profile : {};
                     const names = Array.isArray(profile.Name) ? profile.Name : [];
-                    const name = names.length ? String(names[0]).trim() : "";
-                    const effectiveName = contactLabels[accountId] || name;
+                    const bsnName = names.length ? String(names[0]).trim() : "";
+                    const contactLabel = contactLabels[accountId] || "";
+                    const effectiveName = contactLabel || bsnName;
                     nodesMap.set(accountId, {
                         id: accountId,
+                        bsnName: bsnName,
+                        contactLabel: contactLabel,
                         name: effectiveName,
                         label: labelFromName(effectiveName, accountId)
                     });
@@ -312,6 +499,9 @@
 
                 let rawLinks = 0;
                 for (const [sourceId, accountData] of Object.entries(accounts)) {
+                    if (allowedMtlaAccounts && !allowedMtlaAccounts.has(sourceId)) {
+                        continue;
+                    }
                     const tags = accountData && accountData.tags ? accountData.tags : {};
                     for (const [tagName, targets] of Object.entries(tags)) {
                         if (!Array.isArray(targets)) {
@@ -321,12 +511,17 @@
                             if (typeof targetId !== "string" || !stellarIdRe.test(targetId)) {
                                 continue;
                             }
+                            if (allowedMtlaAccounts && !allowedMtlaAccounts.has(targetId)) {
+                                continue;
+                            }
                             if (!nodesMap.has(targetId)) {
-                                const targetName = contactLabels[targetId] || "";
+                                const targetContact = contactLabels[targetId] || "";
                                 nodesMap.set(targetId, {
                                     id: targetId,
-                                    name: targetName,
-                                    label: labelFromName(targetName, targetId)
+                                    bsnName: "",
+                                    contactLabel: targetContact,
+                                    name: targetContact,
+                                    label: labelFromName(targetContact, targetId)
                                 });
                                 incomingRaw.set(targetId, 0);
                                 outgoingRaw.set(targetId, 0);
@@ -361,11 +556,20 @@
                     const incoming = incomingRaw.get(node.id) || 0;
                     const outgoing = outgoingRaw.get(node.id) || 0;
                     const size = 16 + (Math.log2(incoming + 1) * 9);
+                    const searchText = [
+                        node.id,
+                        node.name,
+                        node.bsnName,
+                        node.contactLabel
+                    ].filter(Boolean).join(" ").toLowerCase();
                     nodes.push({
                         data: {
                             id: node.id,
                             label: node.label,
                             displayName: node.name || shortAccount(node.id),
+                            bsnName: node.bsnName || "",
+                            contactLabel: node.contactLabel || "",
+                            searchText: searchText,
                             incoming: incoming,
                             outgoing: outgoing,
                             degreeRaw: incoming + outgoing,
@@ -469,6 +673,7 @@
                     edgesCount: edges.length,
                     rawLinks: rawLinks,
                     declaredAccounts: Object.keys(accounts).length,
+                    filteredAccounts: nodes.length,
                     createdAt: data.createDate || "",
                     topIncoming: topIncoming
                 };
@@ -498,6 +703,198 @@
                 statusText.textContent = text;
                 statusText.classList.toggle("has-text-danger", Boolean(isError));
                 statusText.classList.toggle("has-text-grey", !isError);
+            }
+
+            function hideSearchSuggestions() {
+                if (!searchSuggestions) {
+                    return;
+                }
+                searchSuggestions.classList.add("is-hidden");
+                searchSuggestions.innerHTML = "";
+            }
+
+            function buildSearchIndex() {
+                searchIndex = [];
+                cy.nodes().forEach((node) => {
+                    const id = node.id();
+                    const displayName = String(node.data("displayName") || "");
+                    const bsnName = String(node.data("bsnName") || "");
+                    const contactLabel = String(node.data("contactLabel") || "");
+                    searchIndex.push({
+                        id: id,
+                        displayName: displayName,
+                        bsnName: bsnName,
+                        contactLabel: contactLabel,
+                        idUpper: id.toUpperCase(),
+                        displayLower: displayName.toLowerCase(),
+                        bsnLower: bsnName.toLowerCase(),
+                        contactLower: contactLabel.toLowerCase(),
+                        searchText: String(node.data("searchText") || "").toLowerCase()
+                    });
+                });
+            }
+
+            function scoreSearchItem(item, queryLower, queryUpper) {
+                let score = 0;
+                if (item.idUpper === queryUpper) {
+                    score += 5000;
+                }
+                if (item.idUpper.startsWith(queryUpper)) {
+                    score += 1400;
+                } else if (item.idUpper.includes(queryUpper)) {
+                    score += 800;
+                }
+
+                if (item.contactLower === queryLower) {
+                    score += 1200;
+                } else if (item.contactLower.includes(queryLower)) {
+                    score += 700;
+                }
+
+                if (item.bsnLower === queryLower) {
+                    score += 1100;
+                } else if (item.bsnLower.includes(queryLower)) {
+                    score += 600;
+                }
+
+                if (item.displayLower === queryLower) {
+                    score += 900;
+                } else if (item.displayLower.includes(queryLower)) {
+                    score += 500;
+                }
+
+                if (score === 0 && item.searchText.includes(queryLower)) {
+                    score += 300;
+                }
+                return score;
+            }
+
+            function findSearchMatches(queryRaw) {
+                const query = String(queryRaw || "").trim();
+                if (!query) {
+                    return [];
+                }
+                const queryLower = query.toLowerCase();
+                const queryUpper = query.toUpperCase();
+                return searchIndex
+                    .map((item) => ({
+                        item: item,
+                        score: scoreSearchItem(item, queryLower, queryUpper)
+                    }))
+                    .filter((entry) => entry.score > 0)
+                    .sort((a, b) => b.score - a.score || a.item.displayName.localeCompare(b.item.displayName))
+                    .slice(0, 12)
+                    .map((entry) => entry.item);
+            }
+
+            function focusNodeById(accountId, options) {
+                const opts = Object.assign({
+                    revealIfHidden: true,
+                    animate: true
+                }, options || {});
+                if (!cy) {
+                    return false;
+                }
+                const node = cy.getElementById(accountId);
+                if (!node || node.length === 0) {
+                    return false;
+                }
+
+                if (node.hasClass("hidden")) {
+                    if (!opts.revealIfHidden) {
+                        return false;
+                    }
+                    minIncomingInput.value = "0";
+                    hideIsolatedInput.checked = false;
+                    applyFilters();
+                    if (node.hasClass("hidden")) {
+                        return false;
+                    }
+                }
+
+                cy.nodes().unselect();
+                cy.edges().unselect();
+                node.select();
+                emphasizeNode(node);
+                renderNodeDetails(node);
+
+                if (opts.animate) {
+                    const zoom = Math.min(2.4, Math.max(cy.zoom(), 1.45));
+                    cy.animate({
+                        center: {eles: node},
+                        zoom: zoom
+                    }, {
+                        duration: 220
+                    });
+                }
+
+                return true;
+            }
+
+            function applyPinnedNodeSelection() {
+                if (!pinnedNodeId) {
+                    return false;
+                }
+                return focusNodeById(pinnedNodeId, {
+                    revealIfHidden: false,
+                    animate: false
+                });
+            }
+
+            function renderSearchSuggestions(items) {
+                if (!searchSuggestions) {
+                    return;
+                }
+                if (!items.length) {
+                    searchSuggestions.innerHTML = "<div class=\"graph-search-item-empty\">" + escapeHtml(i18n.searchNoMatches) + "</div>";
+                    searchSuggestions.classList.remove("is-hidden");
+                    return;
+                }
+
+                const html = items.map((item) => {
+                    const aliases = [];
+                    if (item.contactLabel && item.contactLabel !== item.displayName) {
+                        aliases.push("book: " + item.contactLabel);
+                    }
+                    if (item.bsnName && item.bsnName !== item.displayName) {
+                        aliases.push("bsn: " + item.bsnName);
+                    }
+
+                    const metaParts = [item.id].concat(aliases);
+                    return "<div class=\"graph-search-item\" data-account-id=\"" + escapeHtml(item.id) + "\">" +
+                        "<div class=\"graph-search-item-title\">" + escapeHtml(item.displayName || shortAccount(item.id)) + "</div>" +
+                        "<div class=\"graph-search-item-meta\">" + escapeHtml(metaParts.join(" | ")) + "</div>" +
+                        "</div>";
+                }).join("");
+
+                searchSuggestions.innerHTML = html;
+                searchSuggestions.classList.remove("is-hidden");
+
+                searchSuggestions.querySelectorAll(".graph-search-item[data-account-id]").forEach((element) => {
+                    element.addEventListener("mousedown", function (event) {
+                        event.preventDefault();
+                        const accountId = element.getAttribute("data-account-id");
+                        focusNodeById(accountId);
+                        searchInput.value = element.querySelector(".graph-search-item-title").textContent || "";
+                        hideSearchSuggestions();
+                    });
+                });
+            }
+
+            function updateSearchSuggestions() {
+                if (!searchInput) {
+                    return;
+                }
+                if (!cy) {
+                    return;
+                }
+                const query = searchInput.value || "";
+                const matches = findSearchMatches(query);
+                if (!query.trim()) {
+                    hideSearchSuggestions();
+                    return;
+                }
+                renderSearchSuggestions(matches);
             }
 
             function assignClusters() {
@@ -563,15 +960,20 @@
                     }
                 };
                 const layoutOptions = optionsByLayout[layoutName] || optionsByLayout.cose;
-                visible.layout(layoutOptions).run();
+                const layout = visible.layout(layoutOptions);
+                layout.on("layoutstop", function () {
+                    applyPinnedNodeSelection();
+                });
+                layout.run();
             }
 
             function applyFilters() {
-                const minIncoming = Math.max(0, parseInt(minIncomingInput.value || "0", 10) || 0);
+                const filterOptions = getFilterOptions();
+                const minIncoming = filterOptions.minIncoming;
                 cy.batch(() => {
                     cy.nodes().forEach((node) => {
                         const byIncoming = node.data("incoming") < minIncoming;
-                        const byIsolated = hideIsolatedInput.checked && node.data("degreeRaw") === 0;
+                        const byIsolated = filterOptions.hideIsolated && node.data("degreeRaw") === 0;
                         node.toggleClass("hidden", byIncoming || byIsolated);
                     });
                     cy.edges().forEach((edge) => {
@@ -584,6 +986,7 @@
                 setSummaryValue("summary-visible-edges", cy.edges().not(".hidden").length);
                 clearEmphasis();
                 hideTooltip();
+                return applyPinnedNodeSelection();
             }
 
             function renderNodeDetails(node) {
@@ -621,6 +1024,9 @@
             function clearEmphasis() {
                 cy.elements().removeClass("muted");
                 cy.elements().removeClass("related-edge");
+                cy.elements().removeClass("related-edge-in");
+                cy.elements().removeClass("related-edge-out");
+                cy.elements().removeClass("related-edge-both");
                 cy.nodes().removeClass("focus-node");
             }
 
@@ -632,8 +1038,84 @@
                 node.connectedEdges().forEach((edge) => {
                     edge.removeClass("muted");
                     edge.addClass("related-edge");
+                    const isBidirectional = Number(edge.data("bidirectional")) === 1;
+                    const edgeSourceId = String(edge.data("source") || "");
+                    const edgeTargetId = String(edge.data("target") || "");
+                    const nodeId = node.id();
+
+                    if (isBidirectional || edgeSourceId === edgeTargetId) {
+                        edge.addClass("related-edge-both");
+                    } else if (edgeTargetId === nodeId) {
+                        edge.addClass("related-edge-in");
+                    } else if (edgeSourceId === nodeId) {
+                        edge.addClass("related-edge-out");
+                    }
                     edge.source().removeClass("muted");
                     edge.target().removeClass("muted");
+                });
+            }
+
+            function redrawGraph() {
+                if (!cy || !sourceGraphData) {
+                    return;
+                }
+
+                const graph = buildGraph(sourceGraphData, sourceContactLabels, getFilterOptions());
+                cy.batch(() => {
+                    cy.elements().remove();
+                    cy.add(graph.elements);
+                });
+
+                buildSearchIndex();
+                const clusterInfo = assignClusters();
+                const pinnedSelected = applyFilters();
+                runLayout();
+
+                setSummaryValue("summary-created-at", renderDate(graph.createdAt));
+                setSummaryValue("summary-total-accounts", graph.declaredAccounts);
+                setSummaryValue("summary-total-nodes", graph.nodesCount);
+                setSummaryValue("summary-total-links", graph.rawLinks);
+                setSummaryValue("summary-pair-links", graph.edgesCount);
+                setSummaryValue("summary-clusters", clusterInfo.count);
+                setSummaryValue("summary-largest-cluster", clusterInfo.largest);
+
+                renderTopIncoming(graph.topIncoming);
+                if (!pinnedSelected) {
+                    selectionDetails.textContent = i18n.detailsEmpty;
+                    selectionDetails.classList.add("has-text-grey");
+                }
+                hideSearchSuggestions();
+                setStatus("", false);
+            }
+
+            function attachCyEventHandlers() {
+                cy.on("tap", "node", function (event) {
+                    emphasizeNode(event.target);
+                    renderNodeDetails(event.target);
+                });
+                cy.on("tap", "edge", function (event) {
+                    clearEmphasis();
+                    renderEdgeDetails(event.target);
+                });
+                cy.on("tap", function (event) {
+                    if (event.target === cy) {
+                        clearEmphasis();
+                        hideTooltip();
+                        selectionDetails.textContent = i18n.detailsEmpty;
+                        selectionDetails.classList.add("has-text-grey");
+                    }
+                });
+                cy.on("mouseover", "node", function (event) {
+                    showTooltip(event.target, event.renderedPosition);
+                });
+                cy.on("mousemove", "node", function (event) {
+                    showTooltip(event.target, event.renderedPosition);
+                });
+                cy.on("mouseout", "node", function () {
+                    hideTooltip();
+                });
+                cy.on("zoom pan", function () {
+                    hideTooltip();
                 });
             }
 
@@ -641,15 +1123,20 @@
                 setStatus(i18n.loading, false);
 
                 try {
+                    if (onlyMtlaInput && queryOnlyMtla) {
+                        onlyMtlaInput.checked = true;
+                    }
+
                     const [data, contactLabels] = await Promise.all([
                         fetchGraphJson(),
                         fetchContactLabels()
                     ]);
-                    const graph = buildGraph(data, contactLabels);
+                    sourceGraphData = data;
+                    sourceContactLabels = contactLabels;
 
                     cy = cytoscape({
                         container: document.getElementById("cy"),
-                        elements: graph.elements,
+                        elements: [],
                         wheelSensitivity: 0.18,
                         style: [
                             {
@@ -708,12 +1195,33 @@
                             {
                                 selector: ".related-edge",
                                 style: {
-                                    "line-color": "#ef233c",
-                                    "source-arrow-color": "#ef233c",
-                                    "target-arrow-color": "#ef233c",
                                     "opacity": 0.95,
                                     "width": "mapData(weight, 1, 20, 2, 8)",
                                     "z-index": 997
+                                }
+                            },
+                            {
+                                selector: ".related-edge-in",
+                                style: {
+                                    "line-color": "#3A86FF",
+                                    "source-arrow-color": "#3A86FF",
+                                    "target-arrow-color": "#3A86FF"
+                                }
+                            },
+                            {
+                                selector: ".related-edge-out",
+                                style: {
+                                    "line-color": "#FB5607",
+                                    "source-arrow-color": "#FB5607",
+                                    "target-arrow-color": "#FB5607"
+                                }
+                            },
+                            {
+                                selector: ".related-edge-both",
+                                style: {
+                                    "line-color": "#8338EC",
+                                    "source-arrow-color": "#8338EC",
+                                    "target-arrow-color": "#8338EC"
                                 }
                             },
                             {
@@ -739,60 +1247,54 @@
                         ]
                     });
 
-                    const clusterInfo = assignClusters();
-                    applyFilters();
-                    runLayout();
-
-                    setSummaryValue("summary-created-at", renderDate(graph.createdAt));
-                    setSummaryValue("summary-total-accounts", graph.declaredAccounts);
-                    setSummaryValue("summary-total-nodes", graph.nodesCount);
-                    setSummaryValue("summary-total-links", graph.rawLinks);
-                    setSummaryValue("summary-pair-links", graph.edgesCount);
-                    setSummaryValue("summary-clusters", clusterInfo.count);
-                    setSummaryValue("summary-largest-cluster", clusterInfo.largest);
-
-                    renderTopIncoming(graph.topIncoming);
-                    selectionDetails.textContent = i18n.detailsEmpty;
-                    selectionDetails.classList.add("has-text-grey");
-                    setStatus("", false);
-
-                    cy.on("tap", "node", function (event) {
-                        emphasizeNode(event.target);
-                        renderNodeDetails(event.target);
-                    });
-                    cy.on("tap", "edge", function (event) {
-                        clearEmphasis();
-                        renderEdgeDetails(event.target);
-                    });
-                    cy.on("tap", function (event) {
-                        if (event.target === cy) {
-                            clearEmphasis();
-                            hideTooltip();
-                            selectionDetails.textContent = i18n.detailsEmpty;
-                            selectionDetails.classList.add("has-text-grey");
-                        }
-                    });
-                    cy.on("mouseover", "node", function (event) {
-                        showTooltip(event.target, event.renderedPosition);
-                    });
-                    cy.on("mousemove", "node", function (event) {
-                        showTooltip(event.target, event.renderedPosition);
-                    });
-                    cy.on("mouseout", "node", function () {
-                        hideTooltip();
-                    });
-                    cy.on("zoom pan", function () {
-                        hideTooltip();
-                    });
-
+                    attachCyEventHandlers();
                     layoutRun.addEventListener("click", runLayout);
-                    minIncomingInput.addEventListener("change", applyFilters);
-                    hideIsolatedInput.addEventListener("change", applyFilters);
+                    if (filtersApplyButton) {
+                        filtersApplyButton.addEventListener("click", redrawGraph);
+                    }
+
+                    redrawGraph();
                 } catch (error) {
                     console.error(error);
                     hideTooltip();
                     setStatus(i18n.loadError, true);
                 }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener("input", updateSearchSuggestions);
+                searchInput.addEventListener("focus", updateSearchSuggestions);
+                searchInput.addEventListener("keydown", function (event) {
+                    if (event.key === "Escape") {
+                        hideSearchSuggestions();
+                        return;
+                    }
+                    if (event.key !== "Enter") {
+                        return;
+                    }
+                    const matches = findSearchMatches(searchInput.value || "");
+                    if (!matches.length) {
+                        return;
+                    }
+                    event.preventDefault();
+                    focusNodeById(matches[0].id);
+                    searchInput.value = matches[0].displayName || shortAccount(matches[0].id);
+                    hideSearchSuggestions();
+                });
+
+                document.addEventListener("click", function (event) {
+                    if (!searchSuggestions || !searchInput) {
+                        return;
+                    }
+                    const target = event.target;
+                    if (target === searchInput) {
+                        return;
+                    }
+                    if (searchSuggestions.contains(target)) {
+                        return;
+                    }
+                    hideSearchSuggestions();
+                });
             }
 
             initGraph();

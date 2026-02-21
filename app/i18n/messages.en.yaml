@@ -56,6 +56,13 @@ graph_page:
     run_layout: Rebuild
     min_incoming: Min incoming
     hide_isolated: Hide isolated nodes
+    find_node: Node search
+    find_placeholder: Address, BSN name, or contact label
+    find_no_matches: No matches found
+  filters:
+    title: Filters
+    apply: Apply
+    only_mtla: MTLA members only
   summary:
     title: Summary
     created_at: Data date
