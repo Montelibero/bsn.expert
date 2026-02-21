@@ -11,6 +11,7 @@ nav:
   tags: Теги
   documents: Документы
   editor: Редактор
+  graph: Граф
   tools:
     title: Инструменты
     multisig: Редактор мультиподписи
@@ -42,6 +43,44 @@ index_page:
     title: "Разработчикам"
     raw_json: "Если вам нужны RAW JSON данные: %json_link%."
     known_tags: "Организованный список известных тегов %tags_link% (%schema_link%)"
+
+graph_page:
+  title: Граф связей
+  description: >
+    Отображение направленных связей между аккаунтами. Размер узла зависит от числа входящих ссылок.
+    Кластеры определяются как компоненты связности.
+  loading: Загрузка графа...
+  load_error: Не удалось загрузить данные графа.
+  controls:
+    layout: Раскладка
+    run_layout: Перестроить
+    min_incoming: Мин. входящих
+    hide_isolated: Скрыть изолированные узлы
+  summary:
+    title: Сводка
+    created_at: Дата данных
+    total_accounts: Аккаунтов в JSON
+    total_nodes: Узлов в графе
+    total_links: Всего ссылок
+    pair_links: Уникальных пар
+    clusters: Кластеров
+    largest_cluster: Крупнейший кластер
+    visible_accounts: Видимых узлов
+    visible_links: Видимых рёбер
+  top_incoming: Топ по входящим
+  details:
+    title: Выделение
+    empty: Нажмите на узел или ребро.
+  node:
+    incoming: Входящих
+    outgoing: Исходящих
+    cluster: Кластер
+    open_account: Открыть аккаунт
+  edge:
+    source: От
+    target: К
+    count: Ссылок
+    tags: Теги
 
 login:
   description: >

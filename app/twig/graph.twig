@@ -1,0 +1,801 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'graph_page.title'|trans }}{% endblock %}
+
+{% block head %}
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
+    <style>
+        section.section > .container {
+            max-width: 98vw;
+            width: 98vw;
+        }
+        .graph-stage {
+            position: relative;
+        }
+        #cy {
+            width: 100%;
+            height: 80vh;
+            min-height: 560px;
+            border: 1px solid #dbdbdb;
+            border-radius: 6px;
+            background: #f8fafc;
+        }
+        #graph-tooltip {
+            position: absolute;
+            z-index: 30;
+            display: none;
+            max-width: 22rem;
+            padding: 0.4rem 0.55rem;
+            border-radius: 4px;
+            background: rgba(17, 24, 39, 0.92);
+            color: #f9fafb;
+            font-size: 0.7rem;
+            line-height: 1.2;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+            word-break: break-word;
+        }
+        .graph-summary-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.35rem;
+        }
+        .graph-summary-list span:last-child {
+            font-family: monospace;
+            white-space: nowrap;
+        }
+        #selection-details p {
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+        #top-incoming li {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        @media (max-width: 1023px) {
+            section.section > .container {
+                max-width: 100vw;
+                width: 100vw;
+            }
+            #cy {
+                height: 68vh;
+                min-height: 420px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="/graph" aria-current="page">{{ 'graph_page.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'graph_page.title'|trans }}</h1>
+    <p class="block">{{ 'graph_page.description'|trans }}</p>
+
+    <div class="box">
+        <div class="field is-grouped is-grouped-multiline mb-3">
+            <div class="control">
+                <label class="label is-size-7 mb-1">{{ 'graph_page.controls.layout'|trans }}</label>
+                <div class="select is-small">
+                    <select id="layout-select">
+                        <option value="cose">CoSE</option>
+                        <option value="concentric">Concentric</option>
+                        <option value="breadthfirst">Breadthfirst</option>
+                        <option value="circle">Circle</option>
+                    </select>
+                </div>
+            </div>
+            <div class="control">
+                <label class="label is-size-7 mb-1">&nbsp;</label>
+                <button id="layout-run" class="button is-small is-link is-light" type="button">
+                    {{ 'graph_page.controls.run_layout'|trans }}
+                </button>
+            </div>
+            <div class="control">
+                <label class="label is-size-7 mb-1">{{ 'graph_page.controls.min_incoming'|trans }}</label>
+                <input id="min-incoming" class="input is-small" type="number" min="0" value="0" style="width: 7rem;">
+            </div>
+            <div class="control">
+                <label class="label is-size-7 mb-1">&nbsp;</label>
+                <label class="checkbox is-size-7">
+                    <input id="hide-isolated" type="checkbox">
+                    {{ 'graph_page.controls.hide_isolated'|trans }}
+                </label>
+            </div>
+        </div>
+        <p id="status-text" class="is-size-7 has-text-grey mb-2">{{ 'graph_page.loading'|trans }}</p>
+        <div class="graph-stage">
+            <div id="graph-tooltip"></div>
+            <div id="cy"></div>
+        </div>
+    </div>
+
+    <div class="columns is-variable is-4">
+        <div class="column is-8">
+            <div class="box">
+                <h2 class="title is-6">{{ 'graph_page.summary.title'|trans }}</h2>
+                <ul class="graph-summary-list is-size-7">
+                    <li><span>{{ 'graph_page.summary.created_at'|trans }}</span><span id="summary-created-at">-</span></li>
+                    <li><span>{{ 'graph_page.summary.total_accounts'|trans }}</span><span id="summary-total-accounts">-</span></li>
+                    <li><span>{{ 'graph_page.summary.total_nodes'|trans }}</span><span id="summary-total-nodes">-</span></li>
+                    <li><span>{{ 'graph_page.summary.total_links'|trans }}</span><span id="summary-total-links">-</span></li>
+                    <li><span>{{ 'graph_page.summary.pair_links'|trans }}</span><span id="summary-pair-links">-</span></li>
+                    <li><span>{{ 'graph_page.summary.clusters'|trans }}</span><span id="summary-clusters">-</span></li>
+                    <li><span>{{ 'graph_page.summary.largest_cluster'|trans }}</span><span id="summary-largest-cluster">-</span></li>
+                    <li><span>{{ 'graph_page.summary.visible_accounts'|trans }}</span><span id="summary-visible-nodes">-</span></li>
+                    <li><span>{{ 'graph_page.summary.visible_links'|trans }}</span><span id="summary-visible-edges">-</span></li>
+                </ul>
+                <h3 class="title is-7 mt-4 mb-2">{{ 'graph_page.top_incoming'|trans }}</h3>
+                <ol id="top-incoming" class="is-size-7"></ol>
+            </div>
+        </div>
+        <div class="column is-4">
+            <div class="box">
+                <h2 class="title is-6">{{ 'graph_page.details.title'|trans }}</h2>
+                <div id="selection-details" class="is-size-7 has-text-grey">
+                    {{ 'graph_page.details.empty'|trans }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const stellarIdRe = /^G[A-Z2-7]{55}$/;
+            const layoutSelect = document.getElementById('layout-select');
+            const layoutRun = document.getElementById('layout-run');
+            const minIncomingInput = document.getElementById('min-incoming');
+            const hideIsolatedInput = document.getElementById('hide-isolated');
+            const statusText = document.getElementById('status-text');
+            const selectionDetails = document.getElementById('selection-details');
+            const topIncomingList = document.getElementById('top-incoming');
+            const tooltip = document.getElementById('graph-tooltip');
+
+            const i18n = {
+                loading: "{{ 'graph_page.loading'|trans|e('js') }}",
+                loadError: "{{ 'graph_page.load_error'|trans|e('js') }}",
+                detailsEmpty: "{{ 'graph_page.details.empty'|trans|e('js') }}",
+                nodeIncoming: "{{ 'graph_page.node.incoming'|trans|e('js') }}",
+                nodeOutgoing: "{{ 'graph_page.node.outgoing'|trans|e('js') }}",
+                nodeCluster: "{{ 'graph_page.node.cluster'|trans|e('js') }}",
+                nodeOpenAccount: "{{ 'graph_page.node.open_account'|trans|e('js') }}",
+                edgeSource: "{{ 'graph_page.edge.source'|trans|e('js') }}",
+                edgeTarget: "{{ 'graph_page.edge.target'|trans|e('js') }}",
+                edgeCount: "{{ 'graph_page.edge.count'|trans|e('js') }}",
+                edgeTags: "{{ 'graph_page.edge.tags'|trans|e('js') }}"
+            };
+
+            let cy = null;
+
+            function showTooltip(node, renderedPosition) {
+                tooltip.innerHTML =
+                    "<strong>" + escapeHtml(node.data("displayName")) + "</strong><br>" +
+                    "<code>" + escapeHtml(node.id()) + "</code>";
+                tooltip.style.display = "block";
+                const stage = tooltip.parentElement;
+                const stageWidth = stage ? stage.clientWidth : 0;
+                const stageHeight = stage ? stage.clientHeight : 0;
+                let left = renderedPosition.x + 12;
+                let top = renderedPosition.y + 12;
+                if (stageWidth > 0) {
+                    left = Math.min(left, stageWidth - 260);
+                }
+                if (stageHeight > 0) {
+                    top = Math.min(top, stageHeight - 60);
+                }
+                tooltip.style.left = Math.max(8, left) + "px";
+                tooltip.style.top = Math.max(8, top) + "px";
+            }
+
+            function hideTooltip() {
+                tooltip.style.display = "none";
+            }
+
+            function shortAccount(id) {
+                return id.slice(0, 2) + ".." + id.slice(-6);
+            }
+
+            function escapeHtml(value) {
+                return String(value)
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll("\"", "&quot;")
+                    .replaceAll("'", "&#039;");
+            }
+
+            function renderDate(value) {
+                if (!value) {
+                    return "-";
+                }
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) {
+                    return value;
+                }
+                return date.toLocaleString();
+            }
+
+            async function fetchGraphJson() {
+                const urls = ["/json", "/bsn.json"];
+                let lastError = null;
+                for (const url of urls) {
+                    try {
+                        const response = await fetch(url, {cache: "no-store"});
+                        if (!response.ok) {
+                            throw new Error("HTTP " + response.status);
+                        }
+                        return await response.json();
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+                throw lastError || new Error("Failed to load data");
+            }
+
+            function normalizeContactLabel(value) {
+                if (value === null || value === undefined) {
+                    return "";
+                }
+                const label = String(value).trim();
+                if (!label || label === "0") {
+                    return "";
+                }
+                return label;
+            }
+
+            async function fetchContactLabels() {
+                try {
+                    const response = await fetch("/contacts?format=json", {cache: "no-store"});
+                    if (response.status === 401 || response.status === 403) {
+                        console.log("Contacts JSON is unavailable for current user. HTTP:", response.status);
+                        return {};
+                    }
+                    if (!response.ok) {
+                        console.log("Contacts JSON request failed. HTTP:", response.status);
+                        return {};
+                    }
+                    const data = await response.json();
+                    const contacts = data && typeof data === "object" ? data.contacts : null;
+                    if (!contacts || typeof contacts !== "object") {
+                        return {};
+                    }
+
+                    const labels = {};
+                    for (const [accountId, item] of Object.entries(contacts)) {
+                        if (!stellarIdRe.test(accountId)) {
+                            continue;
+                        }
+                        const label = normalizeContactLabel(item && item.label);
+                        if (!label) {
+                            continue;
+                        }
+                        labels[accountId] = label;
+                    }
+                    return labels;
+                } catch (error) {
+                    console.log("Contacts JSON request failed:", error);
+                    return {};
+                }
+            }
+
+            function labelFromName(name, id) {
+                if (name) {
+                    return name.length > 24 ? name.slice(0, 21) + "..." : name;
+                }
+                return shortAccount(id);
+            }
+
+            function buildGraph(data, contactLabels) {
+                const accounts = data.accounts || {};
+                const nodesMap = new Map();
+                const incomingRaw = new Map();
+                const outgoingRaw = new Map();
+                const edgeMap = new Map();
+
+                for (const [accountId, accountData] of Object.entries(accounts)) {
+                    const profile = accountData && accountData.profile ? accountData.profile : {};
+                    const names = Array.isArray(profile.Name) ? profile.Name : [];
+                    const name = names.length ? String(names[0]).trim() : "";
+                    const effectiveName = contactLabels[accountId] || name;
+                    nodesMap.set(accountId, {
+                        id: accountId,
+                        name: effectiveName,
+                        label: labelFromName(effectiveName, accountId)
+                    });
+                    incomingRaw.set(accountId, 0);
+                    outgoingRaw.set(accountId, 0);
+                }
+
+                let rawLinks = 0;
+                for (const [sourceId, accountData] of Object.entries(accounts)) {
+                    const tags = accountData && accountData.tags ? accountData.tags : {};
+                    for (const [tagName, targets] of Object.entries(tags)) {
+                        if (!Array.isArray(targets)) {
+                            continue;
+                        }
+                        for (const targetId of targets) {
+                            if (typeof targetId !== "string" || !stellarIdRe.test(targetId)) {
+                                continue;
+                            }
+                            if (!nodesMap.has(targetId)) {
+                                const targetName = contactLabels[targetId] || "";
+                                nodesMap.set(targetId, {
+                                    id: targetId,
+                                    name: targetName,
+                                    label: labelFromName(targetName, targetId)
+                                });
+                                incomingRaw.set(targetId, 0);
+                                outgoingRaw.set(targetId, 0);
+                            }
+
+                            rawLinks += 1;
+                            incomingRaw.set(targetId, (incomingRaw.get(targetId) || 0) + 1);
+                            outgoingRaw.set(sourceId, (outgoingRaw.get(sourceId) || 0) + 1);
+
+                            const edgeKey = sourceId + ">" + targetId;
+                            if (!edgeMap.has(edgeKey)) {
+                                edgeMap.set(edgeKey, {
+                                    source: sourceId,
+                                    target: targetId,
+                                    count: 0,
+                                    tags: {}
+                                });
+                            }
+                            const edge = edgeMap.get(edgeKey);
+                            edge.count += 1;
+                            edge.tags[tagName] = (edge.tags[tagName] || 0) + 1;
+                        }
+                    }
+                }
+
+                const nodes = [];
+                let maxIncoming = 0;
+                for (const node of nodesMap.values()) {
+                    maxIncoming = Math.max(maxIncoming, incomingRaw.get(node.id) || 0);
+                }
+                for (const node of nodesMap.values()) {
+                    const incoming = incomingRaw.get(node.id) || 0;
+                    const outgoing = outgoingRaw.get(node.id) || 0;
+                    const size = 16 + (Math.log2(incoming + 1) * 9);
+                    nodes.push({
+                        data: {
+                            id: node.id,
+                            label: node.label,
+                            displayName: node.name || shortAccount(node.id),
+                            incoming: incoming,
+                            outgoing: outgoing,
+                            degreeRaw: incoming + outgoing,
+                            size: Number(size.toFixed(2))
+                        }
+                    });
+                }
+
+                const formatTags = function (tags) {
+                    return Object.entries(tags)
+                        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+                        .map(([name, count]) => name + " (" + count + ")")
+                        .join(", ");
+                };
+
+                const visualEdges = [];
+                const processedKeys = new Set();
+                let maxEdgeWeight = 1;
+
+                for (const [edgeKey, edge] of edgeMap.entries()) {
+                    if (processedKeys.has(edgeKey)) {
+                        continue;
+                    }
+
+                    const reverseKey = edge.target + ">" + edge.source;
+                    const reverseEdge = edgeMap.get(reverseKey);
+
+                    if (reverseEdge && reverseKey !== edgeKey) {
+                        processedKeys.add(edgeKey);
+                        processedKeys.add(reverseKey);
+
+                        const totalWeight = edge.count + reverseEdge.count;
+                        maxEdgeWeight = Math.max(maxEdgeWeight, totalWeight);
+
+                        visualEdges.push({
+                            source: edge.source,
+                            target: edge.target,
+                            weight: totalWeight,
+                            bidirectional: true,
+                            forwardCount: edge.count,
+                            backwardCount: reverseEdge.count,
+                            forwardTagsText: formatTags(edge.tags),
+                            backwardTagsText: formatTags(reverseEdge.tags),
+                            tagsText: formatTags(edge.tags) + " | " + formatTags(reverseEdge.tags)
+                        });
+                        continue;
+                    }
+
+                    processedKeys.add(edgeKey);
+                    maxEdgeWeight = Math.max(maxEdgeWeight, edge.count);
+                    visualEdges.push({
+                        source: edge.source,
+                        target: edge.target,
+                        weight: edge.count,
+                        bidirectional: false,
+                        forwardCount: edge.count,
+                        backwardCount: 0,
+                        forwardTagsText: formatTags(edge.tags),
+                        backwardTagsText: "",
+                        tagsText: formatTags(edge.tags)
+                    });
+                }
+
+                const edges = [];
+                let edgeIndex = 0;
+                for (const edge of visualEdges) {
+                    const edgeWidth = 1 + (edge.weight / maxEdgeWeight) * 5;
+                    edges.push({
+                        data: {
+                            id: "e" + edgeIndex,
+                            source: edge.source,
+                            target: edge.target,
+                            weight: edge.weight,
+                            edgeWidth: Number(edgeWidth.toFixed(2)),
+                            bidirectional: edge.bidirectional ? 1 : 0,
+                            sourceArrow: edge.bidirectional ? "triangle" : "none",
+                            targetArrow: "triangle",
+                            curveStyle: edge.bidirectional ? "straight" : "bezier",
+                            forwardCount: edge.forwardCount,
+                            backwardCount: edge.backwardCount,
+                            forwardTagsText: edge.forwardTagsText,
+                            backwardTagsText: edge.backwardTagsText,
+                            tagsText: edge.tagsText
+                        }
+                    });
+                    edgeIndex += 1;
+                }
+
+                const topIncoming = nodes
+                    .map((node) => ({
+                        id: node.data.id,
+                        displayName: node.data.displayName,
+                        incoming: node.data.incoming
+                    }))
+                    .sort((a, b) => b.incoming - a.incoming || a.id.localeCompare(b.id))
+                    .slice(0, 10);
+
+                return {
+                    elements: nodes.concat(edges),
+                    nodesCount: nodes.length,
+                    edgesCount: edges.length,
+                    rawLinks: rawLinks,
+                    declaredAccounts: Object.keys(accounts).length,
+                    createdAt: data.createDate || "",
+                    topIncoming: topIncoming
+                };
+            }
+
+            function setSummaryValue(id, value) {
+                const node = document.getElementById(id);
+                if (node) {
+                    node.textContent = String(value);
+                }
+            }
+
+            function renderTopIncoming(items) {
+                topIncomingList.innerHTML = "";
+                for (const item of items) {
+                    const li = document.createElement("li");
+                    li.innerHTML =
+                        "<a href=\"/accounts/" + encodeURIComponent(item.id) + "\">" +
+                        escapeHtml(item.displayName) +
+                        "</a>" +
+                        "<span class=\"tag is-light\">" + item.incoming + "</span>";
+                    topIncomingList.appendChild(li);
+                }
+            }
+
+            function setStatus(text, isError) {
+                statusText.textContent = text;
+                statusText.classList.toggle("has-text-danger", Boolean(isError));
+                statusText.classList.toggle("has-text-grey", !isError);
+            }
+
+            function assignClusters() {
+                const colors = [
+                    "#2d7dd2", "#f3722c", "#2a9d8f", "#e63946", "#6a4c93",
+                    "#1b9aaa", "#ef476f", "#118ab2", "#ff8fab", "#588157",
+                    "#8338ec", "#3a86ff", "#e76f51", "#4361ee", "#ff006e"
+                ];
+                const components = cy.elements().components()
+                    .sort((a, b) => b.nodes().length - a.nodes().length);
+
+                let largest = 0;
+                components.forEach((component, index) => {
+                    const color = colors[index % colors.length];
+                    largest = Math.max(largest, component.nodes().length);
+                    component.nodes().forEach((node) => {
+                        node.data("cluster", index + 1);
+                        node.style("background-color", color);
+                    });
+                });
+
+                return {count: components.length, largest: largest};
+            }
+
+            function runLayout() {
+                const layoutName = layoutSelect.value || "cose";
+                const visible = cy.elements().not(".hidden");
+                const optionsByLayout = {
+                    cose: {
+                        name: "cose",
+                        animate: false,
+                        fit: true,
+                        padding: 28,
+                        nodeRepulsion: 220000,
+                        idealEdgeLength: 85
+                    },
+                    concentric: {
+                        name: "concentric",
+                        animate: false,
+                        fit: true,
+                        padding: 28,
+                        minNodeSpacing: 24,
+                        concentric: function (node) {
+                            return node.data("incoming") + node.data("outgoing");
+                        },
+                        levelWidth: function () {
+                            return 2;
+                        }
+                    },
+                    breadthfirst: {
+                        name: "breadthfirst",
+                        directed: true,
+                        animate: false,
+                        fit: true,
+                        padding: 28,
+                        spacingFactor: 1.2
+                    },
+                    circle: {
+                        name: "circle",
+                        animate: false,
+                        fit: true,
+                        padding: 28
+                    }
+                };
+                const layoutOptions = optionsByLayout[layoutName] || optionsByLayout.cose;
+                visible.layout(layoutOptions).run();
+            }
+
+            function applyFilters() {
+                const minIncoming = Math.max(0, parseInt(minIncomingInput.value || "0", 10) || 0);
+                cy.batch(() => {
+                    cy.nodes().forEach((node) => {
+                        const byIncoming = node.data("incoming") < minIncoming;
+                        const byIsolated = hideIsolatedInput.checked && node.data("degreeRaw") === 0;
+                        node.toggleClass("hidden", byIncoming || byIsolated);
+                    });
+                    cy.edges().forEach((edge) => {
+                        const hide = edge.source().hasClass("hidden") || edge.target().hasClass("hidden");
+                        edge.toggleClass("hidden", hide);
+                    });
+                });
+
+                setSummaryValue("summary-visible-nodes", cy.nodes().not(".hidden").length);
+                setSummaryValue("summary-visible-edges", cy.edges().not(".hidden").length);
+                clearEmphasis();
+                hideTooltip();
+            }
+
+            function renderNodeDetails(node) {
+                selectionDetails.classList.remove("has-text-grey");
+                selectionDetails.innerHTML =
+                    "<p><strong>" + escapeHtml(node.data("displayName")) + "</strong></p>" +
+                    "<p><code>" + escapeHtml(node.id()) + "</code></p>" +
+                    "<p>" + escapeHtml(i18n.nodeIncoming) + ": <strong>" + node.data("incoming") + "</strong></p>" +
+                    "<p>" + escapeHtml(i18n.nodeOutgoing) + ": <strong>" + node.data("outgoing") + "</strong></p>" +
+                    "<p>" + escapeHtml(i18n.nodeCluster) + ": <strong>" + (node.data("cluster") || "-") + "</strong></p>" +
+                    "<p><a href=\"/accounts/" + encodeURIComponent(node.id()) + "\">" + escapeHtml(i18n.nodeOpenAccount) + "</a></p>";
+            }
+
+            function renderEdgeDetails(edge) {
+                selectionDetails.classList.remove("has-text-grey");
+                if (edge.data("bidirectional")) {
+                    selectionDetails.innerHTML =
+                        "<p><strong>" + escapeHtml(i18n.edgeSource) + ":</strong> <code>" + escapeHtml(edge.data("source")) + "</code></p>" +
+                        "<p><strong>" + escapeHtml(i18n.edgeTarget) + ":</strong> <code>" + escapeHtml(edge.data("target")) + "</code></p>" +
+                        "<p><strong>" + escapeHtml(i18n.edgeCount) + ":</strong> " + edge.data("weight") + "</p>" +
+                        "<p><strong>" + escapeHtml(edge.data("source")) + " → " + escapeHtml(edge.data("target")) + ":</strong> " + edge.data("forwardCount") + "</p>" +
+                        "<p>" + escapeHtml(edge.data("forwardTagsText") || "-") + "</p>" +
+                        "<p><strong>" + escapeHtml(edge.data("target")) + " → " + escapeHtml(edge.data("source")) + ":</strong> " + edge.data("backwardCount") + "</p>" +
+                        "<p>" + escapeHtml(edge.data("backwardTagsText") || "-") + "</p>";
+                    return;
+                }
+
+                selectionDetails.innerHTML =
+                    "<p><strong>" + escapeHtml(i18n.edgeSource) + ":</strong> <code>" + escapeHtml(edge.data("source")) + "</code></p>" +
+                    "<p><strong>" + escapeHtml(i18n.edgeTarget) + ":</strong> <code>" + escapeHtml(edge.data("target")) + "</code></p>" +
+                    "<p><strong>" + escapeHtml(i18n.edgeCount) + ":</strong> " + edge.data("weight") + "</p>" +
+                    "<p><strong>" + escapeHtml(i18n.edgeTags) + ":</strong> " + escapeHtml(edge.data("tagsText") || "-") + "</p>";
+            }
+
+            function clearEmphasis() {
+                cy.elements().removeClass("muted");
+                cy.elements().removeClass("related-edge");
+                cy.nodes().removeClass("focus-node");
+            }
+
+            function emphasizeNode(node) {
+                clearEmphasis();
+                cy.elements().addClass("muted");
+                node.removeClass("muted");
+                node.addClass("focus-node");
+                node.connectedEdges().forEach((edge) => {
+                    edge.removeClass("muted");
+                    edge.addClass("related-edge");
+                    edge.source().removeClass("muted");
+                    edge.target().removeClass("muted");
+                });
+            }
+
+            async function initGraph() {
+                setStatus(i18n.loading, false);
+
+                try {
+                    const [data, contactLabels] = await Promise.all([
+                        fetchGraphJson(),
+                        fetchContactLabels()
+                    ]);
+                    const graph = buildGraph(data, contactLabels);
+
+                    cy = cytoscape({
+                        container: document.getElementById("cy"),
+                        elements: graph.elements,
+                        wheelSensitivity: 0.18,
+                        style: [
+                            {
+                                selector: "node",
+                                style: {
+                                    "label": "data(label)",
+                                    "width": "data(size)",
+                                    "height": "data(size)",
+                                    "font-size": 8,
+                                    "min-zoomed-font-size": 6,
+                                    "text-wrap": "wrap",
+                                    "text-max-width": 80,
+                                    "text-valign": "center",
+                                    "text-halign": "center",
+                                    "text-background-color": "#ffffff",
+                                    "text-background-opacity": 0.55,
+                                    "text-background-padding": 1.5,
+                                    "color": "#1f2937",
+                                    "border-width": 1,
+                                    "border-color": "#ffffff",
+                                    "background-color": "#3a86ff"
+                                }
+                            },
+                            {
+                                selector: "edge",
+                                style: {
+                                    "curve-style": "data(curveStyle)",
+                                    "source-arrow-shape": "data(sourceArrow)",
+                                    "target-arrow-shape": "data(targetArrow)",
+                                    "arrow-scale": 0.8,
+                                    "line-color": "#94a3b8",
+                                    "source-arrow-color": "#94a3b8",
+                                    "target-arrow-color": "#94a3b8",
+                                    "opacity": 0.55,
+                                    "width": "data(edgeWidth)"
+                                }
+                            },
+                            {
+                                selector: "node:selected",
+                                style: {
+                                    "border-width": 3,
+                                    "border-color": "#111827",
+                                    "z-index": 999
+                                }
+                            },
+                            {
+                                selector: "edge:selected",
+                                style: {
+                                    "line-color": "#ef233c",
+                                    "source-arrow-color": "#ef233c",
+                                    "target-arrow-color": "#ef233c",
+                                    "opacity": 0.9,
+                                    "z-index": 998
+                                }
+                            },
+                            {
+                                selector: ".related-edge",
+                                style: {
+                                    "line-color": "#ef233c",
+                                    "source-arrow-color": "#ef233c",
+                                    "target-arrow-color": "#ef233c",
+                                    "opacity": 0.95,
+                                    "width": "mapData(weight, 1, 20, 2, 8)",
+                                    "z-index": 997
+                                }
+                            },
+                            {
+                                selector: ".focus-node",
+                                style: {
+                                    "border-width": 3,
+                                    "border-color": "#ef233c",
+                                    "z-index": 999
+                                }
+                            },
+                            {
+                                selector: ".muted",
+                                style: {
+                                    "opacity": 0.12
+                                }
+                            },
+                            {
+                                selector: ".hidden",
+                                style: {
+                                    "display": "none"
+                                }
+                            }
+                        ]
+                    });
+
+                    const clusterInfo = assignClusters();
+                    applyFilters();
+                    runLayout();
+
+                    setSummaryValue("summary-created-at", renderDate(graph.createdAt));
+                    setSummaryValue("summary-total-accounts", graph.declaredAccounts);
+                    setSummaryValue("summary-total-nodes", graph.nodesCount);
+                    setSummaryValue("summary-total-links", graph.rawLinks);
+                    setSummaryValue("summary-pair-links", graph.edgesCount);
+                    setSummaryValue("summary-clusters", clusterInfo.count);
+                    setSummaryValue("summary-largest-cluster", clusterInfo.largest);
+
+                    renderTopIncoming(graph.topIncoming);
+                    selectionDetails.textContent = i18n.detailsEmpty;
+                    selectionDetails.classList.add("has-text-grey");
+                    setStatus("", false);
+
+                    cy.on("tap", "node", function (event) {
+                        emphasizeNode(event.target);
+                        renderNodeDetails(event.target);
+                    });
+                    cy.on("tap", "edge", function (event) {
+                        clearEmphasis();
+                        renderEdgeDetails(event.target);
+                    });
+                    cy.on("tap", function (event) {
+                        if (event.target === cy) {
+                            clearEmphasis();
+                            hideTooltip();
+                            selectionDetails.textContent = i18n.detailsEmpty;
+                            selectionDetails.classList.add("has-text-grey");
+                        }
+                    });
+                    cy.on("mouseover", "node", function (event) {
+                        showTooltip(event.target, event.renderedPosition);
+                    });
+                    cy.on("mousemove", "node", function (event) {
+                        showTooltip(event.target, event.renderedPosition);
+                    });
+                    cy.on("mouseout", "node", function () {
+                        hideTooltip();
+                    });
+                    cy.on("zoom pan", function () {
+                        hideTooltip();
+                    });
+
+                    layoutRun.addEventListener("click", runLayout);
+                    minIncomingInput.addEventListener("change", applyFilters);
+                    hideIsolatedInput.addEventListener("change", applyFilters);
+                } catch (error) {
+                    console.error(error);
+                    hideTooltip();
+                    setStatus(i18n.loadError, true);
+                }
+            }
+
+            initGraph();
+        })();
+    </script>
+{% endblock %}

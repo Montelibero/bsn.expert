@@ -9,6 +9,7 @@ use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ApiController;
 use Montelibero\BSN\Controllers\ApiContactsController;
 use Montelibero\BSN\Controllers\FederationController;
+use Montelibero\BSN\Controllers\GraphController;
 use Montelibero\BSN\Controllers\HomeController;
 use Montelibero\BSN\Controllers\SignController;
 use Montelibero\BSN\Controllers\TransactionsController;
@@ -25,6 +26,9 @@ class RootRoutes
 
         SimpleRouter::get('/search/', function () use ($Container) {
             return $Container->get(WebApp::class)->Search();
+        });
+        SimpleRouter::get('/graph', function () use ($Container) {
+            return $Container->get(GraphController::class)->Graph();
         });
 
         SimpleRouter::group(['prefix' => '/login'], function () use ($Container) {

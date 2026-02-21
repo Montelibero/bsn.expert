@@ -11,6 +11,7 @@ nav:
   tags: Tags
   documents: Documents
   editor: Editor
+  graph: Graph
   tools:
     title: Tools
     multisig: Multisig Editor
@@ -42,6 +43,44 @@ index_page:
     title: "For Developers"
     raw_json: "If you are looking RAW JSON data: %json_link%."
     known_tags: "An organized list of well-known tags %tags_link% (%schema_link%)"
+
+graph_page:
+  title: Links Graph
+  description: >
+    Directed links between accounts. Node size depends on incoming link count.
+    Clusters are computed as connected components.
+  loading: Loading graph...
+  load_error: Failed to load graph data.
+  controls:
+    layout: Layout
+    run_layout: Rebuild
+    min_incoming: Min incoming
+    hide_isolated: Hide isolated nodes
+  summary:
+    title: Summary
+    created_at: Data date
+    total_accounts: Accounts in JSON
+    total_nodes: Nodes in graph
+    total_links: Total links
+    pair_links: Unique pairs
+    clusters: Clusters
+    largest_cluster: Largest cluster
+    visible_accounts: Visible nodes
+    visible_links: Visible edges
+  top_incoming: Top incoming
+  details:
+    title: Selection
+    empty: Click a node or an edge.
+  node:
+    incoming: Incoming
+    outgoing: Outgoing
+    cluster: Cluster
+    open_account: Open account
+  edge:
+    source: Source
+    target: Target
+    count: Links
+    tags: Tags
 
 login:
   description: >
