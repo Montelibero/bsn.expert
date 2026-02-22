@@ -6,6 +6,46 @@
 {% block head %}
     <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
     <style>
+        :root {
+            --graph-panel-bg: #ffffff;
+            --graph-panel-border: #d1d5db;
+            --graph-panel-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+            --graph-search-item-border: #e5e7eb;
+            --graph-search-item-hover: #eff6ff;
+            --graph-search-item-title: #0f172a;
+            --graph-search-item-meta: #475569;
+            --graph-search-empty: #64748b;
+            --graph-canvas-bg: #f8fafc;
+            --graph-canvas-border: #dbdbdb;
+            --graph-tooltip-border: rgba(148, 163, 184, 0.45);
+            --graph-status-bg: #eff6ff;
+            --graph-status-border: #93c5fd;
+            --graph-status-text: #1e3a8a;
+            --graph-status-error-bg: #fff1f2;
+            --graph-status-error-border: #fda4af;
+            --graph-status-error-text: #9f1239;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --graph-panel-bg: #0f172a;
+                --graph-panel-border: #334155;
+                --graph-panel-shadow: 0 10px 24px rgba(2, 6, 23, 0.58);
+                --graph-search-item-border: #1e293b;
+                --graph-search-item-hover: #1e293b;
+                --graph-search-item-title: #e2e8f0;
+                --graph-search-item-meta: #94a3b8;
+                --graph-search-empty: #94a3b8;
+                --graph-canvas-bg: #0b1220;
+                --graph-canvas-border: #334155;
+                --graph-tooltip-border: rgba(148, 163, 184, 0.65);
+                --graph-status-bg: #172554;
+                --graph-status-border: #3b82f6;
+                --graph-status-text: #bfdbfe;
+                --graph-status-error-bg: #3f1220;
+                --graph-status-error-border: #be123c;
+                --graph-status-error-text: #fecdd3;
+            }
+        }
         .graph-stage {
             position: relative;
         }
@@ -19,34 +59,34 @@
             left: 0;
             right: 0;
             z-index: 45;
-            border: 1px solid #d1d5db;
+            border: 1px solid var(--graph-panel-border);
             border-radius: 6px;
-            background: #ffffff;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+            background: var(--graph-panel-bg);
+            box-shadow: var(--graph-panel-shadow);
             overflow: hidden;
             max-height: 17rem;
             overflow-y: auto;
         }
         .graph-search-item {
             padding: 0.45rem 0.55rem;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--graph-search-item-border);
             cursor: pointer;
         }
         .graph-search-item:last-child {
             border-bottom: none;
         }
         .graph-search-item:hover {
-            background: #eff6ff;
+            background: var(--graph-search-item-hover);
         }
         .graph-search-item-title {
             font-size: 0.76rem;
-            color: #0f172a;
+            color: var(--graph-search-item-title);
             line-height: 1.2;
             margin-bottom: 0.1rem;
         }
         .graph-search-item-meta {
             font-size: 0.66rem;
-            color: #475569;
+            color: var(--graph-search-item-meta);
             line-height: 1.2;
             font-family: monospace;
             word-break: break-word;
@@ -54,15 +94,55 @@
         .graph-search-item-empty {
             padding: 0.45rem 0.55rem;
             font-size: 0.74rem;
-            color: #64748b;
+            color: var(--graph-search-empty);
+        }
+        .graph-status-banner {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin-bottom: 0.65rem;
+            padding: 0.55rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--graph-status-border);
+            background: var(--graph-status-bg);
+            color: var(--graph-status-text);
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        .graph-status-banner.is-hidden {
+            display: none;
+        }
+        .graph-status-banner.is-error {
+            border-color: var(--graph-status-error-border);
+            background: var(--graph-status-error-bg);
+            color: var(--graph-status-error-text);
+        }
+        .graph-status-spinner {
+            width: 0.95rem;
+            height: 0.95rem;
+            border-radius: 999px;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            opacity: 0.9;
+            animation: graph-status-spin 0.75s linear infinite;
+            flex: 0 0 auto;
+        }
+        .graph-status-banner:not(.is-loading) .graph-status-spinner {
+            display: none;
+        }
+        @keyframes graph-status-spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
         #cy {
             width: 100%;
             height: 80vh;
             min-height: 560px;
-            border: 1px solid #dbdbdb;
+            border: 1px solid var(--graph-canvas-border);
             border-radius: 6px;
-            background: #f8fafc;
+            background: var(--graph-canvas-bg);
         }
         #graph-tooltip {
             position: absolute;
@@ -77,6 +157,7 @@
             line-height: 1.2;
             pointer-events: none;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+            border: 1px solid var(--graph-tooltip-border);
             word-break: break-word;
         }
         .graph-summary-list li {
@@ -187,7 +268,10 @@
                 </div>
             </div>
         </div>
-        <p id="status-text" class="is-size-7 has-text-grey mb-2">{{ 'graph_page.loading'|trans }}</p>
+        <div id="status-banner" class="graph-status-banner is-loading" role="status" aria-live="polite">
+            <span class="graph-status-spinner" aria-hidden="true"></span>
+            <span id="status-text">{{ 'graph_page.loading'|trans }}</span>
+        </div>
         <div class="graph-stage">
             <div id="graph-tooltip"></div>
             <div id="cy"></div>
@@ -272,6 +356,7 @@
             const onlyMtlaInput = document.getElementById('only-mtla');
             const tagTypesSelect = document.getElementById('tag-types-select');
             const filtersApplyButton = document.getElementById('filters-apply');
+            const statusBanner = document.getElementById('status-banner');
             const statusText = document.getElementById('status-text');
             const selectionDetails = document.getElementById('selection-details');
             const topIncomingList = document.getElementById('top-incoming');
@@ -310,12 +395,162 @@
             const TAG_PRESET_FAMILIES = ["OneFamily", "Spouse", "Ward", "Guardian", "Love"];
             const TAG_PRESET_OWNERSHIP = ["OwnershipFull", "OwnerMajority", "Owner", "OwnerMinority", "OwnershipMajority"];
             const SIGNER_TAG = "Signer";
+            const themeMediaQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+            const GRAPH_THEME = {
+                light: {
+                    nodeText: "#1f2937",
+                    nodeTextBackground: "#ffffff",
+                    nodeTextBackgroundOpacity: 0.55,
+                    nodeBorder: "#ffffff",
+                    nodeBorderSelected: "#111827",
+                    nodeBackground: "#3a86ff",
+                    edgeDefault: "#94a3b8",
+                    edgeSelected: "#ef233c",
+                    focusNodeBorder: "#ef233c"
+                },
+                dark: {
+                    nodeText: "#e2e8f0",
+                    nodeTextBackground: "#0f172a",
+                    nodeTextBackgroundOpacity: 0.7,
+                    nodeBorder: "#334155",
+                    nodeBorderSelected: "#cbd5e1",
+                    nodeBackground: "#60a5fa",
+                    edgeDefault: "#475569",
+                    edgeSelected: "#f43f5e",
+                    focusNodeBorder: "#f43f5e"
+                }
+            };
 
             let cy = null;
             let searchIndex = [];
             let sourceGraphData = null;
             let sourceContactLabels = {};
             let sourceKnownLinks = {};
+
+            function getThemePalette() {
+                const darkMode = Boolean(themeMediaQuery && themeMediaQuery.matches);
+                return darkMode ? GRAPH_THEME.dark : GRAPH_THEME.light;
+            }
+
+            function buildCyStyle(palette) {
+                return [
+                    {
+                        selector: "node",
+                        style: {
+                            "label": "data(label)",
+                            "width": "data(size)",
+                            "height": "data(size)",
+                            "font-size": 8,
+                            "min-zoomed-font-size": 6,
+                            "text-wrap": "wrap",
+                            "text-max-width": 80,
+                            "text-valign": "center",
+                            "text-halign": "center",
+                            "text-background-color": palette.nodeTextBackground,
+                            "text-background-opacity": palette.nodeTextBackgroundOpacity,
+                            "text-background-padding": 1.5,
+                            "color": palette.nodeText,
+                            "border-width": 1,
+                            "border-color": palette.nodeBorder,
+                            "background-color": palette.nodeBackground
+                        }
+                    },
+                    {
+                        selector: "edge",
+                        style: {
+                            "curve-style": "data(curveStyle)",
+                            "source-arrow-shape": "data(sourceArrow)",
+                            "target-arrow-shape": "data(targetArrow)",
+                            "arrow-scale": 0.8,
+                            "line-color": palette.edgeDefault,
+                            "source-arrow-color": palette.edgeDefault,
+                            "target-arrow-color": palette.edgeDefault,
+                            "opacity": 0.55,
+                            "width": "data(edgeWidth)"
+                        }
+                    },
+                    {
+                        selector: "node:selected",
+                        style: {
+                            "border-width": 3,
+                            "border-color": palette.nodeBorderSelected,
+                            "z-index": 999
+                        }
+                    },
+                    {
+                        selector: "edge:selected",
+                        style: {
+                            "line-color": palette.edgeSelected,
+                            "source-arrow-color": palette.edgeSelected,
+                            "target-arrow-color": palette.edgeSelected,
+                            "opacity": 0.9,
+                            "z-index": 998
+                        }
+                    },
+                    {
+                        selector: ".related-edge",
+                        style: {
+                            "opacity": 0.95,
+                            "width": "data(edgeWidth)",
+                            "z-index": 997
+                        }
+                    },
+                    {
+                        selector: ".related-edge-in",
+                        style: {
+                            "line-color": "#3A86FF",
+                            "source-arrow-color": "#3A86FF",
+                            "target-arrow-color": "#3A86FF"
+                        }
+                    },
+                    {
+                        selector: ".related-edge-out",
+                        style: {
+                            "line-color": "#FB5607",
+                            "source-arrow-color": "#FB5607",
+                            "target-arrow-color": "#FB5607"
+                        }
+                    },
+                    {
+                        selector: ".related-edge-both",
+                        style: {
+                            "line-color": "#8338EC",
+                            "source-arrow-color": "#8338EC",
+                            "target-arrow-color": "#8338EC"
+                        }
+                    },
+                    {
+                        selector: ".focus-node",
+                        style: {
+                            "border-width": 3,
+                            "border-color": palette.focusNodeBorder,
+                            "z-index": 999
+                        }
+                    },
+                    {
+                        selector: ".muted",
+                        style: {
+                            "opacity": 0.12
+                        }
+                    },
+                    {
+                        selector: ".hidden",
+                        style: {
+                            "display": "none"
+                        }
+                    }
+                ];
+            }
+
+            function applyThemeToCy() {
+                if (!cy) {
+                    return;
+                }
+                cy.style().fromJson(buildCyStyle(getThemePalette())).update();
+                if (cy.nodes().length > 0) {
+                    assignClusters();
+                }
+            }
 
             function showTooltip(node, renderedPosition) {
                 tooltip.innerHTML =
@@ -909,10 +1144,24 @@
                 }
             }
 
-            function setStatus(text, isError) {
-                statusText.textContent = text;
-                statusText.classList.toggle("has-text-danger", Boolean(isError));
-                statusText.classList.toggle("has-text-grey", !isError);
+            function setStatus(text, isError, isLoading) {
+                if (!statusBanner || !statusText) {
+                    return;
+                }
+
+                const message = String(text || "").trim();
+                if (!message) {
+                    statusText.textContent = "";
+                    statusBanner.classList.add("is-hidden");
+                    statusBanner.classList.remove("is-error");
+                    statusBanner.classList.remove("is-loading");
+                    return;
+                }
+
+                statusText.textContent = message;
+                statusBanner.classList.remove("is-hidden");
+                statusBanner.classList.toggle("is-error", Boolean(isError));
+                statusBanner.classList.toggle("is-loading", !isError && Boolean(isLoading));
             }
 
             function hideSearchSuggestions() {
@@ -1355,6 +1604,7 @@
                     return;
                 }
 
+                setStatus(i18n.loading, false, true);
                 const graph = buildGraph(sourceGraphData, sourceContactLabels, sourceKnownLinks, getFilterOptions());
                 cy.batch(() => {
                     cy.elements().remove();
@@ -1380,7 +1630,7 @@
                     selectionDetails.classList.add("has-text-grey");
                 }
                 hideSearchSuggestions();
-                setStatus("", false);
+                setStatus("", false, false);
             }
 
             function attachCyEventHandlers() {
@@ -1415,7 +1665,7 @@
             }
 
             async function initGraph() {
-                setStatus(i18n.loading, false);
+                setStatus(i18n.loading, false, true);
 
                 try {
                     if (onlyMtlaInput && queryOnlyMtla) {
@@ -1437,113 +1687,7 @@
                         container: document.getElementById("cy"),
                         elements: [],
                         wheelSensitivity: 0.18,
-                        style: [
-                            {
-                                selector: "node",
-                                style: {
-                                    "label": "data(label)",
-                                    "width": "data(size)",
-                                    "height": "data(size)",
-                                    "font-size": 8,
-                                    "min-zoomed-font-size": 6,
-                                    "text-wrap": "wrap",
-                                    "text-max-width": 80,
-                                    "text-valign": "center",
-                                    "text-halign": "center",
-                                    "text-background-color": "#ffffff",
-                                    "text-background-opacity": 0.55,
-                                    "text-background-padding": 1.5,
-                                    "color": "#1f2937",
-                                    "border-width": 1,
-                                    "border-color": "#ffffff",
-                                    "background-color": "#3a86ff"
-                                }
-                            },
-                            {
-                                selector: "edge",
-                                style: {
-                                    "curve-style": "data(curveStyle)",
-                                    "source-arrow-shape": "data(sourceArrow)",
-                                    "target-arrow-shape": "data(targetArrow)",
-                                    "arrow-scale": 0.8,
-                                    "line-color": "#94a3b8",
-                                    "source-arrow-color": "#94a3b8",
-                                    "target-arrow-color": "#94a3b8",
-                                    "opacity": 0.55,
-                                    "width": "data(edgeWidth)"
-                                }
-                            },
-                            {
-                                selector: "node:selected",
-                                style: {
-                                    "border-width": 3,
-                                    "border-color": "#111827",
-                                    "z-index": 999
-                                }
-                            },
-                            {
-                                selector: "edge:selected",
-                                style: {
-                                    "line-color": "#ef233c",
-                                    "source-arrow-color": "#ef233c",
-                                    "target-arrow-color": "#ef233c",
-                                    "opacity": 0.9,
-                                    "z-index": 998
-                                }
-                            },
-                            {
-                                selector: ".related-edge",
-                                style: {
-                                    "opacity": 0.95,
-                                    "width": "mapData(weight, 1, 20, 2, 8)",
-                                    "z-index": 997
-                                }
-                            },
-                            {
-                                selector: ".related-edge-in",
-                                style: {
-                                    "line-color": "#3A86FF",
-                                    "source-arrow-color": "#3A86FF",
-                                    "target-arrow-color": "#3A86FF"
-                                }
-                            },
-                            {
-                                selector: ".related-edge-out",
-                                style: {
-                                    "line-color": "#FB5607",
-                                    "source-arrow-color": "#FB5607",
-                                    "target-arrow-color": "#FB5607"
-                                }
-                            },
-                            {
-                                selector: ".related-edge-both",
-                                style: {
-                                    "line-color": "#8338EC",
-                                    "source-arrow-color": "#8338EC",
-                                    "target-arrow-color": "#8338EC"
-                                }
-                            },
-                            {
-                                selector: ".focus-node",
-                                style: {
-                                    "border-width": 3,
-                                    "border-color": "#ef233c",
-                                    "z-index": 999
-                                }
-                            },
-                            {
-                                selector: ".muted",
-                                style: {
-                                    "opacity": 0.12
-                                }
-                            },
-                            {
-                                selector: ".hidden",
-                                style: {
-                                    "display": "none"
-                                }
-                            }
-                        ]
+                        style: buildCyStyle(getThemePalette())
                     });
 
                     attachCyEventHandlers();
@@ -1556,7 +1700,7 @@
                 } catch (error) {
                     console.error(error);
                     hideTooltip();
-                    setStatus(i18n.loadError, true);
+                    setStatus(i18n.loadError, true, false);
                 }
             }
 
@@ -1604,6 +1748,17 @@
                         applyTagFilterPreset(action);
                     });
                 });
+            }
+
+            if (themeMediaQuery) {
+                const onThemeChange = function () {
+                    applyThemeToCy();
+                };
+                if (typeof themeMediaQuery.addEventListener === "function") {
+                    themeMediaQuery.addEventListener("change", onThemeChange);
+                } else if (typeof themeMediaQuery.addListener === "function") {
+                    themeMediaQuery.addListener(onThemeChange);
+                }
             }
 
             initGraph();
