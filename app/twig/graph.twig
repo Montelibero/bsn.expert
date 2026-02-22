@@ -880,7 +880,14 @@
                 if (!balances || typeof balances !== "object") {
                     return false;
                 }
-                return code in balances;
+                if (!Object.prototype.hasOwnProperty.call(balances, code)) {
+                    return false;
+                }
+                const rawValue = balances[code];
+                const numericValue = typeof rawValue === "number"
+                    ? rawValue
+                    : parseFloat(String(rawValue || "").replace(",", "."));
+                return Number.isFinite(numericValue) && numericValue > 0;
             }
 
             function getHolderTypeFromBalances(balances) {
@@ -1590,15 +1597,28 @@
                 const filterOptions = getFilterOptions();
                 const minIncoming = filterOptions.minIncoming;
                 cy.batch(() => {
+                    const syncHiddenEdges = function () {
+                        cy.edges().forEach((edge) => {
+                            const hide = edge.source().hasClass("hidden") || edge.target().hasClass("hidden");
+                            edge.toggleClass("hidden", hide);
+                        });
+                    };
+
                     cy.nodes().forEach((node) => {
-                        const byIncoming = node.data("incoming") < minIncoming;
-                        const byIsolated = filterOptions.hideIsolated && node.data("degreeRaw") === 0;
-                        node.toggleClass("hidden", byIncoming || byIsolated);
+                        node.toggleClass("hidden", node.data("incoming") < minIncoming);
                     });
-                    cy.edges().forEach((edge) => {
-                        const hide = edge.source().hasClass("hidden") || edge.target().hasClass("hidden");
-                        edge.toggleClass("hidden", hide);
-                    });
+                    syncHiddenEdges();
+
+                    if (filterOptions.hideIsolated) {
+                        cy.nodes().not(".hidden").forEach((node) => {
+                            const visibleEdgeCount = node.connectedEdges().not(".hidden").length;
+                            if (visibleEdgeCount === 0) {
+                                node.addClass("hidden");
+                            }
+                        });
+                    }
+
+                    syncHiddenEdges();
                 });
 
                 setSummaryValue("summary-visible-nodes", cy.nodes().not(".hidden").length);
