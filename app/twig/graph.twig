@@ -420,6 +420,9 @@
             const TAG_PRESET_FAMILIES = ["OneFamily", "Spouse", "Ward", "Guardian", "Love"];
             const TAG_PRESET_OWNERSHIP = ["OwnershipFull", "OwnerMajority", "Owner", "OwnerMinority", "OwnershipMajority"];
             const SIGNER_TAG = "Signer";
+            const HOLDER_NONE = "none";
+            const HOLDER_MTLAP = "mtlap";
+            const HOLDER_MTLAC = "mtlac";
             const themeMediaQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
             const GRAPH_THEME = {
                 light: {
@@ -863,11 +866,31 @@
                 return shortAccount(id);
             }
 
+            function decorateNodeLabel(baseLabel, holderType) {
+                if (holderType === HOLDER_MTLAP) {
+                    return "⭐\n" + baseLabel;
+                }
+                if (holderType === HOLDER_MTLAC) {
+                    return "🌟\n" + baseLabel;
+                }
+                return baseLabel;
+            }
+
             function hasMtlaBalanceCode(balances, code) {
                 if (!balances || typeof balances !== "object") {
                     return false;
                 }
                 return code in balances;
+            }
+
+            function getHolderTypeFromBalances(balances) {
+                if (hasMtlaBalanceCode(balances, "MTLAP")) {
+                    return HOLDER_MTLAP;
+                }
+                if (hasMtlaBalanceCode(balances, "MTLAC")) {
+                    return HOLDER_MTLAC;
+                }
+                return HOLDER_NONE;
             }
 
             function collectMtlaAccounts(accounts, maxDepth) {
@@ -960,16 +983,19 @@
                         continue;
                     }
                     const profile = accountData && accountData.profile ? accountData.profile : {};
+                    const balances = accountData && accountData.balances ? accountData.balances : {};
                     const names = Array.isArray(profile.Name) ? profile.Name : [];
                     const bsnName = names.length ? String(names[0]).trim() : "";
                     const contactLabel = contactLabels[accountId] || "";
                     const effectiveName = contactLabel || bsnName;
+                    const holderType = getHolderTypeFromBalances(balances);
                     nodesMap.set(accountId, {
                         id: accountId,
                         bsnName: bsnName,
                         contactLabel: contactLabel,
                         name: effectiveName,
-                        label: labelFromName(effectiveName, accountId)
+                        label: decorateNodeLabel(labelFromName(effectiveName, accountId), holderType),
+                        holderType: holderType
                     });
                     incomingRaw.set(accountId, 0);
                     outgoingRaw.set(accountId, 0);
@@ -999,12 +1025,15 @@
                             }
                             if (!nodesMap.has(targetId)) {
                                 const targetContact = contactLabels[targetId] || "";
+                                const targetBalances = accounts[targetId] && accounts[targetId].balances ? accounts[targetId].balances : {};
+                                const targetHolderType = getHolderTypeFromBalances(targetBalances);
                                 nodesMap.set(targetId, {
                                     id: targetId,
                                     bsnName: "",
                                     contactLabel: targetContact,
                                     name: targetContact,
-                                    label: labelFromName(targetContact, targetId)
+                                    label: decorateNodeLabel(labelFromName(targetContact, targetId), targetHolderType),
+                                    holderType: targetHolderType
                                 });
                                 incomingRaw.set(targetId, 0);
                                 outgoingRaw.set(targetId, 0);
@@ -1052,6 +1081,7 @@
                             displayName: node.name || shortAccount(node.id),
                             bsnName: node.bsnName || "",
                             contactLabel: node.contactLabel || "",
+                            holderType: node.holderType || HOLDER_NONE,
                             searchText: searchText,
                             incoming: incoming,
                             outgoing: outgoing,
