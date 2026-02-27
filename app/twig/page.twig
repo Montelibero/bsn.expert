@@ -60,7 +60,12 @@
 </head>
 
 <body>
-<nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
+{% if is_read_only_mode %}
+    <div class="notification is-danger is-light has-text-centered mb-0" style="padding: 0.5rem;">
+        <strong>Warning:</strong> The database is currently in read-only mode. Some features, like editing contacts or documents, are disabled.
+    </div>
+{% endif %}
+<nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation" {% if is_read_only_mode %}style="top: 40px;"{% endif %}>
     <div class="navbar-brand">
         <a class="navbar-item has-background-primary has-text-black" href="/">
             {{ 'common.short_name'|trans }}
