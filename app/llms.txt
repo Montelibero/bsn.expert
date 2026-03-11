@@ -1,0 +1,76 @@
+# BSN.Expert
+
+> BSN.Expert is a no-JS-first web application for exploring and editing BSN data and related Stellar activity, primarily for the Montelibero community.
+
+BSN means Blockchain Social Network.
+
+This site is a viewer and utility hub, not a general-purpose content website.
+Use it to inspect accounts, tags, documents, tokens, transactions, and graph relations.
+Prefer canonical resource pages and JSON endpoints over scraping navigation text.
+
+Key concepts:
+- Account: a Stellar account with BSN profile data, balances, links, and signatures.
+- Tag: a named relation between accounts.
+- Document: a signed text or document identified by hash.
+- Token: a Stellar asset page with known-token metadata.
+- Contact: a user-private address book entry; requires authentication.
+- Tool: a task-specific helper for Stellar or MTLA workflows.
+
+Agent guidance:
+- If the user gives a Stellar account ID or username, prefer account pages.
+- If the user gives a transaction or document hash, resolve it via search and distinguish document vs transaction.
+- Prefer machine-readable endpoints when available.
+- Do not assume private or contact data is public.
+- Do not perform signing, editing, or other state-changing actions unless the user explicitly asks.
+- Treat MTLA-specific tools as specialized workflows, not generic public APIs.
+
+## Canonical Entry Points
+
+- GET /
+  Home page and search entry point.
+- GET /search/
+  Query resolver for usernames, account IDs, hashes, tags, and token codes.
+- GET /accounts/
+  Account directory.
+- GET /@username
+  Canonical public account page when username exists.
+- GET /tags/
+  Tag directory.
+- GET /documents/
+  Documents and signed texts.
+- GET /tokens/
+  Token directory.
+- GET /graph
+  Graph view of relations.
+- GET /tools/
+  Task-specific tools.
+- GET /federation
+  Stellar federation endpoint.
+
+## Machine-Readable Data
+
+- GET /json
+  Main endpoint for raw BSN data. Prefer this when broad site data is needed.
+- GET /known_tags.json
+  Known widespread tags and metadata.
+- GET /known_tags.ru.json
+  Known widespread tags and metadata in Russian.
+- GET /accounts/{account_id}?format=json
+  Main public JSON representation for a specific account.
+- GET /health
+  Health check.
+
+## Authenticated or Sensitive Areas
+
+- GET /contacts
+  Private user contacts. Requires login.
+- GET /preferences/api
+  API key management. Requires login.
+- GET /api/
+  Requires Bearer token.
+- Signing and editing flows may change state and should only be used on explicit user request.
+
+## Notes
+
+- Usernames with @ are canonical for public profile URLs.
+- This file is guidance for LLMs and agents. It does not grant crawl permission or override robots.txt.
