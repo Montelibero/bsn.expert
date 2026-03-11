@@ -100,7 +100,7 @@
         <dt class="title is-4">{{ 'account_page.website'|trans }}</dt>
         <dd class="subtitle is-4">
             {% for item in website %}
-                <a href="{{ item }}">{{ item }}</a><br>
+                <a href="{{ item }}">{{ item|pretty_url }}</a><br>
             {% endfor %}
         </dd>
     {% endif %}

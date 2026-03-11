@@ -19,6 +19,7 @@ class TwigExtension extends AbstractExtension
             new TwigFilter('account_short', [$this, 'accountShort']),
             new TwigFilter('hash_short', [$this, 'hashShort']),
             new TwigFilter('split_amount', [$this, 'splitAmount']),
+            new TwigFilter('pretty_url', [$this, 'prettyUrl']),
 //            new TwigFilter('html_account', [$this, 'htmlAccount'], [
 //                'is_safe' => [
 //                    'html'
@@ -65,5 +66,71 @@ class TwigExtension extends AbstractExtension
             'all_zero_frac' => $all_zero,
             'has_fraction' => true,
         ];
+    }
+
+    public function prettyUrl(?string $url): string
+    {
+        if (!$url) {
+            return '';
+        }
+
+        $parts = parse_url($url);
+        if ($parts === false) {
+            return $url;
+        }
+
+        $result = '';
+
+        if (isset($parts['scheme'])) {
+            $result .= $parts['scheme'] . '://';
+        }
+
+        if (isset($parts['user'])) {
+            $result .= $parts['user'];
+            if (isset($parts['pass'])) {
+                $result .= ':' . $parts['pass'];
+            }
+            $result .= '@';
+        }
+
+        if (isset($parts['host'])) {
+            $host = $parts['host'];
+            if (function_exists('idn_to_utf8')) {
+                $decoded_host = idn_to_utf8($host, IDNA_DEFAULT);
+                if ($decoded_host !== false) {
+                    $host = $decoded_host;
+                }
+            }
+            $result .= $host;
+        }
+
+        if (isset($parts['port'])) {
+            $result .= ':' . $parts['port'];
+        }
+
+        $result .= $this->decodeUtf8PercentSequences($parts['path'] ?? '');
+
+        if (isset($parts['query'])) {
+            $result .= '?' . $this->decodeUtf8PercentSequences($parts['query']);
+        }
+
+        if (isset($parts['fragment'])) {
+            $result .= '#' . $this->decodeUtf8PercentSequences($parts['fragment']);
+        }
+
+        return $result;
+    }
+
+    private function decodeUtf8PercentSequences(string $value): string
+    {
+        return (string) preg_replace_callback('/(?:%[0-9A-Fa-f]{2})+/', function (array $matches): string {
+            $decoded = rawurldecode($matches[0]);
+
+            if (!mb_check_encoding($decoded, 'UTF-8')) {
+                return $matches[0];
+            }
+
+            return preg_match('/[^\x20-\x7E]/u', $decoded) ? $decoded : $matches[0];
+        }, $value);
     }
 }
