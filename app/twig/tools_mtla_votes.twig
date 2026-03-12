@@ -9,14 +9,6 @@
         });
     </script>
     <style>
-        .votes-matrix .sticky-account {
-            position: sticky;
-            left: 0;
-            z-index: 1;
-        }
-        .votes-matrix th.sticky-account {
-            z-index: 2;
-        }
         .votes-status {
             font-size: 1.25rem;
             text-align: center;
@@ -61,7 +53,7 @@
             <table class="table is-hoverable votes-matrix" data-sortlist="[[0,0]]">
                 <thead>
                 <tr>
-                    <th class="sticky-account">{{ 'mtla_votes_page.table.account'|trans }}</th>
+                    <th>{{ 'mtla_votes_page.table.account'|trans }}</th>
                     {% for document in summary.documents %}
                         <th><span class="tag is-info">{{ document.index }}</span></th>
                     {% endfor %}
@@ -70,7 +62,7 @@
                 <tbody>
                 {% for row in summary.rows %}
                     <tr>
-                        <th class="sticky-account">
+                        <th>
                             {{ include('account_link.twig', {data: row.account}, with_context = false) }}
                         </th>
                         {% for item in row.statuses %}
