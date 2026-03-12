@@ -7,6 +7,7 @@ use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\DecisionTransactionsController;
+use Montelibero\BSN\Controllers\RecommendVerificationController;
 use Montelibero\BSN\Controllers\SendTimeTokensController;
 use Montelibero\BSN\Controllers\TimeTokenController;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -38,6 +39,10 @@ class ToolsRouter
 
         SimpleRouter::match(['get', 'post'], '/mtla/decision_transactions', function () use ($Container) {
             return $Container->get(DecisionTransactionsController::class)->MtlaDecisionTransactions();
+        });
+
+        SimpleRouter::get('/mtla/recommend_verification', function () use ($Container) {
+            return $Container->get(RecommendVerificationController::class)->MtlaRecommendVerification();
         });
 
         SimpleRouter::match(['get', 'post'], '/timetoken', function () use ($Container) {

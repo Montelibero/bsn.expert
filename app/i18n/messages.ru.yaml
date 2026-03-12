@@ -514,6 +514,17 @@ tag_page:
   edit_link: Проставить этот тег для ваших контактов
   source: Использует
   target: Получает
+  link_to_recommend_verification: Здесь нагляднее
+
+recommend_verification_page:
+  title: Рекомендательная верификация
+  candidates: Кандидаты
+  verified: Верифицированы рекомендацией
+  lost: Потеряли основание
+  overflow: Перелимит рекомендаций
+  recommenders: Рекомендатели
+  recommended: Рекомендовал
+  empty: Нету
 
 documents:
   description: >

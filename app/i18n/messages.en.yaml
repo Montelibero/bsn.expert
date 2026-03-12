@@ -513,6 +513,17 @@ tag_page:
   edit_link: Assign this tag to each of your contacts
   source: Source
   target: Target
+  link_to_recommend_verification: Better visualized here
+
+recommend_verification_page:
+  title: Recommendation Verification
+  candidates: Candidates
+  verified: Verified by recommendation
+  lost: Lost basis
+  overflow: Recommendation overflow
+  recommenders: Recommenders
+  recommended: Recommended
+  empty: None
 
 documents:
   description: >

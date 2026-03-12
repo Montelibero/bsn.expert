@@ -37,4 +37,8 @@
                 </tbody>
         </table>
 
+        {% if tag.name == 'RecommendForVerification' %}
+        <p class="block"><a href="/tools/mtla/recommend_verification">{{ 'tag_page.link_to_recommend_verification'|trans }} →</a></p>
+        {% endif %}
+
 {% endblock %}

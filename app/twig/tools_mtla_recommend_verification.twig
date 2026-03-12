@@ -1,0 +1,105 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'recommend_verification_page.title'|trans }} — MTLA{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'recommend_verification_page.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'recommend_verification_page.title'|trans }}</h1>
+
+    <h2 class="title is-5">{{ 'recommend_verification_page.candidates'|trans }}</h2>
+    {% if candidates %}
+        <ul class="block">
+            {% for item in candidates %}
+                <li>
+                    {{ include('account_link.twig', {data: item}, with_context = false) }}
+                    {% if item.accounts %}
+                        <div style="margin: 0.25rem 0 1rem 1.25rem;">
+                            <div class="is-size-7 has-text-grey">{{ 'recommend_verification_page.recommenders'|trans }}</div>
+                            <ul>
+                                {% for nested_item in item.accounts %}
+                                    <li>{{ include('account_link.twig', {data: nested_item}, with_context = false) }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'recommend_verification_page.empty'|trans }}</p>
+    {% endif %}
+
+    <h2 class="title is-5">{{ 'recommend_verification_page.verified'|trans }}</h2>
+    {% if verified %}
+        <ul class="block">
+            {% for item in verified %}
+                <li>
+                    {{ include('account_link.twig', {data: item}, with_context = false) }}
+                    {% if item.accounts %}
+                        <div style="margin: 0.25rem 0 1rem 1.25rem;">
+                            <div class="is-size-7 has-text-grey">{{ 'recommend_verification_page.recommenders'|trans }}</div>
+                            <ul>
+                                {% for nested_item in item.accounts %}
+                                    <li>{{ include('account_link.twig', {data: nested_item}, with_context = false) }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'recommend_verification_page.empty'|trans }}</p>
+    {% endif %}
+
+    <h2 class="title is-5">{{ 'recommend_verification_page.lost'|trans }}</h2>
+    {% if lost %}
+        <ul class="block">
+            {% for item in lost %}
+                <li>
+                    {{ include('account_link.twig', {data: item}, with_context = false) }}
+                    {% if item.accounts %}
+                        <div style="margin: 0.25rem 0 1rem 1.25rem;">
+                            <div class="is-size-7 has-text-grey">{{ 'recommend_verification_page.recommenders'|trans }}</div>
+                            <ul>
+                                {% for nested_item in item.accounts %}
+                                    <li>{{ include('account_link.twig', {data: nested_item}, with_context = false) }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'recommend_verification_page.empty'|trans }}</p>
+    {% endif %}
+
+    <h2 class="title is-5">{{ 'recommend_verification_page.overflow'|trans }}</h2>
+    {% if overflow_recommenders %}
+        <ul class="block">
+            {% for item in overflow_recommenders %}
+                <li>
+                    {{ include('account_link.twig', {data: item}, with_context = false) }}
+                    {% if item.accounts %}
+                        <div style="margin: 0.25rem 0 1rem 1.25rem;">
+                            <div class="is-size-7 has-text-grey">{{ 'recommend_verification_page.recommended'|trans }}</div>
+                            <ul>
+                                {% for nested_item in item.accounts %}
+                                    <li>{{ include('account_link.twig', {data: nested_item}, with_context = false) }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'recommend_verification_page.empty'|trans }}</p>
+    {% endif %}
+{% endblock %}
