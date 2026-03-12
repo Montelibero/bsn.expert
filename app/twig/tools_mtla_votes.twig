@@ -1,0 +1,139 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'mtla_votes_page.title'|trans }}{% endblock %}
+
+{% block head %}
+    <script>
+        $(function () {
+            $(".votes-matrix").tablesorter();
+        });
+    </script>
+    <style>
+        .votes-matrix .sticky-account {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+        }
+        .votes-matrix th.sticky-account {
+            z-index: 2;
+        }
+        .votes-status {
+            font-size: 1.25rem;
+            text-align: center;
+            white-space: nowrap;
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'mtla_votes_page.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'mtla_votes_page.title'|trans }}</h1>
+
+    {% if error %}
+        <div class="notification is-danger">
+            {{ error|e|nl2br }}
+        </div>
+    {% endif %}
+
+    {% if summary %}
+        <div class="block">
+            <p class="block">{{ 'mtla_votes_page.summary.documents'|trans }}: {{ summary.documents|length }}</p>
+            <ul class="block">
+                {% for document in summary.documents %}
+                    <li>
+                        <span class="tag is-info">{{ document.index }}</span>
+                        <a href="{{ document.url }}" target="_blank" rel="noopener" title="{{ document.title|default('') }}">{{ document.date_label|default(document.date_started|default('mtla_votes_page.no_date'|trans)) }}</a>,
+                        «{{ document.title_display|default(document.title|default('mtla_votes_page.no_title'|trans)) }}»
+                    </li>
+                {% endfor %}
+            </ul>
+            <p class="block is-size-7 has-text-grey">
+                {{ 'mtla_votes_page.legend_text'|trans }}
+            </p>
+        </div>
+
+        <div class="table-container block">
+            <table class="table is-hoverable votes-matrix" data-sortlist="[[0,0]]">
+                <thead>
+                <tr>
+                    <th class="sticky-account">{{ 'mtla_votes_page.table.account'|trans }}</th>
+                    {% for document in summary.documents %}
+                        <th><span class="tag is-info">{{ document.index }}</span></th>
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in summary.rows %}
+                    <tr>
+                        <th class="sticky-account">
+                            {{ include('account_link.twig', {data: row.account}, with_context = false) }}
+                        </th>
+                        {% for item in row.statuses %}
+                            <td class="votes-status">
+                                {% if item.status == 'direct' %}
+                                    <span title="{{ 'mtla_votes_page.legend_titles.direct'|trans }}">🟢</span>
+                                {% elseif item.status == 'delegated' %}
+                                    <span title="{{ 'mtla_votes_page.legend_titles.delegated'|trans }}">🟡</span>
+                                {% elseif item.status == 'absent' %}
+                                    <span title="{{ 'mtla_votes_page.legend_titles.absent'|trans }}">🔴</span>
+                                {% else %}
+                                    <span title="{{ 'mtla_votes_page.legend_titles.not_member'|trans }}">⚫️</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="title is-4">{{ 'mtla_votes_page.never_voted.title'|trans }}</h2>
+        {% if summary.never_voted %}
+            <ul class="block">
+                {% for account in summary.never_voted %}
+                    <li>{{ include('account_link.twig', {data: account}, with_context = false) }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="block">{{ 'mtla_votes_page.empty'|trans }}</p>
+        {% endif %}
+
+        <h2 class="title is-4">{{ 'mtla_votes_page.heroes.title'|trans }}</h2>
+        {% if summary.heroes %}
+            <ul class="block">
+                {% for account in summary.heroes %}
+                    <li>{{ include('account_link.twig', {data: account}, with_context = false) }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="block">{{ 'mtla_votes_page.empty'|trans }}</p>
+        {% endif %}
+    {% endif %}
+
+    <form action="/tools/mtla/votes" method="post" class="block">
+        <div class="field">
+            <label class="label" for="links">{{ 'mtla_votes_page.form.links'|trans }}</label>
+            <div class="control">
+                <textarea
+                    id="links"
+                    class="textarea"
+                    name="links"
+                    rows="7"
+                    placeholder="https://docs.google.com/spreadsheets/d/...\nhttps://docs.google.com/spreadsheets/d/..."
+                >{{ links }}</textarea>
+            </div>
+            <p class="help">{{ 'mtla_votes_page.form.links_help'|trans }}</p>
+        </div>
+
+        <div class="field is-grouped">
+            <div class="control">
+                <button type="submit" class="button is-link">{{ 'mtla_votes_page.form.submit'|trans }}</button>
+            </div>
+        </div>
+    </form>
+{% endblock %}

@@ -17,6 +17,7 @@ nav:
     multisig: Редактор мультиподписи
     timetoken: Таймтокен
     percent_pay: Выплата процентов
+    mtla_votes: MTLA Votes
   mtla: Ассоциация
   council: Совет
   programs: Программы
@@ -525,6 +526,35 @@ recommend_verification_page:
   recommenders: Рекомендатели
   recommended: Рекомендовал
   empty: Нету
+
+mtla_votes_page:
+  title: MTLA Votes
+  no_date: без даты
+  no_title: без названия
+  empty: Таких не нашлось.
+  summary:
+    documents: 'Документов с голосованиями'
+  legend_text: 'Легенда: 🟢 голосовал лично, 🟡 по делегации, 🔴 не голосовал, ⚫️ не было в Members.'
+  legend_titles:
+    direct: Голосовал лично
+    delegated: Голосовал по делегации
+    absent: Не голосовал
+    not_member: Аккаунта не было в Members этого голосования
+  table:
+    account: Аккаунт
+  never_voted:
+    title: Были во всех списках, но ни разу не голосовали
+  heroes:
+    title: Голосовали всегда и лично
+  form:
+    links: Ссылки на голосования
+    links_help: По одной ссылке на строку. Подойдут публичные Google Sheets со страницами Result, Log и Members.
+    submit: Рассчитать
+  errors:
+    no_public_links: Не нашёл ни одной публичной ссылки Google Sheets.
+    sheet_missing: 'Лист "%sheet%" в Google Sheet %id% пустой или недоступен.'
+    download_failed: 'Не удалось скачать данные Google Sheets%suffix%'
+    http_code: 'Google Sheets вернул HTTP %code%.'
 
 documents:
   description: >

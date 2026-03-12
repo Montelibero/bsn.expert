@@ -17,6 +17,7 @@ nav:
     multisig: Multisig Editor
     timetoken: Timetoken
     percent_pay: Bulk Percent Payment
+    mtla_votes: MTLA Votes
   mtla: MTLA
   council: Council
   programs: Programs
@@ -524,6 +525,35 @@ recommend_verification_page:
   recommenders: Recommenders
   recommended: Recommended
   empty: None
+
+mtla_votes_page:
+  title: MTLA Votes
+  no_date: no date
+  no_title: untitled
+  empty: None found.
+  summary:
+    documents: 'Voting documents'
+  legend_text: 'Legend: 🟢 voted directly, 🟡 by delegation, 🔴 did not vote, ⚫️ not in Members.'
+  legend_titles:
+    direct: Voted directly
+    delegated: Voted by delegation
+    absent: Did not vote
+    not_member: Account was not in Members for this vote
+  table:
+    account: Account
+  never_voted:
+    title: Were in every list but never voted
+  heroes:
+    title: Always voted directly
+  form:
+    links: Voting links
+    links_help: One link per line. Public Google Sheets with Result, Log, and Members sheets are supported.
+    submit: Calculate
+  errors:
+    no_public_links: Could not find any public Google Sheets links.
+    sheet_missing: 'Sheet "%sheet%" in Google Sheet %id% is empty or unavailable.'
+    download_failed: 'Failed to download Google Sheets data%suffix%'
+    http_code: 'Google Sheets returned HTTP %code%.'
 
 documents:
   description: >

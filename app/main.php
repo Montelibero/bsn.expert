@@ -24,6 +24,7 @@ use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
+use Montelibero\BSN\Controllers\VotesController;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\MongoSessionHandler;
@@ -252,6 +253,7 @@ $ContainerBuilder->addDefinitions([
     MtlaController::class => autowire(),
     PercentPayController::class => autowire(),
     MultisigController::class => autowire(),
+    VotesController::class => autowire(),
     FederationController::class => autowire(),
     GraphController::class => autowire(),
     HomeController::class => autowire(),

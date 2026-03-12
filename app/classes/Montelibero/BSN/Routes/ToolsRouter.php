@@ -10,6 +10,7 @@ use Montelibero\BSN\Controllers\DecisionTransactionsController;
 use Montelibero\BSN\Controllers\RecommendVerificationController;
 use Montelibero\BSN\Controllers\SendTimeTokensController;
 use Montelibero\BSN\Controllers\TimeTokenController;
+use Montelibero\BSN\Controllers\VotesController;
 use Pecee\SimpleRouter\SimpleRouter;
 use Twig\Environment;
 
@@ -39,6 +40,10 @@ class ToolsRouter
 
         SimpleRouter::match(['get', 'post'], '/mtla/decision_transactions', function () use ($Container) {
             return $Container->get(DecisionTransactionsController::class)->MtlaDecisionTransactions();
+        });
+
+        SimpleRouter::match(['get', 'post'], '/mtla/votes', function () use ($Container) {
+            return $Container->get(VotesController::class)->MtlaVotes();
         });
 
         SimpleRouter::get('/mtla/recommend_verification', function () use ($Container) {
