@@ -148,7 +148,7 @@ class VotesController
 
     private function fetchVotingDocument(string $spreadsheet_id): array
     {
-        $cache_key = 'mtla_votes_doc:' . sha1($spreadsheet_id) . ':v3';
+        $cache_key = 'mtla_votes_doc:' . sha1($spreadsheet_id) . ':v4';
         if (($cached = $this->cacheFetch($cache_key)) !== null) {
             return $cached;
         }
