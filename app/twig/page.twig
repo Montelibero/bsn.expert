@@ -145,6 +145,18 @@
                     <a class="navbar-item" href="/tools/percent_pay">
                         {{ 'nav.tools.percent_pay'|trans }}
                     </a>
+                    {% if current_user.isImpactActivist %}
+                        <hr class="navbar-divider">
+                        <a class="navbar-item" href="/tools/mtla/membership_distribution">
+                            Выдача токенов участия
+                        </a>
+                        <a class="navbar-item" href="/tools/mtla/decision_transactions">
+                            Подготовка транзакций решения
+                        </a>
+                        <a class="navbar-item" href="/tools/mtla/send_time_tokens">
+                            Отправка токенов участия
+                        </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -160,6 +172,15 @@
                     <a class="navbar-item" href="/mtla/programs">
                         {{ 'nav.programs'|trans }}
                     </a>
+                    {% if current_user.isImpactActivist %}
+                    <hr class="navbar-divider">
+                    <a class="navbar-item" href="/tools/mtla/recommend_verification">
+                        {{ 'recommend_verification_page.title'|trans }}
+                    </a>
+                    <a class="navbar-item" href="/tools/mtla/rp_report">
+                        {{ 'nav.tools.mtla_rp_report'|trans }}
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

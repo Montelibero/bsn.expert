@@ -41,6 +41,12 @@ class CurrentUser
         return null;
     }
 
+    public function isImpactActivist(): bool
+    {
+        $Account = $this->getAccount();
+        return $Account !== null && $Account->getBalance('MTLAP') > 4;
+    }
+
     public function getCurrentAccountId(): ?string
     {
         $explicit = $this->session[self::SESSION_CURRENT_ACCOUNT_KEY] ?? null;
