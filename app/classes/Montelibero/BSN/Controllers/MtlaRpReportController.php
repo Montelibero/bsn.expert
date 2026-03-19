@@ -114,12 +114,10 @@ class MtlaRpReportController
         foreach ($MTLA?->getOutcomeLinks($TagProgram) ?? [] as $Program) {
             $coordinators = $Program->getOutcomeLinks($TagProgramCoordinator);
             $outgoing_participants = $Program->getOutcomeLinks($TagMyPart);
-            $outgoing_by_id = [];
             $confirmed_participants = [];
             $broken_outgoing = [];
 
             foreach ($outgoing_participants as $Participant) {
-                $outgoing_by_id[$Participant->getId()] = $Participant;
                 if ($this->hasOutgoingLink($Participant, $TagPartOf, $Program)) {
                     $confirmed_participants[] = $this->buildProgramParticipant($Participant);
                     $memberships[$Participant->getId()][] = $Program->jsonSerialize();
@@ -128,16 +126,8 @@ class MtlaRpReportController
                 }
             }
 
-            $broken_incoming = [];
-            foreach ($Program->getIncomeLinks($TagPartOf) as $Participant) {
-                if (!isset($outgoing_by_id[$Participant->getId()])) {
-                    $broken_incoming[] = $Participant->jsonSerialize();
-                }
-            }
-
             usort($confirmed_participants, fn(array $a, array $b): int => strcmp($a['display_name'], $b['display_name']));
             usort($broken_outgoing, fn(array $a, array $b): int => strcmp($a['display_name'], $b['display_name']));
-            usort($broken_incoming, fn(array $a, array $b): int => strcmp($a['display_name'], $b['display_name']));
 
             $item = [
                 'data' => $Program->jsonSerialize(),
@@ -145,22 +135,21 @@ class MtlaRpReportController
                 'coordinator_count' => count($coordinators),
                 'participants' => $confirmed_participants,
                 'broken_outgoing_participants' => $broken_outgoing,
-                'broken_incoming_participants' => $broken_incoming,
                 'issues' => [
                     'missing_coordinator' => count($coordinators) === 0,
                     'multiple_coordinators' => count($coordinators) > 1,
                     'no_participants' => count($confirmed_participants) === 0,
                     'broken_outgoing_links' => count($broken_outgoing) > 0,
-                    'broken_incoming_links' => count($broken_incoming) > 0,
                 ],
             ];
             $item['has_issues'] = in_array(true, $item['issues'], true);
+            $item['severity'] = $this->calculateProgramSeverity($item['issues']);
             $items[] = $item;
         }
 
         usort($items, function (array $a, array $b): int {
-            if ($a['has_issues'] !== $b['has_issues']) {
-                return $a['has_issues'] ? -1 : 1;
+            if ($a['severity'] !== $b['severity']) {
+                return $a['severity'] <=> $b['severity'];
             }
 
             $participants_a = count($a['participants']);
@@ -493,6 +482,25 @@ class MtlaRpReportController
         }
 
         return false;
+    }
+
+    private function calculateProgramSeverity(array $issues): int
+    {
+        if (
+            !empty($issues['missing_coordinator'])
+            || !empty($issues['no_participants'])
+        ) {
+            return 2;
+        }
+
+        if (
+            !empty($issues['multiple_coordinators'])
+            || !empty($issues['broken_outgoing_links'])
+        ) {
+            return 1;
+        }
+
+        return 0;
     }
 
     private function resolveTimeToken(Account $Account): ?array

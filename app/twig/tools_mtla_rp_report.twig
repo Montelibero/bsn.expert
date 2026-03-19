@@ -288,21 +288,20 @@
     {% endif %}
 
     <h2 class="title is-4">{{ 'mtla_rp_report_page.programs.title'|trans }}</h2>
-    {% if problem_programs %}
+    {% if programs %}
         <div class="table-container block">
-            <table class="table is-fullwidth is-hoverable is-striped">
+            <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[3,0],[2,1]]">
                 <thead>
                 <tr>
                     <th>{{ 'mtla_rp_report_page.programs.table.program'|trans }}</th>
                     <th>{{ 'mtla_rp_report_page.programs.table.coordinator'|trans }}</th>
-                    <th>{{ 'mtla_rp_report_page.programs.table.participants'|trans }}</th>
-                    <th>{{ 'mtla_rp_report_page.programs.table.issues'|trans }}</th>
+                    <th data-sorter="digit">{{ 'mtla_rp_report_page.programs.table.participants'|trans }}</th>
+                    <th data-sorter="digit">{{ 'mtla_rp_report_page.programs.table.issues'|trans }}</th>
                     <th>{{ 'mtla_rp_report_page.programs.table.broken_outgoing'|trans }}</th>
-                    <th>{{ 'mtla_rp_report_page.programs.table.broken_incoming'|trans }}</th>
                 </tr>
                 </thead>
                 <tbody>
-                {% for program in problem_programs %}
+                {% for program in programs %}
                     <tr>
                         <td>{{ include('account_link.twig', {data: program.data}, with_context = false) }}</td>
                         <td>
@@ -313,22 +312,23 @@
                             {% endif %}
                         </td>
                         <td>{{ program.participants|length }}</td>
-                        <td>
+                        <td data-text="{{ program.severity }}">
                             <div class="rp-report-issues">
-                                {% if program.issues.missing_coordinator %}
-                                    <span class="tag is-danger">{{ 'mtla_rp_report_page.programs.issues.missing_coordinator'|trans }}</span>
-                                {% endif %}
-                                {% if program.issues.multiple_coordinators %}
-                                    <span class="tag is-warning">{{ 'mtla_rp_report_page.programs.issues.multiple_coordinators'|trans }}</span>
-                                {% endif %}
-                                {% if program.issues.no_participants %}
-                                    <span class="tag is-danger">{{ 'mtla_rp_report_page.programs.issues.no_participants'|trans }}</span>
-                                {% endif %}
-                                {% if program.issues.broken_outgoing_links %}
-                                    <span class="tag is-warning">{{ 'mtla_rp_report_page.programs.issues.broken_outgoing_links'|trans }}</span>
-                                {% endif %}
-                                {% if program.issues.broken_incoming_links %}
-                                    <span class="tag is-warning">{{ 'mtla_rp_report_page.programs.issues.broken_incoming_links'|trans }}</span>
+                                {% if not program.has_issues %}
+                                    <span class="tag is-success">{{ 'mtla_rp_report_page.status.ideal'|trans }}</span>
+                                {% else %}
+                                    {% if program.issues.missing_coordinator %}
+                                        <span class="tag is-danger">{{ 'mtla_rp_report_page.programs.issues.missing_coordinator'|trans }}</span>
+                                    {% endif %}
+                                    {% if program.issues.multiple_coordinators %}
+                                        <span class="tag is-warning">{{ 'mtla_rp_report_page.programs.issues.multiple_coordinators'|trans }}</span>
+                                    {% endif %}
+                                    {% if program.issues.no_participants %}
+                                        <span class="tag is-danger">{{ 'mtla_rp_report_page.programs.issues.no_participants'|trans }}</span>
+                                    {% endif %}
+                                    {% if program.issues.broken_outgoing_links %}
+                                        <span class="tag is-warning">{{ 'mtla_rp_report_page.programs.issues.broken_outgoing_links'|trans }}</span>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </td>
@@ -343,23 +343,12 @@
                                 {{ 'mtla_rp_report_page.empty'|trans }}
                             {% endif %}
                         </td>
-                        <td>
-                            {% if program.broken_incoming_participants %}
-                                <div class="rp-report-programs">
-                                    {% for participant in program.broken_incoming_participants %}
-                                        <span>{{ include('account_link.twig', {data: participant}, with_context = false) }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {{ 'mtla_rp_report_page.empty'|trans }}
-                            {% endif %}
-                        </td>
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
     {% else %}
-        <p class="block">{{ 'mtla_rp_report_page.programs.no_issues'|trans }}</p>
+        <p class="block">{{ 'mtla_rp_report_page.programs.empty'|trans }}</p>
     {% endif %}
 {% endblock %}

@@ -906,18 +906,16 @@ mtla_rp_report_page:
     low_outgoing: Low outgoing TT
     missing_programs: No programs
   programs:
-    title: Programs with setup issues
-    no_issues: No program issues found.
+    title: Programs
+    empty: No programs found.
     table:
       program: Program
       coordinator: Coordinator
       participants: Confirmed participants
       issues: Issues
       broken_outgoing: Has `MyPart` but no `PartOf`
-      broken_incoming: Has `PartOf` but no `MyPart`
     issues:
       missing_coordinator: Missing coordinator
       multiple_coordinators: Multiple coordinators
       no_participants: No participants
       broken_outgoing_links: Broken `MyPart`
-      broken_incoming_links: Broken `PartOf`

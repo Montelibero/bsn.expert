@@ -908,18 +908,16 @@ mtla_rp_report_page:
     low_outgoing: Мало исходящих ТТ
     missing_programs: Нет программ
   programs:
-    title: Программы с проблемами оформления
-    no_issues: Проблем по программам не найдено.
+    title: Программы
+    empty: Программ не найдено.
     table:
       program: Программа
       coordinator: Координатор
       participants: Подтверждённых участников
       issues: Проблемы
       broken_outgoing: Есть `MyPart`, но нет `PartOf`
-      broken_incoming: Есть `PartOf`, но нет `MyPart`
     issues:
       missing_coordinator: Нет координатора
       multiple_coordinators: Несколько координаторов
       no_participants: Нет участников
       broken_outgoing_links: Поломанные `MyPart`
-      broken_incoming_links: Поломанные `PartOf`
