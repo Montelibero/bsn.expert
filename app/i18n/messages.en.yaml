@@ -847,29 +847,23 @@ tools_percent_pay:
 
 mtla_rp_report_page:
   title: MTLA RP Report
-  header: MTLA activists report
+  header: MTLA Activists Report
   description: >
-    A consolidated report for MTLA activists showing whether their timetoken is described,
-    whether MTLA has an open trustline to it, whether at least 12 TT were sent to MTLA during the last 90 days,
-    whether at least 12 TT of that asset left MTLA during the same period,
-    and whether the activist is properly attached to MTLA programs.
+    A summary of MTLA activists with formal checks: whether the timetoken is described,
+    whether the Association has an open trustline to it, whether at least 12 TT were sent to the MTLA account
+    during the last 90 days, whether at least 12 TT left the MTLA account, and whether the activist is
+    properly attached to programs.
   empty: "—"
   empty_group: No issues found.
-  no_heroes: No activists currently satisfy all requirements at once.
+  no_heroes: There are no activists yet who satisfy all conditions at once.
   refresh:
     button: Refresh data
-    help: The refresh link contains a code bound to the current user session.
-    ok: MTLA account data has been refreshed.
-    fallback: Fresh MTLA data could not be fetched, cached data is shown instead.
+    fallback: Could not fetch fresh data; the cached snapshot is shown.
   snapshot:
     mtla_account: Association account
     collected_at: Collected at
-    lookback: Analysis window
-    lookback_days: "%days% days"
-    trustlines: Open trustlines
-    payments: Counted payment operations
-    source_cache: Cached snapshot
-    source_live: Fresh snapshot
+    source_cache: Cached data
+    source_live: Fresh data
     warning: Failed to fetch fresh MTLA data
   summary:
     activists: Activists
@@ -881,23 +875,23 @@ mtla_rp_report_page:
     table:
       activist: Activist
       mtlap: MTLAP
-      status: Formal status
+      status: Status
       timetoken: Timetoken
-      sent: Sent to MTLA in 90 days
-      spent: Left MTLA in 90 days
+      sent: Incoming TT
+      spent: Outgoing TT
       programs: Programs
   heroes:
-    title: Ideal activists
+    title: Exemplary activists
     metrics: "incoming TT: %sent%, outgoing TT: %spent%, programs: %programs%"
   anomalies:
     title: Activist anomalies
     missing_timetoken: Missing timetoken description
     missing_trustline: Missing MTLA trustline to their timetoken
-    not_sending_tokens: Sent less than 12 TT in 90 days
-    tokens_not_spent: Less than 12 TT left MTLA in their asset
+    not_sending_tokens: Did not send at least 12 TT in 90 days
+    tokens_not_spent: Their timetokens did not leave MTLA for at least 12 TT
     without_programs: Not attached to any program
   status:
-    ideal: OK
+    ideal: Everything is OK
     missing_timetoken: No TT description
     missing_trustline: No trustline
     no_incoming: No incoming TT
@@ -911,11 +905,11 @@ mtla_rp_report_page:
     table:
       program: Program
       coordinator: Coordinator
-      participants: Confirmed participants
-      issues: Issues
-      broken_outgoing: Has `MyPart` but no `PartOf`
+      participants: Participants
+      status: Status
+      broken_outgoing: No PartOf
     issues:
       missing_coordinator: Missing coordinator
       multiple_coordinators: Multiple coordinators
       no_participants: No participants
-      broken_outgoing_links: Broken `MyPart`
+      broken_outgoing_links: No PartOf

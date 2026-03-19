@@ -860,16 +860,10 @@ mtla_rp_report_page:
   no_heroes: Пока нет активистов, у которых одновременно выполнены все условия.
   refresh:
     button: Обновить данные
-    help: Ссылка обновления содержит код, привязанный к текущей сессии пользователя.
-    ok: Данные по счёту MTLA были обновлены.
     fallback: Не удалось получить свежие данные, показан сохранённый кеш.
   snapshot:
     mtla_account: Аккаунт Ассоциации
     collected_at: Данные собраны
-    lookback: Период анализа
-    lookback_days: "%days% суток"
-    trustlines: Открытых линий доверия
-    payments: Учтённых платежных операций
     source_cache: Показан кеш
     source_live: Свежая выборка
     warning: Не удалось получить свежие данные MTLA
@@ -883,10 +877,10 @@ mtla_rp_report_page:
     table:
       activist: Активист
       mtlap: MTLAP
-      status: Формальный статус
+      status: Статус
       timetoken: Таймтокен
-      sent: Пришло на MTLA за 90 суток
-      spent: Ушло с MTLA за 90 суток
+      sent: Пришло ТТ
+      spent: Ушло ТТ
       programs: Программы
   heroes:
     title: Активисты-молодцы
@@ -901,7 +895,7 @@ mtla_rp_report_page:
   status:
     ideal: Всё в порядке
     missing_timetoken: Нет описания ТТ
-    missing_trustline: Нет trustline
+    missing_trustline: Нет линии доверия
     no_incoming: Нет входящих ТТ
     low_incoming: Мало входящих ТТ
     no_outgoing: Нет исходящих ТТ
@@ -913,11 +907,11 @@ mtla_rp_report_page:
     table:
       program: Программа
       coordinator: Координатор
-      participants: Подтверждённых участников
-      issues: Проблемы
-      broken_outgoing: Есть `MyPart`, но нет `PartOf`
+      participants: Участников
+      status: Статус
+      broken_outgoing: Нет встречного PartOf
     issues:
       missing_coordinator: Нет координатора
       multiple_coordinators: Несколько координаторов
       no_participants: Нет участников
-      broken_outgoing_links: Поломанные `MyPart`
+      broken_outgoing_links: Нет встречного PartOf

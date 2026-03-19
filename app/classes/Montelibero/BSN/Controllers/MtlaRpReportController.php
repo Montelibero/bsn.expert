@@ -26,6 +26,7 @@ class MtlaRpReportController
     private const LOOKBACK_DAYS = 90;
     private const ACTIVIST_MIN_MTLAP = 4;
     private const MIN_REQUIRED_TT = 12.0;
+    private const FRESH_SNAPSHOT_SECONDS = 60;
 
     private BSN $BSN;
     private Environment $Twig;
@@ -56,13 +57,11 @@ class MtlaRpReportController
         $activists = $this->collectActivists($programs['memberships'], $snapshot);
 
         if ($force_refresh) {
-            $query = [];
             if (($snapshot['warning'] ?? null) !== null) {
-                $query['refresh_status'] = 'fallback';
+                SimpleRouter::response()->redirect('/tools/mtla/rp_report?refresh_status=fallback', 302);
             } else {
-                $query['refresh_status'] = 'ok';
+                SimpleRouter::response()->redirect('/tools/mtla/rp_report', 302);
             }
-            SimpleRouter::response()->redirect('/tools/mtla/rp_report?' . http_build_query($query), 302);
             return null;
         }
 
@@ -240,27 +239,32 @@ class MtlaRpReportController
                 'low_outgoing' => $low_outgoing,
                 'missing_programs' => $missing_programs,
                 'issues' => $issues,
+                'severity' => $this->calculateActivistSeverity([
+                    'missing_timetoken' => $missing_timetoken,
+                    'missing_trustline' => $missing_trustline,
+                    'low_incoming' => $low_incoming,
+                    'low_outgoing' => $low_outgoing,
+                    'missing_programs' => $missing_programs,
+                    'incoming_tt_90d' => $incoming_tt,
+                    'outgoing_tt_90d' => $outgoing_tt,
+                ]),
                 'is_ideal' => count($issues) === 0,
             ];
         }
 
         usort($items, function (array $a, array $b): int {
-            if ($a['is_ideal'] !== $b['is_ideal']) {
-                return $a['is_ideal'] ? -1 : 1;
+            if ($a['severity'] !== $b['severity']) {
+                return $a['severity'] <=> $b['severity'];
             }
 
-            $issues_a = count($a['issues']);
-            $issues_b = count($b['issues']);
-            if ($issues_a !== $issues_b) {
-                return $issues_a <=> $issues_b;
+            if ($a['outgoing_tt_90d'] !== $b['outgoing_tt_90d']) {
+                return $b['outgoing_tt_90d'] <=> $a['outgoing_tt_90d'];
             }
 
-            if ($a['incoming_tt_90d'] !== $b['incoming_tt_90d']) {
-                return $b['incoming_tt_90d'] <=> $a['incoming_tt_90d'];
-            }
-
-            if ($a['mtlap'] !== $b['mtlap']) {
-                return $b['mtlap'] <=> $a['mtlap'];
+            $program_count_a = count($a['programs']);
+            $program_count_b = count($b['programs']);
+            if ($program_count_a !== $program_count_b) {
+                return $program_count_b <=> $program_count_a;
             }
 
             return strcmp($a['account']['display_name'], $b['account']['display_name']);
@@ -275,7 +279,7 @@ class MtlaRpReportController
         if (!$force_refresh && is_array($cached)) {
             $cached['from_cache'] = true;
             $cached['warning'] = null;
-            return $cached;
+            return $this->finalizeSnapshot($cached);
         }
 
         try {
@@ -283,15 +287,15 @@ class MtlaRpReportController
             $this->cacheStore(self::CACHE_KEY, $snapshot, self::CACHE_TTL);
             $snapshot['from_cache'] = false;
             $snapshot['warning'] = null;
-            return $snapshot;
+            return $this->finalizeSnapshot($snapshot);
         } catch (HorizonRequestException|Throwable $Exception) {
             if (is_array($cached)) {
                 $cached['from_cache'] = true;
                 $cached['warning'] = $Exception->getMessage();
-                return $cached;
+                return $this->finalizeSnapshot($cached);
             }
 
-            return [
+            return $this->finalizeSnapshot([
                 'fetched_at' => null,
                 'cutoff_at' => time() - (self::LOOKBACK_DAYS * 86400),
                 'balances' => [],
@@ -301,8 +305,16 @@ class MtlaRpReportController
                 'payments_count' => 0,
                 'from_cache' => false,
                 'warning' => $Exception->getMessage(),
-            ];
+            ]);
         }
+    }
+
+    private function finalizeSnapshot(array $snapshot): array
+    {
+        $fetched_at = isset($snapshot['fetched_at']) ? (int) $snapshot['fetched_at'] : 0;
+        $snapshot['is_fresh'] = $fetched_at > 0 && (time() - $fetched_at) < self::FRESH_SNAPSHOT_SECONDS;
+
+        return $snapshot;
     }
 
     private function buildMtlaSnapshot(AccountResponse $MtlaAccount): array
@@ -496,6 +508,28 @@ class MtlaRpReportController
         if (
             !empty($issues['multiple_coordinators'])
             || !empty($issues['broken_outgoing_links'])
+        ) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private function calculateActivistSeverity(array $state): int
+    {
+        if (
+            !empty($state['missing_timetoken'])
+            || !empty($state['missing_programs'])
+            || (!empty($state['low_incoming']) && (float) ($state['incoming_tt_90d'] ?? 0.0) <= 0.0)
+            || (!empty($state['low_outgoing']) && (float) ($state['outgoing_tt_90d'] ?? 0.0) <= 0.0)
+        ) {
+            return 2;
+        }
+
+        if (
+            !empty($state['missing_trustline'])
+            || !empty($state['low_incoming'])
+            || !empty($state['low_outgoing'])
         ) {
             return 1;
         }

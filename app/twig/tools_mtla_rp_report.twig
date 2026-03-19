@@ -22,13 +22,6 @@
             margin-bottom: 1rem;
         }
 
-        .rp-report-grid {
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-            margin-bottom: 1.5rem;
-        }
-
         .rp-report-programs {
             display: flex;
             flex-direction: column;
@@ -45,11 +38,7 @@
     <h1 class="title">{{ 'mtla_rp_report_page.header'|trans }}</h1>
     <p class="block">{{ 'mtla_rp_report_page.description'|trans }}</p>
 
-    {% if refresh.status == 'ok' %}
-        <div class="notification is-success">
-            {{ 'mtla_rp_report_page.refresh.ok'|trans }}
-        </div>
-    {% elseif refresh.status == 'fallback' %}
+    {% if refresh.status == 'fallback' %}
         <div class="notification is-warning">
             {{ 'mtla_rp_report_page.refresh.fallback'|trans }}
         </div>
@@ -85,71 +74,66 @@
             <span class="tag is-info">
                 {{ 'mtla_rp_report_page.snapshot.collected_at'|trans }}:
                 {% if snapshot.fetched_at %}
-                    {{ snapshot.fetched_at|date('d.m.Y H:i') }}
+                    {{ snapshot.fetched_at|date('d.m.Y H:i', 'UTC') }} UTC
                 {% else %}
                     {{ 'mtla_rp_report_page.empty'|trans }}
                 {% endif %}
             </span>
-            <span class="tag">
-                {{ 'mtla_rp_report_page.snapshot.lookback'|trans }}: {{ 'mtla_rp_report_page.snapshot.lookback_days'|trans({'%days%': 90}) }}
-            </span>
-            <span class="tag">
-                {{ 'mtla_rp_report_page.snapshot.trustlines'|trans }}: {{ snapshot.trustlines|length }}
-            </span>
-            <span class="tag">
-                {{ 'mtla_rp_report_page.snapshot.payments'|trans }}: {{ snapshot.payments_count }}
-            </span>
-            <span class="tag {% if snapshot.from_cache %}is-warning{% else %}is-success{% endif %}">
-                {% if snapshot.from_cache %}
-                    {{ 'mtla_rp_report_page.snapshot.source_cache'|trans }}
-                {% else %}
+            <span class="tag {% if snapshot.is_fresh %}is-success{% else %}is-warning{% endif %}">
+                {% if snapshot.is_fresh %}
                     {{ 'mtla_rp_report_page.snapshot.source_live'|trans }}
+                {% else %}
+                    {{ 'mtla_rp_report_page.snapshot.source_cache'|trans }}
                 {% endif %}
             </span>
         </div>
-
-        {% if refresh.can_refresh %}
-            <p class="help">{{ 'mtla_rp_report_page.refresh.help'|trans }}</p>
-        {% endif %}
     </div>
 
-    <div class="rp-report-grid">
-        <div class="box">
-            <p class="heading">{{ 'mtla_rp_report_page.summary.activists'|trans }}</p>
-            <p class="title is-4">{{ summary.activists_total }}</p>
+    <div class="columns is-multiline">
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'mtla_rp_report_page.summary.activists'|trans }}</p>
+                <p class="title is-4">{{ summary.activists_total }}</p>
+            </div>
         </div>
-        <div class="box">
-            <p class="heading">{{ 'mtla_rp_report_page.summary.heroes'|trans }}</p>
-            <p class="title is-4">{{ summary.heroes_total }}</p>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'mtla_rp_report_page.summary.heroes'|trans }}</p>
+                <p class="title is-4">{{ summary.heroes_total }}</p>
+            </div>
         </div>
-        <div class="box">
-            <p class="heading">{{ 'mtla_rp_report_page.summary.programs'|trans }}</p>
-            <p class="title is-4">{{ summary.programs_total }}</p>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'mtla_rp_report_page.summary.programs'|trans }}</p>
+                <p class="title is-4">{{ summary.programs_total }}</p>
+            </div>
         </div>
-        <div class="box">
-            <p class="heading">{{ 'mtla_rp_report_page.summary.problem_programs'|trans }}</p>
-            <p class="title is-4">{{ summary.problem_programs_total }}</p>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'mtla_rp_report_page.summary.problem_programs'|trans }}</p>
+                <p class="title is-4">{{ summary.problem_programs_total }}</p>
+            </div>
         </div>
     </div>
 
     <h2 class="title is-4">{{ 'mtla_rp_report_page.activists.title'|trans }}</h2>
     <div class="table-container block">
-        <table class="table is-fullwidth is-hoverable is-striped">
+        <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[1,0],[4,1],[5,1]]">
             <thead>
             <tr>
                 <th>{{ 'mtla_rp_report_page.activists.table.activist'|trans }}</th>
-                <th>{{ 'mtla_rp_report_page.activists.table.status'|trans }}</th>
+                <th data-sorter="digit">{{ 'mtla_rp_report_page.activists.table.status'|trans }}</th>
                 <th>{{ 'mtla_rp_report_page.activists.table.timetoken'|trans }}</th>
-                <th>{{ 'mtla_rp_report_page.activists.table.sent'|trans }}</th>
-                <th>{{ 'mtla_rp_report_page.activists.table.spent'|trans }}</th>
-                <th>{{ 'mtla_rp_report_page.activists.table.programs'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'mtla_rp_report_page.activists.table.sent'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'mtla_rp_report_page.activists.table.spent'|trans }}</th>
+                <th data-sorter="digit">{{ 'mtla_rp_report_page.activists.table.programs'|trans }}</th>
             </tr>
             </thead>
             <tbody>
             {% for activist in activists %}
                 <tr>
                     <td>{{ include('account_link.twig', {data: activist.account}, with_context = false) }}</td>
-                    <td>
+                    <td data-text="{{ activist.severity }}">
                         <div class="rp-report-issues">
                             {% if activist.is_ideal %}
                                 <span class="tag is-success">{{ 'mtla_rp_report_page.status.ideal'|trans }}</span>
@@ -187,9 +171,15 @@
                             {{ 'mtla_rp_report_page.empty'|trans }}
                         {% endif %}
                     </td>
-                    <td>{{ activist.incoming_tt_90d|number_format(2, '.', ' ') }}</td>
-                    <td>{{ activist.outgoing_tt_90d|number_format(2, '.', ' ') }}</td>
-                    <td>
+                    <td class="has-text-right">
+                        {% set incoming_tt = activist.incoming_tt_90d|number_format(2, '.', '')|split('.') %}
+                        {{ incoming_tt[0] }}<span class="has-text-grey">.{{ incoming_tt[1] }}</span>
+                    </td>
+                    <td class="has-text-right">
+                        {% set outgoing_tt = activist.outgoing_tt_90d|number_format(2, '.', '')|split('.') %}
+                        {{ outgoing_tt[0] }}<span class="has-text-grey">.{{ outgoing_tt[1] }}</span>
+                    </td>
+                    <td data-text="{{ activist.programs|length }}">
                         {% if activist.programs %}
                             <div class="rp-report-programs">
                                 {% for program in activist.programs %}
@@ -213,8 +203,8 @@
                 <li>
                     {{ include('account_link.twig', {data: activist.account}, with_context = false) }}
                     ({{ 'mtla_rp_report_page.heroes.metrics'|trans({
-                        '%sent%': activist.incoming_tt_90d|number_format(2, '.', ' '),
-                        '%spent%': activist.outgoing_tt_90d|number_format(2, '.', ' '),
+                        '%sent%': activist.incoming_tt_90d|round(2),
+                        '%spent%': activist.outgoing_tt_90d|round(2),
                         '%programs%': activist.programs|length
                     }) }})
                 </li>
@@ -254,7 +244,7 @@
             {% for activist in anomalies.not_sending_tokens %}
                 <li>
                     {{ include('account_link.twig', {data: activist.account}, with_context = false) }}
-                    ({{ activist.incoming_tt_90d|number_format(2, '.', ' ') }})
+                    ({{ activist.incoming_tt_90d|round(2) }})
                 </li>
             {% endfor %}
         </ul>
@@ -268,7 +258,7 @@
             {% for activist in anomalies.tokens_not_spent %}
                 <li>
                     {{ include('account_link.twig', {data: activist.account}, with_context = false) }}
-                    ({{ activist.outgoing_tt_90d|number_format(2, '.', ' ') }})
+                    ({{ activist.outgoing_tt_90d|round(2) }})
                 </li>
             {% endfor %}
         </ul>
@@ -295,8 +285,8 @@
                 <tr>
                     <th>{{ 'mtla_rp_report_page.programs.table.program'|trans }}</th>
                     <th>{{ 'mtla_rp_report_page.programs.table.coordinator'|trans }}</th>
-                    <th data-sorter="digit">{{ 'mtla_rp_report_page.programs.table.participants'|trans }}</th>
-                    <th data-sorter="digit">{{ 'mtla_rp_report_page.programs.table.issues'|trans }}</th>
+                    <th data-sorter="digit" class="has-text-right">{{ 'mtla_rp_report_page.programs.table.participants'|trans }}</th>
+                    <th data-sorter="digit">{{ 'mtla_rp_report_page.programs.table.status'|trans }}</th>
                     <th>{{ 'mtla_rp_report_page.programs.table.broken_outgoing'|trans }}</th>
                 </tr>
                 </thead>
@@ -311,7 +301,7 @@
                                 {{ 'mtla_rp_report_page.empty'|trans }}
                             {% endif %}
                         </td>
-                        <td>{{ program.participants|length }}</td>
+                        <td class="has-text-right">{{ program.participants|length }}</td>
                         <td data-text="{{ program.severity }}">
                             <div class="rp-report-issues">
                                 {% if not program.has_issues %}
