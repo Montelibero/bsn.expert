@@ -19,6 +19,7 @@ use Montelibero\BSN\Controllers\HomeController;
 use Montelibero\BSN\Controllers\LoginController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MtlaController;
+use Montelibero\BSN\Controllers\MtlaRpReportController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\TokensController;
@@ -251,6 +252,7 @@ $ContainerBuilder->addDefinitions([
     DocumentsController::class => autowire(),
     MembershipDistributionController::class => autowire(),
     MtlaController::class => autowire(),
+    MtlaRpReportController::class => autowire(),
     PercentPayController::class => autowire(),
     MultisigController::class => autowire(),
     VotesController::class => autowire(),

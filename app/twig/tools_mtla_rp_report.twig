@@ -1,0 +1,365 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'mtla_rp_report_page.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools/" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'mtla_rp_report_page.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+    <style>
+        .rp-report-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .rp-report-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+            margin-bottom: 1.5rem;
+        }
+
+        .rp-report-programs {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .rp-report-issues {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+    </style>
+
+    <h1 class="title">{{ 'mtla_rp_report_page.header'|trans }}</h1>
+    <p class="block">{{ 'mtla_rp_report_page.description'|trans }}</p>
+
+    {% if refresh.status == 'ok' %}
+        <div class="notification is-success">
+            {{ 'mtla_rp_report_page.refresh.ok'|trans }}
+        </div>
+    {% elseif refresh.status == 'fallback' %}
+        <div class="notification is-warning">
+            {{ 'mtla_rp_report_page.refresh.fallback'|trans }}
+        </div>
+    {% endif %}
+
+    {% if snapshot.warning %}
+        <div class="notification is-warning">
+            {{ 'mtla_rp_report_page.snapshot.warning'|trans }}<br>
+            <code>{{ snapshot.warning }}</code>
+        </div>
+    {% endif %}
+
+    <div class="box">
+        <div class="level">
+            <div class="level-left">
+                <div class="level-item">
+                    <div>
+                        <p class="heading">{{ 'mtla_rp_report_page.snapshot.mtla_account'|trans }}</p>
+                        <p>{{ include('account_link.twig', {data: mtla_account}, with_context = false) }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="level-right">
+                {% if refresh.can_refresh and refresh.url %}
+                    <div class="level-item">
+                        <a class="button is-link" href="{{ refresh.url }}">{{ 'mtla_rp_report_page.refresh.button'|trans }}</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="rp-report-meta">
+            <span class="tag is-info">
+                {{ 'mtla_rp_report_page.snapshot.collected_at'|trans }}:
+                {% if snapshot.fetched_at %}
+                    {{ snapshot.fetched_at|date('d.m.Y H:i') }}
+                {% else %}
+                    {{ 'mtla_rp_report_page.empty'|trans }}
+                {% endif %}
+            </span>
+            <span class="tag">
+                {{ 'mtla_rp_report_page.snapshot.lookback'|trans }}: {{ 'mtla_rp_report_page.snapshot.lookback_days'|trans({'%days%': 90}) }}
+            </span>
+            <span class="tag">
+                {{ 'mtla_rp_report_page.snapshot.trustlines'|trans }}: {{ snapshot.trustlines|length }}
+            </span>
+            <span class="tag">
+                {{ 'mtla_rp_report_page.snapshot.payments'|trans }}: {{ snapshot.payments_count }}
+            </span>
+            <span class="tag {% if snapshot.from_cache %}is-warning{% else %}is-success{% endif %}">
+                {% if snapshot.from_cache %}
+                    {{ 'mtla_rp_report_page.snapshot.source_cache'|trans }}
+                {% else %}
+                    {{ 'mtla_rp_report_page.snapshot.source_live'|trans }}
+                {% endif %}
+            </span>
+        </div>
+
+        {% if refresh.can_refresh %}
+            <p class="help">{{ 'mtla_rp_report_page.refresh.help'|trans }}</p>
+        {% endif %}
+    </div>
+
+    <div class="rp-report-grid">
+        <div class="box">
+            <p class="heading">{{ 'mtla_rp_report_page.summary.activists'|trans }}</p>
+            <p class="title is-4">{{ summary.activists_total }}</p>
+        </div>
+        <div class="box">
+            <p class="heading">{{ 'mtla_rp_report_page.summary.heroes'|trans }}</p>
+            <p class="title is-4">{{ summary.heroes_total }}</p>
+        </div>
+        <div class="box">
+            <p class="heading">{{ 'mtla_rp_report_page.summary.programs'|trans }}</p>
+            <p class="title is-4">{{ summary.programs_total }}</p>
+        </div>
+        <div class="box">
+            <p class="heading">{{ 'mtla_rp_report_page.summary.problem_programs'|trans }}</p>
+            <p class="title is-4">{{ summary.problem_programs_total }}</p>
+        </div>
+    </div>
+
+    <h2 class="title is-4">{{ 'mtla_rp_report_page.activists.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-hoverable is-striped">
+            <thead>
+            <tr>
+                <th>{{ 'mtla_rp_report_page.activists.table.activist'|trans }}</th>
+                <th>{{ 'mtla_rp_report_page.activists.table.status'|trans }}</th>
+                <th>{{ 'mtla_rp_report_page.activists.table.timetoken'|trans }}</th>
+                <th>{{ 'mtla_rp_report_page.activists.table.sent'|trans }}</th>
+                <th>{{ 'mtla_rp_report_page.activists.table.spent'|trans }}</th>
+                <th>{{ 'mtla_rp_report_page.activists.table.programs'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for activist in activists %}
+                <tr>
+                    <td>{{ include('account_link.twig', {data: activist.account}, with_context = false) }}</td>
+                    <td>
+                        <div class="rp-report-issues">
+                            {% if activist.is_ideal %}
+                                <span class="tag is-success">{{ 'mtla_rp_report_page.status.ideal'|trans }}</span>
+                            {% else %}
+                                {% if activist.missing_timetoken %}
+                                    <span class="tag is-danger">{{ 'mtla_rp_report_page.status.missing_timetoken'|trans }}</span>
+                                {% endif %}
+                                {% if activist.missing_trustline %}
+                                    <span class="tag is-warning">{{ 'mtla_rp_report_page.status.missing_trustline'|trans }}</span>
+                                {% endif %}
+                                {% if activist.low_incoming %}
+                                    {% if activist.incoming_tt_90d > 0 %}
+                                        <span class="tag is-warning">{{ 'mtla_rp_report_page.status.low_incoming'|trans }}</span>
+                                    {% else %}
+                                        <span class="tag is-danger">{{ 'mtla_rp_report_page.status.no_incoming'|trans }}</span>
+                                    {% endif %}
+                                {% endif %}
+                                {% if activist.low_outgoing %}
+                                    {% if activist.outgoing_tt_90d > 0 %}
+                                        <span class="tag is-warning">{{ 'mtla_rp_report_page.status.low_outgoing'|trans }}</span>
+                                    {% else %}
+                                        <span class="tag is-danger">{{ 'mtla_rp_report_page.status.no_outgoing'|trans }}</span>
+                                    {% endif %}
+                                {% endif %}
+                                {% if activist.missing_programs %}
+                                    <span class="tag is-danger">{{ 'mtla_rp_report_page.status.missing_programs'|trans }}</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if activist.timetoken.url %}
+                            <a href="{{ activist.timetoken.url }}">{{ activist.timetoken.code }}</a>
+                        {% else %}
+                            {{ 'mtla_rp_report_page.empty'|trans }}
+                        {% endif %}
+                    </td>
+                    <td>{{ activist.incoming_tt_90d|number_format(2, '.', ' ') }}</td>
+                    <td>{{ activist.outgoing_tt_90d|number_format(2, '.', ' ') }}</td>
+                    <td>
+                        {% if activist.programs %}
+                            <div class="rp-report-programs">
+                                {% for program in activist.programs %}
+                                    <span>{{ include('account_link.twig', {data: program}, with_context = false) }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ 'mtla_rp_report_page.empty'|trans }}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'mtla_rp_report_page.heroes.title'|trans }}</h2>
+    {% if heroes %}
+        <ul class="block">
+            {% for activist in heroes %}
+                <li>
+                    {{ include('account_link.twig', {data: activist.account}, with_context = false) }}
+                    ({{ 'mtla_rp_report_page.heroes.metrics'|trans({
+                        '%sent%': activist.incoming_tt_90d|number_format(2, '.', ' '),
+                        '%spent%': activist.outgoing_tt_90d|number_format(2, '.', ' '),
+                        '%programs%': activist.programs|length
+                    }) }})
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'mtla_rp_report_page.no_heroes'|trans }}</p>
+    {% endif %}
+
+    <h2 class="title is-4">{{ 'mtla_rp_report_page.anomalies.title'|trans }}</h2>
+
+    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.missing_timetoken'|trans }}</h3>
+    {% if anomalies.missing_timetoken %}
+        <ul class="block">
+            {% for activist in anomalies.missing_timetoken %}
+                <li>{{ include('account_link.twig', {data: activist.account}, with_context = false) }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
+    {% endif %}
+
+    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.missing_trustline'|trans }}</h3>
+    {% if anomalies.missing_trustline %}
+        <ul class="block">
+            {% for activist in anomalies.missing_trustline %}
+                <li>{{ include('account_link.twig', {data: activist.account}, with_context = false) }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
+    {% endif %}
+
+    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.not_sending_tokens'|trans }}</h3>
+    {% if anomalies.not_sending_tokens %}
+        <ul class="block">
+            {% for activist in anomalies.not_sending_tokens %}
+                <li>
+                    {{ include('account_link.twig', {data: activist.account}, with_context = false) }}
+                    ({{ activist.incoming_tt_90d|number_format(2, '.', ' ') }})
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
+    {% endif %}
+
+    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.tokens_not_spent'|trans }}</h3>
+    {% if anomalies.tokens_not_spent %}
+        <ul class="block">
+            {% for activist in anomalies.tokens_not_spent %}
+                <li>
+                    {{ include('account_link.twig', {data: activist.account}, with_context = false) }}
+                    ({{ activist.outgoing_tt_90d|number_format(2, '.', ' ') }})
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
+    {% endif %}
+
+    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.without_programs'|trans }}</h3>
+    {% if anomalies.without_programs %}
+        <ul class="block">
+            {% for activist in anomalies.without_programs %}
+                <li>{{ include('account_link.twig', {data: activist.account}, with_context = false) }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
+    {% endif %}
+
+    <h2 class="title is-4">{{ 'mtla_rp_report_page.programs.title'|trans }}</h2>
+    {% if problem_programs %}
+        <div class="table-container block">
+            <table class="table is-fullwidth is-hoverable is-striped">
+                <thead>
+                <tr>
+                    <th>{{ 'mtla_rp_report_page.programs.table.program'|trans }}</th>
+                    <th>{{ 'mtla_rp_report_page.programs.table.coordinator'|trans }}</th>
+                    <th>{{ 'mtla_rp_report_page.programs.table.participants'|trans }}</th>
+                    <th>{{ 'mtla_rp_report_page.programs.table.issues'|trans }}</th>
+                    <th>{{ 'mtla_rp_report_page.programs.table.broken_outgoing'|trans }}</th>
+                    <th>{{ 'mtla_rp_report_page.programs.table.broken_incoming'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for program in problem_programs %}
+                    <tr>
+                        <td>{{ include('account_link.twig', {data: program.data}, with_context = false) }}</td>
+                        <td>
+                            {% if program.coordinator %}
+                                {{ include('account_link.twig', {data: program.coordinator}, with_context = false) }}
+                            {% else %}
+                                {{ 'mtla_rp_report_page.empty'|trans }}
+                            {% endif %}
+                        </td>
+                        <td>{{ program.participants|length }}</td>
+                        <td>
+                            <div class="rp-report-issues">
+                                {% if program.issues.missing_coordinator %}
+                                    <span class="tag is-danger">{{ 'mtla_rp_report_page.programs.issues.missing_coordinator'|trans }}</span>
+                                {% endif %}
+                                {% if program.issues.multiple_coordinators %}
+                                    <span class="tag is-warning">{{ 'mtla_rp_report_page.programs.issues.multiple_coordinators'|trans }}</span>
+                                {% endif %}
+                                {% if program.issues.no_participants %}
+                                    <span class="tag is-danger">{{ 'mtla_rp_report_page.programs.issues.no_participants'|trans }}</span>
+                                {% endif %}
+                                {% if program.issues.broken_outgoing_links %}
+                                    <span class="tag is-warning">{{ 'mtla_rp_report_page.programs.issues.broken_outgoing_links'|trans }}</span>
+                                {% endif %}
+                                {% if program.issues.broken_incoming_links %}
+                                    <span class="tag is-warning">{{ 'mtla_rp_report_page.programs.issues.broken_incoming_links'|trans }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if program.broken_outgoing_participants %}
+                                <div class="rp-report-programs">
+                                    {% for participant in program.broken_outgoing_participants %}
+                                        <span>{{ include('account_link.twig', {data: participant}, with_context = false) }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ 'mtla_rp_report_page.empty'|trans }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if program.broken_incoming_participants %}
+                                <div class="rp-report-programs">
+                                    {% for participant in program.broken_incoming_participants %}
+                                        <span>{{ include('account_link.twig', {data: participant}, with_context = false) }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ 'mtla_rp_report_page.empty'|trans }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="block">{{ 'mtla_rp_report_page.programs.no_issues'|trans }}</p>
+    {% endif %}
+{% endblock %}
