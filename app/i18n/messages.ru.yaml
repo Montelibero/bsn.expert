@@ -879,6 +879,7 @@ mtla_rp_report_page:
       mtlap: MTLAP
       status: Статус
       timetoken: Таймтокен
+      have_tt: Есть TT
       sent: Пришло ТТ
       spent: Ушло ТТ
       programs: Программы

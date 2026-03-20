@@ -230,6 +230,7 @@ class MtlaRpReportController
                     'issuer' => $tt_issuer,
                     'url' => ($tt_code && $tt_issuer) ? '/tokens/' . $tt_code . '-' . $tt_issuer : null,
                 ],
+                'mtla_tt_balance' => $asset_key ? (float) ($snapshot['trustlines'][$asset_key]['amount'] ?? 0.0) : null,
                 'incoming_tt_90d' => $incoming_tt,
                 'outgoing_tt_90d' => $outgoing_tt,
                 'programs' => $programs,

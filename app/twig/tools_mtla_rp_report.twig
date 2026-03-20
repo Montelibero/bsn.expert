@@ -118,12 +118,13 @@
 
     <h2 class="title is-4">{{ 'mtla_rp_report_page.activists.title'|trans }}</h2>
     <div class="table-container block">
-        <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[1,0],[4,1],[5,1]]">
+        <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[1,0],[5,1],[6,1]]">
             <thead>
             <tr>
                 <th>{{ 'mtla_rp_report_page.activists.table.activist'|trans }}</th>
                 <th data-sorter="digit">{{ 'mtla_rp_report_page.activists.table.status'|trans }}</th>
                 <th>{{ 'mtla_rp_report_page.activists.table.timetoken'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'mtla_rp_report_page.activists.table.have_tt'|trans }}</th>
                 <th data-sorter="digit" class="has-text-right">{{ 'mtla_rp_report_page.activists.table.sent'|trans }}</th>
                 <th data-sorter="digit" class="has-text-right">{{ 'mtla_rp_report_page.activists.table.spent'|trans }}</th>
                 <th data-sorter="digit">{{ 'mtla_rp_report_page.activists.table.programs'|trans }}</th>
@@ -167,6 +168,14 @@
                     <td>
                         {% if activist.timetoken.url %}
                             <a href="{{ activist.timetoken.url }}">{{ activist.timetoken.code }}</a>
+                        {% else %}
+                            {{ 'mtla_rp_report_page.empty'|trans }}
+                        {% endif %}
+                    </td>
+                    <td class="has-text-right">
+                        {% if activist.mtla_tt_balance is not null %}
+                            {% set mtla_tt = activist.mtla_tt_balance|number_format(2, '.', '')|split('.') %}
+                            {{ mtla_tt[0] }}<span class="has-text-grey">.{{ mtla_tt[1] }}</span>
                         {% else %}
                             {{ 'mtla_rp_report_page.empty'|trans }}
                         {% endif %}
