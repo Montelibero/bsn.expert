@@ -5,7 +5,6 @@ namespace Montelibero\BSN\Controllers;
 use DI\Container;
 use Montelibero\BSN\BSN;
 use Pecee\SimpleRouter\SimpleRouter;
-use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\PaymentOperationBuilder;
@@ -62,56 +61,6 @@ class PercentPayController
         }
         $memo = $_GET['memo'] ?? null;
 
-        $accounts = [];
-        $sum_balance = "0.0000000";
-        $sum_to_pay = "0.0000000";
-        if ($asset_issuer && $asset_code && $percent) {
-            $Accounts = $this->Stellar
-                ->accounts()
-                ->forAsset(
-                    Asset::createNonNativeAsset(
-                        $asset_code,
-                        $asset_issuer
-                    )
-                )
-                ->limit(200)
-                ->execute();
-            do {
-                foreach ($Accounts->getAccounts() as $Account) {
-                    $account = [
-                        'id' => $Account->getAccountId(),
-                    ];
-                    /** @var AccountBalanceResponse $Balance */
-                    foreach ($Account->getBalances() as $Balance) {
-                        if (
-                            $Balance->getAssetType() !== Asset::TYPE_NATIVE
-                            && $Balance->getAssetIssuer() === $asset_issuer
-                            && $Balance->getAssetCode() === $asset_code
-                            && (float) $Balance->getBalance() > 0
-                        ) {
-                            $account['balance'] = $Balance->getBalance();
-                            $accounts[] = $account;
-                        }
-                    }
-                }
-                $Accounts = $Accounts->getNextPage();
-            } while ($Accounts->getAccounts()->count());
-        }
-
-        foreach ($accounts as & $account) {
-            $Account = $this->BSN->makeAccountById($account['id']);
-            $account = array_merge($account, $Account->jsonSerialize());
-            $sum_balance = bcadd($sum_balance, $account['balance'], 7);
-
-            $account['to_pay'] = bcmul($account['balance'], bcdiv($percent, "100", 7), 7);
-            if ((float) $account['to_pay'] === 0.0) {
-                $account['to_pay'] = null;
-            } else {
-                $sum_to_pay = bcadd($sum_to_pay, $account['to_pay'], 7);
-            }
-        }
-        unset($account);
-
         $payment_token_options = [
             [
                 'code' => 'EURMTL',
@@ -142,7 +91,7 @@ class PercentPayController
                     !$pt_issuer
                     && $pt = $this->Container->get(TokensController::class)->getKnownTokenByCode($pt_code)
                 ) {
-                    $pt_issuer = $pt['issuer'];;
+                    $pt_issuer = $pt['issuer'];
                 }
             }
             if ($pt_code && $pt_issuer) {
@@ -158,17 +107,107 @@ class PercentPayController
                 break;
             }
         }
+
+        $accounts = [];
+        $sum_balance = "0.0000000";
+        $sum_to_pay = "0.0000000";
+        $sum_balance_trustline = "0.0000000";
+        $sum_to_pay_trustline = "0.0000000";
+        $has_eligible_payment_recipients = false;
+        if ($asset_issuer && $asset_code && $percent) {
+            $Accounts = $this->Stellar
+                ->accounts()
+                ->forAsset(
+                    Asset::createNonNativeAsset(
+                        $asset_code,
+                        $asset_issuer
+                    )
+                )
+                ->limit(200)
+                ->execute();
+            do {
+                foreach ($Accounts->getAccounts() as $Account) {
+                    $account = [
+                        'id' => $Account->getAccountId(),
+                    ];
+                    /** @var AccountBalanceResponse $Balance */
+                    foreach ($Account->getBalances() as $Balance) {
+                        if (
+                            $Balance->getAssetType() !== Asset::TYPE_NATIVE
+                            && $Balance->getAssetIssuer() === $asset_issuer
+                            && $Balance->getAssetCode() === $asset_code
+                            && (float) $Balance->getBalance() > 0
+                        ) {
+                            $account['balance'] = $Balance->getBalance();
+                            $account['has_payment_trustline'] = $this->hasTrustlineForAsset(
+                                $Account->getBalances(),
+                                $payment_token['code'],
+                                $payment_token['issuer']
+                            );
+                            $accounts[] = $account;
+                        }
+                    }
+                }
+                $Accounts = $Accounts->getNextPage();
+            } while ($Accounts->getAccounts()->count());
+        }
+
+        foreach ($accounts as & $account) {
+            $Account = $this->BSN->makeAccountById($account['id']);
+            $account = array_merge($account, $Account->jsonSerialize());
+            $sum_balance = bcadd($sum_balance, $account['balance'], 7);
+
+            $account['to_pay'] = bcmul($account['balance'], bcdiv($percent, "100", 7), 7);
+            if ((float) $account['to_pay'] === 0.0) {
+                $account['to_pay'] = null;
+            } else {
+                $sum_to_pay = bcadd($sum_to_pay, $account['to_pay'], 7);
+            }
+
+            if ($account['has_payment_trustline'] && $account['to_pay']) {
+                $sum_balance_trustline = bcadd($sum_balance_trustline, $account['balance'], 7);
+                $has_eligible_payment_recipients = true;
+            }
+        }
+        unset($account);
+
+        if ($has_eligible_payment_recipients) {
+            $remaining_to_pay_trustline = $sum_to_pay;
+            $remaining_balance_trustline = $sum_balance_trustline;
+            foreach ($accounts as & $account) {
+                if (!$account['has_payment_trustline'] || !$account['to_pay']) {
+                    $account['to_pay_trustline'] = null;
+                    continue;
+                }
+
+                if (bccomp($remaining_balance_trustline, $account['balance'], 7) === 0) {
+                    $account['to_pay_trustline'] = $remaining_to_pay_trustline;
+                } else {
+                    $account['to_pay_trustline'] = bcdiv(
+                        bcmul($sum_to_pay, $account['balance'], 16),
+                        $sum_balance_trustline,
+                        7
+                    );
+                }
+
+                $sum_to_pay_trustline = bcadd($sum_to_pay_trustline, $account['to_pay_trustline'], 7);
+                $remaining_to_pay_trustline = bcsub($remaining_to_pay_trustline, $account['to_pay_trustline'], 7);
+                $remaining_balance_trustline = bcsub($remaining_balance_trustline, $account['balance'], 7);
+            }
+            unset($account);
+        }
+
         $signing_forms = [];
-        if ($accounts) {
+        if ($accounts && $has_eligible_payment_recipients) {
             $StellarAccount = $this->Stellar->requestAccount($payer_account ?: $asset_issuer);
             $Asset = Asset::createNonNativeAsset($payment_token['code'], $payment_token['issuer']);
             $operations = [];
             $operations_limit = 100;
             foreach ($accounts as $account) {
-                if (!$account['to_pay']) {
+                if (!$account['to_pay_trustline']) {
                     continue;
                 }
-                $Operation = new PaymentOperationBuilder($account['id'], $Asset, $account['to_pay']);
+                $Operation = new PaymentOperationBuilder($account['id'], $Asset, $account['to_pay_trustline']);
                 $operations[] = $Operation->build();
             }
             foreach (array_chunk($operations, $operations_limit) as $bulk_of_operations) {
@@ -198,7 +237,25 @@ class PercentPayController
             'accounts' => $accounts,
             'sum_balance' => $sum_balance,
             'sum_to_pay' => $sum_to_pay,
+            'sum_to_pay_trustline' => $sum_to_pay_trustline,
+            'has_eligible_payment_recipients' => $has_eligible_payment_recipients,
             'signing_forms' => $signing_forms,
         ]);
+    }
+
+    private function hasTrustlineForAsset(iterable $balances, string $asset_code, string $asset_issuer): bool
+    {
+        /** @var AccountBalanceResponse $Balance */
+        foreach ($balances as $Balance) {
+            if (
+                $Balance->getAssetType() !== Asset::TYPE_NATIVE
+                && $Balance->getAssetCode() === $asset_code
+                && $Balance->getAssetIssuer() === $asset_issuer
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

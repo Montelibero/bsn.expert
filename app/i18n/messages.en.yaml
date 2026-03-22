@@ -835,6 +835,7 @@ tools_percent_pay:
     account: Account
     balance: Balance
     to_pay: To pay
+    to_pay_trustline: With open trustlines
     sum: Sum
     transaction: Transaction
     transactions: Transactions
@@ -844,6 +845,7 @@ tools_percent_pay:
       Since you have a lot of payments, there are several transactions below. They need to be signed and sent
       to the blockchain one by one. The main thing is not to leave this page until you complete the process.
     transaction_no: Transaction No
+    no_eligible_trustlines: No recipients with an open trustline to the selected payment token were found, so the distribution transaction was not generated.
 
 mtla_rp_report_page:
   title: MTLA RP Report

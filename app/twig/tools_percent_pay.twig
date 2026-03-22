@@ -177,6 +177,9 @@
             <th data-sorter="false">{{ 'tools_percent_pay.calculation.account'|trans }}</th>
             <th data-sorter="digit" class="has-text-right">{{ 'tools_percent_pay.calculation.balance'|trans }}</th>
             <th data-sorter="digit" class="has-text-right">{{ 'tools_percent_pay.calculation.to_pay'|trans }}</th>
+            {% if has_eligible_payment_recipients %}
+            <th data-sorter="digit" class="has-text-right">{{ 'tools_percent_pay.calculation.to_pay_trustline'|trans }}</th>
+            {% endif %}
         </tr>
         </thead>
         <tbody>
@@ -185,17 +188,32 @@
                 <td>{{ include('account_link.twig', {data: account}, with_context = false) }}</td>
                 <td class="has-text-right">{{ account.balance }}</td>
                 <td class="has-text-right">{{ account.to_pay }}</td>
+                {% if has_eligible_payment_recipients %}
+                <td class="has-text-right">
+                    {% if account.has_payment_trustline %}
+                        {{ account.to_pay_trustline }}
+                    {% else %}
+                        &mdash;
+                    {% endif %}
+                </td>
+                {% endif %}
             </tr>
         {% endfor %}
         </tbody>
         <tfoot>
             <tr>
                 <td>{{ 'tools_percent_pay.calculation.sum'|trans }}:</td>
-                <td class="digit">{{ sum_balance }}</td>
-                <td class="digit">{{ sum_to_pay }}</td>
+                <td class="digit has-text-right">{{ sum_balance }}</td>
+                <td class="digit has-text-right">{{ sum_to_pay }}</td>
+                {% if has_eligible_payment_recipients %}
+                <td class="digit has-text-right">{{ sum_to_pay_trustline }}</td>
+                {% endif %}
             </tr>
         </tfoot>
     </table>
+    {% if not has_eligible_payment_recipients %}
+    <p class="notification is-warning">{{ 'tools_percent_pay.calculation.no_eligible_trustlines'|trans }}</p>
+    {% endif %}
     {% endif %}
 
 
@@ -216,4 +234,3 @@
 
 
 {% endblock %}
-
