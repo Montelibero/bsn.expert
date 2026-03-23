@@ -49,11 +49,21 @@ class PercentPayController
         if ($asset_code && !preg_match('/[0-1a-zA-Z]{1,12}/', $asset_code)) {
             $asset_code = null;
         }
+        $calc_mode = $_GET['calc_mode'] ?? 'percent';
+        if (!in_array($calc_mode, ['percent', 'amount'], true)) {
+            $calc_mode = 'percent';
+        }
         $percent = $_GET['percent'] ?? '';
         $percent = str_replace(' ', '', $percent);
         $percent = str_replace(',', '.', $percent);
         if (!is_numeric($percent) || $percent == 0 || $percent == '' || $percent < 0) {
             $percent = null;
+        }
+        $amount = $_GET['amount'] ?? '';
+        $amount = str_replace(' ', '', $amount);
+        $amount = str_replace(',', '.', $amount);
+        if (!is_numeric($amount) || $amount == 0 || $amount == '' || $amount < 0) {
+            $amount = null;
         }
         $balance_limit = $_GET['balance_limit'] ?? '0';
         $balance_limit = str_replace(' ', '', $balance_limit);
@@ -61,6 +71,7 @@ class PercentPayController
         if (!is_numeric($balance_limit) || $balance_limit === '' || $balance_limit < 0) {
             $balance_limit = '0';
         }
+        $distribution_input_valid = $calc_mode === 'amount' ? $amount !== null : $percent !== null;
         $payer_account = $_GET['payer_account'] ?? null;
         if (!BSN::validateStellarAccountIdFormat($payer_account)) {
             $payer_account = null;
@@ -122,7 +133,7 @@ class PercentPayController
         $has_eligible_payment_recipients = false;
         $filtered_out_accounts_count = 0;
         $filtered_out_balance_sum = "0.0000000";
-        if ($asset_issuer && $asset_code && $percent) {
+        if ($asset_issuer && $asset_code && $distribution_input_valid) {
             $Accounts = $this->Stellar
                 ->accounts()
                 ->forAsset(
@@ -169,14 +180,29 @@ class PercentPayController
             $Account = $this->BSN->makeAccountById($account['id']);
             $account = array_merge($account, $Account->jsonSerialize());
             $sum_balance = bcadd($sum_balance, $account['balance'], 7);
+        }
+        unset($account);
 
-            $account['to_pay'] = bcmul($account['balance'], bcdiv($percent, "100", 7), 7);
-            if ((float) $account['to_pay'] === 0.0) {
-                $account['to_pay'] = null;
-            } else {
-                $sum_to_pay = bcadd($sum_to_pay, $account['to_pay'], 7);
+        if ($calc_mode === 'amount') {
+            $sum_to_pay = $this->distributeProportionalAmount(
+                $accounts,
+                $amount ?? "0.0000000",
+                $sum_balance,
+                'to_pay'
+            );
+        } else {
+            foreach ($accounts as & $account) {
+                $account['to_pay'] = bcmul($account['balance'], bcdiv($percent, "100", 7), 7);
+                if ((float) $account['to_pay'] === 0.0) {
+                    $account['to_pay'] = null;
+                } else {
+                    $sum_to_pay = bcadd($sum_to_pay, $account['to_pay'], 7);
+                }
             }
+            unset($account);
+        }
 
+        foreach ($accounts as & $account) {
             if ($account['has_payment_trustline'] && $account['to_pay']) {
                 $sum_balance_trustline = bcadd($sum_balance_trustline, $account['balance'], 7);
                 $has_eligible_payment_recipients = true;
@@ -242,7 +268,9 @@ class PercentPayController
         return $Template->render([
             'asset_issuer' => $asset_issuer,
             'asset_code' => $asset_code,
+            'calc_mode' => $calc_mode,
             'percent' => $percent,
+            'amount' => $amount,
             'balance_limit' => $balance_limit,
             'payment_token_options' => $payment_token_options,
             'payment_token' => $payment_token,
@@ -273,5 +301,48 @@ class PercentPayController
         }
 
         return false;
+    }
+
+    private function distributeProportionalAmount(
+        array &$accounts,
+        string $total_amount,
+        string $balance_sum,
+        string $field_name
+    ): string {
+        $distributed_total = "0.0000000";
+        if (bccomp($total_amount, "0", 7) <= 0 || bccomp($balance_sum, "0", 7) <= 0) {
+            foreach ($accounts as & $account) {
+                $account[$field_name] = null;
+            }
+            unset($account);
+
+            return $distributed_total;
+        }
+
+        $remaining_amount = $total_amount;
+        $remaining_balance = $balance_sum;
+        foreach ($accounts as & $account) {
+            if (bccomp($remaining_balance, $account['balance'], 7) === 0) {
+                $amount = $remaining_amount;
+            } else {
+                $amount = bcdiv(
+                    bcmul($total_amount, $account['balance'], 16),
+                    $balance_sum,
+                    7
+                );
+            }
+
+            if (bccomp($amount, "0", 7) === 0) {
+                $account[$field_name] = null;
+            } else {
+                $account[$field_name] = $amount;
+                $distributed_total = bcadd($distributed_total, $amount, 7);
+            }
+            $remaining_amount = bcsub($remaining_amount, $amount, 7);
+            $remaining_balance = bcsub($remaining_balance, $account['balance'], 7);
+        }
+        unset($account);
+
+        return $distributed_total;
     }
 }

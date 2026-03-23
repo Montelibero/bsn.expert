@@ -11,6 +11,14 @@
 {% block content %}
     <script>
         $(function () {
+            const syncCalculationMode = function () {
+                const mode = $('input[name="calc_mode"]:checked').val();
+                $('#percent').prop('disabled', mode !== 'percent');
+                $('#amount').prop('disabled', mode !== 'amount');
+            };
+
+            syncCalculationMode();
+            $('input[name="calc_mode"]').on('change', syncCalculationMode);
             $(".table").tablesorter();
         });
     </script>
@@ -55,24 +63,75 @@
             <p class="help">{{ 'tools_percent_pay.asset_code.hint'|trans }}</p>
         </div>
         <div class="field">
-            <label class="label" for="percent">{{ 'tools_percent_pay.percent.name'|trans }}</label>
-            <div class="control has-icons-left">
-                <input
-                        id="percent"
-                        class="input"
-                        type="number"
-                        step="any"
-                        inputmode="decimal"
-                        name="percent"
-                        placeholder="1.234"
-                        value="{{ percent }}"
-                        maxlength="6"
-                />
-                <span class="icon is-left">
-                    <i class="fa-solid fa-percent"></i>
-                </span>
+            <label class="label">{{ 'tools_percent_pay.calc_mode.name'|trans }}</label>
+            <div class="box">
+                <div class="field">
+                    <div class="control">
+                        <label class="radio">
+                            <input
+                                    type="radio"
+                                    name="calc_mode"
+                                    value="percent"
+                                    {% if calc_mode != 'amount' %}checked{% endif %}
+                            />
+                            {{ 'tools_percent_pay.calc_mode.percent'|trans }}
+                        </label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="control has-icons-left">
+                        <input
+                                id="percent"
+                                class="input"
+                                type="number"
+                                step="any"
+                                inputmode="decimal"
+                                name="percent"
+                                placeholder="1.234"
+                                value="{{ percent }}"
+                                maxlength="6"
+                        />
+                        <span class="icon is-left">
+                            <i class="fa-solid fa-percent"></i>
+                        </span>
+                    </div>
+                    <p class="help">{{ 'tools_percent_pay.percent.hint'|trans }}</p>
+                </div>
             </div>
-            <p class="help">{{ 'tools_percent_pay.percent.hint'|trans }}</p>
+            <div class="box">
+                <div class="field">
+                    <div class="control">
+                        <label class="radio">
+                            <input
+                                    type="radio"
+                                    name="calc_mode"
+                                    value="amount"
+                                    {% if calc_mode == 'amount' %}checked{% endif %}
+                            />
+                            {{ 'tools_percent_pay.calc_mode.amount'|trans }}
+                        </label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="control has-icons-left">
+                        <input
+                                id="amount"
+                                class="input"
+                                type="number"
+                                step="any"
+                                inputmode="decimal"
+                                name="amount"
+                                placeholder="250"
+                                value="{{ amount }}"
+                        />
+                        <span class="icon is-left">
+                            <i class="fa-solid fa-wallet"></i>
+                        </span>
+                    </div>
+                    <p class="help">{{ 'tools_percent_pay.amount.hint'|trans }}</p>
+                </div>
+            </div>
+            <p class="help">{{ 'tools_percent_pay.calc_mode.hint'|trans }}</p>
         </div>
         <div class="field">
             <label class="label" for="balance_limit">{{ 'tools_percent_pay.balance_limit.name'|trans }}</label>

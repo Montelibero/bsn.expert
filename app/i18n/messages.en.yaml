@@ -808,9 +808,17 @@ tools_percent_pay:
     name: Token code
     placeholder: MyToken
     hint: The name of the token, from 1 to 12 characters.
+  calc_mode:
+    name: Calculation mode
+    percent: Pay by percentage
+    amount: Distribute an exact amount
+    hint: You can either specify a percentage for each holder or an exact amount of payout tokens to distribute among all recipients.
   percent:
     name: Percent
     hint: What percentage of the amount of these tokens will be transferred to the holder. From 0.001 to infinity.
+  amount:
+    name: Amount to distribute
+    hint: The exact amount of payout tokens to distribute proportionally to holders' balances.
   balance_limit:
     name: Minimum balance
     hint: Only holders whose base-token balance is not less than this value will be included in the selection. Default is 0.
