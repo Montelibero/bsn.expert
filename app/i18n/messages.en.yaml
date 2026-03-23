@@ -857,6 +857,7 @@ tools_percent_pay:
       to the blockchain one by one. The main thing is not to leave this page until you complete the process.
     transaction_no: Transaction No
     filtered_out: "%quantity% token holders with a total balance of %sum% were excluded because each balance is below the specified limit of %limit%."
+    insufficient_balance: "Account %account% does not have enough %token% for these payments: available %available%, required %required%."
     no_eligible_trustlines: No recipients with an open trustline to the selected payment token were found, so the distribution transaction was not generated.
 
 mtla_rp_report_page:

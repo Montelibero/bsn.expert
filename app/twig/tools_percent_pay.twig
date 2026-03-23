@@ -251,6 +251,14 @@
 
     {% if accounts %}
     <h2 class="title is-4">{{ 'tools_percent_pay.calculation.title'|trans }}</h2>
+    {% if payment_source_insufficient_balance %}
+        <p class="notification is-warning">{{ 'tools_percent_pay.calculation.insufficient_balance'|trans({
+                '%account%': payment_source_account,
+                '%available%': payment_source_available_balance,
+                '%required%': planned_payment_total,
+                '%token%': payment_token.code,
+            }) }}</p>
+    {% endif %}
     <p class="block">{{ 'tools_percent_pay.calculation.description'|trans({
             '%asset_code%': asset_code,
             '%asset_issuer%': asset_issuer,

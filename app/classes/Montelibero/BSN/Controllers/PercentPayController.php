@@ -133,6 +133,10 @@ class PercentPayController
         $has_eligible_payment_recipients = false;
         $filtered_out_accounts_count = 0;
         $filtered_out_balance_sum = "0.0000000";
+        $payment_source_account = $payer_account ?: $asset_issuer;
+        $payment_source_available_balance = null;
+        $payment_source_insufficient_balance = false;
+        $planned_payment_total = "0.0000000";
         if ($asset_issuer && $asset_code && $distribution_input_valid) {
             $Accounts = $this->Stellar
                 ->accounts()
@@ -236,6 +240,29 @@ class PercentPayController
             unset($account);
         }
 
+        if ($accounts) {
+            $planned_payment_total = $has_eligible_payment_recipients ? $sum_to_pay_trustline : $sum_to_pay;
+            if (
+                bccomp($planned_payment_total, "0", 7) > 0
+                && !(
+                    $payment_source_account === $payment_token['issuer']
+                    && $payment_token['issuer'] !== null
+                )
+            ) {
+                $PaymentSource = $this->Stellar->requestAccount($payment_source_account);
+                $payment_source_available_balance = $this->getAssetBalance(
+                    $PaymentSource->getBalances(),
+                    $payment_token['code'],
+                    $payment_token['issuer']
+                );
+                $payment_source_insufficient_balance = bccomp(
+                    $payment_source_available_balance,
+                    $planned_payment_total,
+                    7
+                ) < 0;
+            }
+        }
+
         $signing_forms = [];
         if ($accounts && $has_eligible_payment_recipients) {
             $StellarAccount = $this->Stellar->requestAccount($payer_account ?: $asset_issuer);
@@ -283,6 +310,10 @@ class PercentPayController
             'has_eligible_payment_recipients' => $has_eligible_payment_recipients,
             'filtered_out_accounts_count' => $filtered_out_accounts_count,
             'filtered_out_balance_sum' => $filtered_out_balance_sum,
+            'payment_source_account' => $payment_source_account,
+            'payment_source_available_balance' => $payment_source_available_balance,
+            'payment_source_insufficient_balance' => $payment_source_insufficient_balance,
+            'planned_payment_total' => $planned_payment_total,
             'signing_forms' => $signing_forms,
         ]);
     }
@@ -301,6 +332,22 @@ class PercentPayController
         }
 
         return false;
+    }
+
+    private function getAssetBalance(iterable $balances, string $asset_code, string $asset_issuer): string
+    {
+        /** @var AccountBalanceResponse $Balance */
+        foreach ($balances as $Balance) {
+            if (
+                $Balance->getAssetType() !== Asset::TYPE_NATIVE
+                && $Balance->getAssetCode() === $asset_code
+                && $Balance->getAssetIssuer() === $asset_issuer
+            ) {
+                return $Balance->getBalance();
+            }
+        }
+
+        return "0.0000000";
     }
 
     private function distributeProportionalAmount(
