@@ -75,6 +75,25 @@
             <p class="help">{{ 'tools_percent_pay.percent.hint'|trans }}</p>
         </div>
         <div class="field">
+            <label class="label" for="balance_limit">{{ 'tools_percent_pay.balance_limit.name'|trans }}</label>
+            <div class="control has-icons-left">
+                <input
+                        id="balance_limit"
+                        class="input"
+                        type="number"
+                        step="any"
+                        inputmode="decimal"
+                        name="balance_limit"
+                        placeholder="0"
+                        value="{{ balance_limit }}"
+                />
+                <span class="icon is-left">
+                    <i class="fa-solid fa-filter"></i>
+                </span>
+            </div>
+            <p class="help">{{ 'tools_percent_pay.balance_limit.hint'|trans }}</p>
+        </div>
+        <div class="field">
             <label class="label" for="payer_account">{{ 'tools_percent_pay.payer_account.name'|trans }}</label>
             <div class="control has-icons-left">
                 <input
@@ -163,6 +182,14 @@
         </div>
     </form>
 
+    {% if filtered_out_accounts_count %}
+    <p class="notification is-info">{{ 'tools_percent_pay.calculation.filtered_out'|trans({
+            '%quantity%': filtered_out_accounts_count,
+            '%sum%': filtered_out_balance_sum,
+            '%limit%': balance_limit,
+        }) }}</p>
+    {% endif %}
+
     {% if accounts %}
     <h2 class="title is-4">{{ 'tools_percent_pay.calculation.title'|trans }}</h2>
     <p class="block">{{ 'tools_percent_pay.calculation.description'|trans({
@@ -187,7 +214,7 @@
             <tr>
                 <td>{{ include('account_link.twig', {data: account}, with_context = false) }}</td>
                 <td class="has-text-right">{{ account.balance }}</td>
-                <td class="has-text-right">{{ account.to_pay }}</td>
+                <td class="has-text-right{% if has_eligible_payment_recipients %} has-text-grey{% endif %}">{{ account.to_pay }}</td>
                 {% if has_eligible_payment_recipients %}
                 <td class="has-text-right">
                     {% if account.has_payment_trustline %}
@@ -204,7 +231,7 @@
             <tr>
                 <td>{{ 'tools_percent_pay.calculation.sum'|trans }}:</td>
                 <td class="digit has-text-right">{{ sum_balance }}</td>
-                <td class="digit has-text-right">{{ sum_to_pay }}</td>
+                <td class="digit has-text-right{% if has_eligible_payment_recipients %} has-text-grey{% endif %}">{{ sum_to_pay }}</td>
                 {% if has_eligible_payment_recipients %}
                 <td class="digit has-text-right">{{ sum_to_pay_trustline }}</td>
                 {% endif %}

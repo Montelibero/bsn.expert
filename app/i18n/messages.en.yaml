@@ -811,6 +811,9 @@ tools_percent_pay:
   percent:
     name: Percent
     hint: What percentage of the amount of these tokens will be transferred to the holder. From 0.001 to infinity.
+  balance_limit:
+    name: Minimum balance
+    hint: Only holders whose base-token balance is not less than this value will be included in the selection. Default is 0.
   payer_account:
     name: Payer account
     hint: From which account the payment will be made. By default, from the issuer's account, but you can specify an alternative.
@@ -845,6 +848,7 @@ tools_percent_pay:
       Since you have a lot of payments, there are several transactions below. They need to be signed and sent
       to the blockchain one by one. The main thing is not to leave this page until you complete the process.
     transaction_no: Transaction No
+    filtered_out: "%quantity% token holders with a total balance of %sum% were excluded because each balance is below the specified limit of %limit%."
     no_eligible_trustlines: No recipients with an open trustline to the selected payment token were found, so the distribution transaction was not generated.
 
 mtla_rp_report_page:

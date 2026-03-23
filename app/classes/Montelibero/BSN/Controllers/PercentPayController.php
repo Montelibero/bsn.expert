@@ -55,6 +55,12 @@ class PercentPayController
         if (!is_numeric($percent) || $percent == 0 || $percent == '' || $percent < 0) {
             $percent = null;
         }
+        $balance_limit = $_GET['balance_limit'] ?? '0';
+        $balance_limit = str_replace(' ', '', $balance_limit);
+        $balance_limit = str_replace(',', '.', $balance_limit);
+        if (!is_numeric($balance_limit) || $balance_limit === '' || $balance_limit < 0) {
+            $balance_limit = '0';
+        }
         $payer_account = $_GET['payer_account'] ?? null;
         if (!BSN::validateStellarAccountIdFormat($payer_account)) {
             $payer_account = null;
@@ -114,6 +120,8 @@ class PercentPayController
         $sum_balance_trustline = "0.0000000";
         $sum_to_pay_trustline = "0.0000000";
         $has_eligible_payment_recipients = false;
+        $filtered_out_accounts_count = 0;
+        $filtered_out_balance_sum = "0.0000000";
         if ($asset_issuer && $asset_code && $percent) {
             $Accounts = $this->Stellar
                 ->accounts()
@@ -138,6 +146,11 @@ class PercentPayController
                             && $Balance->getAssetCode() === $asset_code
                             && (float) $Balance->getBalance() > 0
                         ) {
+                            if (bccomp($Balance->getBalance(), $balance_limit, 7) < 0) {
+                                $filtered_out_accounts_count++;
+                                $filtered_out_balance_sum = bcadd($filtered_out_balance_sum, $Balance->getBalance(), 7);
+                                continue;
+                            }
                             $account['balance'] = $Balance->getBalance();
                             $account['has_payment_trustline'] = $this->hasTrustlineForAsset(
                                 $Account->getBalances(),
@@ -230,6 +243,7 @@ class PercentPayController
             'asset_issuer' => $asset_issuer,
             'asset_code' => $asset_code,
             'percent' => $percent,
+            'balance_limit' => $balance_limit,
             'payment_token_options' => $payment_token_options,
             'payment_token' => $payment_token,
             'payer_account' => $payer_account,
@@ -239,6 +253,8 @@ class PercentPayController
             'sum_to_pay' => $sum_to_pay,
             'sum_to_pay_trustline' => $sum_to_pay_trustline,
             'has_eligible_payment_recipients' => $has_eligible_payment_recipients,
+            'filtered_out_accounts_count' => $filtered_out_accounts_count,
+            'filtered_out_balance_sum' => $filtered_out_balance_sum,
             'signing_forms' => $signing_forms,
         ]);
     }
