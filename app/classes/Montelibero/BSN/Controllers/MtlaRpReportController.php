@@ -22,11 +22,12 @@ class MtlaRpReportController
 {
     private const MTLA_ACCOUNT = MtlaController::MTLA_ACCOUNT;
     private const CACHE_KEY_PREFIX = 'mtla_rp_report_snapshot:v2';
-    private const CACHE_TTL = 86400;
+    private const CACHE_TTL = 604800;
     private const LOOKBACK_DAYS = 90;
     private const ACTIVIST_MIN_MTLAP = 4;
     private const MIN_REQUIRED_TT = 12.0;
     private const FRESH_SNAPSHOT_SECONDS = 60;
+    private const STALE_CACHE_SECONDS = 86400;
 
     private BSN $BSN;
     private Environment $Twig;
@@ -323,7 +324,10 @@ class MtlaRpReportController
     private function finalizeSnapshot(array $snapshot): array
     {
         $fetched_at = isset($snapshot['fetched_at']) ? (int) $snapshot['fetched_at'] : 0;
-        $snapshot['is_fresh'] = $fetched_at > 0 && (time() - $fetched_at) < self::FRESH_SNAPSHOT_SECONDS;
+        $age = $fetched_at > 0 ? max(0, time() - $fetched_at) : null;
+        $snapshot['age_seconds'] = $age;
+        $snapshot['is_fresh'] = $age !== null && $age < self::FRESH_SNAPSHOT_SECONDS;
+        $snapshot['is_stale_cache'] = $age !== null && $age >= self::STALE_CACHE_SECONDS;
 
         return $snapshot;
     }

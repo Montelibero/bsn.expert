@@ -79,7 +79,7 @@
                     {{ 'mtla_rp_report_page.empty'|trans }}
                 {% endif %}
             </span>
-            <span class="tag {% if snapshot.is_fresh %}is-success{% else %}is-warning{% endif %}">
+            <span class="tag {% if snapshot.is_fresh %}is-success{% elseif snapshot.is_stale_cache %}is-danger{% else %}is-warning{% endif %}">
                 {% if snapshot.is_fresh %}
                     {{ 'mtla_rp_report_page.snapshot.source_live'|trans }}
                 {% else %}
