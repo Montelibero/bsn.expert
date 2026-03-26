@@ -21,7 +21,7 @@ use Twig\Environment;
 class MtlaRpReportController
 {
     private const MTLA_ACCOUNT = MtlaController::MTLA_ACCOUNT;
-    private const CACHE_KEY = 'mtla_rp_report_snapshot:v1';
+    private const CACHE_KEY_PREFIX = 'mtla_rp_report_snapshot:v2';
     private const CACHE_TTL = 86400;
     private const LOOKBACK_DAYS = 90;
     private const ACTIVIST_MIN_MTLAP = 4;
@@ -52,8 +52,14 @@ class MtlaRpReportController
             && $refresh_code !== null
             && hash_equals($refresh_code, (string) ($_GET['code'] ?? ''));
 
-        $snapshot = $this->fetchMtlaSnapshot($force_refresh);
         $programs = $this->collectPrograms();
+        $snapshot = $this->fetchMtlaSnapshot(
+            array_map(
+                static fn(array $item): string => $item['data']['id'],
+                $programs['items']
+            ),
+            $force_refresh
+        );
         $activists = $this->collectActivists($programs['memberships'], $snapshot);
 
         if ($force_refresh) {
@@ -274,9 +280,10 @@ class MtlaRpReportController
         return $items;
     }
 
-    private function fetchMtlaSnapshot(bool $force_refresh): array
+    private function fetchMtlaSnapshot(array $program_account_ids, bool $force_refresh): array
     {
-        $cached = $this->cacheFetch(self::CACHE_KEY);
+        $cache_key = $this->makeSnapshotCacheKey($program_account_ids);
+        $cached = $this->cacheFetch($cache_key);
         if (!$force_refresh && is_array($cached)) {
             $cached['from_cache'] = true;
             $cached['warning'] = null;
@@ -284,8 +291,11 @@ class MtlaRpReportController
         }
 
         try {
-            $snapshot = $this->buildMtlaSnapshot($this->Stellar->requestAccount(self::MTLA_ACCOUNT));
-            $this->cacheStore(self::CACHE_KEY, $snapshot, self::CACHE_TTL);
+            $snapshot = $this->buildMtlaSnapshot(
+                $this->Stellar->requestAccount(self::MTLA_ACCOUNT),
+                $program_account_ids
+            );
+            $this->cacheStore($cache_key, $snapshot, self::CACHE_TTL);
             $snapshot['from_cache'] = false;
             $snapshot['warning'] = null;
             return $this->finalizeSnapshot($snapshot);
@@ -318,7 +328,7 @@ class MtlaRpReportController
         return $snapshot;
     }
 
-    private function buildMtlaSnapshot(AccountResponse $MtlaAccount): array
+    private function buildMtlaSnapshot(AccountResponse $MtlaAccount, array $program_account_ids): array
     {
         $balances = [];
         $trustlines = [];
@@ -343,7 +353,7 @@ class MtlaRpReportController
             }
         }
 
-        $totals = $this->collectRecentMtlaTotals();
+        $totals = $this->collectRecentMtlaTotals($program_account_ids);
 
         return [
             'fetched_at' => time(),
@@ -356,7 +366,7 @@ class MtlaRpReportController
         ];
     }
 
-    private function collectRecentMtlaTotals(): array
+    private function collectRecentMtlaTotals(array $program_account_ids): array
     {
         $cutoff_at = time() - (self::LOOKBACK_DAYS * 86400);
         $incoming_totals = [];
@@ -389,20 +399,13 @@ class MtlaRpReportController
                 }
 
                 $payments_count++;
-                if ($payment['direction'] === 'incoming') {
-                    if (!isset($incoming_totals[$payment['account_id']])) {
-                        $incoming_totals[$payment['account_id']] = [];
-                    }
-                    if (!isset($incoming_totals[$payment['account_id']][$payment['asset_key']])) {
-                        $incoming_totals[$payment['account_id']][$payment['asset_key']] = .0;
-                    }
-                    $incoming_totals[$payment['account_id']][$payment['asset_key']] += $payment['amount'];
-                } else {
-                    if (!isset($outgoing_totals[$payment['asset_key']])) {
-                        $outgoing_totals[$payment['asset_key']] = .0;
-                    }
-                    $outgoing_totals[$payment['asset_key']] += $payment['amount'];
+                if (!isset($incoming_totals[$payment['account_id']])) {
+                    $incoming_totals[$payment['account_id']] = [];
                 }
+                if (!isset($incoming_totals[$payment['account_id']][$payment['asset_key']])) {
+                    $incoming_totals[$payment['account_id']][$payment['asset_key']] = .0;
+                }
+                $incoming_totals[$payment['account_id']][$payment['asset_key']] += $payment['amount'];
             }
 
             if ($stop) {
@@ -410,6 +413,47 @@ class MtlaRpReportController
             }
 
             $Payments = $Payments->getNextPage();
+        }
+
+        foreach (array_values(array_unique($program_account_ids)) as $program_account_id) {
+            $Payments = $this->Stellar
+                ->payments()
+                ->forAccount($program_account_id)
+                ->order('desc')
+                ->limit(200)
+                ->execute();
+
+            while ($Payments && $Payments->getOperations()->count()) {
+                $stop = false;
+                foreach ($Payments->getOperations()->toArray() as $Operation) {
+                    if (!$Operation instanceof OperationResponse) {
+                        continue;
+                    }
+
+                    $created_at = $this->parseTimestamp($Operation->getCreatedAt());
+                    if ($created_at !== null && $created_at < $cutoff_at) {
+                        $stop = true;
+                        break;
+                    }
+
+                    $payment = $this->normalizeProgramOutgoingPayment($program_account_id, $Operation);
+                    if ($payment === null) {
+                        continue;
+                    }
+
+                    $payments_count++;
+                    if (!isset($outgoing_totals[$payment['asset_key']])) {
+                        $outgoing_totals[$payment['asset_key']] = .0;
+                    }
+                    $outgoing_totals[$payment['asset_key']] += $payment['amount'];
+                }
+
+                if ($stop) {
+                    break;
+                }
+
+                $Payments = $Payments->getNextPage();
+            }
         }
 
         return [
@@ -450,18 +494,8 @@ class MtlaRpReportController
             return null;
         }
 
-        if ($from === self::MTLA_ACCOUNT) {
-            return [
-                'direction' => 'outgoing',
-                'account_id' => $to,
-                'asset_key' => $asset_key,
-                'amount' => $amount,
-            ];
-        }
-
         if ($to === self::MTLA_ACCOUNT) {
             return [
-                'direction' => 'incoming',
                 'account_id' => $from,
                 'asset_key' => $asset_key,
                 'amount' => $amount,
@@ -469,6 +503,41 @@ class MtlaRpReportController
         }
 
         return null;
+    }
+
+    private function normalizeProgramOutgoingPayment(string $program_account_id, OperationResponse $Operation): ?array
+    {
+        if ($Operation instanceof PaymentOperationResponse) {
+            $asset = $this->assetParts($Operation->getAsset());
+            $amount = (float) $Operation->getAmount();
+            $from = $Operation->getFrom();
+            $to = $Operation->getTo();
+        } elseif ($Operation instanceof PathPaymentOperationResponse) {
+            if ($Operation->getFrom() !== $program_account_id) {
+                return null;
+            }
+
+            $asset = $this->assetParts($Operation->getSourceAsset());
+            $amount = (float) $Operation->getSourceAmount();
+            $from = $Operation->getFrom();
+            $to = $Operation->getTo();
+        } else {
+            return null;
+        }
+
+        if ($from !== $program_account_id) {
+            return null;
+        }
+
+        $asset_key = $this->makeAssetKey($asset['code'], $asset['issuer']);
+        if ($asset_key === null || $to !== $asset['issuer']) {
+            return null;
+        }
+
+        return [
+            'asset_key' => $asset_key,
+            'amount' => $amount,
+        ];
     }
 
     private function assetParts(Asset $Asset): array
@@ -583,6 +652,14 @@ class MtlaRpReportController
     private function buildRefreshCode(): string
     {
         return hash('sha256', session_id() . ':mtla_rp_report_refresh');
+    }
+
+    private function makeSnapshotCacheKey(array $program_account_ids): string
+    {
+        $program_account_ids = array_values(array_unique($program_account_ids));
+        sort($program_account_ids);
+
+        return self::CACHE_KEY_PREFIX . ':' . sha1(implode(',', $program_account_ids));
     }
 
     private function makeAssetKey(?string $code, ?string $issuer): ?string
