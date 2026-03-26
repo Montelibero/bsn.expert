@@ -283,9 +283,14 @@ class MtlaRpReportController
 
     private function fetchMtlaSnapshot(array $program_account_ids, bool $force_refresh): array
     {
+        $program_account_ids = $this->normalizeProgramAccountIds($program_account_ids);
         $cache_key = $this->makeSnapshotCacheKey($program_account_ids);
         $cached = $this->cacheFetch($cache_key);
-        if (!$force_refresh && is_array($cached)) {
+        if (
+            !$force_refresh
+            && is_array($cached)
+            && $this->hasMatchingProgramSet($cached, $program_account_ids)
+        ) {
             $cached['from_cache'] = true;
             $cached['warning'] = null;
             return $this->finalizeSnapshot($cached);
@@ -334,6 +339,7 @@ class MtlaRpReportController
 
     private function buildMtlaSnapshot(AccountResponse $MtlaAccount, array $program_account_ids): array
     {
+        $program_account_ids = $this->normalizeProgramAccountIds($program_account_ids);
         $balances = [];
         $trustlines = [];
 
@@ -361,6 +367,7 @@ class MtlaRpReportController
 
         return [
             'fetched_at' => time(),
+            'program_account_ids' => $program_account_ids,
             'cutoff_at' => $totals['cutoff_at'],
             'balances' => $balances,
             'trustlines' => $trustlines,
@@ -660,10 +667,27 @@ class MtlaRpReportController
 
     private function makeSnapshotCacheKey(array $program_account_ids): string
     {
+        $program_account_ids = $this->normalizeProgramAccountIds($program_account_ids);
+
+        return self::CACHE_KEY_PREFIX . ':' . sha1(implode(',', $program_account_ids));
+    }
+
+    private function hasMatchingProgramSet(array $snapshot, array $program_account_ids): bool
+    {
+        $snapshot_program_account_ids = $snapshot['program_account_ids'] ?? null;
+        if (!is_array($snapshot_program_account_ids)) {
+            return false;
+        }
+
+        return $this->normalizeProgramAccountIds($snapshot_program_account_ids) === $program_account_ids;
+    }
+
+    private function normalizeProgramAccountIds(array $program_account_ids): array
+    {
         $program_account_ids = array_values(array_unique($program_account_ids));
         sort($program_account_ids);
 
-        return self::CACHE_KEY_PREFIX . ':' . sha1(implode(',', $program_account_ids));
+        return $program_account_ids;
     }
 
     private function makeAssetKey(?string $code, ?string $issuer): ?string
