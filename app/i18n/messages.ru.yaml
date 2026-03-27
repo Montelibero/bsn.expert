@@ -635,6 +635,7 @@ document_page:
       original: Оригинал
       markdown: Markdown
     header: Текст документа
+    download: Скачать оригинал
     wrong_hash:
       header: Не совпадение хеша
       text: "Хеш от этого документа не равен хешу контракта:"

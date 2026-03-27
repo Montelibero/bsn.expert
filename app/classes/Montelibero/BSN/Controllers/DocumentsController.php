@@ -20,6 +20,7 @@ class DocumentsController
 {
     private const MAX_TEXT_LENGTH = 20000;
     private const MAX_MANAGE_DATA_NAME_LENGTH = 64;
+    private const DOWNLOAD_EXTENSION = 'md';
 
     private BSN $BSN;
     private Environment $Twig;
@@ -126,6 +127,10 @@ class DocumentsController
             return null;
         }
 
+        if ($this->isDocumentDownloadRequested()) {
+            return $this->downloadDocumentText($Hash);
+        }
+
         $signatures = [];
         foreach ($Contracts->getAccountsByContract($Hash) as $Signature) {
             $signatures[] = [
@@ -160,6 +165,84 @@ class DocumentsController
         $data['sign']['link'] = $data['page_url'] . '?sign_form=yes#document-sign';
 
         return $Template->render($data);
+    }
+
+    private function isDocumentDownloadRequested(): bool
+    {
+        if (!array_key_exists('download', $_GET)) {
+            return false;
+        }
+
+        $value = $_GET['download'];
+        if (is_array($value)) {
+            return false;
+        }
+
+        return $value === '' || $value === '1' || strtolower($value) === 'original' || strtolower($value) === 'true';
+    }
+
+    private function downloadDocumentText(Contract $Hash): ?string
+    {
+        $document_text = $Hash->getText();
+        if ($document_text === null) {
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        }
+
+        $filename = $this->buildDocumentDownloadFilename($Hash);
+        $ascii_filename = $this->buildAsciiDownloadFilename($filename);
+
+        header('Content-Type: text/markdown; charset=UTF-8');
+        header('Content-Length: ' . strlen($document_text));
+        header(sprintf(
+            "Content-Disposition: attachment; filename=\"%s\"; filename*=UTF-8''%s",
+            addcslashes($ascii_filename, "\\\""),
+            rawurlencode($filename)
+        ));
+
+        return $document_text;
+    }
+
+    private function buildDocumentDownloadFilename(Contract $Hash): string
+    {
+        $parts = [];
+        $name = $this->sanitizeDownloadFilenamePart($Hash->getName());
+        if ($name !== '') {
+            $parts[] = $name;
+        }
+        $parts[] = $Hash->hash;
+
+        return implode(' ', $parts) . '.' . self::DOWNLOAD_EXTENSION;
+    }
+
+    private function buildAsciiDownloadFilename(string $filename): string
+    {
+        $ascii_filename = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $filename) ?? '';
+        $ascii_filename = preg_replace('/_+/', '_', $ascii_filename) ?? '';
+        $ascii_filename = trim($ascii_filename, ' ._');
+
+        if ($ascii_filename === '') {
+            return 'document.' . self::DOWNLOAD_EXTENSION;
+        }
+
+        return $ascii_filename;
+    }
+
+    private function sanitizeDownloadFilenamePart(?string $part): string
+    {
+        if ($part === null) {
+            return '';
+        }
+
+        $part = trim($part);
+        if ($part === '') {
+            return '';
+        }
+
+        $part = preg_replace('/[\x00-\x1F\x7F\/\\\\:*?"<>|]+/u', ' ', $part) ?? '';
+        $part = preg_replace('/\s+/u', ' ', $part) ?? '';
+
+        return trim($part, " .\t\n\r\0\x0B");
     }
 
     private function prepareSigningData(Contract $Hash): array

@@ -633,6 +633,7 @@ document_page:
       original: Original
       markdown: Markdown
     header: Text of the document
+    download: Download the original
     wrong_hash:
       header: Wrong hash
       text: "The SHA-256 hash from this document is not equal to the document hash:"

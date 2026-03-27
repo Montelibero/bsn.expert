@@ -60,7 +60,6 @@
             {% endif %}
         </div>
         <div class="message-body">
-
         <div class="original_text {% if text_html and not show_original %}is-hidden{% endif %}">{{ document.text }}</div>
         {% if text_html %}
         <div class="content {% if show_original %}is-hidden{% endif %}">{{ text_html|raw }}</div>
@@ -68,6 +67,12 @@
 
         </div>
     </div>
+    <p class="block">
+        <a href="{{ page_url }}?download">
+            <i class="fa-solid fa-download"></i>
+            {{ 'document_page.text.download'|trans }}
+        </a>
+    </p>
 {% endif %}
 
 {% if document.url %}
