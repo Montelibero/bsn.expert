@@ -54,20 +54,17 @@ class PercentPayController
             $calc_mode = 'percent';
         }
         $percent = $_GET['percent'] ?? '';
-        $percent = str_replace(' ', '', $percent);
-        $percent = str_replace(',', '.', $percent);
+        $percent = str_replace([' ', ','], ['', '.'], $percent);
         if (!is_numeric($percent) || $percent == 0 || $percent == '' || $percent < 0) {
             $percent = null;
         }
         $amount = $_GET['amount'] ?? '';
-        $amount = str_replace(' ', '', $amount);
-        $amount = str_replace(',', '.', $amount);
+        $amount = str_replace([' ', ','], ['', '.'], $amount);
         if (!is_numeric($amount) || $amount == 0 || $amount == '' || $amount < 0) {
             $amount = null;
         }
         $balance_limit = $_GET['balance_limit'] ?? '0';
-        $balance_limit = str_replace(' ', '', $balance_limit);
-        $balance_limit = str_replace(',', '.', $balance_limit);
+        $balance_limit = str_replace([' ', ','], ['', '.'], $balance_limit);
         if (!is_numeric($balance_limit) || $balance_limit === '' || $balance_limit < 0) {
             $balance_limit = '0';
         }
@@ -153,8 +150,7 @@ class PercentPayController
                     $account = [
                         'id' => $Account->getAccountId(),
                     ];
-                    /** @var AccountBalanceResponse $Balance */
-                    foreach ($Account->getBalances() as $Balance) {
+                    foreach ($Account->getBalances()->toArray() as $Balance) {
                         if (
                             $Balance->getAssetType() !== Asset::TYPE_NATIVE
                             && $Balance->getAssetIssuer() === $asset_issuer
@@ -182,7 +178,7 @@ class PercentPayController
 
         foreach ($accounts as & $account) {
             $Account = $this->BSN->makeAccountById($account['id']);
-            $account = array_merge($account, $Account->jsonSerialize());
+            $account += $Account->jsonSerialize();
             $sum_balance = bcadd($sum_balance, $account['balance'], 7);
         }
         unset($account);
