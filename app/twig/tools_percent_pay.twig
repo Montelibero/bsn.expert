@@ -271,7 +271,7 @@
             <th data-sorter="false">{{ 'tools_percent_pay.calculation.account'|trans }}</th>
             <th data-sorter="digit" class="has-text-right">{{ 'tools_percent_pay.calculation.balance'|trans }}</th>
             <th data-sorter="digit" class="has-text-right">{{ 'tools_percent_pay.calculation.to_pay'|trans }}</th>
-            {% if has_eligible_payment_recipients %}
+            {% if has_missing_payment_trustlines %}
             <th data-sorter="digit" class="has-text-right">{{ 'tools_percent_pay.calculation.to_pay_trustline'|trans }}</th>
             {% endif %}
         </tr>
@@ -281,8 +281,8 @@
             <tr>
                 <td>{{ include('account_link.twig', {data: account}, with_context = false) }}</td>
                 <td class="has-text-right">{{ account.balance }}</td>
-                <td class="has-text-right{% if has_eligible_payment_recipients %} has-text-grey{% endif %}">{{ account.to_pay }}</td>
-                {% if has_eligible_payment_recipients %}
+                <td class="has-text-right{% if has_missing_payment_trustlines %} has-text-grey{% endif %}">{{ account.to_pay }}</td>
+                {% if has_missing_payment_trustlines %}
                 <td class="has-text-right">
                     {% if account.has_payment_trustline %}
                         {{ account.to_pay_trustline }}
@@ -298,8 +298,8 @@
             <tr>
                 <td>{{ 'tools_percent_pay.calculation.sum'|trans }}:</td>
                 <td class="digit has-text-right">{{ sum_balance }}</td>
-                <td class="digit has-text-right{% if has_eligible_payment_recipients %} has-text-grey{% endif %}">{{ sum_to_pay }}</td>
-                {% if has_eligible_payment_recipients %}
+                <td class="digit has-text-right{% if has_missing_payment_trustlines %} has-text-grey{% endif %}">{{ sum_to_pay }}</td>
+                {% if has_missing_payment_trustlines %}
                 <td class="digit has-text-right">{{ sum_to_pay_trustline }}</td>
                 {% endif %}
             </tr>

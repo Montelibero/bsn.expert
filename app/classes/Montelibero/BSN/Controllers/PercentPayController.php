@@ -128,6 +128,7 @@ class PercentPayController
         $sum_balance_trustline = "0.0000000";
         $sum_to_pay_trustline = "0.0000000";
         $has_eligible_payment_recipients = false;
+        $has_missing_payment_trustlines = false;
         $filtered_out_accounts_count = 0;
         $filtered_out_balance_sum = "0.0000000";
         $payment_source_account = $payer_account ?: $asset_issuer;
@@ -206,6 +207,8 @@ class PercentPayController
             if ($account['has_payment_trustline'] && $account['to_pay']) {
                 $sum_balance_trustline = bcadd($sum_balance_trustline, $account['balance'], 7);
                 $has_eligible_payment_recipients = true;
+            } elseif ($account['to_pay']) {
+                $has_missing_payment_trustlines = true;
             }
         }
         unset($account);
@@ -304,6 +307,7 @@ class PercentPayController
             'sum_to_pay' => $sum_to_pay,
             'sum_to_pay_trustline' => $sum_to_pay_trustline,
             'has_eligible_payment_recipients' => $has_eligible_payment_recipients,
+            'has_missing_payment_trustlines' => $has_missing_payment_trustlines,
             'filtered_out_accounts_count' => $filtered_out_accounts_count,
             'filtered_out_balance_sum' => $filtered_out_balance_sum,
             'payment_source_account' => $payment_source_account,
