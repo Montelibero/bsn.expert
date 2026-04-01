@@ -113,6 +113,17 @@
 </dl>
 {% endif %}
 
+{% if mtla_program_page_url %}
+<div class="box">
+    <p class="block">
+        <span class="icon-text">
+            <span class="icon"><i class="fa-regular fa-file-lines"></i></span>
+            <span>{{ 'account_page.mtla_program.notice'|trans }} <a href="{{ mtla_program_page_url }}">{{ 'account_page.mtla_program.link'|trans }} →</a></span>
+        </span>
+    </p>
+</div>
+{% endif %}
+
 {% if signatures %}
 <div class="box">
         <h2 class="title">{{ 'account_page.signatures.header'|trans }}</h2>

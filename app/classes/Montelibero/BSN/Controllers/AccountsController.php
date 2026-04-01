@@ -56,8 +56,13 @@ class AccountsController
     private Container $Container;
     private ContactsManager $ContactsManager;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container, ContactsManager $ContactsManager)
-    {
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        StellarSDK $Stellar,
+        Container $Container,
+        ContactsManager $ContactsManager
+    ) {
         $this->BSN = $BSN;
 
         $this->Twig = $Twig;
@@ -306,6 +311,11 @@ class AccountsController
         ) {
             $nostr = $nostr_tag;
         }
+
+        $mtla_program_page_url = $this->isMtlaProgramAccount($Account)
+            ? '/mtla/programs/' . $Account->getId()
+            : null;
+
         $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
             'canonical_url' => SimpleRouter::getUrl('account', ['id' => $Account->getId()]),
@@ -328,7 +338,22 @@ class AccountsController
             'issued_tokens' => $issued_tokens,
             'balances' => $balances,
             'display_balances' => $display_balances,
+            'mtla_program_page_url' => $mtla_program_page_url,
         ]);
+    }
+
+    public function isMtlaProgramAccount(Account $Account): bool
+    {
+        $MtlaAccount = $this->BSN->getAccountById(MtlaController::MTLA_ACCOUNT);
+        $TagProgram = $this->BSN->makeTagByName('Program');
+
+        foreach ($MtlaAccount?->getOutcomeLinks($TagProgram) ?? [] as $ProgramAccount) {
+            if ($ProgramAccount->getId() === $Account->getId()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function AccountAndList(string $id): ?string

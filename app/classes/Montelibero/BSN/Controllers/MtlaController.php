@@ -3,24 +3,36 @@
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\MTLA\CalcDelegations\CalcVoices;
+use Montelibero\BSN\MTLA\MtlaProgramReportService;
 use Montelibero\BSN\Relations\Member;
+use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Twig\Environment;
 
-class MtlaController
+class MtlaController implements RefreshDataCodeInterface
 {
+    use RefreshDataCodeTrait;
+
     public const MTLA_ACCOUNT = 'GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA';
 
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
+    private MtlaProgramReportService $ReportService;
+    private CurrentUser $CurrentUser;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar)
-    {
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        StellarSDK $Stellar,
+        MtlaProgramReportService $ReportService,
+        CurrentUser $CurrentUser
+    ) {
         $this->BSN = $BSN;
 
         $this->Twig = $Twig;
@@ -28,6 +40,8 @@ class MtlaController
         $this->Twig->addGlobal('server', $_SERVER);
 
         $this->Stellar = $Stellar;
+        $this->ReportService = $ReportService;
+        $this->CurrentUser = $CurrentUser;
     }
 
     public function Mtla(): ?string
@@ -145,10 +159,9 @@ class MtlaController
         foreach ($this->fetchMtlaSigners() as $id => $weight) {
             $Account = $this->BSN->getAccountById($id);
             $current_signers[$id] = $Account->jsonSerialize() + [
-                    'sign_weight' => $weight,
-                ];
+                'sign_weight' => $weight,
+            ];
         }
-
 
         $key = 'mtla_council_delegation_tree';
 
@@ -157,7 +170,7 @@ class MtlaController
         } else {
             $CalcVoices = new CalcVoices(
                 $this->Stellar,
-                'GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA',
+                self::MTLA_ACCOUNT,
                 'MTLAP',
                 ['GDUTNVJWCTJSPJEI3AWN7NRE535LAQDUEUEA37M22WGDYOLUGWKAMNFT'],
             );
@@ -186,14 +199,12 @@ class MtlaController
 
     private function sortAccounts(array &$accounts): void
     {
-        // Рекурсивная сортировка вложенных элементов
         foreach ($accounts as & $root) {
             if (!empty($root['delegated']) && is_array($root['delegated'])) {
                 $this->sortAccounts($root['delegated']);
             }
         }
 
-        // Сортировка текущего уровня по сумме `own_token_amount` + `delegated_token_amount`
         usort($accounts, function ($a, $b) {
             $sumA = $a['own_token_amount'] + $a['delegated_token_amount'];
             $sumB = $b['own_token_amount'] + $b['delegated_token_amount'];
@@ -202,13 +213,12 @@ class MtlaController
                 return strcmp($a['id'], $b['id']);
             }
 
-            return $sumB <=> $sumA; // По убыванию
+            return $sumB <=> $sumA;
         });
     }
 
     private function fetchAccountData(array &$accounts, array $current_council, array $council_candidates): void
     {
-        // Рекурсивная обработка
         foreach ($accounts as & $root) {
             $Account = $this->BSN->makeAccountById($root['id']);
             $root += $Account->jsonSerialize();
@@ -259,81 +269,101 @@ class MtlaController
 
     public function MtlaPrograms(): ?string
     {
-        /*
-         * Получить список программ
-         * Про каждую узнать координатора
-         * Для каждой получить список участников
-         * Отобразить список активистов без программ
-         */
-        $MTLA = $this->BSN->getAccountById(self::MTLA_ACCOUNT);
-        $TagProgram = $this->BSN->makeTagByName('Program');
-        $TagProgramCoordinator = $this->BSN->makeTagByName('ProgramCoordinator');
-        $TagMyPart = $this->BSN->makeTagByName('MyPart');
-        $TagPartOf = $this->BSN->makeTagByName('PartOf');
-        $programs = $MTLA->getOutcomeLinks($TagProgram);
-        $programs_data = [];
-        $mentioned_accounts = [];
+        $programs = $this->ReportService->collectPrograms();
+        $current_account_id = $this->CurrentUser->getCurrentAccountId();
+        $this->prioritizeProgramsByCoordinator($programs['items'], $current_account_id);
+        $can_refresh = $this->ReportService->canRefreshSnapshot();
+        $refresh_scope = 'mtla_programs_snapshot';
+        $force_refresh = $can_refresh && $this->isRefreshDataRequested($refresh_scope);
+        $snapshot = $this->ReportService->fetchMtlaSnapshot(
+            array_map(
+                static fn(array $item): string => $item['data']['id'],
+                $programs['items']
+            ),
+            $force_refresh
+        );
 
-        foreach ($programs as $Program) {
-            $mentioned_accounts[$Program->getId()] = true;
-            $programs_data[$Program->getId()] = [
-                'data' => $Program->jsonSerialize(),
-                'coordinator' => null,
-                'participants' => [],
-            ];
-            $coordinators = $Program->getOutcomeLinks($TagProgramCoordinator);
-            if ($Coordinator = array_shift($coordinators)) {
-                $programs_data[$Program->getId()]['coordinator'] = $Coordinator->jsonSerialize();
-                $mentioned_accounts[$Coordinator->getId()] = true;
-            }
-            foreach ($Program->getOutcomeLinks($TagMyPart) as $Participant) {
-                foreach ($Participant->getOutcomeLinks($TagPartOf) as $Part) {
-                    if ($Part === $Program) {
-                        $participant = $Participant->jsonSerialize();
-                        if ($tt_code = $Participant->getProfileSingleItem('TimeTokenCode')) {
-                            $participant['tt_code'] = $tt_code;
-                            $participant['tt_issuer'] = $Participant->getProfileSingleItem('TimeTokenIssuer')
-                                ?: $Participant->getId();
-                        }
-                        $programs_data[$Program->getId()]['participants'][] = $participant;
-                        $mentioned_accounts[$Participant->getId()] = true;
-                        break;
-                    }
-                }
-            }
+        if ($force_refresh) {
+            SimpleRouter::response()->redirect($this->getRefreshDataRedirectUri([
+                'refresh_status' => ($snapshot['warning'] ?? null) !== null ? 'fallback' : null,
+            ]), 302);
+            return null;
         }
 
-        // Сортировка: 1) с координатором первыми; 2) по кол-ву участников по убыванию
-        usort($programs_data, function (array $a, array $b): int {
-            $has_coordinator_a = !empty($a['coordinator']);
-            $has_coordinator_b = !empty($b['coordinator']);
-            if ($has_coordinator_a !== $has_coordinator_b) {
-                return $has_coordinator_b <=> $has_coordinator_a; // true раньше false
-            }
+        $refresh = $this->buildRefreshDataContext($refresh_scope, $can_refresh);
+        $refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
 
-            $count_a = is_countable($a['participants']) ? count($a['participants']) : 0;
-            $count_b = is_countable($b['participants']) ? count($b['participants']) : 0;
-            if ($count_a !== $count_b) {
-                return $count_b <=> $count_a; // по убыванию
-            }
-
-            // стабильный третий критерий: по имени аккаунта
-            return strcmp($a['data']['display_name'], $b['data']['display_name']);
-        });
-
-        $activists_without_programs = [];
-        foreach ($this->fetchMtlaTokenHolders('MTLAP', 4) as $holder) {
-            if (isset($mentioned_accounts[$holder['id']])) {
-                continue;
-            }
-
-            $activists_without_programs[] = $this->BSN->makeAccountById($holder['id'])->jsonSerialize();
-        }
-
-        $Template = $this->Twig->load('mtla_programs.twig');
-        return $Template->render([
-            'programs' => $programs_data,
-            'activists_without_programs' => $activists_without_programs,
+        return $this->Twig->load('mtla_programs.twig')->render([
+            'programs' => $programs['items'],
+            'snapshot' => $snapshot,
+            'refresh' => $refresh,
         ]);
+    }
+
+    public function MtlaProgram(string $account_id): ?string
+    {
+        $programs = $this->ReportService->collectPrograms();
+        $program = $this->ReportService->findProgramByAccountId($programs['items'], $account_id);
+        $account = BSN::validateStellarAccountIdFormat($account_id)
+            ? $this->BSN->makeAccountById($account_id)->jsonSerialize()
+            : null;
+
+        $snapshot = null;
+        $refresh = null;
+        $participants = [];
+
+        if ($program !== null) {
+            $can_refresh = $this->ReportService->canRefreshSnapshot();
+            $refresh_scope = 'mtla_program_snapshot:' . $account_id;
+            $force_refresh = $can_refresh && $this->isRefreshDataRequested($refresh_scope);
+            $snapshot = $this->ReportService->fetchMtlaSnapshot(
+                array_map(
+                    static fn(array $item): string => $item['data']['id'],
+                    $programs['items']
+                ),
+                $force_refresh
+            );
+            $participants = $this->ReportService->buildProgramParticipantReport($program, $snapshot);
+            $refresh = $this->buildRefreshDataContext($refresh_scope, $can_refresh);
+            $refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
+
+            if ($force_refresh) {
+                SimpleRouter::response()->redirect($this->getRefreshDataRedirectUri([
+                    'refresh_status' => ($snapshot['warning'] ?? null) !== null ? 'fallback' : null,
+                ]), 302);
+                return null;
+            }
+        }
+
+        $Template = $this->Twig->load('mtla_program.twig');
+        return $Template->render([
+            'program' => $program,
+            'program_account' => $account,
+            'participants' => $participants,
+            'snapshot' => $snapshot,
+            'refresh' => $refresh,
+            'mtla_account' => $program !== null ? $this->ReportService->getMtlaAccountData() : null,
+            'min_required_tt' => $this->ReportService->getMinRequiredTt(),
+        ]);
+    }
+
+    private function prioritizeProgramsByCoordinator(array &$programs, ?string $current_account_id): void
+    {
+        if (!$current_account_id) {
+            return;
+        }
+
+        $current = [];
+        $others = [];
+
+        foreach ($programs as $program) {
+            if (($program['coordinator']['id'] ?? null) === $current_account_id) {
+                $current[] = $program;
+            } else {
+                $others[] = $program;
+            }
+        }
+
+        $programs = array_merge($current, $others);
     }
 }

@@ -364,6 +364,9 @@ class Account implements JsonSerializable
         if ($username = $this->getUsername()) {
             $data['username'] = $username;
         }
+        if ($name = $this->getName()[0] ?? null ) {
+            $data['name'] = $name;
+        }
 
         return $data;
     }

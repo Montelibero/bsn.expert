@@ -403,6 +403,9 @@ account_page:
     yellow: Нет встречного подтверждающего тега
     red: Отсутствует встречное подтверждение тегом
   this_account_and: Этот аккаунт и...
+  mtla_program:
+    notice: Это аккаунт программы активизма Ассоциации Монтелиберо.
+    link: Посмотреть её страницу
 
 account_operations:
   title: "%name% — операции"
@@ -693,11 +696,52 @@ mtla_council_page:
 mtla_programs_page:
   header: Программы Ассоциации
   program_prefix: 'Программа:'
+  account: Аккаунт
   coordinator: Координатор
   coordinator_unknown: Неизвестен
   participants: Участники
   no_participants: Неизвестны
   activists_without_programs: Активисты без программ
+
+mtla_program_page:
+  title_missing: Программа MTLA
+  not_program: Этот аккаунт сейчас не является аккаунтом программы Ассоциации.
+  open_account: Открыть страницу аккаунта
+  account: Аккаунт
+  coordinator: Координатор
+  participants:
+    title: Участники программы
+    subtitle: Данные за последние 90 дней.
+    table:
+      participant: Участник
+      timetoken: Таймтокен
+      mtla_balance: У MTLA
+      program_balance: У программы
+      incoming: Пришло на MTLA
+      status: Статус
+      outgoing: Ушло с программы
+  status:
+    missing_program_trustline: Нет линии доверия к ТТ
+    missing_timetoken: Активист не описал свои ТТ
+    no_incoming: Активист не присылал свои ТТ в MTLA
+    low_incoming: Пришло меньше %amount% ТТ
+    no_program_outgoing: Со счёта программы не сжигались ТТ
+    ideal: Всё отлично
+
+mtla_snapshot_box:
+  empty: "—"
+  just_now: только что
+  collected_at: Данные собраны
+  source_cache: Показан кеш
+  source_live: Свежая выборка
+  warning: Не удалось получить свежие данные MTLA
+  age:
+    minutes: "%count% минуту назад|%count% минуты назад|%count% минут назад"
+    hours: "%count% час назад|%count% часа назад|%count% часов назад"
+    days: "%count% день назад|%count% дня назад|%count% дней назад"
+  refresh:
+    button: Обновить данные
+    fallback: Не удалось получить свежие данные, показан сохранённый кеш.
 
 editor:
   form:

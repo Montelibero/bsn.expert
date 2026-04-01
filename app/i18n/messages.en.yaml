@@ -405,6 +405,9 @@ account_page:
     yellow: No matching confirmation tag
     red: Missing expected confirmation tag
   this_account_and: This account and...
+  mtla_program:
+    notice: This is an activism program account of the Montelibero Association.
+    link: View its page
 
 account_operations:
   title: "%name% — operations"
@@ -691,11 +694,52 @@ mtla_council_page:
 mtla_programs_page:
   header: Programs
   program_prefix: 'Program:'
+  account: Account
   coordinator: Coordinator
   coordinator_unknown: Unknown
   participants: Participants
   no_participants: No one
   activists_without_programs: Activists without programs
+
+mtla_program_page:
+  title_missing: MTLA Program
+  not_program: This account is not currently an Association program account.
+  open_account: Open account page
+  account: Account
+  coordinator: Coordinator
+  participants:
+    title: Program participants
+    subtitle: Data for the last 90 days.
+    table:
+      participant: Participant
+      timetoken: Timetoken
+      mtla_balance: On MTLA
+      program_balance: On program
+      incoming: Sent to MTLA
+      status: Status
+      outgoing: Left the program
+  status:
+    missing_program_trustline: Missing trustline to TT
+    missing_timetoken: Activist did not describe their TT
+    no_incoming: Activist did not send their TT to MTLA
+    low_incoming: Less than %amount% TT arrived
+    no_program_outgoing: No TT were burned from the program account
+    ideal: Everything is OK
+
+mtla_snapshot_box:
+  empty: "—"
+  just_now: just now
+  collected_at: Collected
+  source_cache: Cached data
+  source_live: Fresh data
+  warning: Failed to fetch fresh MTLA data
+  age:
+    minutes: "%count% minute ago|%count% minutes ago|%count% minutes ago"
+    hours: "%count% hour ago|%count% hours ago|%count% hours ago"
+    days: "%count% day ago|%count% days ago|%count% days ago"
+  refresh:
+    button: Refresh data
+    fallback: Could not fetch fresh data; the cached snapshot is shown.
 
 editor:
   form:

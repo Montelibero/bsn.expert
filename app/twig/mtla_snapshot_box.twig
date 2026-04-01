@@ -1,0 +1,59 @@
+<script>
+    $(function () {
+        $(".js-refresh-snapshot-form").on("submit", function () {
+            const button = $(this).find(".js-refresh-snapshot");
+            if (button.prop("disabled")) {
+                return false;
+            }
+
+            button.prop("disabled", true).addClass("is-loading");
+        });
+    });
+</script>
+
+{% if refresh and refresh.status == 'fallback' %}
+    <div class="notification is-warning">
+        {{ 'mtla_snapshot_box.refresh.fallback'|trans }}
+    </div>
+{% endif %}
+
+{% if snapshot and snapshot.warning %}
+    <div class="notification is-warning">
+        {{ 'mtla_snapshot_box.warning'|trans }}<br>
+        <code>{{ snapshot.warning }}</code>
+    </div>
+{% endif %}
+
+{% if snapshot and refresh %}
+    <div class="box">
+        <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap" style="gap: 0.75rem;">
+            <div class="tags" style="margin-bottom: 0;">
+                <span class="tag {% if snapshot.is_fresh %}is-success{% elseif snapshot.is_stale_cache %}is-danger{% else %}is-warning{% endif %}">
+                    {% if snapshot.is_fresh %}
+                        {{ 'mtla_snapshot_box.source_live'|trans }}
+                    {% else %}
+                        {{ 'mtla_snapshot_box.source_cache'|trans }}
+                    {% endif %}
+                </span>
+
+                <div class="tags has-addons" style="margin-bottom: 0;">
+                    <span class="tag is-dark">{{ 'mtla_snapshot_box.collected_at'|trans }}</span>
+                    <span class="tag is-info" {% if snapshot.fetched_at %}title="{{ snapshot.fetched_at|date('d.m.Y H:i', 'UTC') }} UTC"{% endif %}>
+                        {{ snapshot.fetched_at|period }}
+                    </span>
+                </div>
+            </div>
+
+            <div>
+                {% if refresh.can_refresh and refresh.action and refresh.code_param_name and refresh.code %}
+                    <form method="get" action="{{ refresh.action }}" class="js-refresh-snapshot-form">
+                        <input type="hidden" name="{{ refresh.code_param_name }}" value="{{ refresh.code }}">
+                        <button type="submit" class="button is-link is-small js-refresh-snapshot">
+                            {{ 'mtla_snapshot_box.refresh.button'|trans }}
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endif %}

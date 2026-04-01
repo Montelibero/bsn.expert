@@ -1,17 +1,18 @@
 <?php
 namespace Montelibero\BSN;
 
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 
 class TwigExtension extends AbstractExtension
 {
-//    private array $data;
-//
-//    public function __construct(array $data)
-//    {
-//        $this->data = $data;
-//    }
+    private TranslatorInterface $translator;
+
+    public function __construct(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
+    }
 
     public function getFilters(): array
     {
@@ -20,6 +21,7 @@ class TwigExtension extends AbstractExtension
             new TwigFilter('hash_short', [$this, 'hashShort']),
             new TwigFilter('split_amount', [$this, 'splitAmount']),
             new TwigFilter('pretty_url', [$this, 'prettyUrl']),
+            new TwigFilter('period', [$this, 'period']),
 //            new TwigFilter('html_account', [$this, 'htmlAccount'], [
 //                'is_safe' => [
 //                    'html'
@@ -119,6 +121,74 @@ class TwigExtension extends AbstractExtension
         }
 
         return $result;
+    }
+
+    public function period(null|int|string $timestamp): string
+    {
+        if ($timestamp === null || $timestamp === '') {
+            return $this->translator->trans('mtla_snapshot_box.empty');
+        }
+
+        $timestamp = (int) $timestamp;
+        if ($timestamp <= 0) {
+            return $this->translator->trans('mtla_snapshot_box.empty');
+        }
+
+        $age_seconds = max(0, time() - $timestamp);
+        if ($age_seconds < 60) {
+            return $this->translator->trans('mtla_snapshot_box.just_now');
+        }
+
+        if ($age_seconds < 3600) {
+            $count = max(1, (int) floor($age_seconds / 60));
+            return $this->transPeriod('mtla_snapshot_box.age.minutes', $count);
+        }
+
+        if ($age_seconds < 86400) {
+            $count = max(1, (int) floor($age_seconds / 3600));
+            return $this->transPeriod('mtla_snapshot_box.age.hours', $count);
+        }
+
+        $count = max(1, (int) floor($age_seconds / 86400));
+        return $this->transPeriod('mtla_snapshot_box.age.days', $count);
+    }
+
+    private function transPeriod(string $key, int $count): string
+    {
+        $translated = $this->translator->getCatalogue($this->translator->getLocale())->get($key, 'messages');
+        $forms = explode('|', $translated);
+
+        if (count($forms) < 3) {
+            return $this->translator->trans($key, ['%count%' => $count]);
+        }
+
+        if ($this->translator->getLocale() === 'ru') {
+            $choice = $this->chooseRussianPluralForm($count, $forms);
+        } else {
+            $choice = $count === 1 ? $forms[0] : ($forms[1] ?? $forms[0]);
+        }
+
+        return str_replace('%count%', (string) $count, $choice);
+    }
+
+    private function chooseRussianPluralForm(int $count, array $forms): string
+    {
+        $mod100 = $count % 100;
+        $mod10 = $count % 10;
+
+        if ($mod100 >= 11 && $mod100 <= 19) {
+            return $forms[2];
+        }
+
+        if ($mod10 === 1) {
+            return $forms[0];
+        }
+
+        if ($mod10 >= 2 && $mod10 <= 4) {
+            return $forms[1];
+        }
+
+        return $forms[2];
     }
 
     private function decodeUtf8PercentSequences(string $value): string

@@ -24,5 +24,9 @@ class MtlaRouter
         SimpleRouter::get('/programs', function () use ($Container) {
             return $Container->get(MtlaController::class)->MtlaPrograms();
         });
+
+        SimpleRouter::get('/programs/{account_id}', function ($account_id) use ($Container) {
+            return $Container->get(MtlaController::class)->MtlaProgram($account_id);
+        });
     }
 }

@@ -1,0 +1,155 @@
+{% extends "page.twig" %}
+
+{% block title %}
+    {% if program %}
+        {{ program.data.display_name }}
+    {% else %}
+        {{ 'mtla_program_page.title_missing'|trans }}
+    {% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/mtla/" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li><a href="/mtla/programs" aria-current="page">{{ 'nav.programs'|trans }}</a></li>
+    <li class="is-active">
+        <a href="#" aria-current="page">
+            {% if program %}
+                {{ program.data.name ?: program.data.short_id }}
+            {% elseif program_account %}
+                {{ program_account.display_name }}
+            {% else %}
+                {{ 'mtla_program_page.title_missing'|trans }}
+            {% endif %}
+        </a>
+    </li>
+{% endblock %}
+
+{% block content %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+
+    <style>
+        .mtla-program-status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+    </style>
+
+    {% if program %}
+        <h1 class="title">{{ program.data.name ?: program.data.short_id }}</h1>
+
+        <p class="block">
+            <strong>{{ 'mtla_program_page.account'|trans }}:</strong>
+            {{ include('account_link.twig', {data: program.data}, with_context = false) }}<br>
+            <strong>{{ 'mtla_program_page.coordinator'|trans }}:</strong>
+            {% if program.coordinator %}
+                {{ include('account_link.twig', {data: program.coordinator}, with_context = false) }}
+            {% else %}
+                {{ 'mtla_programs_page.coordinator_unknown'|trans }}
+            {% endif %}
+        </p>
+
+        <h2 class="title is-4">{{ 'mtla_program_page.participants.title'|trans }}</h2>
+        <p class="block">{{ 'mtla_program_page.participants.subtitle'|trans }}</p>
+        {% if participants %}
+            <div class="table-container block">
+                <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[6,0],[3,1],[4,1]]">
+                    <thead>
+                    <tr>
+                        <th>{{ 'mtla_program_page.participants.table.participant'|trans }}</th>
+                        <th>{{ 'mtla_program_page.participants.table.timetoken'|trans }}</th>
+                        <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.mtla_balance'|trans }}</th>
+                        <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.program_balance'|trans }}</th>
+                        <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.incoming'|trans }}</th>
+                        <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.outgoing'|trans }}</th>
+                        <th data-sorter="digit">{{ 'mtla_program_page.participants.table.status'|trans }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for participant in participants %}
+                        <tr>
+                            <td>{{ include('account_link.twig', {data: participant.account}, with_context = false) }}</td>
+                            <td>
+                                {% if participant.timetoken.url %}
+                                    <a href="{{ participant.timetoken.url }}">{{ participant.timetoken.code }}</a>
+                                {% else %}
+                                    {{ 'mtla_snapshot_box.empty'|trans }}
+                                {% endif %}
+                            </td>
+                            <td class="has-text-right">
+                                {% if participant.mtla_tt_balance is not null %}
+                                    {% set mtla_tt = participant.mtla_tt_balance|number_format(2, '.', '')|split('.') %}
+                                    {{ mtla_tt[0] }}<span class="has-text-grey">.{{ mtla_tt[1] }}</span>
+                                {% else %}
+                                    {{ 'mtla_snapshot_box.empty'|trans }}
+                                {% endif %}
+                            </td>
+                            <td class="has-text-right">
+                                {% if participant.program_tt_balance is not null %}
+                                    {% set program_tt = participant.program_tt_balance|number_format(2, '.', '')|split('.') %}
+                                    {{ program_tt[0] }}<span class="has-text-grey">.{{ program_tt[1] }}</span>
+                                {% else %}
+                                    {{ 'mtla_snapshot_box.empty'|trans }}
+                                {% endif %}
+                            </td>
+                            <td class="has-text-right">
+                                {% if participant.timetoken.url %}
+                                    {% set incoming_tt = participant.incoming_tt_90d|number_format(2, '.', '')|split('.') %}
+                                    {{ incoming_tt[0] }}<span class="has-text-grey">.{{ incoming_tt[1] }}</span>
+                                {% else %}
+                                    {{ 'mtla_snapshot_box.empty'|trans }}
+                                {% endif %}
+                            </td>
+                            <td class="has-text-right">
+                                {% if participant.timetoken.url %}
+                                    {% set outgoing_tt = participant.program_outgoing_tt_90d|number_format(2, '.', '')|split('.') %}
+                                    {{ outgoing_tt[0] }}<span class="has-text-grey">.{{ outgoing_tt[1] }}</span>
+                                {% else %}
+                                    {{ 'mtla_snapshot_box.empty'|trans }}
+                                {% endif %}
+                            </td>
+                            <td data-text="{{ participant.status.sort_order }}">
+                                <div class="mtla-program-status">
+                                    <span class="tag is-{{ participant.status.theme }}">
+                                        {{ ('mtla_program_page.status.' ~ participant.status.code)|trans({
+                                            '%amount%': min_required_tt|default(12)
+                                        }) }}
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="block">{{ 'mtla_programs_page.no_participants'|trans }}</p>
+        {% endif %}
+
+        {% include 'mtla_snapshot_box.twig' with {
+            snapshot: snapshot,
+            refresh: refresh,
+            mtla_account: mtla_account
+        } only %}
+    {% else %}
+        <h1 class="title">{{ 'mtla_program_page.title_missing'|trans }}</h1>
+        <div class="notification is-warning">
+            {{ 'mtla_program_page.not_program'|trans }}
+        </div>
+
+        {% if program_account %}
+            <p class="block">
+                <strong>{{ 'mtla_program_page.account'|trans }}:</strong>
+                {{ include('account_link.twig', {data: program_account}, with_context = false) }}
+            </p>
+            <p class="block">
+                <a href="/accounts/{{ program_account.id }}">{{ 'mtla_program_page.open_account'|trans }}</a>
+            </p>
+        {% endif %}
+    {% endif %}
+{% endblock %}

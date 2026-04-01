@@ -10,59 +10,51 @@
 
 
 {% block content %}
-    <script>
-        $(function () {
-            $(".table").tablesorter();
-        });
-    </script>
-    <style>
-        .delegation_tree li > ul {
-            margin-left: 2em;
-        }
-    </style>
-
     <h1 class="title">{{ 'mtla_programs_page.header'|trans }}</h1>
 
-    {% if activists_without_programs %}
-        <h2 class="title is-4">{{ 'mtla_programs_page.activists_without_programs'|trans }}</h2>
-        <ul class="block">
-            {% for activist in activists_without_programs %}
-                <li>{{ include('account_link.twig', {data: activist}, with_context = false) }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+    <div class="columns is-desktop is-multiline">
+        {% for program in programs %}
+            <div class="column is-half-desktop">
+                <div class="box">
+                    <h2 class="title is-4">
+                        <i class="fa-regular fa-file-lines"></i>
+                        <a href="/mtla/programs/{{ program.data.id }}">{{ program.data.name ?: program.data.short_id }}</a>
+                    </h2>
 
-    {% for program in programs %}
-        <h2 class="title is-4">
-            <i class="fa-regular fa-file-lines"></i>
-            {{ 'mtla_programs_page.program_prefix'|trans }}
-            {{ include('account_link.twig', {data: program.data}, with_context = false) }}
-        </h2>
+                    <p class="block">
+                        <strong>{{ 'mtla_programs_page.account'|trans }}:</strong>
+                        {{ include('account_link.twig', {data: program.data}, with_context = false) }}<br>
+                        <strong>{{ 'mtla_programs_page.coordinator'|trans }}:</strong>
+                        {% if program.coordinator %}
+                            {{ include('account_link.twig', {data: program.coordinator}, with_context = false) }}
+                        {% else %}
+                            {{ 'mtla_programs_page.coordinator_unknown'|trans }}
+                        {% endif %}
+                    </p>
 
-        <h3 class="title is-5">{{ 'mtla_programs_page.coordinator'|trans }}</h3>
-        <p class="block">
-        {% if program.coordinator %}
-            {{ include('account_link.twig', {data: program.coordinator}, with_context = false) }}
-        {% else %}
-            {{ 'mtla_programs_page.coordinator_unknown'|trans }}
-        {% endif %}
-
-        <h3 class="title is-5">{{ 'mtla_programs_page.participants'|trans }}</h3>
-        {% if program.participants %}
-        <ul class="block">
-            {% for participant in program.participants %}
-                <li>
-                    {{ include('account_link.twig', {data: participant}, with_context = false) }}
-                    {% if participant.tt_code %}
-                    (<a href="/tokens/{{ participant.tt_code }}-{{ participant.tt_issuer }}">{{ participant.tt_code }}</a>)
+                    <h3 class="title is-5">{{ 'mtla_programs_page.participants'|trans }}</h3>
+                    {% if program.participants %}
+                    <ul class="block">
+                        {% for participant in program.participants %}
+                            <li>
+                                {{ include('account_link.twig', {data: participant}, with_context = false) }}
+                                {% if participant.tt_code %}
+                                (<a href="/tokens/{{ participant.tt_code }}-{{ participant.tt_issuer }}">{{ participant.tt_code }}</a>)
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                        <p class="block">{{ 'mtla_programs_page.no_participants'|trans }}</p>
                     {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-            <p class="block">{{ 'mtla_programs_page.no_participants'|trans }}</p>
-        {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 
-    {% endfor %}
+    {% include 'mtla_snapshot_box.twig' with {
+        snapshot: snapshot,
+        refresh: refresh
+    } only %}
 
 {% endblock %}
