@@ -137,9 +137,9 @@
                 <p class="block">
                     {{ 'mtla_program_page.trustlines.tokens'|trans }}
                     {% for asset in trustline_action.assets %}
-                        {% if not loop.first %}, {% endif %}
+                        {%- if not loop.first %}, {% endif %}
                         <a href="{{ asset.url }}">{{ asset.code }}</a>
-                    {% endfor %}
+                    {%- endfor -%}
                     .
                 </p>
                 {{ trustline_action.signing_form|raw }}
