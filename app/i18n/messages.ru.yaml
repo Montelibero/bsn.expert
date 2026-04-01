@@ -17,6 +17,7 @@ nav:
     multisig: Редактор мультиподписи
     timetoken: Таймтокен
     percent_pay: Выплата процентов
+    xdr2lab: XDR to LAB
     mtla_votes: MTLA Votes
     mtla_rp_report: MTLA RP Report
   mtla: Ассоциация
@@ -979,3 +980,20 @@ mtla_rp_report_page:
       multiple_coordinators: Несколько координаторов
       no_participants: Нет участников
       broken_outgoing_links: Нет встречного PartOf
+
+tools_xdr2lab:
+  title: XDR to LAB
+  description: >
+    Преобразует XDR транзакции в готовую ссылку на публичную mainnet-лабораторию Stellar для редактирования транзакции.
+  xdr:
+    label: XDR транзакции
+    placeholder: AAAA...
+    help: Вставьте transaction envelope XDR. Достаточно одной строки.
+  buttons:
+    generate: Получить ссылку
+  result:
+    title: Готовая ссылка
+    label: Ссылка для Stellar Lab
+    open: Открыть в Stellar Lab →
+  errors:
+    empty_xdr: Вставьте XDR транзакции.

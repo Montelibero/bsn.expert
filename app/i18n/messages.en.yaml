@@ -17,6 +17,7 @@ nav:
     multisig: Multisig Editor
     timetoken: Timetoken
     percent_pay: Bulk Percent Payment
+    xdr2lab: XDR to LAB
     mtla_votes: MTLA Votes
     mtla_rp_report: MTLA RP Report
   mtla: MTLA
@@ -977,3 +978,20 @@ mtla_rp_report_page:
       multiple_coordinators: Multiple coordinators
       no_participants: No participants
       broken_outgoing_links: No PartOf
+
+tools_xdr2lab:
+  title: XDR to LAB
+  description: >
+    Converts transaction XDR into a ready-to-open public mainnet Stellar Lab link for editing the transaction.
+  xdr:
+    label: Transaction XDR
+    placeholder: AAAA...
+    help: Paste a transaction envelope XDR. A single line is enough.
+  buttons:
+    generate: Generate link
+  result:
+    title: Generated link
+    label: Stellar Lab link
+    open: Open in Stellar Lab →
+  errors:
+    empty_xdr: Paste a transaction XDR first.

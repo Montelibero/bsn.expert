@@ -12,6 +12,7 @@ use Montelibero\BSN\Controllers\RecommendVerificationController;
 use Montelibero\BSN\Controllers\SendTimeTokensController;
 use Montelibero\BSN\Controllers\TimeTokenController;
 use Montelibero\BSN\Controllers\VotesController;
+use Montelibero\BSN\Controllers\XdrToLabController;
 use Pecee\SimpleRouter\SimpleRouter;
 use Twig\Environment;
 
@@ -58,5 +59,9 @@ class ToolsRouter
         SimpleRouter::match(['get', 'post'], '/timetoken', function () use ($Container) {
             return $Container->get(TimeTokenController::class)->TimeToken();
         })->name('tool_timetoken');
+
+        SimpleRouter::match(['get', 'post'], '/xdr2lab', function () use ($Container) {
+            return $Container->get(XdrToLabController::class)->XdrToLab();
+        });
     }
 } 

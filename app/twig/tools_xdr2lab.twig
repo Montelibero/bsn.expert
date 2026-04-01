@@ -1,0 +1,62 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_xdr2lab.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_xdr2lab.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_xdr2lab.title'|trans }}</h1>
+    <p class="block">{{ 'tools_xdr2lab.description'|trans }}</p>
+
+    <form action="/tools/xdr2lab" method="post" class="block">
+        <div class="field">
+            <label class="label" for="xdr">{{ 'tools_xdr2lab.xdr.label'|trans }}</label>
+            <div class="control">
+                <textarea
+                    class="textarea is-family-monospace"
+                    id="xdr"
+                    name="xdr"
+                    rows="7"
+                    placeholder="{{ 'tools_xdr2lab.xdr.placeholder'|trans }}"
+                >{{ xdr }}</textarea>
+            </div>
+            <p class="help">{{ 'tools_xdr2lab.xdr.help'|trans }}</p>
+        </div>
+
+        <div class="field is-grouped">
+            <div class="control">
+                <button type="submit" class="button is-link">{{ 'tools_xdr2lab.buttons.generate'|trans }}</button>
+            </div>
+        </div>
+    </form>
+
+    {% if error %}
+        <article class="message is-danger">
+            <div class="message-body">{{ error }}</div>
+        </article>
+    {% endif %}
+
+    {% if lab_url %}
+        <div class="box">
+            <h2 class="title is-5">{{ 'tools_xdr2lab.result.title'|trans }}</h2>
+            <div class="field">
+                <label class="label" for="lab_url">{{ 'tools_xdr2lab.result.label'|trans }}</label>
+                <div class="control">
+                    <textarea
+                        class="textarea is-family-monospace"
+                        id="lab_url"
+                        rows="4"
+                        readonly
+                    >{{ lab_url }}</textarea>
+                </div>
+            </div>
+            <p class="block">
+                <a href="{{ lab_url }}" target="_blank" rel="noopener noreferrer">{{ 'tools_xdr2lab.result.open'|trans }}</a>
+            </p>
+        </div>
+    {% endif %}
+{% endblock %}
