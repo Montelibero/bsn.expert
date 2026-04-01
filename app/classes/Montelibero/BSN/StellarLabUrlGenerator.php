@@ -72,34 +72,25 @@ final class StellarLabUrlGenerator
             throw new InvalidArgumentException('Transaction has no operations.');
         }
 
-        $operationCount = count($operations);
         $totalFee = $transaction->getFee();
-        if ($totalFee % $operationCount !== 0) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'Transaction fee %d is not divisible by operation count %d.',
-                    $totalFee,
-                    $operationCount
-                )
-            );
-        }
 
         $params = [
             'source_account' => $this->muxedAccountToString($transaction->getSourceAccount()),
             'seq_num' => $transaction->getSequenceNumber()->toString(),
         ];
 
-        $baseFee = (string) ($totalFee / $operationCount);
-        if ($baseFee !== '100') {
-            $params['fee'] = $baseFee;
+        if ($totalFee !== 100) {
+            $params['fee'] = (string) $totalFee;
         }
 
         $timeBounds = $transaction->getTimeBounds();
-        if ($timeBounds !== null && ($timeBounds->getMinTime() > 0 || $timeBounds->getMaxTime() > 0)) {
+        $minTime = $timeBounds?->getMinTime()?->getTimestamp() ?? 0;
+        $maxTime = $timeBounds?->getMaxTime()?->getTimestamp() ?? 0;
+        if ($timeBounds !== null && ($minTime > 0 || $maxTime > 0)) {
             $params['cond'] = [
                 'time' => [
-                    'min_time' => $timeBounds->getMinTime() > 0 ? (string) $timeBounds->getMinTime() : '',
-                    'max_time' => $timeBounds->getMaxTime() > 0 ? (string) $timeBounds->getMaxTime() : '',
+                    'min_time' => $minTime > 0 ? (string) $minTime : '',
+                    'max_time' => $maxTime > 0 ? (string) $maxTime : '',
                 ],
             ];
         }
