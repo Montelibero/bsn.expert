@@ -131,6 +131,21 @@
             <p class="block">{{ 'mtla_programs_page.no_participants'|trans }}</p>
         {% endif %}
 
+        {% if trustline_action %}
+            <div class="box">
+                <h2 class="title is-4">{{ 'mtla_program_page.trustlines.title'|trans }}</h2>
+                <p class="block">
+                    {{ 'mtla_program_page.trustlines.tokens'|trans }}
+                    {% for asset in trustline_action.assets %}
+                        {% if not loop.first %}, {% endif %}
+                        <a href="{{ asset.url }}">{{ asset.code }}</a>
+                    {% endfor %}
+                    .
+                </p>
+                {{ trustline_action.signing_form|raw }}
+            </div>
+        {% endif %}
+
         {% include 'mtla_snapshot_box.twig' with {
             snapshot: snapshot,
             refresh: refresh,

@@ -7,11 +7,14 @@ use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\MTLA\CalcDelegations\CalcVoices;
 use Montelibero\BSN\MTLA\MtlaProgramReportService;
 use Montelibero\BSN\Relations\Member;
+use Soneso\StellarSDK\ChangeTrustOperationBuilder;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\StellarSDK;
+use Soneso\StellarSDK\TransactionBuilder;
+use Throwable;
 use Twig\Environment;
 
 class MtlaController implements RefreshDataCodeInterface
@@ -25,13 +28,15 @@ class MtlaController implements RefreshDataCodeInterface
     private StellarSDK $Stellar;
     private MtlaProgramReportService $ReportService;
     private CurrentUser $CurrentUser;
+    private SignController $SignController;
 
     public function __construct(
         BSN $BSN,
         Environment $Twig,
         StellarSDK $Stellar,
         MtlaProgramReportService $ReportService,
-        CurrentUser $CurrentUser
+        CurrentUser $CurrentUser,
+        SignController $SignController
     ) {
         $this->BSN = $BSN;
 
@@ -42,6 +47,7 @@ class MtlaController implements RefreshDataCodeInterface
         $this->Stellar = $Stellar;
         $this->ReportService = $ReportService;
         $this->CurrentUser = $CurrentUser;
+        $this->SignController = $SignController;
     }
 
     public function Mtla(): ?string
@@ -311,6 +317,7 @@ class MtlaController implements RefreshDataCodeInterface
         $snapshot = null;
         $refresh = null;
         $participants = [];
+        $trustline_action = null;
 
         if ($program !== null) {
             $can_refresh = $this->ReportService->canRefreshSnapshot();
@@ -324,6 +331,7 @@ class MtlaController implements RefreshDataCodeInterface
                 $force_refresh
             );
             $participants = $this->ReportService->buildProgramParticipantReport($program, $snapshot);
+            $trustline_action = $this->buildProgramTrustlineAction($program, $participants);
             $refresh = $this->buildRefreshDataContext($refresh_scope, $can_refresh);
             $refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
 
@@ -344,6 +352,7 @@ class MtlaController implements RefreshDataCodeInterface
             'refresh' => $refresh,
             'mtla_account' => $program !== null ? $this->ReportService->getMtlaAccountData() : null,
             'min_required_tt' => $this->ReportService->getMinRequiredTt(),
+            'trustline_action' => $trustline_action,
         ]);
     }
 
@@ -365,5 +374,81 @@ class MtlaController implements RefreshDataCodeInterface
         }
 
         $programs = array_merge($current, $others);
+    }
+
+    private function buildProgramTrustlineAction(array $program, array $participants): ?array
+    {
+        if (!$this->canCurrentUserManageProgramTrustlines($program)) {
+            return null;
+        }
+
+        $assets = [];
+        foreach ($participants as $participant) {
+            if (($participant['status']['code'] ?? null) !== 'missing_program_trustline') {
+                continue;
+            }
+
+            $code = $participant['timetoken']['code'] ?? null;
+            $issuer = $participant['timetoken']['issuer'] ?? null;
+            if (!$code || !$issuer) {
+                continue;
+            }
+
+            $asset_key = $code . '-' . $issuer;
+            if (!isset($assets[$asset_key])) {
+                $assets[$asset_key] = [
+                    'code' => $code,
+                    'issuer' => $issuer,
+                    'url' => '/tokens/' . $asset_key,
+                ];
+            }
+        }
+
+        if (!$assets) {
+            return null;
+        }
+
+        try {
+            $StellarAccount = $this->Stellar->requestAccount($program['data']['id']);
+            $Transaction = new TransactionBuilder($StellarAccount);
+
+            foreach ($assets as $asset) {
+                $Operation = new ChangeTrustOperationBuilder(Asset::createNonNativeAsset($asset['code'], $asset['issuer']));
+                $Transaction->addOperation($Operation->build());
+            }
+
+            $xdr = $Transaction->build()->toEnvelopeXdrBase64();
+        } catch (Throwable) {
+            return null;
+        }
+
+        return [
+            'assets' => array_values($assets),
+            'signing_form' => $this->SignController->SignTransaction(
+                $xdr,
+                null,
+                'Open missing trustlines for participant TT assets'
+            ),
+        ];
+    }
+
+    private function canCurrentUserManageProgramTrustlines(array $program): bool
+    {
+        if (!$this->CurrentUser->isAuthorized()) {
+            return false;
+        }
+
+        $current_account_id = $this->CurrentUser->getCurrentAccountId();
+        if (!$current_account_id) {
+            return false;
+        }
+
+        foreach ($program['participants'] as $participant) {
+            if (($participant['id'] ?? null) === $current_account_id) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

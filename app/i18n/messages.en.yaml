@@ -725,6 +725,9 @@ mtla_program_page:
     low_incoming: Less than %amount% TT arrived
     no_program_outgoing: No TT were burned from the program account
     ideal: Everything is OK
+  trustlines:
+    title: Open missing trustlines to participants' TT
+    tokens: "Add tokens:"
 
 mtla_snapshot_box:
   empty: "—"

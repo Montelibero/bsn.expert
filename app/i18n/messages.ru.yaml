@@ -727,6 +727,9 @@ mtla_program_page:
     low_incoming: Пришло меньше %amount% ТТ
     no_program_outgoing: Со счёта программы не сжигались ТТ
     ideal: Всё отлично
+  trustlines:
+    title: Открыть недостающие линии доверия к ТТ участников
+    tokens: "Добавить токены:"
 
 mtla_snapshot_box:
   empty: "—"
