@@ -24,12 +24,13 @@
     <h1 class="title">{{ 'mtla_council_page.header'|trans }}</h1>
 
     {% if delegation_tree %}
-        {% macro renderDelegationTree(tree, level) %}
+        {% macro renderDelegationTree(tree, level, council_member_limit) %}
             <ul>
                 {% for node in tree %}
                     <li>
-                        {% if node.is_ready_to_council %}🙋{% endif %}
-                        {% if node.candidate_index %}<span class="tag {{ node.candidate_index <= 20 ? 'is-primary' : 'is-info' }}">{{ node.candidate_index }}</span>{% endif %}
+                        {% if node.show_ready_to_council %}🙋{% endif %}
+                        {% if node.show_council_outdated %}🙅{% endif %}
+                        {% if node.candidate_index %}<span class="tag {{ node.candidate_index <= council_member_limit ? 'is-primary' : 'is-info' }}">{{ node.candidate_index }}</span>{% endif %}
                         {% if node.is_council %}🏛️{% endif %}
                         {{ include('account_link.twig', {data: node}, with_context = false) }}
                         <span class="has-text-dark">
@@ -37,7 +38,7 @@
                         {{ node.own_token_amount + node.delegated_token_amount }}
                         </span>
                         {% if node.delegated is not empty %}
-                            {{ _self.renderDelegationTree(node.delegated, level + 1) }}
+                            {{ _self.renderDelegationTree(node.delegated, level + 1, council_member_limit) }}
                         {% endif %}
                     </li>
                 {% endfor %}
@@ -45,9 +46,8 @@
         {% endmacro %}
 
         <div class="block delegation_tree">
-        {{ _self.renderDelegationTree(delegation_tree, 0) }}
+        {{ _self.renderDelegationTree(delegation_tree, 0, council_member_limit) }}
         </div>
     {% endif %}
 
 {% endblock %}
-

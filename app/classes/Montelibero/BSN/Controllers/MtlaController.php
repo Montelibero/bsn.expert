@@ -22,6 +22,7 @@ class MtlaController implements RefreshDataCodeInterface
     use RefreshDataCodeTrait;
 
     public const MTLA_ACCOUNT = 'GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA';
+    private const MTLA_COUNCIL_MEMBER_LIMIT = 20;
 
     private BSN $BSN;
     private Environment $Twig;
@@ -200,6 +201,7 @@ class MtlaController implements RefreshDataCodeInterface
 
         return $Template->render([
             'delegation_tree' => $delegation_tree ?? [],
+            'council_member_limit' => self::MTLA_COUNCIL_MEMBER_LIMIT,
         ]);
     }
 
@@ -228,12 +230,17 @@ class MtlaController implements RefreshDataCodeInterface
         foreach ($accounts as & $root) {
             $Account = $this->BSN->makeAccountById($root['id']);
             $root += $Account->jsonSerialize();
-            if (array_key_exists($root['id'], $current_council)) {
-                $root['is_council'] = true;
-            }
+            $root['is_council'] = array_key_exists($root['id'], $current_council);
             if (array_key_exists($root['id'], $council_candidates)) {
                 $root['candidate_index'] = $council_candidates[$root['id']]['index'];
             }
+            $root['show_ready_to_council'] = !empty($root['is_ready_to_council']) && !$root['is_council'];
+            $root['show_council_outdated'] = $root['is_council']
+                && (
+                    empty($root['is_ready_to_council'])
+                    || empty($root['candidate_index'])
+                    || $root['candidate_index'] > self::MTLA_COUNCIL_MEMBER_LIMIT
+                );
 
             if (!empty($root['delegated']) && is_array($root['delegated'])) {
                 $this->fetchAccountData($root['delegated'], $current_council, $council_candidates);
