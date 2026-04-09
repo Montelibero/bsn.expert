@@ -57,18 +57,22 @@ class MtlaProgramReportService
         $items = [];
 
         foreach ($MTLA?->getOutcomeLinks($TagProgram) ?? [] as $Program) {
-            $coordinators = $Program->getOutcomeLinks($TagProgramCoordinator);
+            $coordinator_candidates = $Program->getOutcomeLinks($TagProgramCoordinator);
             $outgoing_participants = $Program->getOutcomeLinks($TagMyPart);
             $confirmed_participants = [];
             $broken_outgoing = [];
 
             $mentioned_account_ids[$Program->getId()] = true;
 
-            foreach ($coordinators as $Coordinator) {
+            foreach ($coordinator_candidates as $Coordinator) {
                 $mentioned_account_ids[$Coordinator->getId()] = true;
             }
 
             foreach ($outgoing_participants as $Participant) {
+                if (!$this->isEligibleProgramParticipant($Participant)) {
+                    continue;
+                }
+
                 if ($this->hasOutgoingLink($Participant, $TagPartOf, $Program)) {
                     $confirmed_participants[] = $this->buildProgramParticipant($Participant);
                     $memberships[$Participant->getId()][] = $Program->jsonSerialize();
@@ -80,6 +84,15 @@ class MtlaProgramReportService
 
             usort($confirmed_participants, fn(array $a, array $b): int => strcmp($a['display_name'], $b['display_name']));
             usort($broken_outgoing, fn(array $a, array $b): int => strcmp($a['display_name'], $b['display_name']));
+
+            $confirmed_participant_ids = array_fill_keys(
+                array_map(static fn(array $participant): string => $participant['id'], $confirmed_participants),
+                true
+            );
+            $coordinators = array_values(array_filter(
+                $coordinator_candidates,
+                static fn(Account $Coordinator): bool => isset($confirmed_participant_ids[$Coordinator->getId()])
+            ));
 
             $item = [
                 'data' => $Program->jsonSerialize(),
@@ -681,6 +694,11 @@ class MtlaProgramReportService
         }
 
         return false;
+    }
+
+    private function isEligibleProgramParticipant(Account $Account): bool
+    {
+        return $Account->getBalance('MTLAP') >= 1;
     }
 
     private function calculateProgramSeverity(array $issues): int
