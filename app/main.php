@@ -2,6 +2,7 @@
 
 use DI\Container;
 use DI\ContainerBuilder;
+use Dotenv\Dotenv;
 use MongoDB\Driver\WriteConcern;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\ApiKeysManager;
@@ -28,6 +29,7 @@ use Montelibero\BSN\Controllers\TagsController;
 use Montelibero\BSN\Controllers\VotesController;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
+use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
@@ -47,7 +49,12 @@ use function DI\autowire;
 
 include_once __DIR__ . '/vendor/autoload.php';
 
+if (empty($_ENV['MONGO_HOST']) && is_file(dirname(__DIR__) . '/.env')) {
+    Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
+}
+
 const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
+const IS_CLI_CONTEXT = PHP_SAPI === 'cli';
 //const JSON_DATA_FILE_PATH = '../BoR/bsn.json';
 
 //$memory1 = memory_get_usage();
@@ -149,41 +156,55 @@ $functional_tags = [
     'RecommendForVerification',
 ];
 
-session_name("HELLOKITTY");
-//session_save_path(__DIR__ . '/../sessions');
-$session_ttl_seconds = 86400 * 14;
-session_set_cookie_params([
-    'lifetime' => $session_ttl_seconds,
-    'path' => '/',
-    'domain' => '', // Defaults to current domain
-    'secure' => !($_ENV['PHP_SESSION_NO_SECURE'] ?? false),
-    'httponly' => true,
-    'samesite' => 'Lax'
-]);
+if (IS_CLI_CONTEXT) {
+    $_SESSION ??= [];
+    $_SERVER ??= [];
+    $_COOKIE ??= [];
+} else {
+    session_name("HELLOKITTY");
+    //$session_save_path(__DIR__ . '/../sessions');
+    $session_ttl_seconds = 86400 * 14;
+    session_set_cookie_params([
+        'lifetime' => $session_ttl_seconds,
+        'path' => '/',
+        'domain' => '', // Defaults to current domain
+        'secure' => !($_ENV['PHP_SESSION_NO_SECURE'] ?? false),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
 
-// DB-backed session handler
-// Keep session TTL in sync with cookie lifetime
-ini_set('session.gc_maxlifetime', (string) $session_ttl_seconds);
-ini_set('session.gc_probability', '1');
-ini_set('session.gc_divisor', '100');
+    // DB-backed session handler
+    // Keep session TTL in sync with cookie lifetime
+    ini_set('session.gc_maxlifetime', (string) $session_ttl_seconds);
+    ini_set('session.gc_probability', '1');
+    ini_set('session.gc_divisor', '100');
 
-session_set_save_handler(
-    new MongoSessionHandler(
-        $MongoManager, 
-        $_ENV['MONGO_BASENAME'], 
-        'sessions', 
-        $session_ttl_seconds
-    ),
-    true
-);
+    session_set_save_handler(
+        new MongoSessionHandler(
+            $MongoManager,
+            $_ENV['MONGO_BASENAME'],
+            'sessions',
+            $session_ttl_seconds
+        ),
+        true
+    );
 
-session_start();
+    session_start();
+}
 
 $BSN->loadFromJson(json_decode(file_get_contents(JSON_DATA_FILE_PATH), JSON_OBJECT_AS_ARRAY));
-if (!apcu_exists('mtla_members')) {
-    MtlaController::reloadMembers();
+
+$mtla_members = [];
+if (function_exists('apcu_exists') && function_exists('apcu_fetch')) {
+    if (!apcu_exists('mtla_members')) {
+        MtlaController::reloadMembers();
+    }
+
+    $fetched_mtla_members = apcu_fetch('mtla_members');
+    if (is_array($fetched_mtla_members)) {
+        $mtla_members = $fetched_mtla_members;
+    }
 }
-$mtla_members = apcu_fetch('mtla_members');
 $BSN->loadMtlaMembersFromJson($mtla_members);
 $BSN->loadContacts();
 //$memory2 = memory_get_usage();
@@ -199,6 +220,9 @@ $ContainerBuilder->addDefinitions([
     AccountsManager::class => $AccountsManager,
     ContactsManager::class => $ContactsManager,
     DocumentsManager::class => $DocumentsManager,
+    MongoCacheManager::class => function() use ($MongoManager) {
+        return new MongoCacheManager($MongoManager, $_ENV['MONGO_BASENAME']);
+    },
     CurrentUser::class => $CurrentUser,
     ApiKeysManager::class => function() use ($MongoManager) {
         return new ApiKeysManager($MongoManager, $_ENV['MONGO_BASENAME']);
@@ -264,17 +288,19 @@ $ContainerBuilder->addDefinitions([
 ]);
 $Container = $ContainerBuilder->build();
 
-RootRoutes::register($Container, $BSN, $AccountsManager);
+if (!IS_CLI_CONTEXT) {
+    RootRoutes::register($Container, $BSN, $AccountsManager);
 
-SimpleRouter::error(function (Request $Request, Exception $Exception) use ($Container) {
-    if ($Exception->getCode() === 404) {
-        $Request->setRewriteCallback(function () use ($Container) {
-            return $Container->get(ErrorController::class)->Error404();
-        });
-    }
-});
+    SimpleRouter::error(function (Request $Request, Exception $Exception) use ($Container) {
+        if ($Exception->getCode() === 404) {
+            $Request->setRewriteCallback(function () use ($Container) {
+                return $Container->get(ErrorController::class)->Error404();
+            });
+        }
+    });
 
-SimpleRouter::start();
+    SimpleRouter::start();
+}
 
 function gristRequest($url, $method, $data = null)
 {
@@ -315,3 +341,5 @@ function gristRequest($url, $method, $data = null)
 
     return json_decode($response, true);
 }
+
+return $Container;

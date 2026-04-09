@@ -7,6 +7,7 @@ use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\MongoCacheManager;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Exceptions\HorizonRequestException;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
@@ -20,7 +21,7 @@ use Throwable;
 class MtlaProgramReportService
 {
     private const MTLA_ACCOUNT = MtlaController::MTLA_ACCOUNT;
-    private const CACHE_KEY_PREFIX = 'mtla_rp_report_snapshot:v3';
+    private const CACHE_KEY_PREFIX = 'mtla_rp_report_snapshot:v4';
     private const CACHE_TTL = 604800;
     private const LOOKBACK_DAYS = 90;
     private const ACTIVIST_MIN_MTLAP = 4;
@@ -31,12 +32,14 @@ class MtlaProgramReportService
     private BSN $BSN;
     private StellarSDK $Stellar;
     private CurrentUser $CurrentUser;
+    private MongoCacheManager $CacheManager;
 
-    public function __construct(BSN $BSN, StellarSDK $Stellar, CurrentUser $CurrentUser)
+    public function __construct(BSN $BSN, StellarSDK $Stellar, CurrentUser $CurrentUser, MongoCacheManager $CacheManager)
     {
         $this->BSN = $BSN;
         $this->Stellar = $Stellar;
         $this->CurrentUser = $CurrentUser;
+        $this->CacheManager = $CacheManager;
     }
 
     public function getMtlaAccountData(): array
@@ -820,21 +823,14 @@ class MtlaProgramReportService
 
     private function cacheFetch(string $key): mixed
     {
-        if (!function_exists('apcu_fetch')) {
-            return null;
-        }
-
-        $success = false;
-        $value = apcu_fetch($key, $success);
-        return $success ? $value : null;
+        $entry = $this->CacheManager->fetch($key);
+        return $entry['data'] ?? null;
     }
 
     private function cacheStore(string $key, mixed $value, int $ttl): void
     {
-        if (!function_exists('apcu_store')) {
-            return;
-        }
-
-        apcu_store($key, $value, $ttl);
+        $this->CacheManager->store($key, $value, $ttl, [
+            'scope' => 'mtla_rp_report_snapshot',
+        ]);
     }
 }

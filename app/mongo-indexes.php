@@ -97,12 +97,32 @@ function ensureSessionsIndexes(Manager $manager, string $database, string $colle
     );
 }
 
+function ensureCacheEntriesIndexes(Manager $manager, string $database, string $collection = 'cache_entries'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['key' => 1], 'name' => 'uniq_key', 'unique' => true],
+                ['key' => ['updated_at' => -1], 'name' => 'idx_updated_at'],
+                [
+                    'key' => ['expires_at' => 1],
+                    'name' => 'expires_ttl',
+                    'expireAfterSeconds' => 0,
+                ],
+            ],
+        ])
+    );
+}
+
 try {
     ensureUsernamesIndexes($manager, $database);
     ensureContactsIndexes($manager, $database);
     ensureDocumentsIndexes($manager, $database);
     ensureApiKeysIndexes($manager, $database);
     ensureSessionsIndexes($manager, $database);
+    ensureCacheEntriesIndexes($manager, $database);
     echo "Mongo indexes ensured\n";
 } catch (\Throwable $e) {
     fwrite(STDERR, "[mongo-indexes] " . $e->getMessage() . PHP_EOL);
