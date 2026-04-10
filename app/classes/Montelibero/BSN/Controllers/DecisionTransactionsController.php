@@ -44,8 +44,8 @@ class DecisionTransactionsController
         $decision_hash = null;
 
         $decision_number = trim($_POST['decision_number'] ?? ($_GET['question'] ?? ''));
-        $decision_text = $_POST['decision_text'] ?? '';
-        $xdr_input = trim($_POST['xdr'] ?? '');
+        $decision_text = $this->normalizeMultilineInput($_POST['decision_text'] ?? '');
+        $xdr_input = $this->normalizeMultilineInput($_POST['xdr'] ?? '');
         $seq_num_input = trim($_POST['seq_num'] ?? '');
         $seq_num_default = '';
 
@@ -61,7 +61,7 @@ class DecisionTransactionsController
                 $error .= "Номер решения обязателен и должен быть числом\n";
             }
 
-            if ($xdr_input === '' && trim($decision_text) === '') {
+            if ($xdr_input === '' && $decision_text === '') {
                 $error .= "Если нет XDR, нужен текст решения\n";
             }
 
@@ -134,9 +134,8 @@ class DecisionTransactionsController
                     $max_time = (clone $now)->add(new DateInterval('P4D'));
                     $preconditions->setTimeBounds(new TimeBounds($now, $max_time));
 
-                    $trimmed_text = trim($decision_text);
-                    if ($trimmed_text !== '') {
-                        $decision_hash = hash('sha256', $trimmed_text);
+                    if ($decision_text !== '') {
+                        $decision_hash = hash('sha256', $decision_text);
                         $memo_positive = Memo::hash(hex2bin($decision_hash));
                     } else {
                         $memo_positive = Memo::text('MTLA ' . $decision_number);
@@ -189,5 +188,15 @@ class DecisionTransactionsController
             'decline_xdr' => $decline_xdr,
             'decision_hash' => $decision_hash,
         ]);
+    }
+
+    private function normalizeMultilineInput(string $value): string
+    {
+        return trim($this->normalizeLineEndingsToLf($value));
+    }
+
+    private function normalizeLineEndingsToLf(string $text): string
+    {
+        return str_replace(["\r\n", "\r"], "\n", $text);
     }
 }
