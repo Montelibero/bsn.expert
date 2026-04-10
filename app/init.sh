@@ -4,7 +4,7 @@ cd /var/www/html || exit
 
 echo "Ensuring MongoDB indexes..."
 tries=0
-until php /var/www/html/mongo-indexes.php; do
+until php /var/www/html/cli/mongo-indexes.php; do
   tries=$((tries+1))
   if [ "$tries" -ge 5 ]; then
     echo "Failed to ensure MongoDB indexes after $tries attempts."

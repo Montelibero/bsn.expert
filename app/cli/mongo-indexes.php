@@ -1,11 +1,22 @@
+#!/usr/bin/env php
 <?php
 
 declare(strict_types=1);
 
-require __DIR__ . '/vendor/autoload.php';
-
+use Dotenv\Dotenv;
 use MongoDB\Driver\Command;
 use MongoDB\Driver\Manager;
+
+if (PHP_SAPI !== 'cli') {
+    fwrite(STDERR, "This script can only run in CLI mode.\n");
+    exit(1);
+}
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+if (empty($_ENV['MONGO_HOST']) && is_file(dirname(__DIR__, 2) . '/.env')) {
+    Dotenv::createImmutable(dirname(__DIR__, 2))->safeLoad();
+}
 
 $mongoUri = sprintf(
     'mongodb://%s:%s@%s:%s/?authSource=%s',
