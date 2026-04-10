@@ -47,5 +47,6 @@ RUN --mount=type=cache,target=/root/.composer/cache \
 COPY . .
 
 RUN composer dump-autoload --apcu
+RUN chmod +x /var/www/html/init.sh /var/www/html/cron/start-cron.sh
 
 CMD ["sh", "-c", "sh /var/www/html/init.sh && php-fpm -F"]

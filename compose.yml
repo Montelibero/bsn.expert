@@ -17,6 +17,19 @@ services:
       - cache
       - mongo
 
+  app-cron:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    command: ["sh", "/var/www/html/cron/start-cron.sh"]
+    volumes:
+      - bsn_shared_data:/var/www/bsn
+    env_file:
+      - .env
+    depends_on:
+      - cache
+      - mongo
+
   web:
     build:
       context: .

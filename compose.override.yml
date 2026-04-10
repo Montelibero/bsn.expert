@@ -6,6 +6,12 @@ services:
     volumes:
       - ./app:/var/www/html
 
+  app-cron:
+    build:
+      target: dev
+    volumes:
+      - ./app:/var/www/html
+
   web:
     build:
       target: dev

@@ -1,0 +1,4 @@
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+0 1 * * * /usr/local/bin/php /var/www/html/cli/update_mtla_rp_report_cache.php >> /proc/1/fd/1 2>> /proc/1/fd/2
