@@ -147,7 +147,14 @@
         </table>
     </div>
 
-    <h2 class="title is-4">{{ 'mtla_rp_report_page.heroes.title'|trans }}</h2>
+    <h2 class="title is-4">
+        {{ 'mtla_rp_report_page.heroes.title'|trans }}
+        {{ include('components/rich_copy_button.twig', {
+            enabled: can_copy_clipboard,
+            copy_html: clipboard_groups.heroes.html ?? null,
+            copy_text: clipboard_groups.heroes.text ?? null
+        }, with_context = false) }}
+    </h2>
     {% if heroes %}
         <ul class="block">
             {% for activist in heroes %}
@@ -167,7 +174,14 @@
 
     <h2 class="title is-4">{{ 'mtla_rp_report_page.anomalies.title'|trans }}</h2>
 
-    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.missing_timetoken'|trans }}</h3>
+    <h3 class="title is-5">
+        {{ 'mtla_rp_report_page.anomalies.missing_timetoken'|trans }}
+        {{ include('components/rich_copy_button.twig', {
+            enabled: can_copy_clipboard,
+            copy_html: clipboard_groups.missing_timetoken.html ?? null,
+            copy_text: clipboard_groups.missing_timetoken.text ?? null
+        }, with_context = false) }}
+    </h3>
     {% if anomalies.missing_timetoken %}
         <ul class="block">
             {% for activist in anomalies.missing_timetoken %}
@@ -178,7 +192,14 @@
         <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
     {% endif %}
 
-    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.missing_trustline'|trans }}</h3>
+    <h3 class="title is-5">
+        {{ 'mtla_rp_report_page.anomalies.missing_trustline'|trans }}
+        {{ include('components/rich_copy_button.twig', {
+            enabled: can_copy_clipboard,
+            copy_html: clipboard_groups.missing_trustline.html ?? null,
+            copy_text: clipboard_groups.missing_trustline.text ?? null
+        }, with_context = false) }}
+    </h3>
     {% if anomalies.missing_trustline %}
         <ul class="block">
             {% for activist in anomalies.missing_trustline %}
@@ -189,7 +210,14 @@
         <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
     {% endif %}
 
-    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.not_sending_tokens'|trans }}</h3>
+    <h3 class="title is-5">
+        {{ 'mtla_rp_report_page.anomalies.not_sending_tokens'|trans }}
+        {{ include('components/rich_copy_button.twig', {
+            enabled: can_copy_clipboard,
+            copy_html: clipboard_groups.not_sending_tokens.html ?? null,
+            copy_text: clipboard_groups.not_sending_tokens.text ?? null
+        }, with_context = false) }}
+    </h3>
     {% if anomalies.not_sending_tokens %}
         <ul class="block">
             {% for activist in anomalies.not_sending_tokens %}
@@ -203,7 +231,14 @@
         <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
     {% endif %}
 
-    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.tokens_not_spent'|trans }}</h3>
+    <h3 class="title is-5">
+        {{ 'mtla_rp_report_page.anomalies.tokens_not_spent'|trans }}
+        {{ include('components/rich_copy_button.twig', {
+            enabled: can_copy_clipboard,
+            copy_html: clipboard_groups.tokens_not_spent.html ?? null,
+            copy_text: clipboard_groups.tokens_not_spent.text ?? null
+        }, with_context = false) }}
+    </h3>
     {% if anomalies.tokens_not_spent %}
         <ul class="block">
             {% for activist in anomalies.tokens_not_spent %}
@@ -217,7 +252,14 @@
         <p class="block">{{ 'mtla_rp_report_page.empty_group'|trans }}</p>
     {% endif %}
 
-    <h3 class="title is-5">{{ 'mtla_rp_report_page.anomalies.without_programs'|trans }}</h3>
+    <h3 class="title is-5">
+        {{ 'mtla_rp_report_page.anomalies.without_programs'|trans }}
+        {{ include('components/rich_copy_button.twig', {
+            enabled: can_copy_clipboard,
+            copy_html: clipboard_groups.without_programs.html ?? null,
+            copy_text: clipboard_groups.without_programs.text ?? null
+        }, with_context = false) }}
+    </h3>
     {% if anomalies.without_programs %}
         <ul class="block">
             {% for activist in anomalies.without_programs %}

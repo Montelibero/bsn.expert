@@ -49,14 +49,25 @@ class CurrentUser
         return $Account !== null && $Account->getBalance('MTLAP') > 4;
     }
 
-    public function getShowTelegramUsernames(): bool
+    public function getMemberLevel(): int
     {
         $Account = $this->getAccount();
-        if ($Account !== null) {
-            $Relation = $Account->getRelation();
-            if (($Relation instanceof Member) && $Relation->getLevel() >= 2) {
-                return true;
-            }
+        if ($Account === null) {
+            return 0;
+        }
+
+        $Relation = $Account->getRelation();
+        if ($Relation instanceof Member) {
+            return $Relation->getLevel();
+        }
+
+        return 0;
+    }
+
+    public function getShowTelegramUsernames(): bool
+    {
+        if ($this->getMemberLevel() >= 2) {
+            return true;
         }
 
         return (bool) ($this->session['show_telegram_usernames'] ?? false);

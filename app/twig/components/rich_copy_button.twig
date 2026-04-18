@@ -1,0 +1,12 @@
+{% if enabled and copy_html and copy_text %}
+<button
+    type="button"
+    class="button is-small is-ghost js-rich-copy-button rich-copy-button"
+    data-copy-html="{{ copy_html|e('html_attr') }}"
+    data-copy-text="{{ copy_text|e('html_attr') }}"
+>
+    <span class="icon is-small">
+        <i class="fa-regular fa-clipboard"></i>
+    </span>
+</button>
+{% endif %}
