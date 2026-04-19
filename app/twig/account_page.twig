@@ -182,11 +182,11 @@
         {% for token in issued_tokens %}
                 <div class="control">
                 <a href="/tokens/{{ token.code }}{% if not token.is_known %}-{{ token.issuer }}{% endif %}" class="tags has-addons">
-                <span class="tag is-dark is-hoverable">
+                <span class="tag is-hoverable {{ token.is_known ? "is-info" : "is-dark" }}">
                 {{ token.code }}
                 </span>
                 {% if token.amount %}
-                <span class="tag is-hoverable {{ token.is_known ? "is-info" : "" }}">{{ token.amount }}</span>
+                <span class="tag is-hoverable">{{ token.amount }}</span>
                 {% endif %}
                 </a>
                 </div>
@@ -202,11 +202,11 @@
         {% for asset, balance in balances %}
                 <div class="control">
                 <a href="/tokens/{{ balance.code }}{% if balance.issuer %}-{{ balance.issuer }}{% endif %}" class="tags has-addons">
-                <span class="tag is-dark is-hoverable" title="{{ asset }}">
+                <span class="tag is-hoverable {{ balance.is_known ? "is-info" : "is-dark" }}" title="{{ asset }}">
                 {{ balance.code }}
                 </span>
                 {% if balance.amount %}
-                <span class="tag is-hoverable {{ balance.is_known ? "is-info" : "" }}">{{ balance.amount }}</span>
+                <span class="tag is-hoverable">{{ balance.amount }}</span>
                 {% endif %}
                 </a>
                 </div>
@@ -215,16 +215,38 @@
 </div>
 {% endif %}
 
-<div class="tabs is-boxed is-fullwidth">
+<style>
+.tabs_block .tabs {
+        position: sticky;
+        overflow: visible;
+        top: var(--bulma-navbar-height);
+        z-index: 10;
+        background: var(--bulma-body-background-color, white);
+}
+
+.tabs_block .tabs::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        height: var(--bulma-block-spacing);
+        background: linear-gradient(to bottom, var(--bulma-body-background-color), transparent);
+        pointer-events: none;
+}
+</style>
+
+<div class="tabs_block">
+<div class="tabs is-boxed is-fullwid2th js-account-tags-tabs" data-selected-tab="{{ selected_tags_tab }}">
         <ul>
-                <li class="is-active">
-                        <a>
+                <li{% if selected_tags_tab == 'income' %} class="is-active"{% endif %}>
+                        <a href="{{ income_tab_url }}" data-tab-target="income" aria-selected="{{ selected_tags_tab == 'income' ? 'true' : 'false' }}">
                                 <span class="icon is-small"><i class="fa-solid fa-flip-vertical fa-arrow-right-to-bracket" style="transform: scaleX(-1); display: inline-block; aria-hidden="true"></i></span>
                                 <span>{{ 'account_page.income_tags.header'|trans }} ({{ income_links_count ?: '—' }})</span>
                         </a>
                 </li>
-                <li>
-                        <a>
+                <li{% if selected_tags_tab == 'outcome' %} class="is-active"{% endif %}>
+                        <a href="{{ outcome_tab_url }}" data-tab-target="outcome" aria-selected="{{ selected_tags_tab == 'outcome' ? 'true' : 'false' }}">
                                 <span class="icon is-small"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i></span>
                                 <span>{{ 'account_page.outcome_tags.header'|trans }} ({{ outcome_links_count ?: '—' }})</span>
                         </a>
@@ -249,10 +271,10 @@
                 {% for tag in tags %}
                         <div class="control">
                                 <div class="tags has-addons">
-                                        <a href="#{{ anchor_prefix }}_tag_{{ tag.name }}" class="tag is-link">
+                                        <a href="#{{ anchor_prefix }}_tag_{{ tag.name }}" class="tag is-info">
                                                 {{ tag.name }}
                                         </a>
-                                        <span class="tag is-info">{{ tag.links|length }}</span>
+                                        <span class="tag">{{ tag.links|length }}</span>
                                 </div>
                         </div>
                 {% endfor %}
@@ -260,7 +282,7 @@
         {% endif %}
 {% endmacro %}
 
-<div class="tab_content" id="tab_content_income">
+<div class="tab_content block" id="tab_content_income"{% if selected_tags_tab != 'income' %} hidden{% endif %}>
 <p class="block">{{ 'account_page.income_tags.description'|trans }}</p>
 {{ _self.tags_navigation(income_tags, 'income') }}
 
@@ -287,7 +309,7 @@
 {% endif %}
 </div>
 
-<div class="tab_content" id="tab_content_outcome">
+<div class="tab_content block" id="tab_content_outcome"{% if selected_tags_tab != 'outcome' %} hidden{% endif %}>
 <p class="block">{{ 'account_page.outcome_tags.description'|trans }}</p>
 {{ _self.tags_navigation(outcome_tags, 'outcome') }}
 
@@ -296,13 +318,15 @@
 {% for tag in outcome_tags %}
 <div class="column is-half-desktop" id="outcome_tag_{{ tag.name }}">
 <div class="box">
-        <h3 class="title is-4" id="outcome_tag_{{ tag.name }}">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></h3>
+        <h3 class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></h3>
+        <ul>
         {% for account_id, link in tag.links %}
                 <li>
                 {{ _self.pairing_marker(tag.pair, link.has_pair, tag.pair_strong) }}
                 {{ include('account_link.twig', {data: link}, with_context = false) }}
                 </li>
         {% endfor %}
+        </ul>
 </div>
 </div>
 {% endfor %}
@@ -310,6 +334,7 @@
 {% else %}
 <p>{{ 'account_page.no_outcome_tags'|trans }}</p>
 {% endif %}
+</div>
 </div>
 
 {% if income_tags or outcome_tags %}
@@ -331,5 +356,69 @@
         </ul>
 </div>
 {% endif %}
+
+<script>
+        (function () {
+                const tabsRoot = document.querySelector('.js-account-tags-tabs');
+                if (!tabsRoot) {
+                        return;
+                }
+
+                const tabsBlock = tabsRoot.closest('.tabs_block');
+                const tabLinks = Array.from(tabsRoot.querySelectorAll('a[data-tab-target]'));
+                const tabPanels = {
+                        income: document.getElementById('tab_content_income'),
+                        outcome: document.getElementById('tab_content_outcome'),
+                };
+
+                function setActiveTab(tabName) {
+                        tabLinks.forEach(function (link) {
+                                const isActive = link.dataset.tabTarget === tabName;
+                                link.parentElement.classList.toggle('is-active', isActive);
+                                link.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                        });
+
+                        Object.entries(tabPanels).forEach(function ([panelName, panel]) {
+                                if (!panel) {
+                                        return;
+                                }
+
+                                panel.hidden = panelName !== tabName;
+                        });
+                }
+
+                function resetStickyScroll() {
+                        if (!tabsBlock) {
+                                return;
+                        }
+
+                        const stickyTop = parseFloat(getComputedStyle(tabsRoot).top) || 0;
+                        const tabsTop = tabsRoot.getBoundingClientRect().top;
+                        const blockTop = tabsBlock.getBoundingClientRect().top + window.scrollY;
+                        const releaseScrollTop = Math.max(0, Math.floor(blockTop - stickyTop - 1));
+
+                        if (tabsTop > stickyTop + 1 || window.scrollY <= releaseScrollTop) {
+                                return;
+                        }
+
+                        window.scrollTo({
+                                top: releaseScrollTop,
+                                behavior: 'auto',
+                        });
+                }
+
+                tabLinks.forEach(function (link) {
+                        link.addEventListener('click', function (event) {
+                                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                                        return;
+                                }
+
+                                event.preventDefault();
+                                setActiveTab(link.dataset.tabTarget);
+                                resetStickyScroll();
+                        });
+                });
+        })();
+</script>
 
 {% endblock %}

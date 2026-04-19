@@ -328,6 +328,7 @@ class AccountsController
         $mtla_program_page_url = $this->isMtlaProgramAccount($Account)
             ? '/mtla/programs/' . $Account->getId()
             : null;
+        $selected_tags_tab = $this->resolveTagsTab();
         $income_links_count = $this->countTagLinks($income_tags);
         $outcome_links_count = $this->countTagLinks($outcome_tags);
 
@@ -349,6 +350,9 @@ class AccountsController
             'bsn_score' => $Account->calcBsnScore(),
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,
+            'selected_tags_tab' => $selected_tags_tab,
+            'income_tab_url' => $this->buildAccountTabUrl($Account->getId(), 'income'),
+            'outcome_tab_url' => $this->buildAccountTabUrl($Account->getId(), 'outcome'),
             'income_links_count' => $income_links_count,
             'outcome_links_count' => $outcome_links_count,
             'signatures' => $signatures,
@@ -366,6 +370,22 @@ class AccountsController
         return array_reduce($tags, function (int $count, array $tag): int {
             return $count + count($tag['links'] ?? []);
         }, 0);
+    }
+
+    private function resolveTagsTab(): string
+    {
+        return ($_GET['show_tab'] ?? '') === 'outcome' ? 'outcome' : 'income';
+    }
+
+    private function buildAccountTabUrl(string $accountId, string $tab): string
+    {
+        $query = $_GET;
+        $query['show_tab'] = $tab;
+
+        $path = SimpleRouter::getUrl('account', ['id' => $accountId]);
+        $query_string = http_build_query($query);
+
+        return $path . ($query_string !== '' ? '?' . $query_string : '');
     }
 
     public function isMtlaProgramAccount(Account $Account): bool
