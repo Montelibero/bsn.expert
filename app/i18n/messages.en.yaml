@@ -519,6 +519,7 @@ tag_page:
   edit_link: Assign this tag to each of your contacts
   source: Source
   target: Target
+  pair: Pairing
   link_to_recommend_verification: Better visualized here
   unknown_tag_warning: We do not know this tag.
 

@@ -16,6 +16,16 @@
         </script>
 <h1 class="title">{{ tag.name }}</h1>
 
+        {% macro pairing_marker (pair_name, has_pair, pair_strong) %}
+                {% if has_pair %}
+                <span title="{{ 'account_page.pair.green'|trans }}: {{ pair_name }}">🟢</span>
+                {% elseif pair_strong %}
+                <span title="{{ 'account_page.pair.red'|trans }}: {{ pair_name }}">🔴</span>
+                {% else %}
+                <span title="{{ 'account_page.pair.yellow'|trans }}: {{ pair_name }}">🟡</span>
+                {% endif %}
+        {% endmacro %}
+
         {% if tag_not_found %}
         <article class="message is-warning">
                 <div class="message-body">
@@ -28,10 +38,13 @@
         <p class="block"><a href="/editor/{{ current_user.currentAccountId }}/?tag={{ tag.name }}">{{ 'tag_page.edit_link'|trans }} →</a></p>
         {% endif %}
 
-        <table class="table" data-sortlist="[[0,0],[1,0]]">
+        <table class="table" data-sortlist="{% if tag.pair %}[[0,0],[2,0]]{% else %}[[0,0],[1,0]]{% endif %}">
                 <thead>
                 <tr>
                         <th data-sorter="text">{{ 'tag_page.source'|trans }}</th>
+                        {% if tag.pair %}
+                        <th data-sorter="digit">{{ 'tag_page.pair'|trans }}</th>
+                        {% endif %}
                         <th data-sorter="text">{{ 'tag_page.target'|trans }}</th>
                 </tr>
                 </thead>
@@ -39,6 +52,9 @@
                 {% for link in links %}
                 <tr>
                         <td>{{ include('account_link.twig', {data: link.source_account}, with_context = false) }}</td>
+                        {% if tag.pair %}
+                        <td data-text="{{ link.pair_status_sort }}">{{ _self.pairing_marker(tag.pair_name, link.has_pair, tag.pair_strong) }}</td>
+                        {% endif %}
                         <td>{{ include('account_link.twig', {data: link.target_account}, with_context = false) }}</td>
                 </tr>
                 {% endfor %}

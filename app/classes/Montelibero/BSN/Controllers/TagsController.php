@@ -107,6 +107,9 @@ class TagsController
         }
 
         $links = [];
+        $PairTag = $Tag->getPair();
+        $is_pair = (bool) $PairTag;
+        $is_pair_strong = $Tag->isPairStrong();
 
         foreach ($this->BSN->getLinks() as $Link) {
             if ($Link->getTag()->getName() !== $name) {
@@ -118,9 +121,15 @@ class TagsController
             if ($Target && $Link->getTargetAccount() !== $Target) {
                 continue;
             }
+            $SourceAccount = $Link->getSourceAccount();
+            $TargetAccount = $Link->getTargetAccount();
+            $has_pair = $PairTag && in_array($SourceAccount, $TargetAccount->getOutcomeLinks($PairTag));
+
             $links[] = [
-                'source_account' => $Link->getSourceAccount()->jsonSerialize(),
-                'target_account' => $Link->getTargetAccount()->jsonSerialize(),
+                'source_account' => $SourceAccount->jsonSerialize(),
+                'target_account' => $TargetAccount->jsonSerialize(),
+                'has_pair' => $has_pair,
+                'pair_status_sort' => $has_pair ? 0 : ($is_pair_strong ? 2 : 1),
             ];
         }
 
@@ -129,6 +138,9 @@ class TagsController
             'tag' => [
                 'name' => $Tag->getName(),
                 'is_editable' => $Tag->isEditable(),
+                'pair' => $is_pair,
+                'pair_name' => $PairTag?->getName(),
+                'pair_strong' => $is_pair_strong,
             ],
             'tag_not_found' => $tag_not_found,
             'links' => $links,

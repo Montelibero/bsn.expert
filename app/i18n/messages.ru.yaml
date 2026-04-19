@@ -520,6 +520,7 @@ tag_page:
   edit_link: Проставить этот тег для ваших контактов
   source: Использует
   target: Получает
+  pair: Парность
   link_to_recommend_verification: Здесь нагляднее
   unknown_tag_warning: Мы не знаем такой тег.
 
