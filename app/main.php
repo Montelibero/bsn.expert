@@ -82,8 +82,6 @@ $ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $DocumentsManager = new DocumentsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $BSN = new BSN($AccountsManager, $ContactsManager, $DocumentsManager);
 
-$BSN->makeTagByName('Signer')->isEditable(false);
-
 // Single tags
 $BSN->makeTagByName('mtl_delegate')->isSingle(true);
 $BSN->makeTagByName('tfm_delegate')->isSingle(true);

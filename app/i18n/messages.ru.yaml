@@ -385,6 +385,11 @@ account_page:
   about: Описание
   website: Ссылка
   timetoken: Таймтокен
+  multisig:
+    header: Мультиподпись
+    limit: Лимиты
+    master_key: Мастер ключ
+    participates_in: Участвует в мультиподписи
   signatures:
     header: Документы
   issued_tokens:

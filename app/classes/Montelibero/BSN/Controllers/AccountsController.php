@@ -250,9 +250,13 @@ class AccountsController
                 'is_known' => true,
             ];
         }
-        $this->fetchAccountBalances($Account->getId(), $balances, $TokensController);
+        $multisig = $this->serializeMultisig($Account->getMultisig());
+        $fresh_account_data = $this->refreshAccountData($Account->getId(), $balances, $multisig, $TokensController);
+        $balances = $fresh_account_data['balances'];
+        $multisig = $fresh_account_data['multisig'];
 
         $display_balances = $this->isDisplayBalances($Account, $balances, $base_assets);
+        $multisig_participations = $this->serializeMultisigParticipations($Account->getMultisigParticipations());
 
         // Сортировка $balances: is_known === true идут в начало, остальные в конец, при равенстве — по code
         uasort($balances, function($a, $b) {
@@ -287,6 +291,8 @@ class AccountsController
                     'outcome' => $outcome_tags,
                     'income' => $income_tags,
                 ],
+                'multisig' => $multisig,
+                'multisig_participations' => $multisig_participations,
                 'signatures' => $signatures,
             ];
             
@@ -338,6 +344,8 @@ class AccountsController
             'issued_tokens' => $issued_tokens,
             'balances' => $balances,
             'display_balances' => $display_balances,
+            'multisig' => $multisig,
+            'multisig_participations' => $multisig_participations,
             'mtla_program_page_url' => $mtla_program_page_url,
         ]);
     }
@@ -588,46 +596,41 @@ class AccountsController
         return $issued_tokens;
     }
 
-    private function fetchAccountBalances(string $id, array & $balances, TokensController $TokensController): void
+    private function refreshAccountData(
+        string $id,
+        array $balances,
+        ?array $multisig,
+        TokensController $TokensController
+    ): array
     {
-        $cache_key = 'account_balances_' . $id;
-        if ($cached = apcu_fetch($cache_key)) {
-            $balances = $cached;
-            return;
+        $cache_key = 'account_refresh_' . $id;
+        $cached = apcu_fetch($cache_key, $cache_hit);
+        if ($cache_hit && is_array($cached)) {
+            return [
+                'balances' => $cached['balances'] ?? $balances,
+                'multisig' => $cached['multisig'] ?? $multisig,
+            ];
         }
 
         try {
             $StellarAccount = $this->Stellar->requestAccount($id);
-            foreach ($StellarAccount->getBalances()->toArray() as $Asset) {
-                if ($Asset->getAssetType() === Asset::TYPE_NATIVE) {
-                    $asset_name = 'XLM';
-                } else {
-                    if (!$Asset->getAssetCode()) {
-                        continue;
-                    }
-                    $asset_name = $Asset->getAssetCode() . '-' . $Asset->getAssetIssuer();
-                }
-                if (!array_key_exists($asset_name, $balances)) {
-                    $balances[$asset_name] = [
-                        'code' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? 'XLM' : $Asset->getAssetCode(),
-                    ];
-                }
-                $balances[$asset_name]['amount'] = (float) $Asset->getBalance();
-                if ($asset_name !== 'XLM'
-                    && ($kt = $TokensController->getKnownTokenByCode($balances[$asset_name]['code']))
-                    && $kt['issuer'] === $Asset->getAssetIssuer()
-                ) {
-                    $balances[$asset_name]['is_known'] = true;
-                } else {
-                    $balances[$asset_name]['issuer'] = $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer();
-                }
-            }
+            $this->applyBalancesFromHorizon($StellarAccount, $balances, $TokensController);
+            $multisig = $this->buildMultisigFromHorizon($StellarAccount);
+            apcu_store($cache_key, [
+                'balances' => $balances,
+                'multisig' => $multisig,
+            ], 60 * 60);
         } catch (\Exception $E) {
-            apcu_store($cache_key, $balances, 60 * 5);
-            return;
+            apcu_store($cache_key, [
+                'balances' => $balances,
+                'multisig' => $multisig,
+            ], 60 * 5);
         }
 
-        apcu_store($cache_key, $balances, 60 * 60);
+        return [
+            'balances' => $balances,
+            'multisig' => $multisig,
+        ];
     }
 
     /**
@@ -651,6 +654,140 @@ class AccountsController
         }
 
         return false;
+    }
+
+    private function serializeMultisig(?array $multisig): ?array
+    {
+        if ($multisig === null) {
+            return null;
+        }
+
+        $med_threshold = (int) ($multisig['thresholds'][1] ?? 0);
+        $signers = array_map(function (array $signer) use ($med_threshold): array {
+            /** @var Account $SignerAccount */
+            $SignerAccount = $signer['account'];
+
+            return $SignerAccount->jsonSerialize() + [
+                'weight' => (int) ($signer['weight'] ?? 0),
+                'can_sign_alone' => (int) ($signer['weight'] ?? 0) >= $med_threshold,
+            ];
+        }, $multisig['signers'] ?? []);
+
+        usort($signers, function (array $a, array $b): int {
+            $weight_comparison = ((int) ($b['weight'] ?? 0)) <=> ((int) ($a['weight'] ?? 0));
+            if ($weight_comparison !== 0) {
+                return $weight_comparison;
+            }
+
+            return strcmp((string) ($a['id'] ?? ''), (string) ($b['id'] ?? ''));
+        });
+
+        return [
+            'thresholds' => [
+                'low' => (int) ($multisig['thresholds'][0] ?? 0),
+                'med' => (int) ($multisig['thresholds'][1] ?? 0),
+                'high' => (int) ($multisig['thresholds'][2] ?? 0),
+            ],
+            'master_key' => (int) ($multisig['master_key'] ?? 0),
+            'master_key_can_sign_alone' => (int) ($multisig['master_key'] ?? 0) >= $med_threshold,
+            'signers' => $signers,
+        ];
+    }
+
+    private function serializeMultisigParticipations(array $participations): array
+    {
+        return array_map(function (array $participation): array {
+            /** @var Account $MultisigAccount */
+            $MultisigAccount = $participation['account'];
+            $weight = (int) ($participation['weight'] ?? 0);
+            $med_threshold = (int) ($participation['med_threshold'] ?? 0);
+
+            return [
+                'account' => $MultisigAccount->jsonSerialize(),
+                'weight' => $weight,
+                'med_threshold' => $med_threshold,
+                'can_sign_alone' => $weight >= $med_threshold,
+            ];
+        }, $participations);
+    }
+
+    private function applyBalancesFromHorizon($StellarAccount, array & $balances, TokensController $TokensController): void
+    {
+        foreach ($StellarAccount->getBalances()->toArray() as $Asset) {
+            if ($Asset->getAssetType() === Asset::TYPE_NATIVE) {
+                $asset_name = 'XLM';
+            } else {
+                if (!$Asset->getAssetCode()) {
+                    continue;
+                }
+                $asset_name = $Asset->getAssetCode() . '-' . $Asset->getAssetIssuer();
+            }
+            if (!array_key_exists($asset_name, $balances)) {
+                $balances[$asset_name] = [
+                    'code' => $Asset->getAssetType() === Asset::TYPE_NATIVE ? 'XLM' : $Asset->getAssetCode(),
+                ];
+            }
+            $balances[$asset_name]['amount'] = (float) $Asset->getBalance();
+            if ($asset_name !== 'XLM'
+                && ($kt = $TokensController->getKnownTokenByCode($balances[$asset_name]['code']))
+                && $kt['issuer'] === $Asset->getAssetIssuer()
+            ) {
+                $balances[$asset_name]['is_known'] = true;
+            } else {
+                $balances[$asset_name]['issuer'] = $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer();
+            }
+        }
+    }
+
+    private function buildMultisigFromHorizon($StellarAccount): ?array
+    {
+        $signers = [];
+        $master_key = 0;
+        $med_threshold = (int) $StellarAccount->getThresholds()->getMedThreshold();
+        foreach ($StellarAccount->getSigners() as $Signer) {
+            if ($Signer->getType() !== 'ed25519_public_key') {
+                continue;
+            }
+
+            $weight = (int) $Signer->getWeight();
+            if ($Signer->getKey() === $StellarAccount->getAccountId()) {
+                $master_key = $weight;
+                continue;
+            }
+
+            if ($weight <= 0 || !BSN::validateStellarAccountIdFormat($Signer->getKey())) {
+                continue;
+            }
+
+            $signers[] = $this->BSN->makeAccountById($Signer->getKey())->jsonSerialize() + [
+                'weight' => $weight,
+                'can_sign_alone' => $weight >= $med_threshold,
+            ];
+        }
+
+        if (!$signers) {
+            return null;
+        }
+
+        usort($signers, function (array $a, array $b): int {
+            $weight_comparison = ((int) ($b['weight'] ?? 0)) <=> ((int) ($a['weight'] ?? 0));
+            if ($weight_comparison !== 0) {
+                return $weight_comparison;
+            }
+
+            return strcmp((string) ($a['id'] ?? ''), (string) ($b['id'] ?? ''));
+        });
+
+        return [
+            'thresholds' => [
+                'low' => (int) $StellarAccount->getThresholds()->getLowThreshold(),
+                'med' => $med_threshold,
+                'high' => (int) $StellarAccount->getThresholds()->getHighThreshold(),
+            ],
+            'master_key' => $master_key,
+            'master_key_can_sign_alone' => $master_key >= $med_threshold,
+            'signers' => $signers,
+        ];
     }
 
     private function validateNostrNpub(?string $nostr_tag): bool

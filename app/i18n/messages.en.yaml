@@ -387,6 +387,11 @@ account_page:
   about: About
   website: Website
   timetoken: Timetoken
+  multisig:
+    header: Multisig
+    limit: Thresholds
+    master_key: Master key
+    participates_in: Participates in multisig
   signatures:
     header: Documents
   issued_tokens:

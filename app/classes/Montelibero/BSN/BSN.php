@@ -70,6 +70,27 @@ class BSN
                     $Account->addBalanceRecord($name, floatval($value));
                 }
             }
+
+            if (array_key_exists('multisig', $data) && is_array($data['multisig'])) {
+                $multisig = $this->normalizeMultisig($account_id, $data['multisig']);
+                if ($multisig !== null) {
+                    $signers = [];
+                    foreach ($multisig['signers'] as $signer) {
+                        $SignerAccount = $this->makeAccountById($signer['account_id']);
+                        $signers[] = [
+                            'account' => $SignerAccount,
+                            'weight' => $signer['weight'],
+                        ];
+                        $SignerAccount->addMultisigParticipation(
+                            $Account,
+                            $signer['weight'],
+                            $multisig['thresholds'][1]
+                        );
+                    }
+
+                    $Account->setMultisig($multisig['thresholds'], $multisig['master_key'], $signers);
+                }
+            }
         }
 
         $this->findInherited();
@@ -270,5 +291,50 @@ class BSN
 
             $this->accounts[$account_id]->setUsername($username);
         }
+    }
+
+    private function normalizeMultisig(string $account_id, array $data): ?array
+    {
+        if (!isset($data['thresholds'], $data['signers']) || !is_array($data['thresholds']) || !is_array($data['signers'])) {
+            return null;
+        }
+
+        $thresholds = array_values(array_map('intval', $data['thresholds']));
+        if (count($thresholds) !== 3) {
+            return null;
+        }
+
+        $signers = [];
+        foreach ($data['signers'] as $signer) {
+            if (!is_array($signer) || count($signer) < 2) {
+                continue;
+            }
+
+            $signer_account_id = $signer[0];
+            $weight = (int) $signer[1];
+            if (
+                !is_string($signer_account_id)
+                || $signer_account_id === $account_id
+                || !self::validateStellarAccountIdFormat($signer_account_id)
+                || $weight <= 0
+            ) {
+                continue;
+            }
+
+            $signers[] = [
+                'account_id' => $signer_account_id,
+                'weight' => $weight,
+            ];
+        }
+
+        if (!$signers) {
+            return null;
+        }
+
+        return [
+            'thresholds' => $thresholds,
+            'master_key' => (int) ($data['master_key'] ?? 0),
+            'signers' => $signers,
+        ];
     }
 }

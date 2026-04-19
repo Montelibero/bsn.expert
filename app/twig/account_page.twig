@@ -113,6 +113,48 @@
 </dl>
 {% endif %}
 
+{% if multisig %}
+<div class="box">
+        <h2 class="title">{{ 'account_page.multisig.header'|trans }}</h2>
+
+        <div class="field is-grouped is-grouped-multiline">
+                {{ 'account_page.multisig.limit'|trans }}:
+                <div class="control">
+                        <div class="tags has-addons">
+                                <span class="tag is-info">low</span>
+                                <span class="tag">{{ multisig.thresholds.low }}</span>
+                        </div>
+                </div>
+                <div class="control">
+                        <div class="tags has-addons">
+                                <span class="tag is-info">med</span>
+                                <span class="tag">{{ multisig.thresholds.med }}</span>
+                        </div>
+                </div>
+                <div class="control">
+                        <div class="tags has-addons">
+                                <span class="tag is-info">high</span>
+                                <span class="tag">{{ multisig.thresholds.high }}</span>
+                        </div>
+                </div>
+        </div>
+        <ul class="block">
+        {% if multisig.master_key %}
+                <li>
+                        {{ 'account_page.multisig.master_key'|trans }}:
+                        <span class="tag{% if multisig.master_key_can_sign_alone %} is-success{% endif %}">{{ multisig.master_key }}</span>
+                </li>
+        {% endif %}
+        {% for signer in multisig.signers %}
+                <li>
+                        {{ include('account_link.twig', {data: signer}, with_context = false) }}
+                        <span class="tag{% if signer.can_sign_alone %} is-success{% endif %}">{{ signer.weight }}</span>
+                </li>
+        {% endfor %}
+        </ul>
+</div>
+{% endif %}
+
 {% if mtla_program_page_url %}
 <div class="box">
     <p class="block">
@@ -245,6 +287,22 @@
 </div>
 {% if income_tags or outcome_tags %}
 <p class="block"><a href="/accounts/{{ account_id }}/and/">🪢 {{ 'account_page.this_account_and'|trans }}</a></p>
+{% endif %}
+
+{% if multisig_participations %}
+<div class="box">
+        <h2 class="title">{{ 'account_page.multisig.participates_in'|trans }}</h2>
+        <ul>
+        {% for participation in multisig_participations %}
+                <li>
+                {{ include('account_link.twig', {data: participation.account}, with_context = false) }}
+                <span class="tag is-small{% if participation.can_sign_alone %} is-success{% endif %}">
+                        {{ participation.weight }} / {{ participation.med_threshold }}
+                </span>
+                </li>
+        {% endfor %}
+        </ul>
+</div>
 {% endif %}
 
 {% endblock %}

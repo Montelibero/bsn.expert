@@ -35,6 +35,8 @@ class Account implements JsonSerializable
     /** @var Signature[] */
     private array $signatures = [];
     private array $profile;
+    private ?array $multisig = null;
+    private array $multisig_participations = [];
 
     public function __construct(string $id = null)
     {
@@ -292,6 +294,109 @@ class Account implements JsonSerializable
         return $this->balances[$name];
     }
 
+    public function setMultisig(array $thresholds, int $master_key, array $signers): void
+    {
+        $normalized_signers = [];
+        foreach ($signers as $signer) {
+            if (!($signer['account'] ?? null) instanceof self) {
+                continue;
+            }
+
+            $normalized_signers[] = [
+                'account' => $signer['account'],
+                'weight' => (int) ($signer['weight'] ?? 0),
+            ];
+        }
+
+        if (!$normalized_signers) {
+            $this->multisig = null;
+            return;
+        }
+
+        $this->multisig = [
+            'thresholds' => [
+                (int) ($thresholds[0] ?? 0),
+                (int) ($thresholds[1] ?? 0),
+                (int) ($thresholds[2] ?? 0),
+            ],
+            'master_key' => $master_key,
+            'signers' => $normalized_signers,
+        ];
+    }
+
+    public function getMultisig(): ?array
+    {
+        return $this->multisig;
+    }
+
+    public function hasMultisig(): bool
+    {
+        return $this->multisig !== null;
+    }
+
+    public function addMultisigParticipation(self $Account, int $weight, int $med_threshold): void
+    {
+        $this->multisig_participations[$Account->getId()] = [
+            'account' => $Account,
+            'weight' => $weight,
+            'med_threshold' => $med_threshold,
+        ];
+    }
+
+    public function getMultisigParticipations(): array
+    {
+        $participations = array_values($this->multisig_participations);
+
+        usort($participations, function (array $a, array $b): int {
+            $a_can_sign_alone = self::canSignMultisigAlone($a);
+            $b_can_sign_alone = self::canSignMultisigAlone($b);
+            if ($a_can_sign_alone !== $b_can_sign_alone) {
+                return $a_can_sign_alone ? -1 : 1;
+            }
+
+            $ratio_comparison = self::multisigParticipationRatio($b) <=> self::multisigParticipationRatio($a);
+            if ($ratio_comparison !== 0) {
+                return $ratio_comparison;
+            }
+
+            $weight_comparison = ((int) ($b['weight'] ?? 0)) <=> ((int) ($a['weight'] ?? 0));
+            if ($weight_comparison !== 0) {
+                return $weight_comparison;
+            }
+
+            $threshold_comparison = ((int) ($a['med_threshold'] ?? 0)) <=> ((int) ($b['med_threshold'] ?? 0));
+            if ($threshold_comparison !== 0) {
+                return $threshold_comparison;
+            }
+
+            /** @var self $a_account */
+            $a_account = $a['account'];
+            /** @var self $b_account */
+            $b_account = $b['account'];
+
+            return strcmp($a_account->getId(), $b_account->getId());
+        });
+
+        return $participations;
+    }
+
+    private static function canSignMultisigAlone(array $participation): bool
+    {
+        return (int) ($participation['weight'] ?? 0) >= (int) ($participation['med_threshold'] ?? 0);
+    }
+
+    private static function multisigParticipationRatio(array $participation): float
+    {
+        $weight = (int) ($participation['weight'] ?? 0);
+        $med_threshold = (int) ($participation['med_threshold'] ?? 0);
+
+        if ($med_threshold <= 0) {
+            return $weight > 0 ? INF : 0.0;
+        }
+
+        return $weight / $med_threshold;
+    }
+
     public function getOwner(): ?Account
     {
         static $found = false;
@@ -403,7 +508,7 @@ class Account implements JsonSerializable
         if ($this->website) {
             $score += 5;
         }
-        if (count($this->getOutcomeLinks(Tag::fromName('Signer'))) > 1) {
+        if ($this->hasMultisig()) {
             $score += 10;
         }
         if (count($this->getOutcomeTags()) > 2) {
