@@ -227,7 +227,7 @@ search:
   description: >
     The search is still simple and basic. It can only find results by a full Stellar address or a tag.
     At best, it can recognize that "like" is the tag "Like."
-  placeholder_hint: Account id, tag name, transaction hash etc
+  placeholder_hint: Account, token, tag, transaction...
   action:
     search: Find
 
@@ -520,6 +520,7 @@ tag_page:
   source: Source
   target: Target
   link_to_recommend_verification: Better visualized here
+  unknown_tag_warning: We do not know this tag.
 
 recommend_verification_page:
   title: Recommendation Verification

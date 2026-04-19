@@ -108,15 +108,11 @@ class WebApp
         }
 
         if (BSN::validateTagNameFormat($q)) {
-            $tag_name = $q;
-            foreach ($this->BSN->getTags() as $Tag) {
-                if (mb_strtolower($Tag->getName()) === $tag_name) {
-                    $tag_name = $Tag->getName();
-                    break;
-                }
+            $Tag = $this->BSN->findTagByName($q);
+            if ($Tag) {
+                SimpleRouter::response()->redirect(SimpleRouter::getUrl('tag', ['id' => $Tag->getName()]));
+                return null;
             }
-            SimpleRouter::response()->redirect(SimpleRouter::getUrl('tag', ['id' => $tag_name]));
-            return null;
         }
 
         $Template = $this->Twig->load('search.twig');

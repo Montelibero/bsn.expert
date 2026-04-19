@@ -171,6 +171,22 @@ class BSN
         return $this->tags[$name] ?? null;
     }
 
+    public function findTagByName(string $name): ?Tag
+    {
+        if (isset($this->tags[$name])) {
+            return $this->tags[$name];
+        }
+
+        $normalized_name = mb_strtolower($name);
+        foreach ($this->tags as $Tag) {
+            if (mb_strtolower($Tag->getName()) === $normalized_name) {
+                return $Tag;
+            }
+        }
+
+        return null;
+    }
+
 
     /**
      * @return Link[]

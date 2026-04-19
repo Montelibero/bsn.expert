@@ -16,6 +16,14 @@
         </script>
 <h1 class="title">{{ tag.name }}</h1>
 
+        {% if tag_not_found %}
+        <article class="message is-warning">
+                <div class="message-body">
+                        {{ 'tag_page.unknown_tag_warning'|trans }}
+                </div>
+        </article>
+        {% endif %}
+
         {% if tag.is_editable and current_user.currentAccountId %}
         <p class="block"><a href="/editor/{{ current_user.currentAccountId }}/?tag={{ tag.name }}">{{ 'tag_page.edit_link'|trans }} →</a></p>
         {% endif %}

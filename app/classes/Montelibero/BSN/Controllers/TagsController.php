@@ -85,13 +85,24 @@ class TagsController
             $Target = $this->BSN->makeAccountById($_GET['target']);
         }
 
-        $Tag = $this->BSN->getTag($name);
-        if (!$Tag && BSN::validateTagNameFormat($name)) {
-            $Tag = $this->BSN->makeTagByName($name);
-        }
+        $Tag = BSN::validateTagNameFormat($name)
+            ? $this->BSN->findTagByName($name)
+            : null;
+        $tag_not_found = $Tag === null;
 
         if (!$Tag) {
+            if (!BSN::validateTagNameFormat($name)) {
+                SimpleRouter::response()->httpCode(404);
+                return null;
+            }
+
+            $Tag = $this->BSN->makeTagByName($name);
+            $Tag->isEditable(false);
             SimpleRouter::response()->httpCode(404);
+        }
+
+        if ($Tag->getName() !== $name) {
+            SimpleRouter::response()->redirect(SimpleRouter::getUrl('tag', ['id' => $Tag->getName()]), 302);
             return null;
         }
 
@@ -119,6 +130,7 @@ class TagsController
                 'name' => $Tag->getName(),
                 'is_editable' => $Tag->isEditable(),
             ],
+            'tag_not_found' => $tag_not_found,
             'links' => $links,
         ]);
     }
