@@ -165,9 +165,20 @@ class WebApp
         $current_language = $Translator->getLocale();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $current_account_action = trim((string) ($_POST['current_account_action'] ?? ''));
+            if ($current_account_action === 'reset') {
+                $reset_account_id = $this->CurrentUser->isAuthorized()
+                    ? $this->CurrentUser->getAccountId()
+                    : null;
+                $this->CurrentUser->setCurrentAccountId($reset_account_id);
+                SimpleRouter::response()->redirect($this->resolvePreferencesReturnTo('/'), 302);
+                return null;
+            }
+
             $time = time() + (6 * 30 * 24 * 60 * 60); // 6 months
             $variants = ['this', 'eurmtl', 'brainbox'];
-            $viewer = in_array($_POST['viewer'], $variants) ? $_POST['viewer'] : '';
+            $viewer_input = (string) ($_POST['viewer'] ?? '');
+            $viewer = in_array($viewer_input, $variants, true) ? $viewer_input : '';
             $this->default_viewer = $viewer;
             setcookie(
                 'default_viewer',
@@ -183,7 +194,8 @@ class WebApp
             );
             // Language
             $variants = ['en', 'ru'];
-            $language = in_array($_POST['language'], $variants) ? $_POST['language'] : '';
+            $language_input = (string) ($_POST['language'] ?? '');
+            $language = in_array($language_input, $variants, true) ? $language_input : '';
             $current_language = $language ?: $current_language;
             setcookie(
                 'language',
@@ -321,5 +333,19 @@ class WebApp
         }
 
         return array_values($owned);
+    }
+
+    private function resolvePreferencesReturnTo(string $fallback = '/preferences'): string
+    {
+        $return_to = trim((string) ($_POST['return_to'] ?? $_SERVER['REQUEST_URI'] ?? $fallback));
+        if ($return_to === '') {
+            return $fallback;
+        }
+
+        if (!str_starts_with($return_to, '/') || str_starts_with($return_to, '//')) {
+            return $fallback;
+        }
+
+        return $return_to;
     }
 }

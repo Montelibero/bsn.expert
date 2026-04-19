@@ -146,13 +146,8 @@
         <a class="navbar-item has-background-primary has-text-black" href="/">
             {{ 'common.short_name'|trans }}
         </a>
-        {% set current_account %}
         {% set current_id = current_user.currentAccountId %}
         {% set auth_id = current_user.account.id %}
-        {% if current_id and current_id != auth_id %}
-            <span class="tag is-info">{{ current_user.getCurrentAccount.getShortId }}</span>
-        {% endif %}
-        {% endset %}
 
         {% if current_user.account %}
         <a class="navbar-item" href="/preferences">
@@ -161,14 +156,22 @@
             {% else %}
             {{ current_user.account.getShortId }}
             {% endif %}
-            {{ current_account }}
         </a>
         {% else %}
         <a class="navbar-item" href="/login?return_to={{ server.REQUEST_URI }}">
             <span class="icon"><i class="fa-solid fa-arrow-right-to-bracket"></i></span>
             {{ 'nav.login'|trans }}
-            {{ current_account }}
         </a>
+        {% endif %}
+        {% if current_id and current_id != auth_id %}
+        <form class="navbar-item" action="/preferences" method="post" style="margin-bottom: 0; padding-left: 0;">
+            <input type="hidden" name="current_account_action" value="reset">
+            <input type="hidden" name="return_to" value="{{ server.REQUEST_URI }}">
+            <span class="tag is-info">
+                {{ current_user.getCurrentAccount.getShortId }}
+                <button type="submit" class="delete is-small"></button>
+            </span>
+        </form>
         {% endif %}
         <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
             <span aria-hidden="true"></span>
