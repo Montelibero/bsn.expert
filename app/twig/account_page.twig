@@ -215,23 +215,22 @@
 </div>
 {% endif %}
 
-{% if income_tags %}
-<div class="box">
-        <h2 class="title">{{ 'account_page.income_tags.header'|trans }}</h2>
-        <div class="field is-grouped is-grouped-multiline">
-        {% for tag in income_tags %}
-                <div class="control">
-                <div class="tags has-addons">
-                <a href="#income_tag_{{ tag.name }}" class="tag is-link">
-                {{ tag.name }}
-                </a>
-                <span class="tag is-info">{{ tag.links|length }}</span>
-                </div>
-                </div>
-        {% endfor %}
-        </div>
+<div class="tabs is-boxed is-fullwidth">
+        <ul>
+                <li class="is-active">
+                        <a>
+                                <span class="icon is-small"><i class="fa-solid fa-flip-vertical fa-arrow-right-to-bracket" style="transform: scaleX(-1); display: inline-block; aria-hidden="true"></i></span>
+                                <span>{{ 'account_page.income_tags.header'|trans }} ({{ income_links_count ?: '—' }})</span>
+                        </a>
+                </li>
+                <li>
+                        <a>
+                                <span class="icon is-small"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i></span>
+                                <span>{{ 'account_page.outcome_tags.header'|trans }} ({{ outcome_links_count ?: '—' }})</span>
+                        </a>
+                </li>
+        </ul>
 </div>
-{% endif %}
 
 {% macro pairing_marker (pair, has_pair, pair_strong) %}
         {% if pair %}
@@ -244,47 +243,75 @@
         {% endif %}
 {% endmacro %}
 
-<div class="columns">
-<div class="column">
-<h2 class="title">{{ 'account_page.income_tags.header'|trans }} <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-flip-vertical fa-arrow-right-to-bracket" style="transform: scaleX(-1); display: inline-block;"></i></span></h2>
+{% macro tags_navigation(tags, anchor_prefix) %}
+        {% if tags and tags|length > 3 %}
+        <div class="field is-grouped is-grouped-multiline">
+                {% for tag in tags %}
+                        <div class="control">
+                                <div class="tags has-addons">
+                                        <a href="#{{ anchor_prefix }}_tag_{{ tag.name }}" class="tag is-link">
+                                                {{ tag.name }}
+                                        </a>
+                                        <span class="tag is-info">{{ tag.links|length }}</span>
+                                </div>
+                        </div>
+                {% endfor %}
+        </div>
+        {% endif %}
+{% endmacro %}
+
+<div class="tab_content" id="tab_content_income">
 <p class="block">{{ 'account_page.income_tags.description'|trans }}</p>
+{{ _self.tags_navigation(income_tags, 'income') }}
+
 {% if income_tags %}
+<div class="columns is-desktop is-multiline">
 {% for tag in income_tags %}
-<dl class="block">
-        <dt class="title is-4" id="income_tag_{{ tag.name }}">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
+<div class="column is-half-desktop" id="income_tag_{{ tag.name }}">
+<div class="box">
+        <h3 class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></h3>
+        <ul>
         {% for account_id, link in tag.links %}
-                <dd>
+                <li>
                 {{ _self.pairing_marker(tag.pair, link.has_pair, tag.pair_strong) }}
                 {{ include('account_link.twig', {data: link}, with_context = false) }}
-                </dd>
+                </li>
         {% endfor %}
-</dl>
+        </ul>
+</div>
+</div>
 {% endfor %}
+</div>
 {% else %}
 <p>{{ 'account_page.no_income_tags'|trans }}</p>
 {% endif %}
 </div>
 
-<div class="column">
-<h2 class="title">{{ 'account_page.outcome_tags.header'|trans }} <span class="icon" style="margin-left: 0.3em;"><i class="fa-solid fa-arrow-right-from-bracket"></i></span></h2>
+<div class="tab_content" id="tab_content_outcome">
 <p class="block">{{ 'account_page.outcome_tags.description'|trans }}</p>
+{{ _self.tags_navigation(outcome_tags, 'outcome') }}
+
 {% if outcome_tags %}
+<div class="columns is-desktop is-multiline">
 {% for tag in outcome_tags %}
-<dl class="block">
-        <dt class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></dt>
+<div class="column is-half-desktop" id="outcome_tag_{{ tag.name }}">
+<div class="box">
+        <h3 class="title is-4" id="outcome_tag_{{ tag.name }}">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></h3>
         {% for account_id, link in tag.links %}
-                <dd>
+                <li>
                 {{ _self.pairing_marker(tag.pair, link.has_pair, tag.pair_strong) }}
                 {{ include('account_link.twig', {data: link}, with_context = false) }}
-                </dd>
+                </li>
         {% endfor %}
-</dl>
+</div>
+</div>
 {% endfor %}
+</div>
 {% else %}
 <p>{{ 'account_page.no_outcome_tags'|trans }}</p>
 {% endif %}
 </div>
-</div>
+
 {% if income_tags or outcome_tags %}
 <p class="block"><a href="/accounts/{{ account_id }}/and/">🪢 {{ 'account_page.this_account_and'|trans }}</a></p>
 {% endif %}

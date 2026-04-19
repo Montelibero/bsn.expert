@@ -280,6 +280,9 @@ class AccountsController
                 $income_tags = array_filter($income_tags, $filter_tags, ARRAY_FILTER_USE_KEY);
             }
 
+            $income_links_count = $this->countTagLinks($income_tags);
+            $outcome_links_count = $this->countTagLinks($outcome_tags);
+
             $result = [
                 'account' => $Account->jsonSerialize(),
                 'self_presentation' => [
@@ -290,6 +293,10 @@ class AccountsController
                 'links' => [
                     'outcome' => $outcome_tags,
                     'income' => $income_tags,
+                ],
+                'links_count' => [
+                    'outcome' => $outcome_links_count,
+                    'income' => $income_links_count,
                 ],
                 'multisig' => $multisig,
                 'multisig_participations' => $multisig_participations,
@@ -321,6 +328,8 @@ class AccountsController
         $mtla_program_page_url = $this->isMtlaProgramAccount($Account)
             ? '/mtla/programs/' . $Account->getId()
             : null;
+        $income_links_count = $this->countTagLinks($income_tags);
+        $outcome_links_count = $this->countTagLinks($outcome_tags);
 
         $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
@@ -340,6 +349,8 @@ class AccountsController
             'bsn_score' => $Account->calcBsnScore(),
             'income_tags' => $income_tags,
             'outcome_tags' => $outcome_tags,
+            'income_links_count' => $income_links_count,
+            'outcome_links_count' => $outcome_links_count,
             'signatures' => $signatures,
             'issued_tokens' => $issued_tokens,
             'balances' => $balances,
@@ -348,6 +359,13 @@ class AccountsController
             'multisig_participations' => $multisig_participations,
             'mtla_program_page_url' => $mtla_program_page_url,
         ]);
+    }
+
+    private function countTagLinks(array $tags): int
+    {
+        return array_reduce($tags, function (int $count, array $tag): int {
+            return $count + count($tag['links'] ?? []);
+        }, 0);
     }
 
     public function isMtlaProgramAccount(Account $Account): bool
