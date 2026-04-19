@@ -520,6 +520,11 @@ tag_page:
   source: Source
   target: Target
   pair: Pairing
+  standard: Standard
+  pair_simple: Paired
+  pair_strong: Strictly paired
+  pair_with: "pair %tag_link%"
+  unknown_to_system: This tag is unknown to the system.
   link_to_recommend_verification: Better visualized here
   unknown_tag_warning: We do not know this tag.
 

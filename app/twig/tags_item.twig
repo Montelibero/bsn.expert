@@ -26,12 +26,39 @@
                 {% endif %}
         {% endmacro %}
 
-        {% if tag_not_found %}
+        {% if tag_not_found and known_tag.is_known %}
         <article class="message is-warning">
                 <div class="message-body">
                         {{ 'tag_page.unknown_tag_warning'|trans }}
                 </div>
         </article>
+        {% endif %}
+
+        {% if known_tag.is_known %}
+                <p class="block">
+                {% if known_tag.description %}
+                <span class="icon"><i class="fa-solid fa-circle-info"></i></span> {{ known_tag.description }}<br>
+                {% endif %}
+
+                {% if known_tag.is_standard %}
+                <span class="icon"><i class="fa-solid fa-file-lines"></i></span> {{ 'tag_page.standard'|trans }}<br>
+                {% endif %}
+
+                {% if known_tag.is_pair %}
+                <span class="icon"><i class="fa-solid fa-clone"></i></span>
+                {% if known_tag.is_pair_strong %}{{ 'tag_page.pair_strong'|trans -}}
+                {%- else %}{{ 'tag_page.pair_simple'|trans -}}
+                {%- endif -%}
+                {%- if known_tag.pair_name %},
+                {{ 'tag_page.pair_with'|trans({
+                        '%tag_link%': '<a href="/tags/' ~ known_tag.pair_name ~ '">' ~ known_tag.pair_name ~ '</a>'
+                })|raw }}
+                {% endif %}
+                <br>
+                {% endif %}
+                </p>
+        {% else %}
+        <p class="block"><span class="icon"><i class="fa-solid fa-file-circle-question"></i></span> {{ 'tag_page.unknown_to_system'|trans }}</p>
         {% endif %}
 
         {% if tag.is_editable and current_user.currentAccountId %}

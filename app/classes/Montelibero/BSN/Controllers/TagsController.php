@@ -4,18 +4,20 @@ namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
 use Pecee\SimpleRouter\SimpleRouter;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 class TagsController
 {
     private BSN $BSN;
     private Environment $Twig;
+    private Translator $Translator;
 
-    public function __construct(BSN $BSN, Environment $Twig)
+    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator)
     {
         $this->BSN = $BSN;
-
         $this->Twig = $Twig;
+        $this->Translator = $Translator;
         $this->Twig->addGlobal('session', $_SESSION);
         $this->Twig->addGlobal('server', $_SERVER);
     }
@@ -143,7 +145,55 @@ class TagsController
                 'pair_strong' => $is_pair_strong,
             ],
             'tag_not_found' => $tag_not_found,
+            'known_tag' => $this->getKnownTagMetadata($Tag->getName()),
             'links' => $links,
         ]);
+    }
+
+    private function getKnownTagMetadata(string $tag_name): array
+    {
+        $known_tags = $this->loadKnownTagsList();
+        $known_tag = $known_tags['links'][$tag_name] ?? null;
+        $descriptions = $this->loadKnownTagDescriptions();
+
+        return [
+            'is_known' => $known_tag !== null,
+            'description' => $descriptions[$tag_name] ?? null,
+            'is_standard' => (bool) ($known_tag['standard'] ?? false),
+            'is_pair' => (bool) ($known_tag['pair'] ?? false),
+            'is_pair_strong' => (bool) ($known_tag['strong_pair'] ?? false),
+            'pair_name' => is_string($known_tag['pair'] ?? null) ? $known_tag['pair'] : null,
+        ];
+    }
+
+    private function loadKnownTagsList(): array
+    {
+        static $known_tags = null;
+
+        if ($known_tags === null) {
+            $known_tags = json_decode(
+                file_get_contents(dirname(__DIR__, 4) . '/known_tags/list.json'),
+                true
+            );
+        }
+
+        return $known_tags;
+    }
+
+    private function loadKnownTagDescriptions(): array
+    {
+        static $descriptions_by_locale = [];
+
+        $locale = $this->Translator->getLocale();
+        if (!array_key_exists($locale, $descriptions_by_locale)) {
+            $path = dirname(__DIR__, 4) . '/known_tags/lang-' . $locale . '.json';
+            if (!is_file($path)) {
+                $path = dirname(__DIR__, 4) . '/known_tags/lang-en.json';
+            }
+
+            $descriptions_by_locale[$locale] = json_decode(file_get_contents($path), true) ?? [];
+        }
+
+        return $descriptions_by_locale[$locale];
     }
 }

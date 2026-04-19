@@ -521,6 +521,11 @@ tag_page:
   source: Использует
   target: Получает
   pair: Парность
+  standard: Стандартный
+  pair_simple: Парный
+  pair_strong: Строго парный
+  pair_with: "пара %tag_link%"
+  unknown_to_system: Это незнакомый системе тег.
   link_to_recommend_verification: Здесь нагляднее
   unknown_tag_warning: Мы не знаем такой тег.
 
