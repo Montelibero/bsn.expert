@@ -291,7 +291,7 @@
 {% for tag in income_tags %}
 <div class="column is-half-desktop" id="income_tag_{{ tag.name }}">
 <div class="box">
-        <h3 class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></h3>
+        <h3 class="title is-4">{{ tag.name }}<a href="/tags/{{ tag.name }}" style="margin-left: 0.6em;"><span class="icon is-small"><i class="fa-solid fa-link fa-xs" aria-hidden="true"></i></span></a></h3>
         <ul>
         {% for account_id, link in tag.links %}
                 <li>
@@ -318,7 +318,7 @@
 {% for tag in outcome_tags %}
 <div class="column is-half-desktop" id="outcome_tag_{{ tag.name }}">
 <div class="box">
-        <h3 class="title is-4">{{ tag.name }} <a href="/tags/{{ tag.name }}">→</a></h3>
+        <h3 class="title is-4">{{ tag.name }}<a href="/tags/{{ tag.name }}" style="margin-left: 0.6em;"><span class="icon is-small"><i class="fa-solid fa-link fa-xs" aria-hidden="true"></i></span></a></h3>
         <ul>
         {% for account_id, link in tag.links %}
                 <li>
@@ -335,6 +335,7 @@
 <p>{{ 'account_page.no_outcome_tags'|trans }}</p>
 {% endif %}
 </div>
+<hr>
 </div>
 
 {% if income_tags or outcome_tags %}
