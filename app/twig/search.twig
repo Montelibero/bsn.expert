@@ -10,15 +10,6 @@
 
 {% block content %}
     <h1 class="title">{{ 'nav.search'|trans }}</h1>
-    {% if q %}
-    <h1 class="subtitle">{{ q }}</h1>
-    {% endif %}
-
-    {% if q %}
-    <p class="block has-text-primary">
-        {{ 'search.not_found'|trans }}
-    </p>
-    {% endif %}
 
     <p class="block">
         {{ 'search.description'|trans }}
@@ -28,7 +19,7 @@
     <div class="field">
         <label class="label" for="new_name">Search</label>
         <div class="control">
-            <input type="text" name="q" class="input" placeholder="{{ 'search.placeholder_hint'|trans }}" size="32" maxlength="64" value="{{ q }}">
+            <input type="text" id="new_name" name="q" class="input" placeholder="{{ 'search.placeholder_hint'|trans }}" size="32" maxlength="128" value="{{ q }}">
         </div>
     </div>
     <div class="field is-grouped">
@@ -38,5 +29,27 @@
     </div>
     </form>
 
-{% endblock %}
+    {% if q %}
+        <h2 class="subtitle">{{ q }}</h2>
 
+        {% if results_total %}
+            <p class="block has-text-grey">
+                {{ 'search.results_summary'|trans({'%cnt%': results_total, '%shown%': results_returned}) }}
+                {% if results_has_more %}
+                    {{ 'search.results_limited'|trans({'%shown%': results_returned, '%cnt%': results_total}) }}
+                {% endif %}
+            </p>
+
+            <div class="search-results-list">
+                {% for result in results %}
+                    {% include 'search_result_item.twig' with { result: result } %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="block has-text-primary">
+                {{ 'search.not_found'|trans }}
+            </p>
+        {% endif %}
+    {% endif %}
+
+{% endblock %}

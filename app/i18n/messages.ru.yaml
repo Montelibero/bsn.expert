@@ -224,9 +224,30 @@ preferences:
 search:
   not_found: Не получилось найти 🤷‍♂️
   description: >
-    Поиск пока глупенький и простой. Он находит либо по полному стеллар адресу, либо по тегу.
-    Максимум его хватает на то, чтобы понять что «like» это тег «Like».
+    Поиск ищет по тегам, токенам, аккаунтам и подписанным документам.
   placeholder_hint: Аккаунт, токен, тег, транзакция...
+  results_summary: "Найдено %cnt% результатов"
+  results_limited: "Показаны первые %shown% из %cnt%."
+  autocomplete:
+    empty: Ничего не найдено
+    loading: Ищем...
+  types:
+    account: Аккаунт
+    token: Токен
+    tag: Тег
+    document: Документ
+  fields:
+    stellar_address: Stellar-адрес
+    username: Username
+    bsn_name: Имя BSN
+    contact_name: Контакт
+    telegram_username: Telegram
+    website: Website
+    about: About
+    token_code: Код токена
+    tag_name: Имя тега
+    document_name: Название документа
+    document_hash: Хеш документа
   action:
     search: Найти
 

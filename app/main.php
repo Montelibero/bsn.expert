@@ -23,6 +23,7 @@ use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MtlaRpReportController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
+use Montelibero\BSN\Controllers\SearchController;
 use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
@@ -281,6 +282,7 @@ $ContainerBuilder->addDefinitions([
     FederationController::class => autowire(),
     GraphController::class => autowire(),
     HomeController::class => autowire(),
+    SearchController::class => autowire(),
     ErrorController::class => autowire(),
     TransactionsController::class => autowire(),
 ]);

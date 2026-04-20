@@ -11,6 +11,7 @@ use Montelibero\BSN\Controllers\ApiContactsController;
 use Montelibero\BSN\Controllers\FederationController;
 use Montelibero\BSN\Controllers\GraphController;
 use Montelibero\BSN\Controllers\HomeController;
+use Montelibero\BSN\Controllers\SearchController;
 use Montelibero\BSN\Controllers\SignController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -25,7 +26,7 @@ class RootRoutes
         })->name('root');
 
         SimpleRouter::get('/search/', function () use ($Container) {
-            return $Container->get(WebApp::class)->Search();
+            return $Container->get(SearchController::class)->Search();
         });
         SimpleRouter::get('/graph', function () use ($Container) {
             return $Container->get(GraphController::class)->Graph();

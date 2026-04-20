@@ -1,0 +1,7 @@
+{%- for part in parts -%}
+    {%- if part.match -%}
+        <mark class="search-highlight">{{- part.text -}}</mark>
+    {%- else -%}
+        {{- part.text -}}
+    {%- endif -%}
+{%- endfor -%}

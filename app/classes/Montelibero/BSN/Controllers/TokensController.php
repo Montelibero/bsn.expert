@@ -309,6 +309,11 @@ class TokensController
         return $this->known_tokens_by_code[$code] ?? null;
     }
 
+    public function getKnownTokens(): array
+    {
+        return array_values($this->known_tokens);
+    }
+
     public function searchKnownTokenByCode(string $search): ?array
     {
         $search = strtolower($search);

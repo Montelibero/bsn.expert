@@ -6,16 +6,22 @@
     <h1 class="title">{{ 'common.full_name'|trans }}</h1>
 
     <div class="box">
-        <form method="get" action="/search/">
+        <form method="get" action="/search/" data-search-autocomplete-form>
             <div class="field has-addons">
-                <div class="control has-icons-left is-expanded">
-                    <input type="text" name="q" class="input is-large" placeholder="{{ 'search.placeholder_hint'|trans }}" size="32" maxlength="64" value="{{ q }}">
+                <div class="control has-icons-left is-expanded search-autocomplete-host">
+                    <input type="text" name="q" class="input is-large" placeholder="{{ 'search.placeholder_hint'|trans }}" size="32" maxlength="128" value="{{ q }}" autocomplete="off" data-search-autocomplete-input>
                     <span class="icon is-large is-left">
                         <i class="fas fa-search"></i>
                     </span>
+                    <div
+                        class="search-autocomplete"
+                        data-search-autocomplete-dropdown
+                        data-empty-text="{{ 'search.autocomplete.empty'|trans }}"
+                        data-loading-text="{{ 'search.autocomplete.loading'|trans }}"
+                    ></div>
                 </div>
                 <div class="control">
-                    <input type="submit" class="button is-link is-large"  value="{{ 'search.action.search'|trans }}">
+                    <input type="submit" class="button is-link is-large" value="{{ 'search.action.search'|trans }}" data-search-results-button>
                 </div>
             </div>
         </form>

@@ -225,9 +225,30 @@ preferences:
 search:
   not_found: Could not find anything 🤷‍♂️
   description: >
-    The search is still simple and basic. It can only find results by a full Stellar address or a tag.
-    At best, it can recognize that "like" is the tag "Like."
+    Search looks through tags, tokens, accounts, and signed documents.
   placeholder_hint: Account, token, tag, transaction...
+  results_summary: "%cnt% results found"
+  results_limited: "Showing the first %shown% of %cnt%."
+  autocomplete:
+    empty: No matches found
+    loading: Searching...
+  types:
+    account: Account
+    token: Token
+    tag: Tag
+    document: Document
+  fields:
+    stellar_address: Stellar address
+    username: Username
+    bsn_name: BSN name
+    contact_name: Contact
+    telegram_username: Telegram
+    website: Website
+    about: About
+    token_code: Token code
+    tag_name: Tag name
+    document_name: Document name
+    document_hash: Document hash
   action:
     search: Find
 

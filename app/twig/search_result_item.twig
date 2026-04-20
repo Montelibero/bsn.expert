@@ -1,0 +1,29 @@
+<a
+    href="{{ result.url }}"
+    class="search-result{% if active|default(false) %} is-active{% endif %}"
+    {% if data_index is defined %}data-search-result-index="{{ data_index }}"{% endif %}
+>
+    <span class="search-result__body">
+        <span class="search-result__title">
+            {% include 'search_text_parts.twig' with { parts: result.title_parts } %}
+        </span>
+
+        {% if result.subtitle %}
+            <span class="search-result__subtitle">
+                {% include 'search_text_parts.twig' with { parts: result.subtitle_parts } %}
+            </span>
+        {% endif %}
+
+        {% if result.show_match_line %}
+            <span class="search-result__context">
+                <span class="search-result__context-label">{{ result.match_label }}:</span>
+                {% include 'search_text_parts.twig' with { parts: result.match_parts } %}
+            </span>
+        {% endif %}
+
+        <span class="search-result__meta">
+            <span class="search-result__meta-icon" aria-hidden="true"><i class="{{ result.icon_class }}"></i></span>
+            {{ result.entity_type_label }}
+        </span>
+    </span>
+</a>
