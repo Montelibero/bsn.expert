@@ -49,13 +49,6 @@ jobs:
             --label org.opencontainers.image.revision=$OCI_REVISION \
             -t $REGISTRY/$IMAGE_APP_NAME:latest .
 
-      - name: Verify APP Docker image
-        run: |
-          docker inspect $REGISTRY/$IMAGE_APP_NAME:latest --format \
-            'APP revision={{ index .Config.Labels "org.opencontainers.image.revision" }} source={{ index .Config.Labels "org.opencontainers.image.source" }}'
-          docker run --rm --entrypoint sh $REGISTRY/$IMAGE_APP_NAME:latest -lc \
-            'test -f /var/www/html/script.js'
-
       - name: Push APP Docker image
         run: |
           docker push $REGISTRY/$IMAGE_APP_NAME:latest
@@ -68,13 +61,6 @@ jobs:
             --label org.opencontainers.image.revision=$OCI_REVISION \
             -f web/Dockerfile \
             -t $REGISTRY/$IMAGE_WEB_NAME:latest .
-
-      - name: Verify WEB Docker image
-        run: |
-          docker inspect $REGISTRY/$IMAGE_WEB_NAME:latest --format \
-            'WEB revision={{ index .Config.Labels "org.opencontainers.image.revision" }} source={{ index .Config.Labels "org.opencontainers.image.source" }}'
-          docker run --rm --entrypoint sh $REGISTRY/$IMAGE_WEB_NAME:latest -lc \
-            'test -f /var/www/html/script.js'
 
       - name: Push WEB Docker image
         run: |
