@@ -402,6 +402,8 @@ account_page:
   outcome_tags:
     header: Исходящие теги
     description: Теги, которые установили на этом аккаунте.
+  both_tags:
+    header: Оба сразу
   no_income_tags: Нет ни одного входящего тега.
   no_outcome_tags: Нет ни одного исходящего тега.
   pair:

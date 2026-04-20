@@ -234,10 +234,14 @@
         background: linear-gradient(to bottom, var(--bulma-body-background-color), transparent);
         pointer-events: none;
 }
+
+.js-account-tags-tabs li[hidden] {
+        display: none !important;
+}
 </style>
 
 <div class="tabs_block">
-<div class="tabs is-boxed is-fullwid2th js-account-tags-tabs" data-selected-tab="{{ selected_tags_tab }}">
+<div class="tabs is-boxed js-account-tags-tabs" data-selected-tab="{{ selected_tags_tab }}" data-both-label="{{ 'account_page.both_tags.header'|trans }}">
         <ul>
                 <li{% if selected_tags_tab == 'income' %} class="is-active"{% endif %}>
                         <a href="{{ income_tab_url }}" data-tab-target="income" aria-selected="{{ selected_tags_tab == 'income' ? 'true' : 'false' }}">
@@ -282,14 +286,15 @@
         {% endif %}
 {% endmacro %}
 
+<div class="js-account-tabs-panels">
 <div class="tab_content block" id="tab_content_income"{% if selected_tags_tab != 'income' %} hidden{% endif %}>
 <p class="block">{{ 'account_page.income_tags.description'|trans }}</p>
 {{ _self.tags_navigation(income_tags, 'income') }}
 
 {% if income_tags %}
-<div class="columns is-desktop is-multiline">
+<div class="columns is-desktop is-multiline js-tab-cards-grid">
 {% for tag in income_tags %}
-<div class="column is-half-desktop" id="income_tag_{{ tag.name }}">
+<div class="column is-half-desktop js-tab-cards-column" id="income_tag_{{ tag.name }}">
 <div class="box">
         <h3 class="title is-4">{{ tag.name }}<a href="/tags/{{ tag.name }}" style="margin-left: 0.6em;"><span class="icon is-small"><i class="fa-solid fa-link fa-xs" aria-hidden="true"></i></span></a></h3>
         <ul>
@@ -314,9 +319,9 @@
 {{ _self.tags_navigation(outcome_tags, 'outcome') }}
 
 {% if outcome_tags %}
-<div class="columns is-desktop is-multiline">
+<div class="columns is-desktop is-multiline js-tab-cards-grid">
 {% for tag in outcome_tags %}
-<div class="column is-half-desktop" id="outcome_tag_{{ tag.name }}">
+<div class="column is-half-desktop js-tab-cards-column" id="outcome_tag_{{ tag.name }}">
 <div class="box">
         <h3 class="title is-4">{{ tag.name }}<a href="/tags/{{ tag.name }}" style="margin-left: 0.6em;"><span class="icon is-small"><i class="fa-solid fa-link fa-xs" aria-hidden="true"></i></span></a></h3>
         <ul>
@@ -334,6 +339,7 @@
 {% else %}
 <p>{{ 'account_page.no_outcome_tags'|trans }}</p>
 {% endif %}
+</div>
 </div>
 <hr>
 </div>
@@ -365,27 +371,78 @@
                         return;
                 }
 
+                const desktopMediaQuery = window.matchMedia('(min-width: 1024px)');
                 const tabsBlock = tabsRoot.closest('.tabs_block');
-                const tabLinks = Array.from(tabsRoot.querySelectorAll('a[data-tab-target]'));
+                const tabsList = tabsRoot.querySelector('ul');
+                const tabsPanelsContainer = tabsBlock ? tabsBlock.querySelector('.js-account-tabs-panels') : null;
+                const cardsGrids = Array.from(document.querySelectorAll('.js-tab-cards-grid'));
+                let activeTabName = tabsRoot.dataset.selectedTab === 'outcome' ? 'outcome' : 'income';
                 const tabPanels = {
                         income: document.getElementById('tab_content_income'),
                         outcome: document.getElementById('tab_content_outcome'),
                 };
+                const bothTabLabel = tabsRoot.dataset.bothLabel || 'Both';
+                const bothTabItem = document.createElement('li');
+                bothTabItem.hidden = true;
+                bothTabItem.innerHTML = '<a href="#both" data-tab-target="both" aria-selected="false"><span class="icon is-small"><i class="fa-solid fa-table-columns" aria-hidden="true"></i></span><span>' + bothTabLabel + '</span></a>';
+                tabsList.appendChild(bothTabItem);
+
+                function getTabLinks() {
+                        return Array.from(tabsRoot.querySelectorAll('a[data-tab-target]'));
+                }
 
                 function setActiveTab(tabName) {
-                        tabLinks.forEach(function (link) {
+                        if (tabName === 'both' && !desktopMediaQuery.matches) {
+                                tabName = 'income';
+                        }
+
+                        const isBothMode = tabName === 'both';
+                        activeTabName = tabName;
+                        if (tabsPanelsContainer) {
+                                tabsPanelsContainer.classList.toggle('columns', isBothMode);
+                                tabsPanelsContainer.classList.toggle('is-desktop', isBothMode);
+                        }
+
+                        Object.values(tabPanels).forEach(function (panel) {
+                                if (!panel) {
+                                        return;
+                                }
+
+                                panel.classList.toggle('column', isBothMode);
+                                panel.classList.toggle('is-half-desktop', isBothMode);
+                        });
+
+                        cardsGrids.forEach(function (grid) {
+                                grid.classList.toggle('columns', !isBothMode);
+                                grid.classList.toggle('is-desktop', !isBothMode);
+                                grid.classList.toggle('is-multiline', !isBothMode);
+
+                                grid.querySelectorAll('.js-tab-cards-column').forEach(function (column) {
+                                        column.classList.toggle('is-half-desktop', !isBothMode);
+                                });
+                        });
+
+                        getTabLinks().forEach(function (link) {
                                 const isActive = link.dataset.tabTarget === tabName;
                                 link.parentElement.classList.toggle('is-active', isActive);
                                 link.setAttribute('aria-selected', isActive ? 'true' : 'false');
                         });
 
-                        Object.entries(tabPanels).forEach(function ([panelName, panel]) {
-                                if (!panel) {
-                                        return;
-                                }
+                        if (tabPanels.income) {
+                                tabPanels.income.hidden = tabName === 'outcome';
+                        }
 
-                                panel.hidden = panelName !== tabName;
-                        });
+                        if (tabPanels.outcome) {
+                                tabPanels.outcome.hidden = tabName === 'income';
+                        }
+                }
+
+                function syncBothTabAvailability() {
+                        bothTabItem.hidden = !desktopMediaQuery.matches;
+
+                        if (!desktopMediaQuery.matches && activeTabName === 'both') {
+                                setActiveTab('income');
+                        }
                 }
 
                 function resetStickyScroll() {
@@ -408,17 +465,29 @@
                         });
                 }
 
-                tabLinks.forEach(function (link) {
-                        link.addEventListener('click', function (event) {
-                                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-                                        return;
-                                }
+                tabsRoot.addEventListener('click', function (event) {
+                        const link = event.target.closest('a[data-tab-target]');
+                        if (!link) {
+                                return;
+                        }
 
-                                event.preventDefault();
-                                setActiveTab(link.dataset.tabTarget);
-                                resetStickyScroll();
-                        });
+                        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                                return;
+                        }
+
+                        event.preventDefault();
+                        setActiveTab(link.dataset.tabTarget);
+                        resetStickyScroll();
                 });
+
+                if (typeof desktopMediaQuery.addEventListener === 'function') {
+                        desktopMediaQuery.addEventListener('change', syncBothTabAvailability);
+                } else if (typeof desktopMediaQuery.addListener === 'function') {
+                        desktopMediaQuery.addListener(syncBothTabAvailability);
+                }
+
+                syncBothTabAvailability();
+                setActiveTab(activeTabName);
         })();
 </script>
 

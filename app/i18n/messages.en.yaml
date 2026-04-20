@@ -404,6 +404,8 @@ account_page:
   outcome_tags:
     header: Outcome tags
     description: Tags set on this account.
+  both_tags:
+    header: Both at once
   no_income_tags: The account has not any income tag.
   no_outcome_tags: The account has not any outcome tag.
   pair:
