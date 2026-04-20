@@ -10,6 +10,8 @@ env:
   REGISTRY: ghcr.io
   IMAGE_APP_NAME: montelibero/bsn_app
   IMAGE_WEB_NAME: montelibero/bsn_web
+  OCI_SOURCE: https://github.com/${{ github.repository }}
+  OCI_REVISION: ${{ github.sha }}
 
 jobs:
   build-and-push:
@@ -29,9 +31,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull previous WEB image for cache
+      - name: Pull previous APP image for cache
         run: |
           docker pull $REGISTRY/$IMAGE_APP_NAME:latest || true
+
+      - name: Pull previous WEB image for cache
+        run: |
+          docker pull $REGISTRY/$IMAGE_WEB_NAME:latest || true
 
       - name: Build APP Docker image
         working-directory: ./app
@@ -39,7 +45,16 @@ jobs:
           docker build \
             --target prod \
             --cache-from $REGISTRY/$IMAGE_APP_NAME:latest \
+            --label org.opencontainers.image.source=$OCI_SOURCE \
+            --label org.opencontainers.image.revision=$OCI_REVISION \
             -t $REGISTRY/$IMAGE_APP_NAME:latest .
+
+      - name: Verify APP Docker image
+        run: |
+          docker inspect $REGISTRY/$IMAGE_APP_NAME:latest --format \
+            'APP revision={{ index .Config.Labels "org.opencontainers.image.revision" }} source={{ index .Config.Labels "org.opencontainers.image.source" }}'
+          docker run --rm --entrypoint sh $REGISTRY/$IMAGE_APP_NAME:latest -lc \
+            'test -f /var/www/html/script.js'
 
       - name: Push APP Docker image
         run: |
@@ -47,7 +62,19 @@ jobs:
 
       - name: Build WEB Docker image
         run: |
-          docker build -f web/Dockerfile -t $REGISTRY/$IMAGE_WEB_NAME:latest .
+          docker build \
+            --cache-from $REGISTRY/$IMAGE_WEB_NAME:latest \
+            --label org.opencontainers.image.source=$OCI_SOURCE \
+            --label org.opencontainers.image.revision=$OCI_REVISION \
+            -f web/Dockerfile \
+            -t $REGISTRY/$IMAGE_WEB_NAME:latest .
+
+      - name: Verify WEB Docker image
+        run: |
+          docker inspect $REGISTRY/$IMAGE_WEB_NAME:latest --format \
+            'WEB revision={{ index .Config.Labels "org.opencontainers.image.revision" }} source={{ index .Config.Labels "org.opencontainers.image.source" }}'
+          docker run --rm --entrypoint sh $REGISTRY/$IMAGE_WEB_NAME:latest -lc \
+            'test -f /var/www/html/script.js'
 
       - name: Push WEB Docker image
         run: |
