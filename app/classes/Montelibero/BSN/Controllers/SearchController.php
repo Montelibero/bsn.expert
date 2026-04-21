@@ -38,6 +38,11 @@ class SearchController
         $is_json_request = $this->isJsonRequest();
         $limit = $is_json_request ? $this->resolveJsonLimit() : self::HTML_RESULTS_LIMIT;
 
+        if (!$is_json_request && ($redirect_url = $this->resolveTransactionRedirect($query))) {
+            SimpleRouter::response()->redirect($redirect_url);
+            return null;
+        }
+
         $search_result = $this->performSearch($query, $limit);
 
         if ($is_json_request) {
@@ -494,6 +499,20 @@ class SearchController
         }
 
         return $this->acceptHeaderContainsJson($_SERVER['HTTP_ACCEPT'] ?? '');
+    }
+
+    private function resolveTransactionRedirect(string $query): ?string
+    {
+        if (!BSN::validateTransactionHashFormat($query)) {
+            return null;
+        }
+
+        $hash = strtolower($query);
+        if ($this->DocumentsManager->getDocument($hash) !== null) {
+            return null;
+        }
+
+        return SimpleRouter::getUrl('transaction_page', ['tx_hash' => $hash]);
     }
 
     private function acceptHeaderContainsJson(string $header): bool
