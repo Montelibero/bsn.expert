@@ -38,7 +38,7 @@ class SearchController
         $is_json_request = $this->isJsonRequest();
         $limit = $is_json_request ? $this->resolveJsonLimit() : self::HTML_RESULTS_LIMIT;
 
-        if (!$is_json_request && ($redirect_url = $this->resolveTransactionRedirect($query))) {
+        if (!$is_json_request && ($redirect_url = $this->resolveDirectEntityRedirect($query))) {
             SimpleRouter::response()->redirect($redirect_url);
             return null;
         }
@@ -499,6 +499,28 @@ class SearchController
         }
 
         return $this->acceptHeaderContainsJson($_SERVER['HTTP_ACCEPT'] ?? '');
+    }
+
+    private function resolveDirectEntityRedirect(string $query): ?string
+    {
+        if ($redirect_url = $this->resolveUnknownAccountRedirect($query)) {
+            return $redirect_url;
+        }
+
+        return $this->resolveTransactionRedirect($query);
+    }
+
+    private function resolveUnknownAccountRedirect(string $query): ?string
+    {
+        if (!BSN::validateStellarAccountIdFormat($query)) {
+            return null;
+        }
+
+        if ($this->BSN->getAccountById($query) !== null) {
+            return null;
+        }
+
+        return SimpleRouter::getUrl('account', ['id' => $query]);
     }
 
     private function resolveTransactionRedirect(string $query): ?string
