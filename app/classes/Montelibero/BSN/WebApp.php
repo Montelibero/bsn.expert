@@ -267,10 +267,6 @@ class WebApp
     private function buildCurrentAccountOptions(): array
     {
         $options = [];
-        if (!$this->CurrentUser->isAuthorized()) {
-            return $options;
-        }
-
         $account_id = $this->CurrentUser->getAccountId();
         if ($account_id) {
             $Account = $this->BSN->makeAccountById($account_id);
@@ -287,7 +283,17 @@ class WebApp
             );
         }
 
-        foreach ($this->CurrentUser->getCurrentAccountHistory() as $history_account_id) {
+        $history_account_ids = $this->CurrentUser->getCurrentAccountHistory();
+        $current_account_id = $this->CurrentUser->getCurrentAccountId();
+        if (
+            $current_account_id
+            && $current_account_id !== $account_id
+            && !in_array($current_account_id, $history_account_ids, true)
+        ) {
+            array_unshift($history_account_ids, $current_account_id);
+        }
+
+        foreach ($history_account_ids as $history_account_id) {
             if (!BSN::validateStellarAccountIdFormat($history_account_id)) {
                 continue;
             }
