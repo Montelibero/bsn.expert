@@ -1,0 +1,160 @@
+{% extends "page.twig" %}
+
+{% import _self as lists %}
+
+{% macro account_list(items) %}
+    {% if items %}
+        {% for item in items -%}
+            {%- if not loop.first %}, {% endif -%}
+            {{ include('account_link.twig', {data: item}, with_context = false) }}
+        {%- endfor %}
+    {% else %}
+        {{ 'mtla_participants_page.empty_accounts'|trans }}
+    {% endif %}
+{% endmacro %}
+
+{% block title %}{{ 'nav.participants'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/mtla/" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.participants'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'mtla_participants_page.title'|trans }}</h1>
+
+    <div class="content">
+        <p>{{ 'mtla_participants_page.intro.lead'|trans }}</p>
+        <p>{{ 'mtla_participants_page.intro.mechanics'|trans }}</p>
+        <p>
+            {{ 'mtla_participants_page.intro.agreement_prefix'|trans }}
+            <a href="{{ agreement_url }}">{{ 'mtla_participants_page.intro.agreement_link'|trans }}</a>.
+        </p>
+    </div>
+
+    <h2 class="title is-3">{{ 'mtla_participants_page.personal.title'|trans }}</h2>
+    <div class="content">
+        <p>{{ 'mtla_participants_page.personal.intro'|trans }}</p>
+        <h3 class="title is-5">{{ 'mtla_participants_page.personal.stats_title'|trans }}</h3>
+        <ul>
+            <li>{{ 'mtla_participants_page.personal.stats.total'|trans({'%cnt%': personal_report.total}) }}</li>
+            <li>{{ 'mtla_participants_page.personal.stats.level_1_only'|trans({'%cnt%': personal_report.exact_counts[1]}) }}</li>
+            <li>{{ 'mtla_participants_page.personal.stats.verified'|trans({
+                '%exact%': personal_report.exact_counts[2],
+                '%higher%': personal_report.higher_counts[2],
+                '%total%': personal_report.cumulative_counts[2]
+            }) }}</li>
+            <li>{{ 'mtla_participants_page.personal.stats.creditworthy'|trans({
+                '%exact%': personal_report.exact_counts[3],
+                '%higher%': personal_report.higher_counts[3],
+                '%total%': personal_report.cumulative_counts[3]
+            }) }}</li>
+            <li>{{ 'mtla_participants_page.personal.stats.activists'|trans({
+                '%exact%': personal_report.exact_counts[4],
+                '%higher%': personal_report.higher_counts[4],
+                '%total%': personal_report.cumulative_counts[4]
+            }) }}</li>
+            <li>{{ 'mtla_participants_page.personal.stats.sponsors'|trans({
+                '%cnt%': personal_report.exact_counts[5]
+            }) }}</li>
+        </ul>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.personal.level_1.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.personal.level_1.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(personal_report.levels[1]) }}</p>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.personal.level_2.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.personal.level_2.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(personal_report.levels[2]) }}</p>
+        <p>{{ 'mtla_participants_page.personal.level_2.note'|trans({
+            '%exact%': personal_report.exact_counts[2],
+            '%total%': personal_report.cumulative_counts[2]
+        }) }}</p>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.personal.level_3.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.personal.level_3.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(personal_report.levels[3]) }}</p>
+        <p>{{ 'mtla_participants_page.personal.level_3.note'|trans({
+            '%exact%': personal_report.exact_counts[3],
+            '%total%': personal_report.cumulative_counts[3]
+        }) }}</p>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.personal.level_4.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.personal.level_4.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(personal_report.levels[4]) }}</p>
+        <p>{{ 'mtla_participants_page.personal.level_4.note'|trans({
+            '%exact%': personal_report.exact_counts[4],
+            '%total%': personal_report.cumulative_counts[4]
+        }) }}</p>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.personal.level_5.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.personal.level_5.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(personal_report.levels[5]) }}</p>
+    </div>
+
+    <h2 class="title is-3">{{ 'mtla_participants_page.corporate.title'|trans }}</h2>
+    <div class="content">
+        <p>{{ 'mtla_participants_page.corporate.intro'|trans }}</p>
+        <h3 class="title is-5">{{ 'mtla_participants_page.corporate.stats_title'|trans }}</h3>
+        <ul>
+            <li>{{ 'mtla_participants_page.corporate.stats.total'|trans({'%cnt%': corporate_report.total}) }}</li>
+            <li>{{ 'mtla_participants_page.corporate.stats.level_1_only'|trans({'%cnt%': corporate_report.exact_counts[1]}) }}</li>
+            <li>{{ 'mtla_participants_page.corporate.stats.verified'|trans({
+                '%exact%': corporate_report.exact_counts[2],
+                '%higher%': corporate_report.higher_counts[2],
+                '%total%': corporate_report.cumulative_counts[2]
+            }) }}</li>
+            <li>{{ 'mtla_participants_page.corporate.stats.projects'|trans({
+                '%exact%': corporate_report.exact_counts[3],
+                '%higher%': corporate_report.higher_counts[3],
+                '%total%': corporate_report.cumulative_counts[3]
+            }) }}</li>
+            <li>{{ 'mtla_participants_page.corporate.stats.donors'|trans({
+                '%cnt%': corporate_report.exact_counts[4]
+            }) }}</li>
+        </ul>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.corporate.level_1.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.corporate.level_1.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(corporate_report.levels[1]) }}</p>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.corporate.level_2.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.corporate.level_2.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(corporate_report.levels[2]) }}</p>
+        <p>{{ 'mtla_participants_page.corporate.level_2.note'|trans({
+            '%exact%': corporate_report.exact_counts[2],
+            '%total%': corporate_report.cumulative_counts[2]
+        }) }}</p>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.corporate.level_3.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.corporate.level_3.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(corporate_report.levels[3]) }}</p>
+        <p>{{ 'mtla_participants_page.corporate.level_3.note'|trans({
+            '%exact%': corporate_report.exact_counts[3],
+            '%total%': corporate_report.cumulative_counts[3]
+        }) }}</p>
+    </div>
+
+    <div class="content">
+        <h3 class="title is-4">{{ 'mtla_participants_page.corporate.level_4.title'|trans }}</h3>
+        <p>{{ 'mtla_participants_page.corporate.level_4.description'|trans }}</p>
+        <p><strong>{{ 'mtla_participants_page.members_here'|trans }}</strong> {{ lists.account_list(corporate_report.levels[4]) }}</p>
+    </div>
+{% endblock %}

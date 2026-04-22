@@ -21,6 +21,10 @@ class MtlaRouter
             return $Container->get(MtlaController::class)->MtlaCouncil();
         });
 
+        SimpleRouter::get('/participants', function () use ($Container) {
+            return $Container->get(MtlaController::class)->MtlaParticipants();
+        });
+
         SimpleRouter::get('/programs', function () use ($Container) {
             return $Container->get(MtlaController::class)->MtlaPrograms();
         });

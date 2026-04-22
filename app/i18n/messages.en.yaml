@@ -23,6 +23,7 @@ nav:
   mtla: MTLA
   council: Council
   programs: Programs
+  participants: Participants
   contacts: Contacts
   preferences: Preferences
   login: Login
@@ -720,6 +721,82 @@ mtla_page:
   title: Montelibero Association
   account: Account
   website: Website
+
+mtla_participants_page:
+  title: Association Participants
+  empty_accounts: no one visible here yet
+  members_here: "Listed here:"
+  intro:
+    lead: >
+      This page shows Association participants from the BSN cache: who is present, what participation level they have, and in which exact section they belong.
+    mechanics: >
+      Participants come in two broad kinds: personal and corporate. Levels are strictly sequential, so every next level includes all previous ones rather than replacing them.
+    agreement_prefix: If you want the formal wording, see the
+    agreement_link: current version of the Agreement
+  personal:
+    title: Personal Participants
+    intro: >
+      These are individual people. The ladder is simple: one token means they joined the Agreement, and the higher levels represent progressively stronger verification, responsibility, and formal trust.
+    stats_title: Short stats
+    stats:
+      total: "Total MTLA participants: %cnt%"
+      level_1_only: "First level only: %cnt%"
+      verified: "Verified: %exact% + %higher% = %total%"
+      creditworthy: "Creditworthy: %exact% + %higher% = %total%"
+      activists: "Activists: %exact% + %higher% = %total%"
+      sponsors: "Sponsors: %cnt%"
+    level_1:
+      title: First level
+      description: >
+        Accounts with exactly 1 MTLAP token. They joined under the Agreement, but have not gone further up the formal ladder yet.
+    level_2:
+      title: Second level, verified participants
+      description: >
+        They gave up full anonymity one way or another and received a vote in return. That gives them the right to participate in the Assembly and to elect and be elected to the Council.
+      note: "There are %exact% participants exactly at this level, but counting everyone above them there are already %total% verified participants."
+    level_3:
+      title: Third level, creditworthy participants
+      description: >
+        This does not automatically mean financial genius. The criterion is deliberately formal: either the account holds more than 1000 EURMTL worth of assets, or other conditions for this status were met.
+      note: "There are %exact% participants exactly at this level, but counting everyone above them there are already %total% creditworthy participants."
+    level_4:
+      title: Fourth level, activists
+      description: >
+        This is also a formal status. Honest reminder: it does not always map one-to-one to real-world activism, but the intent is to keep the formal map reasonably close to reality.
+      note: "There are %exact% participants exactly at this level, and together with sponsors that makes %total% activists."
+    level_5:
+      title: Fifth level, sponsors
+      description: >
+        These are the people who send a bit of money every month to support the Association. Heroes, obviously. One of their perks is access to the Council with an advisory voice.
+  corporate:
+    title: Corporate Participants
+    intro: >
+      These are companies, groups, and associations that participate not as separate people but as collective entities. Under the Agreement they have their own ladder of statuses, from a recognized participant to an Association donor.
+    stats_title: Short stats
+    stats:
+      total: "Total corporate MTLA participants: %cnt%"
+      level_1_only: "First level only: %cnt%"
+      verified: "Verified reliable counterparties: %exact% + %higher% = %total%"
+      projects: "Performing Association functions or projects: %exact% + %higher% = %total%"
+      donors: "Corporate donors: %cnt%"
+    level_1:
+      title: First level
+      description: >
+        Companies, groups, or associations that are recognized as real and recorded as corporate participants of the Association. The basics are in place; the relationship is formalized.
+    level_2:
+      title: Second level, verified reliable counterparties
+      description: >
+        This is already more than “yes, we know you exist”. Under the Agreement, these are voluntarily certified counterparties that provide guarantees of client safety and quality control.
+      note: "There are %exact% corporate participants exactly at this level, but counting everyone above them there are already %total% verified reliable counterparties."
+    level_3:
+      title: Third level, performers of Association functions and projects
+      description: >
+        These corporate participants do not merely exist nearby; they already do useful work in the Association’s interest: operating functions, running projects, or helping keep the machinery alive.
+      note: "There are %exact% corporate participants exactly at this level, and together with donors that makes %total% such participants."
+    level_4:
+      title: Fourth level, Association donors
+      description: >
+        These are significant corporate donors of the Association. Their authorized representatives may participate in Council work with an advisory voice, and they deserve explicit appreciation for that.
 
 mtla_council_page:
   header: Council of Montelibero Association

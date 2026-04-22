@@ -60,6 +60,15 @@ class MtlaController implements RefreshDataCodeInterface
         ]);
     }
 
+    public function MtlaParticipants(): ?string
+    {
+        return $this->Twig->load('mtla_participants.twig')->render([
+            'agreement_url' => $this->resolveAgreementUrl(),
+            'personal_report' => $this->buildMembershipReport('MTLAP', 5),
+            'corporate_report' => $this->buildMembershipReport('MTLAC', 4),
+        ]);
+    }
+
     private function fetchMtlaSigners(): array
     {
         if (apcu_exists('mtla_signers_list')) {
@@ -76,6 +85,91 @@ class MtlaController implements RefreshDataCodeInterface
         apcu_store('mtla_signers_list', $current_signers, 600);
 
         return $current_signers;
+    }
+
+    private function buildMembershipReport(string $asset_code, int $max_level): array
+    {
+        $levels = [];
+        for ($level = 1; $level <= $max_level; $level++) {
+            $levels[$level] = [];
+        }
+
+        foreach ($this->BSN->getAccounts() as $Account) {
+            if ($Account->getId() === BSN::IGNORE_MEMBER_TOKENS) {
+                continue;
+            }
+
+            $level = (int) floor($Account->getBalance($asset_code));
+            if ($level < 1) {
+                continue;
+            }
+
+            $level = min($level, $max_level);
+            $levels[$level][] = $this->buildParticipantAccountData($Account);
+        }
+
+        $exact_counts = [];
+        foreach ($levels as $level => & $accounts) {
+            $this->sortParticipantAccounts($accounts);
+            $exact_counts[$level] = count($accounts);
+        }
+        unset($accounts);
+
+        $cumulative_counts = [];
+        $higher_counts = [];
+        $running_total = 0;
+        for ($level = $max_level; $level >= 1; $level--) {
+            $running_total += $exact_counts[$level];
+            $cumulative_counts[$level] = $running_total;
+            $higher_counts[$level] = $running_total - $exact_counts[$level];
+        }
+
+        ksort($cumulative_counts);
+        ksort($higher_counts);
+
+        return [
+            'asset_code' => $asset_code,
+            'total' => $running_total,
+            'levels' => $levels,
+            'exact_counts' => $exact_counts,
+            'cumulative_counts' => $cumulative_counts,
+            'higher_counts' => $higher_counts,
+        ];
+    }
+
+    private function buildParticipantAccountData(\Montelibero\BSN\Account $Account): array
+    {
+        $sort_name = $Account->getName()[0]
+            ?? $Account->getUsername()
+            ?? $Account->getShortId();
+
+        return $Account->jsonSerialize() + [
+            'sort_name' => mb_strtolower($sort_name),
+        ];
+    }
+
+    private function sortParticipantAccounts(array &$accounts): void
+    {
+        usort($accounts, static function (array $a, array $b): int {
+            $sort_comparison = strcmp((string) ($a['sort_name'] ?? ''), (string) ($b['sort_name'] ?? ''));
+            if ($sort_comparison !== 0) {
+                return $sort_comparison;
+            }
+
+            return strcmp((string) ($a['id'] ?? ''), (string) ($b['id'] ?? ''));
+        });
+    }
+
+    private function resolveAgreementUrl(): string
+    {
+        $locale = $_COOKIE['language'] ?? null;
+        if (!$locale) {
+            $locale = stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false ? 'ru' : 'en';
+        }
+
+        return $locale === 'ru'
+            ? 'https://docs.mtla.me/Agreement/Agreement.ru.html'
+            : 'https://docs.mtla.me/Agreement/Agreement.en.html';
     }
 
     private function fetchMtlaCouncilDelegations(): array
