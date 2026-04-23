@@ -15,6 +15,11 @@
         <span class="stellar_address is-family-monospace">{{ account.id }}</span>
     </h1>
 
+    {% if is_read_only_mode %}
+        <div class="notification is-warning">
+            Editing contacts is disabled in read-only mode.
+        </div>
+    {% else %}
     <form method="post" action="/contacts/{{ account.id }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     {% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
@@ -40,6 +45,7 @@
     </div>
     {% endif %}
     </form>
+    {% endif %}
 
 {% endblock %}
 
