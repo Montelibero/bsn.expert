@@ -17,6 +17,9 @@
             <li><a href="/tools/percent_pay">{{ 'nav.tools.percent_pay'|trans }}</a></li>
             <li><a href="/tools/xdr2lab">{{ 'nav.tools.xdr2lab'|trans }}</a></li>
             <li><a href="/tools/mtla/decision_transactions">MTLA Decision TX</a></li>
+            {% if current_user.isImpactActivist %}
+                <li><a href="/tools/mtla/rp_exclusion">Исключение из РП</a></li>
+            {% endif %}
         </ul>
     </div>
 

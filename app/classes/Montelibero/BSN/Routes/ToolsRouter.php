@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Routes;
 
 use DI\Container;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
+use Montelibero\BSN\Controllers\MtlaRpExclusionController;
 use Montelibero\BSN\Controllers\MtlaRpReportController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
@@ -34,6 +35,10 @@ class ToolsRouter
 
         SimpleRouter::match(['get', 'post'], '/mtla/membership_distribution', function () use ($Container) {
             return $Container->get(MembershipDistributionController::class)->MtlaMembershipDistribution();
+        });
+
+        SimpleRouter::match(['get', 'post'], '/mtla/rp_exclusion', function () use ($Container) {
+            return $Container->get(MtlaRpExclusionController::class)->MtlaRpExclusion();
         });
 
         SimpleRouter::match(['get', 'post'], '/mtla/send_time_tokens', function () use ($Container) {
