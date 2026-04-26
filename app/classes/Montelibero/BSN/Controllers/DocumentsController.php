@@ -639,8 +639,7 @@ class DocumentsController
     private function requireAuthAccount(): ?Account
     {
         if (empty($_SESSION['account']['id']) || !BSN::validateStellarAccountIdFormat($_SESSION['account']['id'])) {
-            $return_to = $_SERVER['REQUEST_URI'] ?? '/documents/';
-            SimpleRouter::response()->redirect('/login?return_to=' . urlencode($return_to), 302);
+            SimpleRouter::response()->redirect(LoginController::getLoginUrlForCurrentRequest('/documents/'), 302);
             return null;
         }
 

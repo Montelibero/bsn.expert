@@ -42,7 +42,7 @@
             {% endif %}
         </a>
         {% else %}
-        <a class="navbar-item" href="/login?return_to={{ server.REQUEST_URI }}">
+        <a class="navbar-item" href="/login?return_to={{ server.REQUEST_URI|url_encode }}">
             <span class="icon"><i class="fa-solid fa-arrow-right-to-bracket"></i></span>
             {{ 'nav.login'|trans }}
         </a>

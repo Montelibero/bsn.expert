@@ -5,7 +5,7 @@
 {% block head %}
     {% if sign_uri %}
         <noscript>
-            <meta id="meta-refresh" http-equiv="refresh" content="10; url=/login/?nonce={{ nonce }}">
+            <meta id="meta-refresh" http-equiv="refresh" content="10; url=/login/?nonce={{ nonce }}&return_to={{ return_to|url_encode }}">
         </noscript>
         <script>
             async function checkLoginStatus() {
@@ -31,7 +31,7 @@
                     if (data.status === 'created') {
                         setTimeout(checkLoginStatus, 5000); // Повтор через 5 секунд
                     } else {
-                        window.location.href = '/login?nonce={{ nonce }}'; // Переход, если статус не "created"
+                        window.location.href = '/login?nonce={{ nonce }}&return_to={{ return_to|url_encode }}'; // Переход, если статус не "created"
                     }
                 } catch (e) {
                     console.error('Ошибка при проверке статуса:', e);
@@ -83,7 +83,7 @@
         {% endif %}
     </div>
     <p class="block">
-    <a href="/login/" class="button is-link">{{ 'login.again_button'|trans }}</a>
+    <a href="/login/?return_to={{ return_to|url_encode }}" class="button is-link">{{ 'login.again_button'|trans }}</a>
     </p>
     {% endif %}
 
@@ -99,10 +99,10 @@
 
     <h2 class="title is-4">{{ 'login.step_two.title'|trans }}</h2>
     <p class="block">{{ 'login.step_two.description'|trans }}</p>
-    <p class="block"><a href="/login/?nonce={{ nonce }}" class="button is-link">{{ 'login.step_two.button'|trans }}</a></p>
+    <p class="block"><a href="/login/?nonce={{ nonce }}&return_to={{ return_to|url_encode }}" class="button is-link">{{ 'login.step_two.button'|trans }}</a></p>
 {% endif %}
 
-    <p class="block">{{ 'login.invite_to_manual'|trans|raw }}</p>
+    {% set manual_login_url = '/login/manual/?return_to=' ~ return_to|url_encode %}
+    <p class="block">{{ 'login.invite_to_manual'|trans|replace({'/login/manual/': manual_login_url})|raw }}</p>
 
 {% endblock %}
-

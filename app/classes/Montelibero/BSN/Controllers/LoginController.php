@@ -54,13 +54,15 @@ class LoginController
 
     public function Login(): ?string
     {
+        $return_to = $this->resolveReturnTo();
+
         // Cookie check
-        if (!isset($_COOKIE[session_name()]) && $_SERVER['QUERY_STRING'] !== 'no_cookie') {
-            SimpleRouter::response()->redirect('/login?no_cookie', 302);
+        if (!isset($_COOKIE[session_name()]) && !isset($_GET['no_cookie'])) {
+            SimpleRouter::response()->redirect('/login?no_cookie=1&return_to=' . urlencode($return_to), 302);
             return null;
         }
-        if ($_SERVER['QUERY_STRING'] === 'no_cookie' && isset($_COOKIE[session_name()])) {
-            SimpleRouter::response()->redirect('/login', 302);
+        if (isset($_GET['no_cookie']) && isset($_COOKIE[session_name()])) {
+            SimpleRouter::response()->redirect(self::getLoginUrl($return_to), 302);
             return null;
         }
 
@@ -100,12 +102,13 @@ class LoginController
                 'uri' => $uri_signed,
                 'status' => 'created',
                 'timestamp' => time(),
+                'return_to' => $return_to,
             ];
 
             $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
         } else {
             $data = $this->Memcached->get("login_nonce_" . $nonce) ?: null;
-            if (($_GET['format'] ?? null) === 'json' || $_SERVER['HTTP_ACCEPT'] === 'application/json') {
+            if (($_GET['format'] ?? null) === 'json' || ($_SERVER['HTTP_ACCEPT'] ?? '') === 'application/json') {
                 header('Content-type: application/json');
                 if (!$data) {
                     $data = ['status' => 'timeout'];
@@ -119,11 +122,13 @@ class LoginController
                 $error = 'timeout';
             } elseif ($data['status'] === 'created') {
                 $uri_signed = $data['uri'];
+                $return_to = self::normalizeReturnTo($data['return_to'] ?? $return_to);
             } elseif ($data['status'] === 'OK') {
-                $this->authenticate($data['account_id']);;
-                SimpleRouter::response()->redirect('/', 302);
+                $this->authenticate($data['account_id']);
+                SimpleRouter::response()->redirect(self::normalizeReturnTo($data['return_to'] ?? $return_to), 302);
             } else {
                 $error = $data['status'];
+                $return_to = self::normalizeReturnTo($data['return_to'] ?? $return_to);
             }
         }
 
@@ -147,8 +152,8 @@ class LoginController
 
         $Template = $this->Twig->load('login.twig');
         return $Template->render([
-            'return_to' => $_GET['return_to'] ?? '/',
-            'no_cookie' => $_SERVER['QUERY_STRING'] === 'no_cookie',
+            'return_to' => $return_to,
+            'no_cookie' => isset($_GET['no_cookie']),
             'signing_form' => $signing_form,
             'sign_uri' => $uri_signed ?? null,
             'sign_qr' => $qr ?? null,
@@ -286,6 +291,7 @@ class LoginController
     public function LoginManual()
     {
         $Template = $this->Twig->load('login_manual.twig');
+        $return_to = $this->resolveReturnTo();
 
         $account_id = $_POST['account_id'] ?? null;
         $Account = null;
@@ -337,7 +343,7 @@ class LoginController
 
                 if ($check_sign) {
                     $this->authenticate($account_id);
-                    SimpleRouter::response()->redirect('/', 302);
+                    SimpleRouter::response()->redirect($return_to, 302);
                 } else {
                     $error = $Translator->trans('login_manual.errors.bad_signature');
                 }
@@ -349,8 +355,104 @@ class LoginController
             'account_id' => $account_id,
             'xdr' => $xdr,
             'signed_xdr' => $signed_xdr,
+            'return_to' => $return_to,
         ]);
 
+    }
+
+    public static function getLoginUrlForCurrentRequest(string $fallback = '/'): string
+    {
+        return self::getLoginUrl($_SERVER['REQUEST_URI'] ?? $fallback, $fallback);
+    }
+
+    public static function getLoginUrl(?string $return_to = '/', string $fallback = '/'): string
+    {
+        return '/login?return_to=' . urlencode(self::normalizeReturnTo($return_to, $fallback));
+    }
+
+    public static function normalizeReturnTo(?string $return_to, string $fallback = '/'): string
+    {
+        $fallback = $fallback === '' ? '' : (self::normalizeLocalReturnPath($fallback) ?? '/');
+        $return_to = trim((string) $return_to);
+        if ($return_to === '') {
+            return $fallback;
+        }
+
+        $parts = parse_url($return_to);
+        if ($parts === false) {
+            return $fallback;
+        }
+
+        if (isset($parts['scheme']) || isset($parts['host'])) {
+            if (empty($parts['host']) || !self::isCurrentHost($parts)) {
+                return $fallback;
+            }
+
+            $path = $parts['path'] ?? '/';
+            if ($path === '') {
+                $path = '/';
+            }
+            if (isset($parts['query']) && $parts['query'] !== '') {
+                $path .= '?' . $parts['query'];
+            }
+            if (isset($parts['fragment']) && $parts['fragment'] !== '') {
+                $path .= '#' . $parts['fragment'];
+            }
+
+            return self::normalizeLocalReturnPath($path) ?? $fallback;
+        }
+
+        return self::normalizeLocalReturnPath($return_to) ?? $fallback;
+    }
+
+    private function resolveReturnTo(string $fallback = '/'): string
+    {
+        foreach ([$_POST['return_to'] ?? null, $_GET['return_to'] ?? null, $_SERVER['HTTP_REFERER'] ?? null] as $candidate) {
+            $return_to = self::normalizeReturnTo($candidate, '');
+            if ($return_to !== '') {
+                return $return_to;
+            }
+        }
+
+        return self::normalizeReturnTo($fallback);
+    }
+
+    private static function normalizeLocalReturnPath(string $return_to): ?string
+    {
+        if (preg_match('/[\r\n]/', $return_to)) {
+            return null;
+        }
+
+        if (!str_starts_with($return_to, '/') || str_starts_with($return_to, '//')) {
+            return null;
+        }
+
+        if (preg_match('~^/(login|logout)(?:[/?#]|$)~', $return_to)) {
+            return null;
+        }
+
+        return $return_to;
+    }
+
+    private static function isCurrentHost(array $url_parts): bool
+    {
+        $current_host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+        $current_parts = parse_url('http://' . $current_host);
+        if ($current_parts === false || empty($current_parts['host'])) {
+            return false;
+        }
+
+        if (strtolower($url_parts['host']) !== strtolower($current_parts['host'])) {
+            return false;
+        }
+
+        $current_port = $current_parts['port'] ?? null;
+        $url_port = $url_parts['port'] ?? null;
+        if ($current_port !== null || $url_port !== null) {
+            return (int) $current_port === (int) $url_port;
+        }
+
+        return true;
     }
 
     private function authenticate($account_id): void

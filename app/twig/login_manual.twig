@@ -32,6 +32,7 @@
     {% endif %}
 
     <form action="/login/manual/" method="post">
+        <input type="hidden" name="return_to" value="{{ return_to }}">
         <h2 class="title is-4">{{ 'login_manual.step_one.header'|trans }}</h2>
         <div class="field">
             <label class="label" for="account_id">{{ 'login_manual.step_one.account_id'|trans }}</label>
@@ -72,4 +73,3 @@
 
     </form>
 {% endblock %}
-

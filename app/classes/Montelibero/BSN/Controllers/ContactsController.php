@@ -38,7 +38,7 @@ class ContactsController
                 SimpleRouter::response()->httpCode(401);
                 return json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
             }
-            SimpleRouter::response()->redirect('/login/', 302);
+            SimpleRouter::response()->redirect(LoginController::getLoginUrlForCurrentRequest('/contacts/'), 302);
             return null;
         }
 
@@ -199,7 +199,7 @@ class ContactsController
         $csrf_token = md5(session_id() . 'contacts');
 
         if (empty($_SESSION['account'])) {
-            SimpleRouter::response()->redirect('/tg/', 302);
+            SimpleRouter::response()->redirect(LoginController::getLoginUrlForCurrentRequest(SimpleRouter::getUrl('account', ['id' => $account_id])), 302);
             return null;
         }
 
@@ -209,9 +209,10 @@ class ContactsController
 
         $exists_contact = $ContactsManager->getContact($_SESSION['account']['id'], $account_id);
 
-        $return_to = $_POST['return_to']
-            ?? $_SERVER['HTTP_REFERER']
-            ?? SimpleRouter::getUrl('account', ['id' => $Account->getId()]);
+        $return_to = LoginController::normalizeReturnTo(
+            $_POST['return_to'] ?? $_SERVER['HTTP_REFERER'] ?? null,
+            SimpleRouter::getUrl('account', ['id' => $Account->getId()])
+        );
 
         if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {

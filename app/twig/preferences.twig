@@ -24,7 +24,7 @@
         {{ 'preferences.auth.not_logged_in'|trans }}<br>
     </p>
     <p class="block">
-        <a href="/login?return_to={{ server.REQUEST_URI }}" class="button is-link">{{ 'preferences.auth.login'|trans }}</a>
+        <a href="/login?return_to={{ server.REQUEST_URI|url_encode }}" class="button is-link">{{ 'preferences.auth.login'|trans }}</a>
     </p>
     {% endif %}
 
