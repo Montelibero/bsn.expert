@@ -29,10 +29,16 @@
     </a>
     {% endif %}
 
-    {% if xdr and description %}
-        <button type="submit" name="action" value="eurmtl" class="button is-link">
+    {% if xdr %}
+        <button
+            type="submit"
+            name="action"
+            value="eurmtl"
+            class="button is-link"
+            {% if not can_collect_multisig %}disabled title="{{ 'editor.sign.collect_multisig_disabled_title'|trans }}"{% endif %}
+        >
             <span class="icon"><i class="fa-solid fa-signature"></i></span>
-            <span>Collect multisig</span>
+            <span>{{ 'editor.sign.collect_multisig_button_name'|trans }}</span>
         </button>
     {% endif %}
 </div>

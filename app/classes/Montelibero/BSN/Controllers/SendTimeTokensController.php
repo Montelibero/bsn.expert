@@ -19,14 +19,16 @@ class SendTimeTokensController
 {
     private Environment $Twig;
     private StellarSDK $Stellar;
+    private SignController $SignController;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar)
+    public function __construct(Environment $Twig, StellarSDK $Stellar, SignController $SignController)
     {
         $this->Twig = $Twig;
         $this->Twig->addGlobal('session', $_SESSION);
         $this->Twig->addGlobal('server', $_SERVER);
         
         $this->Stellar = $Stellar;
+        $this->SignController = $SignController;
     }
 
     public function MtlaSendTimeTokens(): string
@@ -173,9 +175,9 @@ class SendTimeTokensController
             }
         }
 
-        $sign_tools_url = null;
+        $signing_form = null;
         if ($transaction) {
-            $sign_tools_url = $this->pushTransactionToEurmtl($transaction, $memo ?: 'Time Tokens Distribution');
+            $signing_form = $this->SignController->SignTransaction($transaction, null, $memo ?: 'Time Tokens Distribution');
         }
 
         return $this->Twig->render('tools_mtla_send_time_tokens.twig', [
@@ -186,7 +188,7 @@ class SendTimeTokensController
             'seq_num' => $_POST['seq_num'] ?? '',
             'error' => $error,
             'transaction' => $transaction,
-            'sign_tools_url' => $sign_tools_url,
+            'signing_form' => $signing_form,
         ]);
     }
 
@@ -256,41 +258,6 @@ class SendTimeTokensController
         }
 
         return .0;
-    }
-
-    private function pushTransactionToEurmtl(string $xdr, string $description): string
-    {
-        $curl = curl_init('https://eurmtl.me/remote/add_transaction');
-
-        $payload = json_encode([
-            'tx_body' => $xdr,
-            'tx_description' => $description
-        ]);
-
-        curl_setopt_array($curl, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $_ENV['EURMTL_KEY']
-            ],
-            CURLOPT_POSTFIELDS => $payload
-        ]);
-
-        $response = curl_exec($curl);
-        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        if ($httpCode !== 201) {
-            throw new \RuntimeException('Failed to push transaction to eurmtl.me. HTTP code: ' . $httpCode);
-        }
-
-        $data = json_decode($response, true);
-        if (!isset($data['hash'])) {
-            throw new \RuntimeException('Invalid response from eurmtl.me: hash not found');
-        }
-
-        return "https://eurmtl.me/sign_tools/" . $data['hash'];
     }
 
     private function fetchBalances(string $target): array

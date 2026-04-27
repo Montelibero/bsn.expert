@@ -900,6 +900,8 @@ editor:
     link_text: A special Stellar link that can be opened, for example, by Sunce Wallet.
     qr_text: Magic QR for your mobile
     no_qr_text: Unfortunately, without QR, it's too large a transaction.
+    collect_multisig_button_name: Collect multisig
+    collect_multisig_disabled_title: No text memo longer than 3 characters
 
 contacts:
   edit:

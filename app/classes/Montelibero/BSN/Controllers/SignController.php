@@ -9,7 +9,9 @@ use GuzzleHttp\Client;
 use Montelibero\BSN\BSN;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\SEP\URIScheme\URIScheme;
+use Soneso\StellarSDK\AbstractTransaction;
 use Soneso\StellarSDK\StellarSDK;
+use Soneso\StellarSDK\Transaction;
 use Twig\Environment;
 
 class SignController
@@ -51,7 +53,7 @@ class SignController
             return null;
         }
 
-        if ($action == 'eurmtl' && !$description) {
+        if ($action === 'eurmtl' && !$this->canCollectMultisig($xdr)) {
             SimpleRouter::response()->httpCode(400);
             return null;
         }
@@ -77,6 +79,9 @@ class SignController
                 $url = $parsed_response['url'] ?? null;
                 break;
             case 'eurmtl':
+                if (!$description) {
+                    $description = $this->getTransactionMemoText($xdr) ?? '';
+                }
                 $url = CommonController::pushTransactionToEurmtl($xdr, $description);
                 break;
         }
@@ -123,6 +128,12 @@ class SignController
             // Do nothing
         }
 
+        $memo_text = $this->getTransactionMemoText($xdr);
+        $can_collect_multisig = $this->canCollectMultisig($xdr);
+        if (!$description && $can_collect_multisig) {
+            $description = $memo_text;
+        }
+
         $sign = md5($xdr . $uri . $description . $_ENV['SERVER_STELLAR_SECRET_KEY']);
 
         $Template = $this->Twig->load('signing.twig');
@@ -132,6 +143,42 @@ class SignController
             'description' => $description,
             'qr_svg' => $qr_svg,
             'sign' => $sign,
+            'can_collect_multisig' => $can_collect_multisig,
         ]);
+    }
+
+    private function canCollectMultisig(?string $xdr): bool
+    {
+        $memo_text = $this->getTransactionMemoText($xdr);
+        if ($memo_text === null) {
+            return false;
+        }
+
+        $memo_length = function_exists('mb_strlen') ? mb_strlen($memo_text) : strlen($memo_text);
+        return $memo_length > 3;
+    }
+
+    private function getTransactionMemoText(?string $xdr): ?string
+    {
+        if (!$xdr) {
+            return null;
+        }
+
+        try {
+            $Transaction = AbstractTransaction::fromEnvelopeBase64XdrString($xdr);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!$Transaction instanceof Transaction) {
+            return null;
+        }
+
+        $Memo = $Transaction->getMemo();
+        if ($Memo->typeAsString() !== 'text') {
+            return null;
+        }
+
+        return $Memo->valueAsString();
     }
 }

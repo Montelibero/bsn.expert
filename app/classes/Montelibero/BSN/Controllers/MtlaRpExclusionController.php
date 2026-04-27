@@ -27,9 +27,10 @@ class MtlaRpExclusionController
     private Environment $Twig;
     private StellarSDK $Stellar;
     private BSN $BSN;
+    private SignController $SignController;
     private ?array $gristTimeTokensByAccount = null;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar, BSN $BSN)
+    public function __construct(Environment $Twig, StellarSDK $Stellar, BSN $BSN, SignController $SignController)
     {
         $this->Twig = $Twig;
         $this->Twig->addGlobal('session', $_SESSION);
@@ -37,6 +38,7 @@ class MtlaRpExclusionController
 
         $this->Stellar = $Stellar;
         $this->BSN = $BSN;
+        $this->SignController = $SignController;
     }
 
     public function MtlaRpExclusion(): string
@@ -46,7 +48,7 @@ class MtlaRpExclusionController
         $error = '';
         $warning = '';
         $transaction = '';
-        $sign_tools_url = null;
+        $signing_form = null;
         $items = [];
         $operations_count = 0;
 
@@ -71,7 +73,7 @@ class MtlaRpExclusionController
                 try {
                     [$transaction, $items, $operations_count] = $this->buildTransaction($items, $memo, $seq_num);
                     if ($transaction) {
-                        $sign_tools_url = CommonController::pushTransactionToEurmtl($transaction, $memo ?: 'RP exclusion');
+                        $signing_form = $this->SignController->SignTransaction($transaction, null, $memo ?: 'RP exclusion');
                     }
                 } catch (\Throwable $Throwable) {
                     $error .= $Throwable->getMessage() . "\n";
@@ -87,7 +89,7 @@ class MtlaRpExclusionController
             'error' => trim($error),
             'warning' => trim($warning),
             'transaction' => $transaction,
-            'sign_tools_url' => $sign_tools_url,
+            'signing_form' => $signing_form,
             'items' => $items,
             'operations_count' => $operations_count,
         ]);

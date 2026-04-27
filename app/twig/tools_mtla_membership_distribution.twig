@@ -86,13 +86,6 @@
             <p class="help">Что запишем в блокчейне. Для секретариата обычно дефолтно, для Совета — MTLA и номер решения</p>
         </div>
 
-        {% if transaction %}
-        <h2 class="title is-4">Итог</h2>
-        <div class="notification is-info">
-            <a href="{{ sign_tools_url }}">{{ sign_tools_url }}</a>
-        </div>
-        {% endif %}
-
         <div class="field is-grouped">
             <div class="control">
                 <input type="reset" class="button is-light" value="Reset">
@@ -103,5 +96,9 @@
         </div>
     </form>
 
-{% endblock %}
+    {% if transaction %}
+        <h2 class="title is-4">Итог</h2>
+        {{ signing_form|raw }}
+    {% endif %}
 
+{% endblock %}

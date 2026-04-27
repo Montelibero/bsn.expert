@@ -21,14 +21,16 @@ class MembershipDistributionController
 {
     private Environment $Twig;
     private StellarSDK $Stellar;
+    private SignController $SignController;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar)
+    public function __construct(Environment $Twig, StellarSDK $Stellar, SignController $SignController)
     {
         $this->Twig = $Twig;
         $this->Twig->addGlobal('session', $_SESSION);
         $this->Twig->addGlobal('server', $_SERVER);
         
         $this->Stellar = $Stellar;
+        $this->SignController = $SignController;
     }
 
     public function MtlaMembershipDistribution(): string
@@ -135,9 +137,9 @@ class MembershipDistributionController
             }
         }
 
-        $sign_tools_url = null;
+        $signing_form = null;
         if ($transaction) {
-            $sign_tools_url = $this->pushTransactionToEurmtl($transaction, $memo ?: 'Membership Distribution');
+            $signing_form = $this->SignController->SignTransaction($transaction, null, $memo ?: 'Membership Distribution');
         }
 
         return $this->Twig->render('tools_mtla_membership_distribution.twig', [
@@ -148,7 +150,7 @@ class MembershipDistributionController
             'seq_num' => $_POST['seq_num'] ?? '',
             'error' => $error,
             'transaction' => $transaction,
-            'sign_tools_url' => $sign_tools_url,
+            'signing_form' => $signing_form,
         ]);
     }
 
@@ -168,14 +170,4 @@ class MembershipDistributionController
         return false;
     }
 
-    /**
-     * @param string $xdr
-     * @param string $description
-     * @return string
-     * @deprecated
-     */
-    private function pushTransactionToEurmtl(string $xdr, string $description): string
-    {
-        return CommonController::pushTransactionToEurmtl($xdr, $description);
-    }
 }

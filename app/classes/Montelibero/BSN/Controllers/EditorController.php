@@ -14,7 +14,6 @@ use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
-use splitbrain\phpQRCode\QRCode;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
@@ -448,22 +447,7 @@ class EditorController
             );
         }
 
-        $sep_07 = 'web+stellar:tx?xdr=' . urlencode($xdr);
-        $qr_svg = QRCode::svg($sep_07);
-
-        // MMWB integration
-        try {
-            $HttpClient = new \GuzzleHttp\Client();
-            $response = $HttpClient->post('https://eurmtl.me/remote/sep07/add', [
-                'json' => ['uri' => $sep_07],
-                'http_errors' => false
-            ]);
-            $response_body = (string) $response->getBody();
-            $parsed_response = json_decode($response_body, true);
-            $mmwb_url = $parsed_response['url'] ?? null;
-        } catch (\Exception $e) {
-            $mmwb_url = null;
-        }
+        $signing_form = $this->Container->get(SignController::class)->SignTransaction($xdr, null, 'BSN update');
 
         $Template = $this->Twig->load('editor_result.twig');
         return $Template->render([
@@ -473,10 +457,7 @@ class EditorController
                 'display_name' => $Account->getDisplayName(),
             ],
             'operations_count' => count($operations),
-            'xdr' => $xdr,
-            'sep_07' => $sep_07,
-            'mmwb_url' => $mmwb_url,
-            'qr_svg' => $qr_svg,
+            'signing_form' => $signing_form,
         ]);
     }
 

@@ -901,6 +901,8 @@ editor:
     link_text: Специальная Стеллар-ссылка, которую умеет открыть, например, Sunce Wallet.
     qr_text: Волшебный QR для мобильного
     no_qr_text: К сожалению без QR, уж очень большая транзакция.
+    collect_multisig_button_name: Собрать мультиподпись
+    collect_multisig_disabled_title: Нет текстового memo длиннее 3 символов
 
 contacts:
   edit:
