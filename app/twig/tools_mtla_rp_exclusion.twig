@@ -1,0 +1,146 @@
+{% extends "page.twig" %}
+
+{% block title %}Исключение из РП — MTLA{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/tools/">Tools</a></li>
+    <li class="is-active"><a href="#" aria-current="page">Исключение из РП</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">Исключение из РП</h1>
+
+    {% if error %}
+        <div class="notification is-danger">
+            {{ error|e|nl2br }}
+        </div>
+    {% endif %}
+
+    {% if warning %}
+        <div class="notification is-warning">
+            {{ warning|e|nl2br }}
+        </div>
+    {% endif %}
+
+    <form action="/tools/mtla/rp_exclusion" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="field">
+            <label class="label" for="accounts">Аккаунты</label>
+            <div class="control">
+                <textarea
+                    id="accounts"
+                    class="textarea"
+                    name="accounts"
+                    rows="8"
+                    style="font-family: monospace;"
+                    placeholder="GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF 1&#10;GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB 2"
+                >{{ accounts }}</textarea>
+            </div>
+            <p class="help">По одному адресу в строке. Можно дописать через пробел `1` или `2`, по умолчанию снимается 1 уровень участия.</p>
+        </div>
+
+        <div class="field">
+            <label class="label" for="memo">Мемо транзакции</label>
+            <div class="control has-icons-left">
+                <input
+                    id="memo"
+                    class="input"
+                    type="text"
+                    name="memo"
+                    value="{{ memo }}"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-comment"></i>
+                </span>
+            </div>
+            <p class="help">Текст memo для итоговой транзакции, максимум 28 байт.</p>
+        </div>
+
+        <div class="field">
+            <label class="label" for="seq_num">Seq number</label>
+            <div class="control has-icons-left">
+                <input
+                    id="seq_num"
+                    class="input"
+                    type="text"
+                    name="seq_num"
+                    placeholder="По умолчанию будет взят следующий"
+                    value="{{ seq_num }}"
+                />
+                <span class="icon is-left">
+                    <i class="fas fa-hashtag"></i>
+                </span>
+            </div>
+            <p class="help">Можно задать вручную, иначе будет использован следующий sequence number аккаунта MTLA.</p>
+        </div>
+
+        {% if items %}
+            <h2 class="title is-4">Проверенные аккаунты</h2>
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>Аккаунт</th>
+                        <th>MTLAP (BSN)</th>
+                        <th>TT</th>
+                        <th>TT на MTLA</th>
+                        <th>B-теги</th>
+                        <th>Clawback MTLAP</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in items %}
+                        <tr>
+                            <td><code>{{ item.account }}</code></td>
+                            <td>{{ item.bsn_mtlap_balance|number_format(0, '.', ' ') }}</td>
+                            <td>
+                                {% if item.had_tt %}
+                                    <code>{{ item.tt_code }}-{{ item.tt_issuer }}</code>
+                                {% else %}
+                                    не найден
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not item.had_tt %}
+                                    TT-шаги пропущены
+                                {% elseif item.had_mtla_tt_trustline %}
+                                    {{ item.mtla_tt_balance }}
+                                {% else %}
+                                    нет линии доверия
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.b_tag_keys is not empty %}
+                                    {{ item.b_tag_keys|join(', ') }}
+                                {% else %}
+                                    нет
+                                {% endif %}
+                            </td>
+                            <td>{{ item.clawback_amount|default(item.levels) }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <div class="field is-grouped">
+            <div class="control">
+                <input type="reset" class="button is-light" value="Reset">
+            </div>
+            <div class="control">
+                <input type="submit" class="button is-link" value="Generate">
+            </div>
+        </div>
+    </form>
+
+    {% if transaction %}
+        <h2 class="title is-4">Итог</h2>
+        <div class="notification is-info">
+            <p>Операций в транзакции: {{ operations_count }}</p>
+        </div>
+        {{ signing_form|raw }}
+    {% endif %}
+{% endblock %}
