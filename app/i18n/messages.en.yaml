@@ -803,6 +803,14 @@ mtla_council_page:
   header_current: Current Council Members
   account: Account
   sign: Voice weight
+  update:
+    title: Multisig update
+    operations_count: "Operations in transaction: %value%."
+    updated_accounts_count: "Accounts to update: %value%."
+    signers_count: "Multisig participants: %value%."
+    threshold: Threshold
+    main_account_changes_title: Changes on the main MTLA account
+    error: "Failed to build the multisig update transaction: %error%"
 
 mtla_programs_page:
   header: Programs

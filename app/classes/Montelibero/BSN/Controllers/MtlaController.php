@@ -23,6 +23,10 @@ class MtlaController implements RefreshDataCodeInterface
 
     public const MTLA_ACCOUNT = 'GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA';
     private const MTLA_COUNCIL_MEMBER_LIMIT = 20;
+    private const MTLA_MULTISIG_ADDITIONAL_ACCOUNTS = [
+        'GDUTNVJWCTJSPJEI3AWN7NRE535LAQDUEUEA37M22WGDYOLUGWKAMNFT',
+        'GDRXBG5GVIUJWTAJDQE536JC5MDT5AH3MMCZIJCEGVAT2GEM2TMCROWD',
+    ];
 
     private BSN $BSN;
     private Environment $Twig;
@@ -264,18 +268,18 @@ class MtlaController implements RefreshDataCodeInterface
             ];
         }
 
-        $key = 'mtla_council_delegation_tree';
+        $CalcVoices = new CalcVoices(
+            $this->Stellar,
+            self::MTLA_ACCOUNT,
+            'MTLAP',
+            self::MTLA_MULTISIG_ADDITIONAL_ACCOUNTS,
+        );
+
+        $key = 'mtla_council_delegation_tree:2';
 
         if (!isset($_GET['debug']) && apcu_exists($key)) {
             $data = apcu_fetch($key);
         } else {
-            $CalcVoices = new CalcVoices(
-                $this->Stellar,
-                self::MTLA_ACCOUNT,
-                'MTLAP',
-                ['GDUTNVJWCTJSPJEI3AWN7NRE535LAQDUEUEA37M22WGDYOLUGWKAMNFT'],
-            );
-
             $CalcVoices->isDebugMode(isset($_GET['debug']));
             if (isset($_GET['debug'])) {
                 print "<pre>";
@@ -293,10 +297,50 @@ class MtlaController implements RefreshDataCodeInterface
         $this->sortAccounts($delegation_tree);
         $this->fetchAccountData($delegation_tree, $current_signers, $data['council_candidates']);
 
+        $council_update = null;
+        $council_update_error = null;
+        if ($this->CurrentUser->isAuthorized() && $this->CurrentUser->isImpactActivist()) {
+            try {
+                $council_update = $CalcVoices->buildCouncilUpdateTransaction(
+                    $data['council_candidates'] ?? [],
+                    self::MTLA_COUNCIL_MEMBER_LIMIT
+                );
+                if ($council_update) {
+                    $this->fetchCouncilUpdateChangeAccountData($council_update['main_account_changes']);
+                    $council_update['signing_form'] = $this->SignController->SignTransaction(
+                        $council_update['xdr'],
+                        null,
+                        'Council Update'
+                    );
+                }
+            } catch (Throwable $E) {
+                $council_update_error = $E->getMessage();
+            }
+        }
+
         return $Template->render([
             'delegation_tree' => $delegation_tree ?? [],
             'council_member_limit' => self::MTLA_COUNCIL_MEMBER_LIMIT,
+            'council_update' => $council_update,
+            'council_update_error' => $council_update_error,
         ]);
+    }
+
+    private function fetchCouncilUpdateChangeAccountData(array &$changes): void
+    {
+        $emoji_by_type = [
+            'added' => '🆕',
+            'removed' => '🆓',
+            'decreased' => '⬇️',
+            'increased' => '⬆️',
+            'changed' => '🔁',
+        ];
+
+        foreach ($changes as & $change) {
+            $Account = $this->BSN->makeAccountById($change['id']);
+            $change += $Account->jsonSerialize();
+            $change['emoji'] = $emoji_by_type[$change['type']] ?? $emoji_by_type['changed'];
+        }
     }
 
     private function sortAccounts(array &$accounts): void

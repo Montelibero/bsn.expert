@@ -50,4 +50,40 @@
         </div>
     {% endif %}
 
+    {% if council_update %}
+        <div class="block">
+            <h2 class="title is-4">{{ 'mtla_council_page.update.title'|trans }}</h2>
+            <div class="notification is-info">
+                <p>{{ 'mtla_council_page.update.operations_count'|trans({'%value%': council_update.operations_count}) }}</p>
+                <p>{{ 'mtla_council_page.update.updated_accounts_count'|trans({'%value%': council_update.updated_accounts|length}) }}</p>
+                {% if council_update.signers_count != council_member_limit %}
+                    <p>{{ 'mtla_council_page.update.signers_count'|trans({'%value%': council_update.signers_count}) }}</p>
+                {% endif %}
+                <p>
+                    {{ 'mtla_council_page.update.threshold'|trans }}:
+                    <span class="is-family-monospace">
+                        {{ council_update.current_threshold ?? '?' }} → {{ council_update.new_threshold }}
+                    </span>
+                </p>
+            </div>
+            {% if council_update.main_account_changes %}
+                <h3 class="title is-5">{{ 'mtla_council_page.update.main_account_changes_title'|trans }}</h3>
+                <ul class="block">
+                    {% for change in council_update.main_account_changes %}
+                        <li>
+                            <span aria-hidden="true">{{ change.emoji }}</span>
+                            {{ include('account_link.twig', {data: change}, with_context = false) }}
+                            <span class="is-family-monospace">{{ change.old_weight }} → {{ change.new_weight }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {{ council_update.signing_form|raw }}
+        </div>
+    {% elseif council_update_error %}
+        <div class="notification is-warning">
+            {{ 'mtla_council_page.update.error'|trans({'%error%': council_update_error}) }}
+        </div>
+    {% endif %}
+
 {% endblock %}

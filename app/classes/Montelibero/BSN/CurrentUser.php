@@ -46,7 +46,7 @@ class CurrentUser
     public function isImpactActivist(): bool
     {
         $Account = $this->getAccount();
-        return $Account !== null && $Account->getBalance('MTLAP') > 4;
+        return $Account !== null && $Account->getBalance('MTLAP') >= 4;
     }
 
     public function getMemberLevel(): int

@@ -805,6 +805,14 @@ mtla_council_page:
   header_current: Актуальный состав
   account: Аккаунт
   sign: Вес голоса
+  update:
+    title: Обновление мультиподписи
+    operations_count: "Операций в транзакции: %value%."
+    updated_accounts_count: "Аккаунтов к обновлению: %value%."
+    signers_count: "Участников мультиподписи: %value%."
+    threshold: Порог
+    main_account_changes_title: Изменения на основном аккаунте MTLA
+    error: "Не удалось собрать транзакцию обновления мультиподписи: %error%"
 
 mtla_programs_page:
   header: Программы Ассоциации

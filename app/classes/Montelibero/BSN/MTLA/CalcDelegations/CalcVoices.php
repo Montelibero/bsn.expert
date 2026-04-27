@@ -3,10 +3,11 @@
 namespace Montelibero\BSN\MTLA\CalcDelegations;
 
 use Closure;
-use phpseclib3\Math\BigInteger;
 use RuntimeException;
 use Soneso\StellarSDK\Asset;
+use Soneso\StellarSDK\BeginSponsoringFutureReservesOperationBuilder;
 use Soneso\StellarSDK\Crypto\KeyPair;
+use Soneso\StellarSDK\EndSponsoringFutureReservesOperationBuilder;
 use Soneso\StellarSDK\Exceptions\HorizonRequestException;
 use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
@@ -14,7 +15,7 @@ use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\Responses\Account\AccountSignerResponse;
 use Soneso\StellarSDK\SetOptionsOperationBuilder;
 use Soneso\StellarSDK\StellarSDK;
-use Soneso\StellarSDK\Transaction;
+use Soneso\StellarSDK\TransactionBuilder;
 use Soneso\StellarSDK\Xdr\XdrSignerKey;
 use Soneso\StellarSDK\Xdr\XdrSignerKeyType;
 
@@ -369,17 +370,20 @@ class CalcVoices
         }
     }
 
-    private function updateCouncil(array $council_candidates): void
+    public function buildCouncilUpdateTransaction(array $council_candidates, int $limit = 20): ?array
     {
-        $new_arr = [];
-        foreach ($council_candidates as $address => $token_power) {
-            $new_arr[$address] = [
-                'address' => $address,
-                'token_power' => $token_power,
-            ];
+        if (!isset($this->logger)) {
+            $this->setDefaultLogger();
         }
-        $council_candidates = $new_arr;
-        uasort($council_candidates, function (array $a, array $b) {
+
+        $council_candidates = array_map(static function (array $candidate): array {
+            return [
+                'address' => $candidate['id'],
+                'token_power' => $candidate['token_power'],
+            ];
+        }, $council_candidates);
+
+        uasort($council_candidates, static function (array $a, array $b): int {
             if ($a['token_power'] > $b['token_power']) {
                 return -1;
             }
@@ -391,15 +395,15 @@ class CalcVoices
             return strcmp($a['address'], $b['address']);
         });
 
-        $top = array_slice(array_keys($council_candidates), 0, 20);
+        $top = array_slice(array_keys($council_candidates), 0, $limit);
 
-        $this->print('Ожидаемый состав Совета');
+        $this->log('Ожидаемый состав Совета');
 
         $voices_sum = 0;
         $calculated_weights = [];
         foreach ($top as $account_id) {
             $sign_weight = $this->calcCouncilMemberVoiceByTokens($council_candidates[$account_id]['token_power']);
-            $this->print(sprintf(
+            $this->log(sprintf(
                 "%s\t%s\t%s",
                 $account_id,
                 $council_candidates[$account_id]['token_power'],
@@ -409,18 +413,32 @@ class CalcVoices
             $voices_sum += $sign_weight;
         }
 
-        $this->print("Всего голосов: " . $voices_sum);
+        if (!$calculated_weights) {
+            return null;
+        }
+
+        $this->log("Всего голосов: " . $voices_sum);
         $for_transaction = (int) floor($voices_sum / 2 + 1);
-        $this->print("Нужно для мультиподписи транзы: " . $for_transaction);
-        $this->print();
+        $this->log("Нужно для мультиподписи транзы: " . $for_transaction);
+        $this->log();
 
         $operations = [];
+        $updated_accounts = [];
+        $main_account_changes = [];
+        $main_account_current_threshold = null;
 
-        $account_list = array_merge([$this->main_account], $this->additional_accounts);
+        $account_list = array_values(array_unique(array_merge([$this->main_account], $this->additional_accounts)));
 
         foreach ($account_list as $acc_id) {
-            $result =  $this->updateSigners($acc_id, $calculated_weights, $for_transaction);
-            foreach ($result as $item) {
+            $result = $this->updateSigners($acc_id, $calculated_weights, $for_transaction);
+            if ($result['operations']) {
+                $updated_accounts[] = $acc_id;
+            }
+            if ($acc_id === $this->main_account) {
+                $main_account_changes = $result['changes'];
+                $main_account_current_threshold = $result['current_threshold'];
+            }
+            foreach ($result['operations'] as $item) {
                 $operations[] = $item;
             }
         }
@@ -428,30 +446,46 @@ class CalcVoices
         try {
             $StellarAccount = $this->Stellar->requestAccount($this->main_account);
         } catch (HorizonRequestException) {
-            throw new RuntimeException('Жопа');
+            throw new RuntimeException('Main MTLA account is unavailable.');
         }
 
-        if ($operations) {
-            //
-            $transaction = new Transaction($StellarAccount->getMuxedAccount(), new BigInteger("207344562736201906"), $operations, Memo::text('Council Update'), null, 10000);
-            $this->print($transaction->toEnvelopeXdrBase64());
-        } else {
-            $this->print('Нечего изменять.');
+        if (!$operations) {
+            $this->log('Нечего изменять.');
+            return null;
         }
+
+        $Transaction = new TransactionBuilder($StellarAccount);
+        $Transaction->setMaxOperationFee(10000);
+        $Transaction->addMemo(Memo::text('Council Update'));
+        $Transaction->addOperations($operations);
+
+        return [
+            'xdr' => $Transaction->build()->toEnvelopeXdrBase64(),
+            'operations_count' => count($operations),
+            'updated_accounts' => $updated_accounts,
+            'current_threshold' => $main_account_current_threshold,
+            'new_threshold' => $for_transaction,
+            'signers_count' => count($calculated_weights),
+            'main_account_changes' => $main_account_changes,
+        ];
     }
 
     private function updateSigners(string $account_id, array $must_be, int $threshold): array
     {
-        $this->print('Расчет для ' . $account_id);
+        $this->log('Расчет для ' . $account_id);
         $current_signs = [];
         try {
             $StellarAccount = $this->Stellar->requestAccount($account_id);
         } catch (HorizonRequestException) {
             $StellarAccount = null;
         }
+        $current_threshold = $StellarAccount?->getThresholds()?->getMedThreshold();
         if ($StellarAccount) {
             /** @var AccountSignerResponse $Signer */
             foreach ($StellarAccount->getSigners() as $Signer) {
+                if ($Signer->getType() !== 'ed25519_public_key') {
+                    continue;
+                }
                 if ($Signer->getKey() === $account_id) {
                     continue;
                 }
@@ -459,16 +493,17 @@ class CalcVoices
             }
         }
 
-        $this->print();
-        $this->print('Текущий состав мультиподписи:');
+        $this->log();
+        $this->log('Текущий состав мультиподписи:');
         foreach ($current_signs as $acc_id => $weight) {
-            $this->print(sprintf("%s\t%s", $acc_id, $weight));
+            $this->log(sprintf("%s\t%s", $acc_id, $weight));
         }
-        $this->print();
+        $this->log();
 
         // Смотрим что там сейчас
-        $this->print('Разница расчетного и текущего:');
+        $this->log('Разница расчетного и текущего:');
         $changes = [];
+        $change_details = [];
         // Удаляемые
         foreach ($current_signs as $address => $weight) {
             if (!array_key_exists($address, $must_be)) {
@@ -494,15 +529,44 @@ class CalcVoices
             } else if ($weight > $old) {
                 $diff = '+' . $weight - $old;
             }
-            $this->print(sprintf("\t%s\t%s\t%s", $address, $weight, $diff));
+            $this->log(sprintf("\t%s\t%s\t%s", $address, $weight, $diff));
+            $change_details[] = [
+                'id' => $address,
+                'old_weight' => $old,
+                'new_weight' => $weight,
+                'type' => $this->resolveSignerChangeType($old, $weight),
+            ];
         }
         if (!$changes) {
-            $this->print("\tНет разницы");
+            $this->log("\tНет разницы");
         }
 
-        $this->print();
+        $this->log();
 
         $operations = [];
+
+        $apply_threshold_changes = function (SetOptionsOperationBuilder $Operation) use ($StellarAccount, $threshold): bool {
+            $has_changes = false;
+            if (!$StellarAccount || $StellarAccount->getThresholds()->getHighThreshold() !== $threshold) {
+                $Operation->setHighThreshold($threshold);
+                $has_changes = true;
+            }
+            if (!$StellarAccount || $StellarAccount->getThresholds()->getMedThreshold() !== $threshold) {
+                $Operation->setMediumThreshold($threshold);
+                $has_changes = true;
+            }
+            if (!$StellarAccount || $this->getMasterKeyWeight($StellarAccount)) {
+                $Operation->setMasterKeyWeight(0);
+                $has_changes = true;
+            }
+
+            return $has_changes;
+        };
+
+        if ($changes && $account_id !== $this->main_account) {
+            $Operation = new BeginSponsoringFutureReservesOperationBuilder($account_id);
+            $operations[] = $Operation->build();
+        }
 
         $last_item = array_key_last($changes);
         foreach ($changes as $address => $voice) {
@@ -512,15 +576,7 @@ class CalcVoices
             $Operation = new SetOptionsOperationBuilder();
             $Operation->setSigner($Signer, $voice);
             if ($address === $last_item) {
-                if (!$StellarAccount || $StellarAccount->getThresholds()->getHighThreshold() !== $threshold) {
-                    $Operation->setHighThreshold($threshold);
-                }
-                if (!$StellarAccount || $StellarAccount->getThresholds()->getMedThreshold() !== $threshold) {
-                    $Operation->setMediumThreshold($threshold);
-                }
-                if (!$StellarAccount || $this->getMasterKeyWeight($StellarAccount)) {
-                    $Operation->setMasterKeyWeight(0);
-                }
+                $apply_threshold_changes($Operation);
             }
             if ($account_id !== $this->main_account) {
                 $Operation->setSourceAccount($account_id);
@@ -528,12 +584,53 @@ class CalcVoices
             $operations[] = $Operation->build();
         }
 
-        return $operations;
+        if (!$changes) {
+            $Operation = new SetOptionsOperationBuilder();
+            if ($apply_threshold_changes($Operation)) {
+                if ($account_id !== $this->main_account) {
+                    $Operation->setSourceAccount($account_id);
+                }
+                $operations[] = $Operation->build();
+            }
+        }
+
+        if ($changes && $account_id !== $this->main_account) {
+            $Operation = new EndSponsoringFutureReservesOperationBuilder();
+            $Operation->setSourceAccount($account_id);
+            $operations[] = $Operation->build();
+        }
+
+        return [
+            'operations' => $operations,
+            'changes' => $change_details,
+            'current_threshold' => $current_threshold,
+        ];
     }
 
     public function calcCouncilMemberVoiceByTokens(int $token_power): mixed
     {
         return (int) floor(log(max($token_power, 2) - 1, 10) + 1);
+    }
+
+    private function resolveSignerChangeType(int $old_weight, int $new_weight): string
+    {
+        if ($old_weight === 0 && $new_weight > 0) {
+            return 'added';
+        }
+
+        if ($old_weight > 0 && $new_weight === 0) {
+            return 'removed';
+        }
+
+        if ($new_weight > $old_weight) {
+            return 'increased';
+        }
+
+        if ($new_weight < $old_weight) {
+            return 'decreased';
+        }
+
+        return 'changed';
     }
 
     private function getMasterKeyWeight(AccountResponse $Account): int
