@@ -41,8 +41,8 @@
         <ul class="block">
             {% for member in current_council_members %}
                 <li>
-                    {{ include('account_link.twig', {data: member}, with_context = false) }}
                     <span class="tag is-info">{{ member.sign_weight }}</span>
+                    {{ include('account_link.twig', {data: member}, with_context = false) }}
                 </li>
             {% endfor %}
         </ul>
