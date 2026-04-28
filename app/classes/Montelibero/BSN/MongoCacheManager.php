@@ -127,6 +127,10 @@ class MongoCacheManager
 
     private function normalizeMongoValue(mixed $value): mixed
     {
+        if ($value instanceof UTCDateTime) {
+            return $value;
+        }
+
         if (is_object($value)) {
             $value = get_object_vars($value);
         }

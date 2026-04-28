@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MTLA\CalcDelegations\CalcVoices;
 use Montelibero\BSN\MTLA\MtlaProgramReportService;
 use Montelibero\BSN\Relations\Member;
@@ -27,6 +28,10 @@ class MtlaController implements RefreshDataCodeInterface
         'GDUTNVJWCTJSPJEI3AWN7NRE535LAQDUEUEA37M22WGDYOLUGWKAMNFT',
         'GDRXBG5GVIUJWTAJDQE536JC5MDT5AH3MMCZIJCEGVAT2GEM2TMCROWD',
     ];
+    private const MTLA_COUNCIL_DELEGATIONS_CACHE_KEY = 'mtla_council_delegations:v1';
+    private const MTLA_COUNCIL_DELEGATIONS_CACHE_TTL = 259200;
+    private const MTLA_COUNCIL_DELEGATIONS_FRESH_SECONDS = 60;
+    private const MTLA_COUNCIL_DELEGATIONS_STALE_SECONDS = 86400;
 
     private BSN $BSN;
     private Environment $Twig;
@@ -34,6 +39,7 @@ class MtlaController implements RefreshDataCodeInterface
     private MtlaProgramReportService $ReportService;
     private CurrentUser $CurrentUser;
     private SignController $SignController;
+    private MongoCacheManager $CacheManager;
 
     public function __construct(
         BSN $BSN,
@@ -41,7 +47,8 @@ class MtlaController implements RefreshDataCodeInterface
         StellarSDK $Stellar,
         MtlaProgramReportService $ReportService,
         CurrentUser $CurrentUser,
-        SignController $SignController
+        SignController $SignController,
+        MongoCacheManager $CacheManager
     ) {
         $this->BSN = $BSN;
 
@@ -53,6 +60,7 @@ class MtlaController implements RefreshDataCodeInterface
         $this->ReportService = $ReportService;
         $this->CurrentUser = $CurrentUser;
         $this->SignController = $SignController;
+        $this->CacheManager = $CacheManager;
     }
 
     public function Mtla(): ?string
@@ -275,22 +283,22 @@ class MtlaController implements RefreshDataCodeInterface
             self::MTLA_MULTISIG_ADDITIONAL_ACCOUNTS,
         );
 
-        $key = 'mtla_council_delegation_tree:2';
+        $can_refresh = $this->CurrentUser->isImpactActivist();
+        $refresh_scope = self::MTLA_COUNCIL_DELEGATIONS_CACHE_KEY;
+        $force_refresh = $can_refresh && $this->isRefreshDataRequested($refresh_scope);
+        $council_snapshot = $this->fetchCouncilDelegationsSnapshot($CalcVoices, $force_refresh || isset($_GET['debug']));
 
-        if (!isset($_GET['debug']) && apcu_exists($key)) {
-            $data = apcu_fetch($key);
-        } else {
-            $CalcVoices->isDebugMode(isset($_GET['debug']));
-            if (isset($_GET['debug'])) {
-                print "<pre>";
-            }
-            $data = $CalcVoices->run();
-            if (isset($_GET['debug'])) {
-                print "</pre>";
-            }
-            apcu_store($key, $data, 60);
+        if ($force_refresh) {
+            SimpleRouter::response()->redirect($this->getRefreshDataRedirectUri([
+                'refresh_status' => ($council_snapshot['warning'] ?? null) !== null ? 'fallback' : null,
+            ]), 302);
+            return null;
         }
 
+        $council_refresh = $this->buildRefreshDataContext($refresh_scope, $can_refresh);
+        $council_refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
+
+        $data = $council_snapshot;
         $broken = $data['broken'];
         $this->fetchAccountData($broken, $current_signers, $data['council_candidates']);
         $delegation_tree = $data['roots'];
@@ -322,11 +330,91 @@ class MtlaController implements RefreshDataCodeInterface
             'mtla_account' => $MtlaAccount->jsonSerialize(),
             'current_council_members' => $current_council_members,
             'current_council_threshold' => $current_council_threshold,
+            'council_snapshot' => $council_snapshot,
+            'council_refresh' => $council_refresh,
             'delegation_tree' => $delegation_tree ?? [],
             'council_member_limit' => self::MTLA_COUNCIL_MEMBER_LIMIT,
             'council_update' => $council_update,
             'council_update_error' => $council_update_error,
         ]);
+    }
+
+    private function fetchCouncilDelegationsSnapshot(CalcVoices $CalcVoices, bool $force_refresh): array
+    {
+        $cached = $this->fetchCouncilDelegationsCache();
+        if (!$force_refresh && is_array($cached) && $this->isValidCouncilDelegationsSnapshot($cached)) {
+            $cached['from_cache'] = true;
+            $cached['warning'] = null;
+            return $this->finalizeCouncilDelegationsSnapshot($cached);
+        }
+
+        try {
+            $CalcVoices->isDebugMode(isset($_GET['debug']));
+            if (isset($_GET['debug'])) {
+                print "<pre>";
+            }
+            $snapshot = $CalcVoices->run();
+            if (isset($_GET['debug'])) {
+                print "</pre>";
+            }
+            $snapshot['fetched_at'] = time();
+            $this->storeCouncilDelegationsCache($snapshot);
+            $snapshot['from_cache'] = false;
+            $snapshot['warning'] = null;
+            return $this->finalizeCouncilDelegationsSnapshot($snapshot);
+        } catch (Throwable $Exception) {
+            if (is_array($cached) && $this->isValidCouncilDelegationsSnapshot($cached)) {
+                $cached['from_cache'] = true;
+                $cached['warning'] = $Exception->getMessage();
+                return $this->finalizeCouncilDelegationsSnapshot($cached);
+            }
+
+            return $this->finalizeCouncilDelegationsSnapshot([
+                'fetched_at' => null,
+                'broken' => [],
+                'roots' => [],
+                'council_candidates' => [],
+                'from_cache' => false,
+                'warning' => $Exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function fetchCouncilDelegationsCache(): ?array
+    {
+        $entry = $this->CacheManager->fetch(self::MTLA_COUNCIL_DELEGATIONS_CACHE_KEY);
+        $data = $entry['data'] ?? null;
+
+        return is_array($data) ? $data : null;
+    }
+
+    private function storeCouncilDelegationsCache(array $snapshot): void
+    {
+        $this->CacheManager->store(
+            self::MTLA_COUNCIL_DELEGATIONS_CACHE_KEY,
+            $snapshot,
+            self::MTLA_COUNCIL_DELEGATIONS_CACHE_TTL,
+            ['scope' => 'mtla_council_delegations']
+        );
+    }
+
+    private function isValidCouncilDelegationsSnapshot(array $snapshot): bool
+    {
+        return isset($snapshot['broken'], $snapshot['roots'], $snapshot['council_candidates'])
+            && is_array($snapshot['broken'])
+            && is_array($snapshot['roots'])
+            && is_array($snapshot['council_candidates']);
+    }
+
+    private function finalizeCouncilDelegationsSnapshot(array $snapshot): array
+    {
+        $fetched_at = isset($snapshot['fetched_at']) ? (int) $snapshot['fetched_at'] : 0;
+        $age = $fetched_at > 0 ? max(0, time() - $fetched_at) : null;
+        $snapshot['age_seconds'] = $age;
+        $snapshot['is_fresh'] = $age !== null && $age < self::MTLA_COUNCIL_DELEGATIONS_FRESH_SECONDS;
+        $snapshot['is_stale_cache'] = $age !== null && $age >= self::MTLA_COUNCIL_DELEGATIONS_STALE_SECONDS;
+
+        return $snapshot;
     }
 
     private function buildCurrentCouncilMembersFromBsn(): array

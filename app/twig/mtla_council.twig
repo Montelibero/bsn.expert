@@ -72,6 +72,11 @@
         <div class="block delegation_tree">
         {{ _self.renderDelegationTree(delegation_tree, 0, council_member_limit) }}
         </div>
+
+        {% include 'mtla_snapshot_box.twig' with {
+            snapshot: council_snapshot,
+            refresh: council_refresh
+        } only %}
     {% endif %}
 
     {% if council_update %}
