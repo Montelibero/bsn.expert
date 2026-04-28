@@ -59,11 +59,13 @@ class MtlaProgramReportService
         $mentioned_account_ids = [];
         $items = [];
 
-        foreach ($MTLA?->getOutcomeLinks($TagProgram) ?? [] as $Program) {
-            $coordinator_candidates = $Program->getOutcomeLinks($TagProgramCoordinator);
-            $outgoing_participants = $Program->getOutcomeLinks($TagMyPart);
+        foreach ($this->uniqueAccountsById($MTLA?->getOutcomeLinks($TagProgram) ?? []) as $Program) {
+            $coordinator_candidates = $this->uniqueAccountsById($Program->getOutcomeLinks($TagProgramCoordinator));
+            $outgoing_participants = $this->uniqueAccountsById($Program->getOutcomeLinks($TagMyPart));
             $confirmed_participants = [];
+            $confirmed_participant_ids = [];
             $broken_outgoing = [];
+            $broken_outgoing_ids = [];
 
             $mentioned_account_ids[$Program->getId()] = true;
 
@@ -77,21 +79,27 @@ class MtlaProgramReportService
                 }
 
                 if ($this->hasOutgoingLink($Participant, $TagPartOf, $Program)) {
+                    if (isset($confirmed_participant_ids[$Participant->getId()])) {
+                        continue;
+                    }
+
                     $confirmed_participants[] = $this->buildProgramParticipant($Participant);
                     $memberships[$Participant->getId()][] = $Program->jsonSerialize();
                     $mentioned_account_ids[$Participant->getId()] = true;
+                    $confirmed_participant_ids[$Participant->getId()] = true;
                 } else {
+                    if (isset($broken_outgoing_ids[$Participant->getId()])) {
+                        continue;
+                    }
+
                     $broken_outgoing[] = $Participant->jsonSerialize();
+                    $broken_outgoing_ids[$Participant->getId()] = true;
                 }
             }
 
             usort($confirmed_participants, fn(array $a, array $b): int => strcmp($a['display_name'], $b['display_name']));
             usort($broken_outgoing, fn(array $a, array $b): int => strcmp($a['display_name'], $b['display_name']));
 
-            $confirmed_participant_ids = array_fill_keys(
-                array_map(static fn(array $participant): string => $participant['id'], $confirmed_participants),
-                true
-            );
             $coordinators = array_values(array_filter(
                 $coordinator_candidates,
                 static fn(Account $Coordinator): bool => isset($confirmed_participant_ids[$Coordinator->getId()])
@@ -697,6 +705,20 @@ class MtlaProgramReportService
         }
 
         return false;
+    }
+
+    /**
+     * @param Account[] $accounts
+     * @return Account[]
+     */
+    private function uniqueAccountsById(array $accounts): array
+    {
+        $unique = [];
+        foreach ($accounts as $Account) {
+            $unique[$Account->getId()] = $Account;
+        }
+
+        return array_values($unique);
     }
 
     private function isEligibleProgramParticipant(Account $Account): bool
