@@ -260,12 +260,12 @@ class MtlaController implements RefreshDataCodeInterface
     {
         $Template = $this->Twig->load('mtla_council.twig');
 
+        $MtlaAccount = $this->BSN->makeAccountById(self::MTLA_ACCOUNT);
+        $current_council_members = $this->buildCurrentCouncilMembersFromBsn();
+        $current_council_threshold = (int) ($MtlaAccount->getMultisig()['thresholds'][1] ?? 0);
         $current_signers = [];
-        foreach ($this->fetchMtlaSigners() as $id => $weight) {
-            $Account = $this->BSN->getAccountById($id);
-            $current_signers[$id] = $Account->jsonSerialize() + [
-                'sign_weight' => $weight,
-            ];
+        foreach ($current_council_members as $member) {
+            $current_signers[$member['id']] = $member;
         }
 
         $CalcVoices = new CalcVoices(
@@ -319,11 +319,50 @@ class MtlaController implements RefreshDataCodeInterface
         }
 
         return $Template->render([
+            'mtla_account' => $MtlaAccount->jsonSerialize(),
+            'current_council_members' => $current_council_members,
+            'current_council_threshold' => $current_council_threshold,
             'delegation_tree' => $delegation_tree ?? [],
             'council_member_limit' => self::MTLA_COUNCIL_MEMBER_LIMIT,
             'council_update' => $council_update,
             'council_update_error' => $council_update_error,
         ]);
+    }
+
+    private function buildCurrentCouncilMembersFromBsn(): array
+    {
+        $MtlaAccount = $this->BSN->makeAccountById(self::MTLA_ACCOUNT);
+        $multisig = $MtlaAccount->getMultisig();
+        if ($multisig === null) {
+            return [];
+        }
+
+        $members = [];
+        foreach ($multisig['signers'] ?? [] as $signer) {
+            if (($signer['weight'] ?? 0) <= 0) {
+                continue;
+            }
+
+            $Account = $signer['account'];
+            if (!$Account instanceof \Montelibero\BSN\Account) {
+                continue;
+            }
+
+            $members[] = $Account->jsonSerialize() + [
+                'sign_weight' => (int) $signer['weight'],
+            ];
+        }
+
+        usort($members, static function (array $a, array $b): int {
+            $weight_comparison = ((int) ($b['sign_weight'] ?? 0)) <=> ((int) ($a['sign_weight'] ?? 0));
+            if ($weight_comparison !== 0) {
+                return $weight_comparison;
+            }
+
+            return strcmp((string) ($a['id'] ?? ''), (string) ($b['id'] ?? ''));
+        });
+
+        return $members;
     }
 
     private function fetchCouncilUpdateChangeAccountData(array &$changes): void

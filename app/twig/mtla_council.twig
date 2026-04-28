@@ -23,7 +23,31 @@
 
     <h1 class="title">{{ 'mtla_council_page.header'|trans }}</h1>
 
+    {% if current_council_members %}
+        <h2 class="title is-4">{{ 'mtla_council_page.current_composition_title'|trans }}</h2>
+        <p class="block">
+            {{ 'mtla_council_page.current_composition_note.members_prefix'|trans }}
+            {{ include('account_link.twig', {data: mtla_account}, with_context = false) }}.
+            {{ 'mtla_council_page.current_composition_note.threshold_prefix'|trans }}
+            <span class="tag is-info">{{ current_council_threshold }}</span>
+            {{ 'mtla_council_page.current_composition_note.threshold_suffix'|trans }}
+            {{ 'mtla_council_page.current_composition_note.herald_prefix'|trans }}
+            <a href="https://t.me/MTLA_Council_Herald" target="_blank" rel="noopener noreferrer">«{{ 'mtla_council_page.current_composition_note.herald_name'|trans }}»</a>.
+        </p>
+        <ul class="block">
+            {% for member in current_council_members %}
+                <li>
+                    {{ include('account_link.twig', {data: member}, with_context = false) }}
+                    <span class="tag is-info">{{ member.sign_weight }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
     {% if delegation_tree %}
+        <h2 class="title is-4">{{ 'mtla_council_page.delegation_tree_title'|trans }}</h2>
+        <p class="block">{{ 'mtla_council_page.delegation_tree_description'|trans }}</p>
+
         {% macro renderDelegationTree(tree, level, council_member_limit) %}
             <ul>
                 {% for node in tree %}

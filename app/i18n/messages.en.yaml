@@ -801,6 +801,15 @@ mtla_participants_page:
 mtla_council_page:
   header: Council of Montelibero Association
   header_current: Current Council Members
+  current_composition_title: Council composition
+  current_composition_note:
+    members_prefix: "Council members are participants in the multisig of the Council's main account:"
+    threshold_prefix: "A decision requires"
+    threshold_suffix: "votes so that the decision transaction can pass on-chain."
+    herald_prefix: "All decisions are published in the"
+    herald_name: Council Herald
+  delegation_tree_title: Delegation tree
+  delegation_tree_description: The Association has no electoral cycle. Any participant may change their preferences at any moment, and the Council will change its composition and vote weights according to those changes.
   account: Account
   sign: Voice weight
   update:

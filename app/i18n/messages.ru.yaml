@@ -803,6 +803,15 @@ mtla_participants_page:
 mtla_council_page:
   header: Совет Ассоциации Монтелиберо
   header_current: Актуальный состав
+  current_composition_title: Состав Совета
+  current_composition_note:
+    members_prefix: "Члены совета — участники мультиподписи основного аккаунта совета:"
+    threshold_prefix: "Для принятия решения нужно собрать"
+    threshold_suffix: "голосов, чтобы транзакция с решением прошла в блокчейн."
+    herald_prefix: "Все решения публикуются в канале"
+    herald_name: Вестник Совета
+  delegation_tree_title: Древо делегаций
+  delegation_tree_description: В Ассоциации нет электорального цикла. Любой участник может в любой момент менять свои предпочтения, и в соответствии с этими изменениями Совет будет менять свой состав и веса голосов.
   account: Аккаунт
   sign: Вес голоса
   update:
