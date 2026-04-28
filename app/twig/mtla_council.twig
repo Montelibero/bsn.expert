@@ -19,6 +19,10 @@
         .delegation_tree li > ul {
             margin-left: 2em;
         }
+
+        .delegation_tree .no_voice {
+            opacity: 0.6;
+        }
     </style>
 
     <h1 class="title">{{ 'mtla_council_page.header'|trans }}</h1>
@@ -52,14 +56,16 @@
             <ul>
                 {% for node in tree %}
                     <li>
-                        {% if node.show_ready_to_council %}🙋{% endif %}
-                        {% if node.show_council_outdated %}🙅{% endif %}
-                        {% if node.candidate_index %}<span class="tag {{ node.candidate_index <= council_member_limit ? 'is-primary' : 'is-info' }}">{{ node.candidate_index }}</span>{% endif %}
-                        {% if node.is_council %}🏛️{% endif %}
-                        {{ include('account_link.twig', {data: node}, with_context = false) }}
-                        <span class="has-text-dark">
-                        {{ node.own_token_amount }} + {{ node.delegated_token_amount }} =
-                        {{ node.own_token_amount + node.delegated_token_amount }}
+                        <span{% if node.has_no_voice %} class="no_voice"{% endif %}>
+                            {% if node.show_ready_to_council %}🙋{% endif %}
+                            {% if node.show_council_outdated %}🙅{% endif %}
+                            {% if node.candidate_index %}<span class="tag {{ node.candidate_index <= council_member_limit ? 'is-primary' : 'is-info' }}">{{ node.candidate_index }}</span>{% endif %}
+                            {% if node.is_council %}🏛️{% endif %}
+                            {{ include('account_link.twig', {data: node}, with_context = false) }}
+                            <span class="has-text-dark">
+                            {{ node.own_token_amount }} + {{ node.delegated_token_amount }} =
+                            {{ node.own_token_amount + node.delegated_token_amount }}
+                            </span>
                         </span>
                         {% if node.delegated is not empty %}
                             {{ _self.renderDelegationTree(node.delegated, level + 1, council_member_limit) }}
@@ -72,6 +78,12 @@
         <div class="block delegation_tree">
         {{ _self.renderDelegationTree(delegation_tree, 0, council_member_limit) }}
         </div>
+
+        {% if not show_all_delegations and hidden_no_voice_accounts_count > 0 %}
+            <p class="block">
+                <a href="{{ show_all_delegations_url }}">{{ 'mtla_council_page.show_all_no_voice'|trans }}</a>
+            </p>
+        {% endif %}
 
         {% include 'mtla_snapshot_box.twig' with {
             snapshot: council_snapshot,

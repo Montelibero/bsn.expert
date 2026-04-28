@@ -810,6 +810,7 @@ mtla_council_page:
     herald_name: Council Herald
   delegation_tree_title: Delegation tree
   delegation_tree_description: The Association has no electoral cycle. Any participant may change their preferences at any moment, and the Council will change its composition and vote weights according to those changes.
+  show_all_no_voice: Show participants without a deciding vote
   account: Account
   sign: Voice weight
   update:

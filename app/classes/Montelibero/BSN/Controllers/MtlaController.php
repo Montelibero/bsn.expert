@@ -304,6 +304,11 @@ class MtlaController implements RefreshDataCodeInterface
         $delegation_tree = $data['roots'];
         $this->sortAccounts($delegation_tree);
         $this->fetchAccountData($delegation_tree, $current_signers, $data['council_candidates']);
+        $show_all_delegations = ($_GET['show_all'] ?? '') === 'yes';
+        $hidden_no_voice_accounts_count = 0;
+        if (!$show_all_delegations) {
+            $hidden_no_voice_accounts_count = $this->filterDelegationTreeNoVoiceLeaves($delegation_tree);
+        }
 
         $council_update = null;
         $council_update_error = null;
@@ -333,6 +338,9 @@ class MtlaController implements RefreshDataCodeInterface
             'council_snapshot' => $council_snapshot,
             'council_refresh' => $council_refresh,
             'delegation_tree' => $delegation_tree ?? [],
+            'show_all_delegations' => $show_all_delegations,
+            'hidden_no_voice_accounts_count' => $hidden_no_voice_accounts_count,
+            'show_all_delegations_url' => $this->getRefreshDataRedirectUri(['show_all' => 'yes']),
             'council_member_limit' => self::MTLA_COUNCIL_MEMBER_LIMIT,
             'council_update' => $council_update,
             'council_update_error' => $council_update_error,
@@ -453,6 +461,30 @@ class MtlaController implements RefreshDataCodeInterface
         return $members;
     }
 
+    private function filterDelegationTreeNoVoiceLeaves(array &$accounts): int
+    {
+        $hidden_count = 0;
+        $filtered = [];
+
+        foreach ($accounts as $account) {
+            if (!empty($account['delegated']) && is_array($account['delegated'])) {
+                $hidden_count += $this->filterDelegationTreeNoVoiceLeaves($account['delegated']);
+            }
+
+            $has_own_voice = ((int) ($account['own_token_amount'] ?? 0)) > 0;
+            $has_delegated_voice = ((int) ($account['delegated_token_amount'] ?? 0)) > 0;
+            if (!$has_own_voice && !$has_delegated_voice) {
+                $hidden_count++;
+                continue;
+            }
+
+            $filtered[] = $account;
+        }
+
+        $accounts = $filtered;
+        return $hidden_count;
+    }
+
     private function fetchCouncilUpdateChangeAccountData(array &$changes): void
     {
         $emoji_by_type = [
@@ -496,6 +528,7 @@ class MtlaController implements RefreshDataCodeInterface
             $Account = $this->BSN->makeAccountById($root['id']);
             $root += $Account->jsonSerialize();
             $root['is_council'] = array_key_exists($root['id'], $current_council);
+            $root['has_no_voice'] = ((int) ($root['own_token_amount'] ?? 0)) <= 0;
             if (array_key_exists($root['id'], $council_candidates)) {
                 $root['candidate_index'] = $council_candidates[$root['id']]['index'];
             }
