@@ -31,40 +31,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull previous APP image for cache
-        run: |
-          docker pull $REGISTRY/$IMAGE_APP_NAME:latest || true
-
-      - name: Pull previous WEB image for cache
-        run: |
-          docker pull $REGISTRY/$IMAGE_WEB_NAME:latest || true
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build APP Docker image
-        working-directory: ./app
-        run: |
-          docker build \
-            --target prod \
-            --cache-from $REGISTRY/$IMAGE_APP_NAME:latest \
-            --label org.opencontainers.image.source=$OCI_SOURCE \
-            --label org.opencontainers.image.revision=$OCI_REVISION \
-            -t $REGISTRY/$IMAGE_APP_NAME:latest .
-
-      - name: Push APP Docker image
-        run: |
-          docker push $REGISTRY/$IMAGE_APP_NAME:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          target: prod
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_APP_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ env.OCI_SOURCE }}
+            org.opencontainers.image.revision=${{ env.OCI_REVISION }}
+          cache-from: type=gha,scope=bsn-app
+          cache-to: type=gha,scope=bsn-app,mode=max
 
       - name: Build WEB Docker image
-        run: |
-          docker build \
-            --cache-from $REGISTRY/$IMAGE_WEB_NAME:latest \
-            --label org.opencontainers.image.source=$OCI_SOURCE \
-            --label org.opencontainers.image.revision=$OCI_REVISION \
-            -f web/Dockerfile \
-            -t $REGISTRY/$IMAGE_WEB_NAME:latest .
-
-      - name: Push WEB Docker image
-        run: |
-          docker push $REGISTRY/$IMAGE_WEB_NAME:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          target: prod
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_WEB_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ env.OCI_SOURCE }}
+            org.opencontainers.image.revision=${{ env.OCI_REVISION }}
+          cache-from: type=gha,scope=bsn-web
+          cache-to: type=gha,scope=bsn-web,mode=max
 
       - name: Notify Telegram
         run: |
