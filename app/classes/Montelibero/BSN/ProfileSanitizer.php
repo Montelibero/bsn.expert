@@ -84,8 +84,8 @@ final class ProfileSanitizer
     private static function replaceReservedNameCharacters(string $value): string
     {
         return strtr($value, [
-            '[' => '［',
-            ']' => '］',
+            '[' => '⦗',
+            ']' => '⦘',
             '⭐' => '★',
             '🌟' => '★',
         ]);
