@@ -34,13 +34,13 @@ class Account implements JsonSerializable
     private ?string $contact_name = null;
     /** @var Signature[] */
     private array $signatures = [];
-    private array $profile;
+    private array $profile = [];
     private ?array $multisig = null;
     private array $multisig_participations = [];
 
-    public function __construct(string $id = null)
+    public function __construct(?string $id = null)
     {
-        $this->id = $id;
+        $this->id = (string) $id;
     }
 
     public function getId(): string
@@ -131,7 +131,7 @@ class Account implements JsonSerializable
         return $result;
     }
 
-    public static function fromId(string $id = null): self
+    public static function fromId(?string $id = null): self
     {
         return new self($id);
     }
@@ -140,7 +140,10 @@ class Account implements JsonSerializable
 
     public function setProfile(array $data)
     {
-        $this->profile = $data;
+        $this->profile = ProfileSanitizer::sanitizeProfile($data);
+        $this->name = $this->profile['Name'] ?? [];
+        $this->about = $this->profile['About'] ?? [];
+        $this->website = $this->profile['Website'] ?? [];
     }
 
     public function getProfile(): array
@@ -163,7 +166,7 @@ class Account implements JsonSerializable
      */
     public function getName(): array
     {
-        return $this->getProfileItem('Name');
+        return $this->name;
     }
 
     /**
@@ -171,7 +174,7 @@ class Account implements JsonSerializable
      */
     public function getAbout(): array
     {
-        return $this->getProfileItem('About');
+        return $this->about;
     }
 
     /**
@@ -179,7 +182,7 @@ class Account implements JsonSerializable
      */
     public function getWebsite(): array
     {
-        return $this->getProfileItem('Website');
+        return $this->website;
     }
     //endregion Self-presentation
 
@@ -285,7 +288,7 @@ class Account implements JsonSerializable
         return $this->balances;
     }
 
-    public function getBalance(string $name = null): float
+    public function getBalance(?string $name = null): float
     {
         if (!array_key_exists($name, $this->balances)) {
             return .0;

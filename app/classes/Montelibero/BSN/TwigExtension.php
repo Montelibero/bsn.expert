@@ -120,7 +120,7 @@ class TwigExtension extends AbstractExtension
             $result .= '#' . $this->decodeUtf8PercentSequences($parts['fragment']);
         }
 
-        return $result;
+        return ProfileSanitizer::sanitizeWebsiteDisplay($result);
     }
 
     public function period(null|int|string $timestamp): string

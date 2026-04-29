@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     libzip-dev \
     libmemcached-dev \
     openssl-dev \
+    icu-dev \
     cyrus-sasl-dev \
     zlib-dev \
     curl-dev \
@@ -21,6 +22,7 @@ RUN apk add --no-cache \
         bcmath \
         curl \
         gd \
+        intl \
         pcntl \
     && pecl install apcu \
     && pecl install memcached \
