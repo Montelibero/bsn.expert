@@ -54,9 +54,9 @@ final class ProfileSanitizer
 
     public static function sanitizeName(string $value): string
     {
-        $value = self::replaceReservedNameCharacters($value);
-
-        return self::sanitizeText($value, self::MAX_NAME_GRAPHEMES, true);
+        return self::replaceReservedNameCharacters(
+            self::sanitizeText($value, self::MAX_NAME_GRAPHEMES, true)
+        );
     }
 
     public static function sanitizeAbout(string $value): string
@@ -84,8 +84,8 @@ final class ProfileSanitizer
     private static function replaceReservedNameCharacters(string $value): string
     {
         return strtr($value, [
-            '[' => '⟦',
-            ']' => '⟧',
+            '[' => '［',
+            ']' => '］',
             '⭐' => '★',
             '🌟' => '★',
         ]);
