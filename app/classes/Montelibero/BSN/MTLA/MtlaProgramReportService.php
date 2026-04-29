@@ -21,10 +21,11 @@ use Throwable;
 class MtlaProgramReportService
 {
     private const MTLA_ACCOUNT = MtlaController::MTLA_ACCOUNT;
-    private const CACHE_KEY_PREFIX = 'mtla_rp_report_snapshot:v4';
+    private const CACHE_KEY_PREFIX = 'mtla_rp_report_snapshot:v5';
     private const CACHE_TTL = 604800;
     private const LOOKBACK_DAYS = 90;
     private const ACTIVIST_MIN_MTLAP = 4;
+    private const PROGRAM_PARTICIPANT_MIN_MTLAP = 1;
     private const MIN_REQUIRED_TT = 12.0;
     private const FRESH_SNAPSHOT_SECONDS = 60;
     private const STALE_CACHE_SECONDS = 86400;
@@ -393,6 +394,7 @@ class MtlaProgramReportService
     private function collectRecentMtlaTotals(array $program_account_ids): array
     {
         $cutoff_at = time() - (self::LOOKBACK_DAYS * 86400);
+        $incoming_matchers = $this->buildIncomingMatchers();
         $incoming_totals = [];
         $outgoing_totals = [];
         $program_outgoing_totals = [];
@@ -425,14 +427,19 @@ class MtlaProgramReportService
                     continue;
                 }
 
+                $matched_account_id = $this->resolveIncomingPaymentAccountId($payment, $incoming_matchers);
+                if ($matched_account_id === null) {
+                    continue;
+                }
+
                 $payments_count++;
-                if (!isset($incoming_totals[$payment['account_id']])) {
-                    $incoming_totals[$payment['account_id']] = [];
+                if (!isset($incoming_totals[$matched_account_id])) {
+                    $incoming_totals[$matched_account_id] = [];
                 }
-                if (!isset($incoming_totals[$payment['account_id']][$payment['asset_key']])) {
-                    $incoming_totals[$payment['account_id']][$payment['asset_key']] = .0;
+                if (!isset($incoming_totals[$matched_account_id][$payment['asset_key']])) {
+                    $incoming_totals[$matched_account_id][$payment['asset_key']] = .0;
                 }
-                $incoming_totals[$payment['account_id']][$payment['asset_key']] += $payment['amount'];
+                $incoming_totals[$matched_account_id][$payment['asset_key']] += $payment['amount'];
             }
 
             if ($stop) {
@@ -572,7 +579,7 @@ class MtlaProgramReportService
 
         if ($to === self::MTLA_ACCOUNT) {
             return [
-                'account_id' => $from,
+                'from_account_id' => $from,
                 'asset_key' => $asset_key,
                 'amount' => $amount,
             ];
@@ -626,6 +633,107 @@ class MtlaProgramReportService
         }
 
         return $data;
+    }
+
+    private function buildIncomingMatchers(): array
+    {
+        $ownership = $this->buildOwnershipIndexes();
+        $matchers = [];
+
+        foreach ($this->BSN->getAccounts() as $Account) {
+            if ($Account->getBalance('MTLAP') < self::PROGRAM_PARTICIPANT_MIN_MTLAP) {
+                continue;
+            }
+
+            $time_token = $this->resolveTimeToken($Account);
+            $asset_key = $time_token['asset_key'] ?? null;
+            if ($asset_key === null) {
+                continue;
+            }
+
+            $account_id = $Account->getId();
+            $this->addIncomingMatcher($matchers, $account_id, $asset_key, $account_id, 0);
+
+            $issuer_id = $time_token['issuer'] ?? null;
+            if ($issuer_id && $issuer_id !== $account_id) {
+                $this->addIncomingMatcher($matchers, $issuer_id, $asset_key, $account_id, 1);
+            }
+
+            foreach (array_keys($ownership['full'][$account_id] ?? []) as $source_account_id) {
+                $this->addIncomingMatcher($matchers, $source_account_id, $asset_key, $account_id, 2);
+            }
+
+            foreach (array_keys($ownership['majority'][$account_id] ?? []) as $source_account_id) {
+                $this->addIncomingMatcher($matchers, $source_account_id, $asset_key, $account_id, 3);
+            }
+        }
+
+        return $matchers;
+    }
+
+    private function buildOwnershipIndexes(): array
+    {
+        $TagOwner = $this->BSN->makeTagByName('Owner');
+        $TagOwnershipFull = $this->BSN->makeTagByName('OwnershipFull');
+        $TagOwnerMajority = $this->BSN->makeTagByName('OwnerMajority');
+        $TagOwnershipMajority = $this->BSN->makeTagByName('OwnershipMajority');
+
+        $full = [];
+        $majority = [];
+
+        foreach ($this->BSN->getAccounts() as $OwnedAccount) {
+            foreach ($this->uniqueAccountsById($OwnedAccount->getOutcomeLinks($TagOwner)) as $Owner) {
+                if ($this->hasOutgoingLink($Owner, $TagOwnershipFull, $OwnedAccount)) {
+                    $full[$Owner->getId()][$OwnedAccount->getId()] = true;
+                }
+            }
+
+            foreach ($this->uniqueAccountsById($OwnedAccount->getOutcomeLinks($TagOwnerMajority)) as $Owner) {
+                if ($this->hasOutgoingLink($Owner, $TagOwnershipMajority, $OwnedAccount)) {
+                    $majority[$Owner->getId()][$OwnedAccount->getId()] = true;
+                }
+            }
+        }
+
+        return [
+            'full' => $full,
+            'majority' => $majority,
+        ];
+    }
+
+    private function addIncomingMatcher(
+        array &$matchers,
+        string $source_account_id,
+        string $asset_key,
+        string $participant_account_id,
+        int $priority
+    ): void {
+        $current_priority = $matchers[$source_account_id][$asset_key][$participant_account_id] ?? null;
+        if ($current_priority === null || $priority < $current_priority) {
+            $matchers[$source_account_id][$asset_key][$participant_account_id] = $priority;
+        }
+    }
+
+    private function resolveIncomingPaymentAccountId(array $payment, array $matchers): ?string
+    {
+        $source_account_id = $payment['from_account_id'] ?? null;
+        $asset_key = $payment['asset_key'] ?? null;
+        if (!$source_account_id || !$asset_key) {
+            return null;
+        }
+
+        $candidates = $matchers[$source_account_id][$asset_key] ?? [];
+        if (!$candidates) {
+            return null;
+        }
+
+        $best_priority = min($candidates);
+        $best_matches = array_keys(array_filter(
+            $candidates,
+            static fn(int $priority): bool => $priority === $best_priority
+        ));
+
+        return count($best_matches) === 1 ? $best_matches[0] : null;
     }
 
     private function buildProgramParticipantStatus(
@@ -723,7 +831,7 @@ class MtlaProgramReportService
 
     private function isEligibleProgramParticipant(Account $Account): bool
     {
-        return $Account->getBalance('MTLAP') >= 1;
+        return $Account->getBalance('MTLAP') >= self::PROGRAM_PARTICIPANT_MIN_MTLAP;
     }
 
     private function calculateProgramSeverity(array $issues): int
