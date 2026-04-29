@@ -324,9 +324,17 @@ function gristRequest($url, $method, $data = null)
     );
 
     // Получаем информацию о последнем HTTP-ответе
-    $status_line = $http_response_header[0];
-    preg_match('{HTTP/\S*\s(\d{3})}', $status_line, $match);
-    $status = $match[1];
+    $response_headers = http_get_last_response_headers();
+    $status_line = $response_headers[0] ?? null;
+    if ($status_line === null) {
+        throw new Exception('HTTP response status line is missing');
+    }
+
+    if (!preg_match('{HTTP/\S*\s(\d{3})}', $status_line, $match)) {
+        throw new Exception(sprintf('HTTP response status line is invalid: %s', $status_line));
+    }
+
+    $status = (int)$match[1];
 
     if ($status >= 400) {
         $error_data = json_decode($response, true);

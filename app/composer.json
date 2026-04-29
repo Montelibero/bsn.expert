@@ -2,7 +2,7 @@
   "name": "mtl/bsn_viewer",
   "version": "1.0.0",
   "require": {
-    "php": ">=8.2",
+    "php": ">=8.5",
     "ext-apcu": "*",
     "ext-bcmath": "*",
     "ext-curl": "*",

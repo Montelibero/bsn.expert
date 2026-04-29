@@ -1,4 +1,4 @@
-FROM php:8.2-fpm-alpine AS base
+FROM php:8.5-fpm-alpine AS base
 
 WORKDIR /var/www/html
 
@@ -35,10 +35,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Development
 FROM base AS dev
+COPY php-dev.ini /usr/local/etc/php/conf.d/zz-env.ini
 CMD ["sh", "-c", "sh /var/www/html/init.sh && composer install --no-dev --optimize-autoloader && php-fpm"]
 
 # Production
 FROM base AS prod
+COPY php-prod.ini /usr/local/etc/php/conf.d/zz-env.ini
 
 COPY composer.json composer.lock ./
 RUN --mount=type=cache,target=/root/.composer/cache \
