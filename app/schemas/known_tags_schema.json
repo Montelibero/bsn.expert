@@ -5,9 +5,14 @@
     "presentation": {
       "type": "object",
       "patternProperties": {
-        "^[A-Za-z]+$": {
+        "^[A-Za-z0-9_]+$": {
           "type": "object",
-          "description": "Дополнительные параметры для каждого имени, пока не определены, оставляем пустыми"
+          "properties": {
+            "description": {
+              "type": ["string", "null"]
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -15,19 +20,30 @@
     "links": {
       "type": "object",
       "patternProperties": {
-        "^[A-Za-z]+$": {
+        "^[A-Za-z0-9_]+$": {
           "type": "object",
           "properties": {
+            "category": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "description": {
+              "type": ["string", "null"]
+            },
             "standard": {
               "type": "boolean",
               "default": false
             },
             "pair": {
               "anyOf": [
-                { "type": "boolean" },
-                { "type": "string" }
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                }
               ],
-              "description": "Булево значение или название парного типа",
+              "description": "Boolean value or paired tag name",
               "default": false
             },
             "strong_pair": {
@@ -39,13 +55,29 @@
               "default": false
             }
           },
-          "required": [],
+          "required": ["category", "description"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "categories": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9_]*$": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": ["name"],
           "additionalProperties": false
         }
       },
       "additionalProperties": false
     }
   },
-  "required": ["presentation", "links"],
+  "required": ["presentation", "links", "categories"],
   "additionalProperties": false
 }

@@ -191,7 +191,8 @@ class TagsController
                 $path = dirname(__DIR__, 4) . '/known_tags/lang-en.json';
             }
 
-            $descriptions_by_locale[$locale] = json_decode(file_get_contents($path), true) ?? [];
+            $parsed = json_decode(file_get_contents($path), true) ?? [];
+            $descriptions_by_locale[$locale] = is_array($parsed['tags'] ?? null) ? $parsed['tags'] : $parsed;
         }
 
         return $descriptions_by_locale[$locale];

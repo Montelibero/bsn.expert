@@ -32,21 +32,24 @@ if (!is_array($list)) {
     exit;
 }
 
-$translations = [];
+$tag_translations = [];
+$category_translations = [];
 $translation_path = __DIR__ . '/lang-' . $lang . '.json';
 if (is_readable($translation_path)) {
     $parsed = json_decode((string) file_get_contents($translation_path), true);
     if (is_array($parsed)) {
-        $translations = $parsed;
+        $tag_translations = is_array($parsed['tags'] ?? null) ? $parsed['tags'] : $parsed;
+        $category_translations = is_array($parsed['categories'] ?? null) ? $parsed['categories'] : [];
     }
 }
 
-if (!$translations && $lang !== $default_lang) {
+if (!$tag_translations && $lang !== $default_lang) {
     $fallback_path = __DIR__ . '/lang-' . $default_lang . '.json';
     if (is_readable($fallback_path)) {
         $parsed = json_decode((string) file_get_contents($fallback_path), true);
         if (is_array($parsed)) {
-            $translations = $parsed;
+            $tag_translations = is_array($parsed['tags'] ?? null) ? $parsed['tags'] : $parsed;
+            $category_translations = is_array($parsed['categories'] ?? null) ? $parsed['categories'] : [];
             $translation_path = $fallback_path;
         }
     }
@@ -130,9 +133,19 @@ foreach (['presentation', 'links'] as $section) {
         if (!is_array($params)) {
             $params = [];
         }
-        $params['description'] = $translations[$tag] ?? null;
+        $params['description'] = $tag_translations[$tag] ?? null;
         $list[$section][$tag] = $params;
     }
+}
+
+$list['categories'] = [];
+foreach ($category_translations as $category => $name) {
+    if (!is_string($name)) {
+        continue;
+    }
+    $list['categories'][$category] = [
+        'name' => $name,
+    ];
 }
 
 echo json_encode(

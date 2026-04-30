@@ -7,139 +7,214 @@
   },
   "links": {
     "A": {
+      "category": "reputation",
       "standard": true
     },
-    "Ambassador": {},
+    "Ambassador": {
+      "category": "work"
+    },
     "B": {
+      "category": "reputation",
       "standard": true
     },
     "C": {
+      "category": "reputation",
       "standard": true
     },
     "Client": {
+      "category": "work",
       "pair": "Vendor",
       "standard": true
     },
     "Collaboration": {
+      "category": "work",
       "pair": true,
       "standard": true
     },
     "Contractor": {
+      "category": "work",
       "standard": true
     },
     "D": {
+      "category": "reputation",
       "standard": true
     },
     "Dislike": {
+      "category": "social",
       "pair": true
     },
     "Divorce": {
+      "category": "family",
       "standard": true
     },
     "Employee": {
+      "category": "work",
       "pair": "Employer",
       "standard": true
     },
     "Employer": {
+      "category": "work",
       "pair": "Employee",
       "standard": true
     },
-    "Expert": {},
+    "Expert": {
+      "category": "reputation"
+    },
     "FactionMember": {
+      "category": "structure",
       "pair": true,
       "standard": true
     },
     "Friend": {
+      "category": "social",
       "pair": true
     },
     "Guardian": {
+      "category": "family",
       "pair": "Ward",
       "standard": true,
       "strong_pair": true
     },
-    "IAmVolunteerFor": {},
+    "IAmVolunteerFor": {
+      "category": "work"
+    },
     "LeaderForMTLA": {
+      "category": "mtla",
       "single": true
     },
     "Like": {
+      "category": "social",
       "pair": true
     },
     "Love": {
+      "category": "social",
       "pair": true,
       "standard": true
     },
-    "MyJudge": {},
-    "MyMediator": {},
+    "MyJudge": {
+      "category": "arbitration"
+    },
+    "MyMediator": {
+      "category": "arbitration"
+    },
     "MyPart": {
+      "category": "structure",
       "pair": "PartOf",
       "strong_pair": true
     },
     "OneFamily": {
+      "category": "family",
       "pair": true,
       "standard": true,
       "strong_pair": true
     },
     "Owner": {
+      "category": "ownership",
       "pair": "OwnershipFull",
       "single": true,
       "standard": true,
       "strong_pair": true
     },
     "OwnerMajority": {
+      "category": "ownership",
       "pair": "OwnershipMajority",
       "standard": true,
       "strong_pair": true
     },
     "OwnerMinority": {
+      "pair": "OwnershipMinority",
+      "category": "ownership",
       "standard": true
     },
     "OwnershipFull": {
+      "category": "ownership",
       "pair": "Owner",
       "standard": true,
       "strong_pair": true
     },
     "OwnershipMajority": {
+      "category": "ownership",
       "pair": "OwnerMajority",
       "standard": true,
       "strong_pair": true
     },
+    "OwnershipMinority": {
+      "category": "ownership",
+      "pair": "OwnerMinority",
+      "standard": true
+    },
     "Partnership": {
+      "category": "work",
       "pair": true,
       "standard": true
     },
     "PartOf": {
+      "category": "structure",
       "pair": "MyPart",
       "strong_pair": true
     },
-    "RecommendForVerification": {},
-    "RecommendToMTLA": {},
-    "ResidentME": {},
+    "ProgramCoordinator": {
+      "category": "mtla"
+    },
+    "RecommendForVerification": {
+      "category": "mtla"
+    },
+    "RecommendToMTLA": {
+      "category": "mtla"
+    },
+    "ResidentME": {
+      "category": "residence"
+    },
+    "ResidentRS": {
+      "category": "residence"
+    },
+    "ResidentRU": {
+      "category": "residence"
+    },
+    "ResidentGE": {
+      "category": "residence"
+    },
+    "ResidentAR": {
+      "category": "residence"
+    },
+    "ResidentPL": {
+      "category": "residence"
+    },
+    "ResidentUA": {
+      "category": "residence"
+    },
     "Spouse": {
+      "category": "family",
       "pair": true,
       "standard": true,
       "strong_pair": true
     },
     "Sympathy": {
+      "category": "social",
       "pair": true,
       "standard": true
     },
     "TimeTokenIssuer": {
+      "category": "timetoken",
       "single": true
     },
     "Vendor": {
+      "category": "work",
       "pair": "Client"
     },
-    "VerifiedByRecommendation": {},
+    "VerifiedByRecommendation": {
+      "category": "mtla"
+    },
     "Ward": {
+      "category": "family",
       "pair": "Guardian",
       "standard": true,
       "strong_pair": true
     },
     "WelcomeGuest": {
+      "category": "social",
       "pair": true,
       "standard": true
     }
   }
 }
-
-
