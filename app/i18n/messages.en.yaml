@@ -559,10 +559,13 @@ tag_page:
 
 recommend_verification_page:
   title: Recommendation Verification
-  candidates: Candidates
-  verified: Verified by recommendation
-  lost: Lost basis
-  overflow: Recommendation overflow
+  intro: Any participant recommended by five participants holding 4 MTLAP can receive verified Association participant status (2 MTLAP tokens). A recommender cannot make more than five such recommendations.
+  recommend_tag: "Recommendation tag:"
+  regulation: "Regulation:"
+  candidates: ❗️ Candidates
+  verified: 🟢 Verified by recommendation
+  lost: ⚠️ Lost basis
+  overflow: ⛔️ Recommendation overflow
   recommenders: Recommenders
   recommended: Recommended
   empty: None

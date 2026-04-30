@@ -11,8 +11,20 @@
 {% block content %}
     <h1 class="title">{{ 'recommend_verification_page.title'|trans }}</h1>
 
-    <h2 class="title is-5">{{ 'recommend_verification_page.candidates'|trans }}</h2>
+    <div class="content block">
+        <p>{{ 'recommend_verification_page.intro'|trans }}</p>
+        <p>
+            {{ 'recommend_verification_page.recommend_tag'|trans }}
+            <a href="/tags/RecommendForVerification">RecommendForVerification</a>
+        </p>
+        <p>
+            {{ 'recommend_verification_page.regulation'|trans }}
+            <a href="https://docs.mtla.me/VerificationByRecommendationRegulation/VerificationByRecommendationRegulation.ru.html">VerificationByRecommendationRegulation</a>
+        </p>
+    </div>
+
     {% if candidates %}
+        <h2 class="title is-5">{{ 'recommend_verification_page.candidates'|trans }}</h2>
         <ul class="block">
             {% for item in candidates %}
                 <li>
@@ -30,12 +42,10 @@
                 </li>
             {% endfor %}
         </ul>
-    {% else %}
-        <p class="block">{{ 'recommend_verification_page.empty'|trans }}</p>
     {% endif %}
 
-    <h2 class="title is-5">{{ 'recommend_verification_page.verified'|trans }}</h2>
     {% if verified %}
+        <h2 class="title is-5">{{ 'recommend_verification_page.verified'|trans }}</h2>
         <ul class="block">
             {% for item in verified %}
                 <li>
@@ -53,12 +63,10 @@
                 </li>
             {% endfor %}
         </ul>
-    {% else %}
-        <p class="block">{{ 'recommend_verification_page.empty'|trans }}</p>
     {% endif %}
 
-    <h2 class="title is-5">{{ 'recommend_verification_page.lost'|trans }}</h2>
     {% if lost %}
+        <h2 class="title is-5">{{ 'recommend_verification_page.lost'|trans }}</h2>
         <ul class="block">
             {% for item in lost %}
                 <li>
@@ -76,12 +84,10 @@
                 </li>
             {% endfor %}
         </ul>
-    {% else %}
-        <p class="block">{{ 'recommend_verification_page.empty'|trans }}</p>
     {% endif %}
 
-    <h2 class="title is-5">{{ 'recommend_verification_page.overflow'|trans }}</h2>
     {% if overflow_recommenders %}
+        <h2 class="title is-5">{{ 'recommend_verification_page.overflow'|trans }}</h2>
         <ul class="block">
             {% for item in overflow_recommenders %}
                 <li>
@@ -99,7 +105,5 @@
                 </li>
             {% endfor %}
         </ul>
-    {% else %}
-        <p class="block">{{ 'recommend_verification_page.empty'|trans }}</p>
     {% endif %}
 {% endblock %}
