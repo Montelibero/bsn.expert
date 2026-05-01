@@ -17,14 +17,20 @@
         <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}"
            href="/contacts/{{ account_id }}"
            title="{% if is_contact  %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}"
-        ><span class="icon"><i class="fa-regular fa-address-book"></i></span></a>
+        >
+                <span class="icon"><i class="fa-regular fa-address-book"></i></span>
+                {% if not is_contact %}
+                <span>{{ 'account_page.contact_button.add'|trans }}</span>
+                {% endif %}
+        </a>
         {% endif %}
-        {% if current_user.currentAccountId %}
         <a class="button is-outlined is-primary"
-           href="/editor/{{ current_user.currentAccountId }}/?id={{ account_id }}"
-           title="{{ 'account_page.edit_button'|trans }}"
-        ><span class="icon"><i class="fa-regular fa-square-check"></i></span></a>
-        {% endif %}
+           href="/accounts/{{ account_id }}/edit_tags"
+           title="{{ 'edit_tags.title'|trans }}"
+        >
+                <span class="icon"><i class="fa-solid fa-tags"></i></span>
+                <span>{{ 'edit_tags.title'|trans }}</span>
+        </a>
         {% if current_user.account %}
         <a class="button is-outlined is-primary"
            href="/accounts/{{ account_id }}/operations"

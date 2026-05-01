@@ -1,0 +1,153 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'edit_tags.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/accounts/" aria-current="page">{{ 'nav.accounts'|trans }}</a></li>
+    <li><a href="/accounts/{{ account.id }}" aria-current="page">{{ account.short_id }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'edit_tags.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-edit-tag-row] input[type="checkbox"]').forEach(function (checkbox) {
+            const row = checkbox.closest('[data-edit-tag-row]');
+            const sync = function () {
+                row.classList.toggle('has-background-primary', checkbox.checked);
+                row.classList.toggle('has-text-primary-invert', checkbox.checked);
+            };
+            checkbox.addEventListener('change', sync);
+            sync();
+        });
+    });
+</script>
+<style>
+    .edit-tag-row__checkbox {
+        flex: 0 0 auto;
+        margin-top: 0.4rem;
+    }
+</style>
+
+<h1 class="title">{{ 'edit_tags.title'|trans }}</h1>
+<h2 class="subtitle">
+    {{ include('account_link.twig', {data: source_account}, with_context = false) }}
+    →
+    {{ include('account_link.twig', {data: account}, with_context = false) }}
+</h2>
+
+<article class="message is-light">
+    <div class="message-body">
+        {% if current_tag_names %}
+            {{ 'edit_tags.current_state.has_tags'|trans({'%tags%': current_tag_names|join(', ')}) }}
+        {% else %}
+            {{ 'edit_tags.current_state.no_tags'|trans }}
+        {% endif %}
+    </div>
+</article>
+
+{% if signing_form %}
+    <article class="message is-info">
+        <div class="message-body">
+            {% set remove_text = transaction_summary.remove ? transaction_summary.remove|join(', ') : 'edit_tags.summary.none'|trans %}
+            {% set add_text = transaction_summary.add ? transaction_summary.add|join(', ') : 'edit_tags.summary.none'|trans %}
+            <p>{{ 'edit_tags.summary.text'|trans({'%remove%': remove_text, '%add%': add_text}) }}</p>
+            <p>{{ 'edit_tags.timeout_notice'|trans }}</p>
+        </div>
+    </article>
+
+    <h2 class="title is-4">{{ 'editor.sign.header'|trans }}</h2>
+    <p class="block">{{ 'editor.transaction_label'|trans }}: {{ transaction_summary.operations_count }}</p>
+    {{ signing_form|raw }}
+{% elseif no_changes %}
+    <article class="message is-success">
+        <div class="message-body">{{ 'edit_tags.no_changes'|trans }}</div>
+    </article>
+{% endif %}
+
+<form method="post">
+    <div class="field is-grouped">
+        <div class="control">
+            <button type="submit" name="action" value="save" class="button is-link">
+                <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                <span>{{ 'edit_tags.save'|trans }}</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="columns is-desktop is-multiline">
+        {% for category in tag_categories %}
+            <div class="column is-half-desktop">
+                <section class="box">
+                    <h2 class="title is-4">{{ category.name }}</h2>
+
+                    {% for tag in category.tags %}
+                        <label
+                            class="is-block py-2 px-3 mb-2 has-radius-normal{% if tag.checked %} has-background-primary has-text-primary-invert{% endif %}"
+                            data-edit-tag-row
+                        >
+                            <span class="is-flex is-align-items-flex-start" style="gap: 0.65rem;">
+                                <input
+                                    class="edit-tag-row__checkbox"
+                                    type="checkbox"
+                                    name="tag[{{ tag.name }}]"
+                                    value="1"
+                                    {% if tag.checked %}checked{% endif %}
+                                >
+                                <span>
+                                    <span class="has-text-weight-semibold">{{ tag.name }}</span>
+                                    {% if tag.is_single %}
+                                        <span class="tag is-small ml-1">single</span>
+                                    {% endif %}
+                                    {% if tag.description %}
+                                        <br>
+                                        <span class="is-size-7">{{ tag.description }}</span>
+                                    {% endif %}
+                                </span>
+                            </span>
+                        </label>
+                    {% endfor %}
+                </section>
+            </div>
+        {% endfor %}
+    </div>
+
+    <section class="box">
+        <h2 class="title is-4">{{ 'edit_tags.custom_tag.title'|trans }}</h2>
+        <div class="field has-addons">
+            <div class="control is-expanded">
+                <input
+                    class="input {% if custom_tag_error %}is-danger{% endif %}"
+                    type="text"
+                    name="custom_tag"
+                    value="{{ custom_tag_value|e('html_attr') }}"
+                    placeholder="MyTag"
+                    autocomplete="off"
+                    spellcheck="false"
+                >
+            </div>
+            <div class="control">
+                <button type="submit" name="action" value="add_custom_tag" class="button is-primary">
+                    <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                    <span>{{ 'edit_tags.custom_tag.add'|trans }}</span>
+                </button>
+            </div>
+        </div>
+        {% if custom_tag_error %}
+            <p class="help is-danger">{{ custom_tag_error }}</p>
+        {% else %}
+            <p class="help">{{ 'edit_tags.custom_tag.help'|trans }}</p>
+        {% endif %}
+    </section>
+
+    <div class="field is-grouped">
+        <div class="control">
+            <button type="submit" name="action" value="save" class="button is-link">
+                <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                <span>{{ 'edit_tags.save'|trans }}</span>
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

@@ -13,6 +13,7 @@ use Montelibero\BSN\Controllers\GraphController;
 use Montelibero\BSN\Controllers\HomeController;
 use Montelibero\BSN\Controllers\SearchController;
 use Montelibero\BSN\Controllers\SignController;
+use Montelibero\BSN\Controllers\SingleAccountEditTagsController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
@@ -111,6 +112,28 @@ class RootRoutes
                     return $Container->get(TransactionsController::class)->AccountOperations($account_id);
                 }
                 $redirect_url = '/@' . $Account->getUsername() . '/operations';
+                if ($query_string) {
+                    $redirect_url .= '?' . $query_string;
+                }
+                SimpleRouter::response()->redirect($redirect_url, 302);
+                return null;
+            }
+
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        })->where(['username' => '\@?[a-zA-Z0-9_]+']);
+
+        SimpleRouter::match(['get', 'post'], '/{username}/edit_tags', function($username) use ($Container, $BSN, $AccountsManager) {
+            $has_at = str_starts_with($username, '@');
+            $username = trim($username, '@');
+            $account_id = $AccountsManager->fetchAccountIdByUsername($username);
+            if ($account_id ?? null) {
+                $Account = $BSN->makeAccountById($account_id);
+                $query_string = $_SERVER['QUERY_STRING'] ?? '';
+                if ($Account->getUsername() === $username && $has_at) {
+                    return $Container->get(SingleAccountEditTagsController::class)->EditTags($account_id);
+                }
+                $redirect_url = '/@' . $Account->getUsername() . '/edit_tags';
                 if ($query_string) {
                     $redirect_url .= '?' . $query_string;
                 }

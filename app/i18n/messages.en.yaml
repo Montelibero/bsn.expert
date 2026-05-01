@@ -418,7 +418,7 @@ accounts:
 
 account_page:
   contact_button:
-    add: Add to contacts
+    add: Add contact
     edit: Edit the contact
   edit_button: Edit tags for this account
   operations_button: Open account operations
@@ -1154,3 +1154,20 @@ tools_xdr2lab:
     open: Open in Stellar Lab →
   errors:
     empty_xdr: Paste a transaction XDR first.
+
+edit_tags:
+  title: Set tags
+  save: Save changes
+  timeout_notice: Changes on the website will appear within 10 minutes after the transaction is signed and submitted to the blockchain.
+  no_changes: There are no changes, so no transaction is needed.
+  current_state:
+    no_tags: No tags are currently set.
+    has_tags: "Currently set tags: %tags%."
+  summary:
+    none: nothing
+    text: "Removing tags: %remove%. Adding tags: %add%."
+  custom_tag:
+    title: Custom tag
+    add: Add
+    help: Use Latin letters, digits, and underscore.
+    invalid: The tag must contain only Latin letters, digits, and underscore.

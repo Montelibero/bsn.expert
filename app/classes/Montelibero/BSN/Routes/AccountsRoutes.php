@@ -5,6 +5,7 @@ namespace Montelibero\BSN\Routes;
 use DI\Container;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\Controllers\AccountsController;
+use Montelibero\BSN\Controllers\SingleAccountEditTagsController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Pecee\SimpleRouter\SimpleRouter;
 
@@ -28,6 +29,13 @@ class AccountsRoutes
             }
             return $Container->get(TransactionsController::class)->AccountOperations($id);
         })->name('account_operations');
+        SimpleRouter::match(['get', 'post'], '/{id}/edit_tags', function ($id) use ($Container) {
+            if ($username = $Container->get(AccountsManager::class)->fetchUsername($id)) {
+                SimpleRouter::response()->redirect('/@' . $username . '/edit_tags' . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : ''));
+                return null;
+            }
+            return $Container->get(SingleAccountEditTagsController::class)->EditTags($id);
+        })->name('account_edit_tags');
         SimpleRouter::get('/{id}', function ($id) use ($Container) {
             if ($username = $Container->get(AccountsManager::class)->fetchUsername($id)) {
                 SimpleRouter::response()->redirect('/@' . $username . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : ''));
