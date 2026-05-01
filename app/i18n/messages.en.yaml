@@ -226,6 +226,23 @@ preferences:
       delete_failed: Could not delete the key.
       name_required: Please set a key name.
 
+who_you_are:
+  title: Who are you acting as?
+  intro: >
+    This action needs to know which Stellar account you want to act as.
+    If you are logged in, we usually use your login account or the current account you selected earlier.
+    If you are not logged in, setting the current account here is enough.
+  safety: >
+    This does not give the site control over your account. We only use the address to show existing links and
+    prepare the right transaction; you will review and sign that transaction separately.
+  multisig_note: >
+    You can use a personal account, an organization account, or a shared multisig account.
+  form:
+    account_label: Stellar address
+    account_hint: The address starts with G and has 56 characters.
+    submit: Save
+    login: Log in instead
+
 search:
   not_found: Could not find anything 🤷‍♂️
   description: >

@@ -3,6 +3,7 @@ namespace Montelibero\BSN;
 
 use DI\Container;
 use Montelibero\BSN\Controllers\AccountsController;
+use Montelibero\BSN\Controllers\LoginController;
 use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -159,6 +160,11 @@ class WebApp
     {
         $Translator = $this->Container->get(Translator::class);
 
+        if (array_key_exists('current_account', $_GET)) {
+            $this->handleCurrentAccountPreference((string) $_GET['current_account']);
+            return null;
+        }
+
         if (array_key_exists('show_unknown_tags', $_GET)) {
             $this->handleShowUnknownTagsPreference((string) $_GET['show_unknown_tags']);
             return null;
@@ -275,6 +281,23 @@ class WebApp
         ]);
     }
 
+    public function WhoYouAre(): string
+    {
+        $Template = $this->Twig->load('who_you_are.twig');
+        $return_to = $this->resolveReturnToFromRequest('/');
+        $current_account_id = strtoupper(trim((string) ($_GET['current_account'] ?? '')));
+
+        if ($current_account_id === '') {
+            $current_account_id = $this->CurrentUser->getCurrentAccountId() ?? '';
+        }
+
+        return $Template->render([
+            'return_to' => $return_to,
+            'current_account_value' => $current_account_id,
+            'current_account_error' => $this->resolveWhoYouAreError(),
+        ]);
+    }
+
     private function buildCurrentAccountOptions(): array
     {
         $options = [];
@@ -354,13 +377,54 @@ class WebApp
 
     private function resolvePreferencesReturnTo(string $fallback = '/preferences'): string
     {
-        $return_to = trim((string) ($_POST['return_to'] ?? $_SERVER['REQUEST_URI'] ?? $fallback));
-        if ($return_to === '') {
-            return $fallback;
+        return LoginController::normalizeReturnTo($_POST['return_to'] ?? $_SERVER['REQUEST_URI'] ?? null, $fallback);
+    }
+
+    private function handleCurrentAccountPreference(string $current_account): void
+    {
+        $current_account = strtoupper(trim($current_account));
+        $return_to = $this->resolveReturnToFromRequest('/');
+
+        if ($current_account === '' || !$this->CurrentUser->setCurrentAccountId($current_account)) {
+            $redirect_url = '/who_you_are?error=invalid_account_id&return_to=' . urlencode($return_to);
+            if ($current_account !== '') {
+                $redirect_url .= '&current_account=' . urlencode($current_account);
+            }
+            SimpleRouter::response()->redirect($redirect_url, 302);
+            return;
         }
 
-        if (!str_starts_with($return_to, '/') || str_starts_with($return_to, '//')) {
-            return $fallback;
+        SimpleRouter::response()->redirect($return_to, 302);
+    }
+
+    private function resolveWhoYouAreError(): ?string
+    {
+        if (($_GET['error'] ?? null) !== 'invalid_account_id') {
+            return null;
+        }
+
+        return $this->Container
+            ->get(Translator::class)
+            ->trans('preferences.current_account.errors.invalid_account_id');
+    }
+
+    private function resolveReturnToFromRequest(string $fallback = '/'): string
+    {
+        foreach ([$_GET['return_to'] ?? null, $_POST['return_to'] ?? null, $_SERVER['HTTP_REFERER'] ?? null] as $candidate) {
+            $return_to = $this->normalizeReturnTo($candidate, '');
+            if ($return_to !== '') {
+                return $return_to;
+            }
+        }
+
+        return $this->normalizeReturnTo($fallback, '/');
+    }
+
+    private function normalizeReturnTo(?string $return_to, string $fallback = '/'): string
+    {
+        $return_to = LoginController::normalizeReturnTo($return_to, $fallback);
+        if (preg_match('~^/(who_you_are|preferences)(?:[/?#]|$)~', $return_to)) {
+            return LoginController::normalizeReturnTo($fallback, '/');
         }
 
         return $return_to;

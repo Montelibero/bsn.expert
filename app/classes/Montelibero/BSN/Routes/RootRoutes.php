@@ -76,6 +76,9 @@ class RootRoutes
         SimpleRouter::match(['get', 'post'], '/preferences', function () use ($Container) {
             return $Container->get(WebApp::class)->Preferences();
         });
+        SimpleRouter::get('/who_you_are', function () use ($Container) {
+            return $Container->get(WebApp::class)->WhoYouAre();
+        });
         SimpleRouter::match(['get', 'post'], '/preferences/api', function () use ($Container) {
             return $Container->get(ApiController::class)->PreferencesApi();
         });
