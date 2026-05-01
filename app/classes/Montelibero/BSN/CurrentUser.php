@@ -73,6 +73,11 @@ class CurrentUser
         return (bool) ($this->session['show_telegram_usernames'] ?? false);
     }
 
+    public function getShowUnknownTags(): bool
+    {
+        return ($_COOKIE['show_unknown_tags'] ?? null) === 'yes';
+    }
+
     public function getCurrentAccountId(): ?string
     {
         $explicit = $this->session[self::SESSION_CURRENT_ACCOUNT_KEY] ?? null;

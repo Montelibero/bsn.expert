@@ -15,10 +15,7 @@
         {% for category in tag_categories %}
             <div class="column is-half-desktop">
                 <section class="box">
-                    <h2 class="title is-4 is-flex is-align-items-center is-justify-content-space-between is-flex-wrap-wrap" style="gap: 0.75rem;">
-                        <span>{{ category.name }}</span>
-                        <span class="tag{% if category.is_unknown %} is-warning{% endif %}">{{ category.total }}</span>
-                    </h2>
+                    <h2 class="title is-4">{{ category.name }}</h2>
 
                     {% for tag in category.tags %}
                         <div class="is-flex is-align-items-center is-justify-content-space-between py-2{% if not loop.last %} mb-1{% endif %}" style="gap: 1rem;">
@@ -33,10 +30,14 @@
         {% endfor %}
     </div>
 
-    {% if not show_unknown_tags and hidden_unknown_tags_count > 0 %}
+    {% if unknown_tags_count > 0 %}
         <p class="block">
-            <a href="/tags/?{{ show_unknown_tags_query }}">
-                {{ 'tags_page.show_unknown_tags'|trans({'%cnt%': hidden_unknown_tags_count}) }}
+            <a href="/preferences?show_unknown_tags={{ show_unknown_tags ? 'no' : 'yes' }}">
+                {% if show_unknown_tags %}
+                    {{ 'tags_page.hide_unknown_tags'|trans }}
+                {% else %}
+                    {{ 'tags_page.show_unknown_tags'|trans({'%cnt%': unknown_tags_count}) }}
+                {% endif %}
             </a>
         </p>
     {% endif %}

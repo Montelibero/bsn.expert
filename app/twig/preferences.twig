@@ -116,6 +116,13 @@
             </div>
             <p class="help">{{ 'preferences.default_language.description'|trans }}</p>
         </div>
+        <div class="field">
+            <label class="checkbox">
+                <input type="checkbox" name="show_unknown_tags" value="yes" {% if current_show_unknown_tags %}checked{% endif %}>
+                {{ 'preferences.unknown_tags.header'|trans }}
+            </label>
+            <p class="help">{{ 'preferences.unknown_tags.description'|trans }}</p>
+        </div>
 
         <div class="field is-grouped">
             <div class="control">

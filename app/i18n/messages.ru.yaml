@@ -185,6 +185,9 @@ preferences:
   default_language:
     header: Язык по умолчанию
     description: Выбор языка по умолчанию, который будет использоваться на сайте.
+  unknown_tags:
+    header: Отображать незнакомые теги
+    description: Показывать теги, которых нет в списке известных тегов.
   save: Сохранить
   api:
     title: API ключи
@@ -428,6 +431,8 @@ account_page:
     header: Оба сразу
   no_income_tags: Нет ни одного входящего тега.
   no_outcome_tags: Нет ни одного исходящего тега.
+  show_unknown_tags: "Отобразить %cnt% незнакомых тегов"
+  hide_unknown_tags: Скрыть незнакомые теги
   pair:
     green: Есть встречный подтверждающий тег
     yellow: Нет встречного подтверждающего тега
@@ -545,6 +550,7 @@ tags_page:
   out: Источник
   in: Адресат
   show_unknown_tags: "Отобразить %cnt% незнакомых тегов"
+  hide_unknown_tags: Скрыть незнакомые теги
 
 tag_page:
   edit_link: Проставить этот тег для ваших контактов

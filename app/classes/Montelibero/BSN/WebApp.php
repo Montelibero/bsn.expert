@@ -159,10 +159,16 @@ class WebApp
     {
         $Translator = $this->Container->get(Translator::class);
 
+        if (array_key_exists('show_unknown_tags', $_GET)) {
+            $this->handleShowUnknownTagsPreference((string) $_GET['show_unknown_tags']);
+            return null;
+        }
+
         $current_account_error = null;
         $current_account_value = $this->CurrentUser->getCurrentAccountId();
         $current_account_input_value = $this->CurrentUser->isAuthorized() ? '' : $current_account_value;
         $current_language = $Translator->getLocale();
+        $current_show_unknown_tags = $this->CurrentUser->getShowUnknownTags();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $current_account_action = trim((string) ($_POST['current_account_action'] ?? ''));
@@ -209,6 +215,10 @@ class WebApp
                     "samesite" => "Strict"
                 ]
             );
+            // Unknown tags visibility
+            $show_unknown_tags = ($_POST['show_unknown_tags'] ?? null) === 'yes';
+            $current_show_unknown_tags = $show_unknown_tags;
+            $this->setShowUnknownTagsCookie($show_unknown_tags);
 
             $posted_input = trim((string) ($_POST['current_account_id'] ?? ''));
             $posted_radio = trim((string) ($_POST['current_account_radio'] ?? ''));
@@ -255,6 +265,7 @@ class WebApp
         return $Template->render([
             'current_value' => $this->default_viewer,
             'current_language' => $current_language,
+            'current_show_unknown_tags' => $current_show_unknown_tags,
             'account' => $Account ? $Account->jsonSerialize() : [],
             'contacts_count' => $contacts_count,
             'current_account_value' => $current_account_value,
@@ -353,5 +364,77 @@ class WebApp
         }
 
         return $return_to;
+    }
+
+    private function handleShowUnknownTagsPreference(string $value): void
+    {
+        $return_to = $this->resolveSameHostRefererPath();
+        if ($return_to === null || !in_array($value, ['yes', 'no'], true)) {
+            SimpleRouter::response()->redirect('/preferences', 302);
+            return;
+        }
+
+        if ($value === 'yes') {
+            $this->setShowUnknownTagsCookie(true);
+        } else {
+            $this->setShowUnknownTagsCookie(false);
+        }
+
+        SimpleRouter::response()->redirect($return_to, 302);
+    }
+
+    private function setShowUnknownTagsCookie(bool $show): void
+    {
+        setcookie(
+            'show_unknown_tags',
+            $show ? 'yes' : '',
+            [
+                "expires" => $show ? time() + (6 * 30 * 24 * 60 * 60) : time() - 3600,
+                "path" => "/",
+                "domain" => "",
+                "secure" => true,
+                "httponly" => true,
+                "samesite" => "Strict"
+            ]
+        );
+    }
+
+    private function resolveSameHostRefererPath(): ?string
+    {
+        $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+        if ($referer === '') {
+            return null;
+        }
+
+        $referer_host = parse_url($referer, PHP_URL_HOST);
+        if (!is_string($referer_host) || $referer_host === '') {
+            return null;
+        }
+
+        $referer_port = parse_url($referer, PHP_URL_PORT);
+        if (is_int($referer_port)) {
+            $referer_host .= ':' . $referer_port;
+        }
+
+        if (strcasecmp($referer_host, (string) ($_SERVER['HTTP_HOST'] ?? '')) !== 0) {
+            return null;
+        }
+
+        $path = parse_url($referer, PHP_URL_PATH);
+        if (!is_string($path) || $path === '' || !str_starts_with($path, '/')) {
+            $path = '/';
+        }
+
+        $query = parse_url($referer, PHP_URL_QUERY);
+        if (is_string($query) && $query !== '') {
+            $path .= '?' . $query;
+        }
+
+        $fragment = parse_url($referer, PHP_URL_FRAGMENT);
+        if (is_string($fragment) && $fragment !== '') {
+            $path .= '#' . $fragment;
+        }
+
+        return $path;
     }
 }

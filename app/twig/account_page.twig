@@ -286,7 +286,7 @@
         {% endif %}
 {% endmacro %}
 
-<div class="js-account-tabs-panels">
+<div class="js-account-tabs-panels block">
 <div class="tab_content block" id="tab_content_income"{% if selected_tags_tab != 'income' %} hidden{% endif %}>
 <p class="block">{{ 'account_page.income_tags.description'|trans }}</p>
 {{ _self.tags_navigation(income_tags, 'income') }}
@@ -341,6 +341,19 @@
 {% endif %}
 </div>
 </div>
+
+{% if unknown_tags_count > 0 %}
+<p class="block">
+        <a href="/preferences?show_unknown_tags={{ show_unknown_tags ? 'no' : 'yes' }}">
+                {% if show_unknown_tags %}
+                        {{ 'account_page.hide_unknown_tags'|trans }}
+                {% else %}
+                        {{ 'account_page.show_unknown_tags'|trans({'%cnt%': unknown_tags_count}) }}
+                {% endif %}
+        </a>
+</p>
+{% endif %}
+
 <hr>
 </div>
 

@@ -3,6 +3,7 @@
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
@@ -12,12 +13,14 @@ class TagsController
     private BSN $BSN;
     private Environment $Twig;
     private Translator $Translator;
+    private CurrentUser $CurrentUser;
 
-    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator)
+    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator, CurrentUser $CurrentUser)
     {
         $this->BSN = $BSN;
         $this->Twig = $Twig;
         $this->Translator = $Translator;
+        $this->CurrentUser = $CurrentUser;
         $this->Twig->addGlobal('session', $_SESSION);
         $this->Twig->addGlobal('server', $_SERVER);
     }
@@ -32,7 +35,7 @@ class TagsController
         if (isset($_GET['target']) && BSN::validateStellarAccountIdFormat($_GET['target'])) {
             $Target = $this->BSN->makeAccountById($_GET['target']);
         }
-        $show_unknown_tags = ($_GET['show_unknown_tags'] ?? null) === 'yes';
+        $show_unknown_tags = $this->CurrentUser->getShowUnknownTags();
 
         $tags = [];
         foreach ($this->BSN->getLinks() as $Link) {
@@ -88,19 +91,26 @@ class TagsController
 
             return ($b['total'] <=> $a['total']) ?: strcasecmp($a['name'], $b['name']);
         });
-        $hidden_unknown_tags_count = 0;
+        $unknown_tags_count = 0;
         if (!$show_unknown_tags) {
             $tag_categories = array_values(array_filter(
                 $tag_categories,
-                function (array $category) use (&$hidden_unknown_tags_count): bool {
+                function (array $category) use (&$unknown_tags_count): bool {
                     if (!$category['is_unknown']) {
                         return true;
                     }
 
-                    $hidden_unknown_tags_count = count($category['tags']);
+                    $unknown_tags_count = count($category['tags']);
                     return false;
                 }
             ));
+        } else {
+            foreach ($tag_categories as $category) {
+                if ($category['is_unknown']) {
+                    $unknown_tags_count = count($category['tags']);
+                    break;
+                }
+            }
         }
 
         $Template = $this->Twig->load('tags.twig');
@@ -111,14 +121,12 @@ class TagsController
         if ($Target) {
             $filter_query['target'] = $Target->getId();
         }
-        $show_unknown_tags_query = http_build_query($filter_query + ['show_unknown_tags' => 'yes']);
         return $Template->render([
             'source' => $Source ? $Source->getId() : null,
             'target' => $Target ? $Target->getId() : null,
             'filter_query' => $filter_query ? http_build_query($filter_query) : '',
             'show_unknown_tags' => $show_unknown_tags,
-            'show_unknown_tags_query' => $show_unknown_tags_query,
-            'hidden_unknown_tags_count' => $hidden_unknown_tags_count,
+            'unknown_tags_count' => $unknown_tags_count,
             'tags' => $tags,
             'tag_categories' => $tag_categories,
         ]);

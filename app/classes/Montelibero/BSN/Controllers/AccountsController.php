@@ -8,6 +8,7 @@ use League\Uri\Http;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
+use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -21,6 +22,8 @@ class AccountsController
     private BSN $BSN;
     private Environment $Twig;
     public static array $sort_tags_example = [
+        'PartOf',
+        'MyPart',
         'Friend',
         'Like',
         'Dislike',
@@ -55,13 +58,15 @@ class AccountsController
     private StellarSDK $Stellar;
     private Container $Container;
     private ContactsManager $ContactsManager;
+    private CurrentUser $CurrentUser;
 
     public function __construct(
         BSN $BSN,
         Environment $Twig,
         StellarSDK $Stellar,
         Container $Container,
-        ContactsManager $ContactsManager
+        ContactsManager $ContactsManager,
+        CurrentUser $CurrentUser
     ) {
         $this->BSN = $BSN;
 
@@ -77,6 +82,7 @@ class AccountsController
 
         $this->Container = $Container;
         $this->ContactsManager = $ContactsManager;
+        $this->CurrentUser = $CurrentUser;
     }
 
     /**
@@ -182,6 +188,7 @@ class AccountsController
             $Pair = $Tag->getPair();
             $tag_data = [
                 'name' => $Tag->getName(),
+                'is_unknown' => (bool) $Tag->getCategory()?->isUnknown(),
                 'pair' => $Pair?->getName(),
                 'pair_strong' => $Pair && $Tag->isPairStrong(),
                 'links' => [],
@@ -200,6 +207,7 @@ class AccountsController
             $Pair = $Tag->getPair();
             $tag_data = [
                 'name' => $Tag->getName(),
+                'is_unknown' => (bool) $Tag->getCategory()?->isUnknown(),
                 'pair' => $Pair?->getName(),
                 'pair_strong' => $Pair && $Tag->isPairStrong(),
                 'links' => [],
@@ -325,6 +333,13 @@ class AccountsController
             $nostr = $nostr_tag;
         }
 
+        $show_unknown_tags = $this->CurrentUser->getShowUnknownTags();
+        $unknown_tags_count = $this->countUnknownTags($income_tags, $outcome_tags);
+        if (!$show_unknown_tags) {
+            $income_tags = $this->filterUnknownTags($income_tags);
+            $outcome_tags = $this->filterUnknownTags($outcome_tags);
+        }
+
         $mtla_program_page_url = $this->isMtlaProgramAccount($Account)
             ? '/mtla/programs/' . $Account->getId()
             : null;
@@ -355,6 +370,8 @@ class AccountsController
             'outcome_tab_url' => $this->buildAccountTabUrl($Account->getId(), 'outcome'),
             'income_links_count' => $income_links_count,
             'outcome_links_count' => $outcome_links_count,
+            'show_unknown_tags' => $show_unknown_tags,
+            'unknown_tags_count' => $unknown_tags_count,
             'signatures' => $signatures,
             'issued_tokens' => $issued_tokens,
             'balances' => $balances,
@@ -370,6 +387,25 @@ class AccountsController
         return array_reduce($tags, function (int $count, array $tag): int {
             return $count + count($tag['links'] ?? []);
         }, 0);
+    }
+
+    private function countUnknownTags(array ...$tag_groups): int
+    {
+        $unknown_tags = [];
+        foreach ($tag_groups as $tags) {
+            foreach ($tags as $tag) {
+                if ($tag['is_unknown'] ?? false) {
+                    $unknown_tags[$tag['name']] = true;
+                }
+            }
+        }
+
+        return count($unknown_tags);
+    }
+
+    private function filterUnknownTags(array $tags): array
+    {
+        return array_filter($tags, fn(array $tag): bool => !($tag['is_unknown'] ?? false));
     }
 
     private function resolveTagsTab(): string

@@ -111,36 +111,6 @@ $BSN->makeTagByName('mtla_a_delegate')->isSingle(true);
 $BSN->makeTagByName('Owner')->isSingle(true);
 $BSN->makeTagByName('LeaderForMTLA')->isSingle(true);
 
-// Standards tags
-$standard_tags = [
-    'A',
-    'B',
-    'C',
-    'D',
-    'Spouse',
-    'Love',
-    'OneFamily',
-    'Guardian',
-    'Ward',
-    'Sympathy',
-    'Divorce',
-    'Employer',
-    'Employee',
-    'Contractor',
-    'Client',
-    'Partnership',
-    'Collaboration',
-    'Owner',
-    'OwnershipFull',
-    'OwnerMajority',
-    'OwnershipMajority',
-    'OwnerMinority',
-    'FactionMember',
-    'WelcomeGuest',
-];
-foreach ($standard_tags as $tag_name) {
-    $BSN->makeTagByName($tag_name)->isStandard(true);
-}
 $promoted_tags = [
     'Friend',
     'Like',

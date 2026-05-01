@@ -186,6 +186,9 @@ preferences:
   default_language:
     header: Default language
     description: The choice of default language that will be used on the site.
+  unknown_tags:
+    header: Show unknown tags
+    description: Display tags that are not described in the known tags list.
   save: Save
   api:
     title: API keys
@@ -430,6 +433,8 @@ account_page:
     header: Both at once
   no_income_tags: The account has not any income tag.
   no_outcome_tags: The account has not any outcome tag.
+  show_unknown_tags: "Show %cnt% unknown tags"
+  hide_unknown_tags: Hide unknown tags
   pair:
     green: Matching confirmation tag found
     yellow: No matching confirmation tag
@@ -544,6 +549,7 @@ tags_page:
   out: Source
   in: Destination
   show_unknown_tags: "Show %cnt% unknown tags"
+  hide_unknown_tags: Hide unknown tags
 
 tag_page:
   edit_link: Assign this tag to each of your contacts

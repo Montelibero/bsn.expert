@@ -36,6 +36,10 @@
 
         {% if known_tag.is_known %}
                 <p class="block">
+                {% if known_tag.category_name %}
+                <span class="icon"><i class="fa-solid fa-layer-group"></i></span> {{ known_tag.category_name }}<br>
+                {% endif %}
+
                 {% if known_tag.description %}
                 <span class="icon"><i class="fa-solid fa-circle-info"></i></span> {{ known_tag.description }}<br>
                 {% endif %}
