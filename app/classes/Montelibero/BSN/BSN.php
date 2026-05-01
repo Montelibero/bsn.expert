@@ -13,6 +13,10 @@ class BSN
     private array $accounts = [];
     /** @var Tag[] */
     private array $tags = [];
+    /** @var TagCategory[] */
+    private array $tag_categories = [];
+    /** @var Tag[][] */
+    private array $tags_by_category_id = [];
 
     /** @var Account[] */
     private array $tg_id_to_account = [];
@@ -192,6 +196,116 @@ class BSN
         return $this->tags[$name] ?? null;
     }
 
+    /**
+     * @return TagCategory[]
+     */
+    public function getTagCategories(bool $unknown_last = false): array
+    {
+        if (!$unknown_last || !isset($this->tag_categories[TagCategory::UNKNOWN_ID])) {
+            return $this->tag_categories;
+        }
+
+        $tag_categories = $this->tag_categories;
+        $UnknownCategory = $tag_categories[TagCategory::UNKNOWN_ID];
+        unset($tag_categories[TagCategory::UNKNOWN_ID]);
+        $tag_categories[TagCategory::UNKNOWN_ID] = $UnknownCategory;
+
+        return $tag_categories;
+    }
+
+    public function getTagCategory(string $id): ?TagCategory
+    {
+        return $this->tag_categories[$id] ?? null;
+    }
+
+    public function makeTagCategoryById(string $id, ?string $name = null): TagCategory
+    {
+        if (!array_key_exists($id, $this->tag_categories)) {
+            $this->tag_categories[$id] = TagCategory::fromId($id, $name);
+        } elseif ($name !== null) {
+            $this->tag_categories[$id]->setName($name);
+        }
+
+        return $this->tag_categories[$id];
+    }
+
+    public function getUnknownTagCategory(): TagCategory
+    {
+        return $this->makeTagCategoryById(TagCategory::UNKNOWN_ID);
+    }
+
+    public function getTagCategoryByTag(Tag|string $Tag): ?TagCategory
+    {
+        if (is_string($Tag)) {
+            $Tag = $this->getTag($Tag);
+        }
+
+        return $Tag?->getCategory();
+    }
+
+    /**
+     * @return Tag[]
+     */
+    public function getTagsByCategory(TagCategory|string $Category): array
+    {
+        $category_id = is_string($Category) ? $Category : $Category->getId();
+
+        return $this->tags_by_category_id[$category_id] ?? [];
+    }
+
+    public function assignTagCategory(Tag|string $Tag, TagCategory|string $Category): void
+    {
+        $Tag = is_string($Tag) ? $this->makeTagByName($Tag) : $Tag;
+        $Category = is_string($Category) ? $this->makeTagCategoryById($Category) : $Category;
+        $PreviousCategory = $Tag->getCategory();
+        if ($PreviousCategory && $PreviousCategory !== $Category) {
+            unset($this->tags_by_category_id[$PreviousCategory->getId()][$Tag->getName()]);
+            $PreviousCategory->removeTag($Tag);
+        }
+
+        $Tag->setCategory($Category);
+        $this->tags_by_category_id[$Category->getId()][$Tag->getName()] = $Tag;
+    }
+
+    public function loadKnownTags(array $known_tags, array $known_tag_translations = []): void
+    {
+        $category_names = is_array($known_tag_translations['categories'] ?? null)
+            ? $known_tag_translations['categories']
+            : [];
+
+        $this->makeTagCategoryById(
+            TagCategory::UNKNOWN_ID,
+            $category_names[TagCategory::UNKNOWN_ID] ?? TagCategory::UNKNOWN_ID
+        );
+
+        foreach ($category_names as $category_id => $category_name) {
+            if (is_string($category_id) && is_string($category_name)) {
+                $this->makeTagCategoryById($category_id, $category_name);
+            }
+        }
+
+        foreach ($known_tags['links'] ?? [] as $link_name => $link_data) {
+            if (!is_array($link_data)) {
+                $link_data = [];
+            }
+
+            $Tag = $this->makeTagByName($link_name);
+            $Tag->isStandard((bool) ($link_data['standard'] ?? $Tag->isStandard()));
+            $Tag->isSingle((bool) ($link_data['single'] ?? $Tag->isSingle()));
+
+            if (is_string($link_data['category'] ?? null)) {
+                $category_id = $link_data['category'];
+                $Category = $this->makeTagCategoryById($category_id, $category_names[$category_id] ?? $category_id);
+                $this->assignTagCategory($Tag, $Category);
+            }
+
+            if ($pair = ($link_data['pair'] ?? false)) {
+                $TagPair = $pair === true ? $Tag : $this->makeTagByName($pair);
+                $Tag->setPair($TagPair, $link_data['strong_pair'] ?? false);
+            }
+        }
+    }
+
     public function findTagByName(string $name): ?Tag
     {
         if (isset($this->tags[$name])) {
@@ -222,6 +336,7 @@ class BSN
         if (!array_key_exists($tag_name, $this->tags)) {
             $Tag = Tag::fromName($tag_name);
             $this->tags[$tag_name] = $Tag;
+            $this->assignTagCategory($Tag, $this->getUnknownTagCategory());
         }
 
         return $this->tags[$tag_name];

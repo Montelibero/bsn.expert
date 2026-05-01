@@ -58,6 +58,25 @@ const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
 const IS_CLI_CONTEXT = PHP_SAPI === 'cli';
 //const JSON_DATA_FILE_PATH = '../BoR/bsn.json';
 
+function resolveAppLocale(array $supported_locales = ['en', 'ru'], string $default_locale = 'en'): string
+{
+    $locale = $default_locale;
+    if (stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false && in_array('ru', $supported_locales, true)) {
+        $locale = 'ru';
+    }
+
+    $cookie_locale = $_COOKIE['language'] ?? null;
+    if (
+        is_string($cookie_locale)
+        && preg_match('/^[a-z]{2}$/', $cookie_locale) === 1
+        && in_array($cookie_locale, $supported_locales, true)
+    ) {
+        $locale = $cookie_locale;
+    }
+
+    return $locale;
+}
+
 //$memory1 = memory_get_usage();
 
 $MongoManager = new Manager(
@@ -135,17 +154,13 @@ foreach ($promoted_tags as $tag_name) {
     $BSN->makeTagByName($tag_name)->isPromote(true);
 }
 $known_tags = json_decode(file_get_contents('./known_tags/list.json'), JSON_OBJECT_AS_ARRAY);
-foreach ($known_tags['links'] as $link_name => $link_data) {
-    if ($pair = ($link_data['pair'] ?? false)) {
-        $Tag = $BSN->makeTagByName($link_name);
-        $TagPair = $link_data['pair'] === true ? $Tag : $BSN->makeTagByName($pair);
-        $Tag->setPair($TagPair, $link_data['strong_pair'] ?? false);
-    }
-    if ($known_tags['single'] ?? null) {
-        $Tag = $BSN->makeTagByName($link_name);
-        $Tag->isSingle($known_tags['single']);
-    }
+$known_tags_locale = resolveAppLocale();
+$known_tags_translation_path = __DIR__ . '/known_tags/lang-' . $known_tags_locale . '.json';
+if (!is_file($known_tags_translation_path)) {
+    $known_tags_translation_path = __DIR__ . '/known_tags/lang-en.json';
 }
+$known_tag_translations = json_decode(file_get_contents($known_tags_translation_path), JSON_OBJECT_AS_ARRAY) ?: [];
+$BSN->loadKnownTags($known_tags, $known_tag_translations);
 
 $functional_tags = [
     'Owner',
@@ -228,11 +243,7 @@ $ContainerBuilder->addDefinitions([
     },
 
     Translator::class => function() {
-        $locale = 'en';
-        if (stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false) {
-            $locale = 'ru';
-        }
-        $locale = $_COOKIE['language'] ?? $locale;
+        $locale = resolveAppLocale();
         $translator = new Translator($locale);
         $translator->addLoader('yaml', new YamlFileLoader());
         $translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');

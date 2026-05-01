@@ -155,10 +155,13 @@ class TagsController
         $known_tags = $this->loadKnownTagsList();
         $known_tag = $known_tags['links'][$tag_name] ?? null;
         $descriptions = $this->loadKnownTagDescriptions();
+        $Category = $this->BSN->getTagCategoryByTag($tag_name);
 
         return [
             'is_known' => $known_tag !== null,
             'description' => $descriptions[$tag_name] ?? null,
+            'category_id' => $Category?->getId(),
+            'category_name' => $Category?->getName(),
             'is_standard' => (bool) ($known_tag['standard'] ?? false),
             'is_pair' => (bool) ($known_tag['pair'] ?? false),
             'is_pair_strong' => (bool) ($known_tag['strong_pair'] ?? false),

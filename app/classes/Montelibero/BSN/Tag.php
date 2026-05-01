@@ -13,6 +13,7 @@ class Tag
     private bool $is_promote = false;
     private bool $is_editable = true;
     private ?Tag $Pair = null;
+    private ?TagCategory $Category = null;
     private bool $pair_strong = false;
 
     public function __construct(string $name)
@@ -75,6 +76,17 @@ class Tag
     public function getPair(): ?Tag
     {
         return $this->Pair;
+    }
+
+    public function setCategory(TagCategory $Category): void
+    {
+        $this->Category = $Category;
+        $Category->addTag($this);
+    }
+
+    public function getCategory(): ?TagCategory
+    {
+        return $this->Category;
     }
 
     public function isPairStrong(): bool
