@@ -544,6 +544,7 @@ tags_page:
   tag: Тег
   out: Источник
   in: Адресат
+  show_unknown_tags: "Отобразить %cnt% незнакомых тегов"
 
 tag_page:
   edit_link: Проставить этот тег для ваших контактов

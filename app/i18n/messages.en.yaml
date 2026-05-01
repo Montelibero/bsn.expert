@@ -543,6 +543,7 @@ tags_page:
   tag: Tag
   out: Source
   in: Destination
+  show_unknown_tags: "Show %cnt% unknown tags"
 
 tag_page:
   edit_link: Assign this tag to each of your contacts

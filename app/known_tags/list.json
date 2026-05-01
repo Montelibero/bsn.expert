@@ -78,6 +78,22 @@
     "IAmVolunteerFor": {
       "category": "work"
     },
+    "mtl_delegate": {
+      "category": "delegation",
+      "single": true
+    },
+    "tfm_delegate": {
+      "category": "delegation",
+      "single": true
+    },
+    "mtla_a_delegate": {
+      "category": "delegation",
+      "single": true
+    },
+    "mtla_c_delegate": {
+      "category": "delegation",
+      "single": true
+    },
     "LeaderForMTLA": {
       "category": "mtla",
       "single": true
@@ -152,6 +168,9 @@
       "category": "structure",
       "pair": "MyPart",
       "strong_pair": true
+    },
+    "Program": {
+      "category": "mtla"
     },
     "ProgramCoordinator": {
       "category": "mtla"

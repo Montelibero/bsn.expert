@@ -32,6 +32,7 @@ class TagsController
         if (isset($_GET['target']) && BSN::validateStellarAccountIdFormat($_GET['target'])) {
             $Target = $this->BSN->makeAccountById($_GET['target']);
         }
+        $show_unknown_tags = ($_GET['show_unknown_tags'] ?? null) === 'yes';
 
         $tags = [];
         foreach ($this->BSN->getLinks() as $Link) {
@@ -59,6 +60,48 @@ class TagsController
             $tags[$tag_name]['out'] = count(array_unique($tagData['out']));
             $tags[$tag_name]['in'] = count(array_unique($tagData['in']));
         }
+        uasort($tags, fn(array $a, array $b): int => strcasecmp($a['name'], $b['name']));
+
+        $tag_categories = [];
+        foreach ($tags as $tag_name => $tag_data) {
+            $Category = $this->BSN->getTagCategoryByTag($tag_name) ?? $this->BSN->getUnknownTagCategory();
+            $category_id = $Category->getId();
+            if (!array_key_exists($category_id, $tag_categories)) {
+                $tag_categories[$category_id] = [
+                    'id' => $category_id,
+                    'name' => $Category->getName(),
+                    'is_unknown' => $Category->isUnknown(),
+                    'total' => 0,
+                    'tags' => [],
+                ];
+            }
+
+            $tag_categories[$category_id]['total'] += $tag_data['out'] + $tag_data['in'];
+            $tag_categories[$category_id]['tags'][] = $tag_data;
+        }
+
+        $tag_categories = array_values($tag_categories);
+        usort($tag_categories, function (array $a, array $b): int {
+            if ($a['is_unknown'] !== $b['is_unknown']) {
+                return $a['is_unknown'] ? 1 : -1;
+            }
+
+            return ($b['total'] <=> $a['total']) ?: strcasecmp($a['name'], $b['name']);
+        });
+        $hidden_unknown_tags_count = 0;
+        if (!$show_unknown_tags) {
+            $tag_categories = array_values(array_filter(
+                $tag_categories,
+                function (array $category) use (&$hidden_unknown_tags_count): bool {
+                    if (!$category['is_unknown']) {
+                        return true;
+                    }
+
+                    $hidden_unknown_tags_count = count($category['tags']);
+                    return false;
+                }
+            ));
+        }
 
         $Template = $this->Twig->load('tags.twig');
         $filter_query = [];
@@ -68,11 +111,16 @@ class TagsController
         if ($Target) {
             $filter_query['target'] = $Target->getId();
         }
+        $show_unknown_tags_query = http_build_query($filter_query + ['show_unknown_tags' => 'yes']);
         return $Template->render([
             'source' => $Source ? $Source->getId() : null,
             'target' => $Target ? $Target->getId() : null,
             'filter_query' => $filter_query ? http_build_query($filter_query) : '',
+            'show_unknown_tags' => $show_unknown_tags,
+            'show_unknown_tags_query' => $show_unknown_tags_query,
+            'hidden_unknown_tags_count' => $hidden_unknown_tags_count,
             'tags' => $tags,
+            'tag_categories' => $tag_categories,
         ]);
     }
 
