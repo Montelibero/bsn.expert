@@ -4,6 +4,19 @@ namespace Montelibero\BSN;
 
 class TagCategory
 {
+    public const SORT_EXAMPLE = [
+        "social",
+        "reputation",
+        "structure",
+        "arbitration",
+        "family",
+        "mtla",
+        "ownership",
+        "delegation",
+        "work",
+        "residence",
+    ];
+
     public const UNKNOWN_ID = 'unknown';
 
     private string $id;

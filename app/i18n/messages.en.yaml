@@ -1175,3 +1175,5 @@ edit_tags:
     add: Add
     help: Use Latin letters, digits, and underscore.
     invalid: The tag must contain only Latin letters, digits, and underscore.
+    non_latin: The tag name contains non-Latin characters. Check lookalike letters such as Cyrillic а, е, о, с, р, х and replace them with Latin letters.
+    trailing_digits: Digits at the end of a tag name are used as a service number in blockchain DATA and are stripped when read, so this tag cannot be saved. Remove the trailing digits.

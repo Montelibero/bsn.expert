@@ -63,7 +63,8 @@ class SingleAccountEditTagsController
         $TargetAccount = $this->BSN->makeAccountById($target_account_id);
         $SourceAccount = $this->BSN->makeAccountById($source_account_id);
         $posted_tag_names = $this->getPostedTagNames();
-        $custom_tag_name = $this->getCustomTagName();
+        $custom_tag_input = $this->getCustomTagInput();
+        $custom_tag_name = $this->normalizeCustomTagName($custom_tag_input);
         $custom_tag_error = null;
         $signing_form = null;
         $transaction_summary = null;
@@ -71,7 +72,7 @@ class SingleAccountEditTagsController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_custom_tag') {
             if ($custom_tag_name === null) {
-                $custom_tag_error = $this->Translator->trans('edit_tags.custom_tag.invalid');
+                $custom_tag_error = $this->Translator->trans($this->getCustomTagErrorTranslationKey($custom_tag_input));
             } else {
                 $posted_tag_names[$custom_tag_name] = true;
             }
@@ -110,7 +111,7 @@ class SingleAccountEditTagsController
             'current_tag_names' => $current_tag_names,
             'reciprocal_tag_names' => $reciprocal_tag_names,
             'tag_categories' => $this->buildTagCategories($checked_tag_names, $current_tag_names, $reciprocal_tag_names),
-            'custom_tag_value' => $custom_tag_name ?? '',
+            'custom_tag_value' => $custom_tag_error ? $custom_tag_input : '',
             'custom_tag_error' => $custom_tag_error,
             'signing_form' => $signing_form,
             'transaction_summary' => $transaction_summary,
@@ -287,16 +288,9 @@ class SingleAccountEditTagsController
         }
         unset($category);
 
-        $categories = array_values($categories);
-        usort($categories, function (array $a, array $b): int {
-            if ($a['is_unknown'] !== $b['is_unknown']) {
-                return $a['is_unknown'] ? 1 : -1;
-            }
+        WebApp::semantic_sort_keys($categories, TagCategory::SORT_EXAMPLE);
 
-            return $a['sort'] <=> $b['sort'];
-        });
-
-        return $categories;
+        return array_values($categories);
     }
 
     private function addTagToCategory(
@@ -309,13 +303,10 @@ class SingleAccountEditTagsController
     ): void {
         $category_id = $Category->getId();
         if (!isset($categories[$category_id])) {
-            $category_ids = array_keys($this->BSN->getTagCategories(true));
-            $sort = array_search($category_id, $category_ids, true);
             $categories[$category_id] = [
                 'id' => $category_id,
                 'name' => $Category->getName(),
                 'is_unknown' => $Category->isUnknown(),
-                'sort' => $sort === false ? count($category_ids) : $sort,
                 'tags' => [],
             ];
         }
@@ -374,9 +365,13 @@ class SingleAccountEditTagsController
         return $result;
     }
 
-    private function getCustomTagName(): ?string
+    private function getCustomTagInput(): string
     {
-        $tag_name = trim((string) ($_POST['custom_tag'] ?? ''));
+        return trim((string) ($_POST['custom_tag'] ?? ''));
+    }
+
+    private function normalizeCustomTagName(string $tag_name): ?string
+    {
         if ($tag_name === '') {
             return null;
         }
@@ -384,9 +379,29 @@ class SingleAccountEditTagsController
         return $this->validateEditableTagName($tag_name) ? $tag_name : null;
     }
 
+    private function getCustomTagErrorTranslationKey(string $tag_name): string
+    {
+        if (preg_match('/[^\x00-\x7F]/', $tag_name) === 1) {
+            return 'edit_tags.custom_tag.non_latin';
+        }
+
+        if (BSN::validateTagNameFormat($tag_name) && $this->hasNumericSuffix($tag_name)) {
+            return 'edit_tags.custom_tag.trailing_digits';
+        }
+
+        return 'edit_tags.custom_tag.invalid';
+    }
+
     private function validateEditableTagName(?string $tag_name): bool
     {
-        return BSN::validateTagNameFormat($tag_name) && strlen((string) $tag_name) <= 63;
+        return BSN::validateTagNameFormat($tag_name)
+            && strlen((string) $tag_name) <= 63
+            && !$this->hasNumericSuffix((string) $tag_name);
+    }
+
+    private function hasNumericSuffix(string $tag_name): bool
+    {
+        return preg_match('/\d\z/', $tag_name) === 1;
     }
 
     private function getTagNamesPointingToTarget(array $data_entries, string $target_account_id): array
