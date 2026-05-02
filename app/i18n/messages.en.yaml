@@ -1162,7 +1162,11 @@ edit_tags:
   no_changes: There are no changes, so no transaction is needed.
   current_state:
     no_tags: No tags are currently set.
-    has_tags: "Currently set tags: %tags%."
+    has_tags: "Currently set tags:"
+    no_reciprocal_tags: There are no reciprocal tags.
+    has_reciprocal_tags: "Reciprocal tags:"
+  reciprocal_tag:
+    exists: Reciprocal tag
   summary:
     none: nothing
     text: "Removing tags: %remove%. Adding tags: %add%."

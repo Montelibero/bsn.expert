@@ -40,9 +40,25 @@
 <article class="message is-light">
     <div class="message-body">
         {% if current_tag_names %}
-            {{ 'edit_tags.current_state.has_tags'|trans({'%tags%': current_tag_names|join(', ')}) }}
+            <div class="mb-2">
+                {{ 'edit_tags.current_state.has_tags'|trans }}
+                {% for tag_name in current_tag_names %}
+                    <span class="tag is-info">{{ tag_name }}</span>
+                {% endfor %}
+            </div>
         {% else %}
-            {{ 'edit_tags.current_state.no_tags'|trans }}
+            <div class="mb-2">{{ 'edit_tags.current_state.no_tags'|trans }}</div>
+        {% endif %}
+
+        {% if reciprocal_tag_names %}
+            <div>
+                {{ 'edit_tags.current_state.has_reciprocal_tags'|trans }}
+                {% for tag_name in reciprocal_tag_names %}
+                    <span class="tag is-info">{{ tag_name }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div>{{ 'edit_tags.current_state.no_reciprocal_tags'|trans }}</div>
         {% endif %}
     </div>
 </article>
@@ -103,6 +119,14 @@
                                     {% if tag.description %}
                                         <br>
                                         <span class="is-size-7">{{ tag.description }}</span>
+                                    {% endif %}
+                                    {% if tag.reciprocal_tag_name %}
+                                        <br>
+                                        <span class="is-size-7">
+                                            <span class="icon is-small has-text-danger"><i class="fa-solid fa-exclamation"></i></span>
+                                            {{ 'edit_tags.reciprocal_tag.exists'|trans }}
+                                            <span class="tag is-info">{{ tag.reciprocal_tag_name }}</span>
+                                        </span>
                                     {% endif %}
                                 </span>
                             </span>

@@ -78,7 +78,9 @@ class SingleAccountEditTagsController
         }
 
         $data_entries = $this->parseLinkData($this->fetchAccountData($source_account_id));
+        $reciprocal_data_entries = $this->parseLinkData($this->fetchAccountData($target_account_id));
         $current_tag_names = $this->getTagNamesPointingToTarget($data_entries, $target_account_id);
+        $reciprocal_tag_names = $this->getTagNamesPointingToTarget($reciprocal_data_entries, $source_account_id);
         $checked_tag_names = $_SERVER['REQUEST_METHOD'] === 'POST'
             ? $posted_tag_names
             : array_fill_keys($current_tag_names, true);
@@ -106,7 +108,8 @@ class SingleAccountEditTagsController
             'account' => $TargetAccount->jsonSerialize(),
             'source_account' => $SourceAccount->jsonSerialize(),
             'current_tag_names' => $current_tag_names,
-            'tag_categories' => $this->buildTagCategories($checked_tag_names, $current_tag_names),
+            'reciprocal_tag_names' => $reciprocal_tag_names,
+            'tag_categories' => $this->buildTagCategories($checked_tag_names, $current_tag_names, $reciprocal_tag_names),
             'custom_tag_value' => $custom_tag_name ?? '',
             'custom_tag_error' => $custom_tag_error,
             'signing_form' => $signing_form,
@@ -238,11 +241,12 @@ class SingleAccountEditTagsController
         }
     }
 
-    private function buildTagCategories(array $checked_tag_names, array $current_tag_names): array
+    private function buildTagCategories(array $checked_tag_names, array $current_tag_names, array $reciprocal_tag_names): array
     {
         $descriptions = $this->loadKnownTagDescriptions();
         $categories = [];
         $unknown_tags = [];
+        $reciprocal_tag_set = array_fill_keys($reciprocal_tag_names, true);
 
         foreach ($this->BSN->getTags() as $Tag) {
             if (!$Tag->isEditable()) {
@@ -257,7 +261,7 @@ class SingleAccountEditTagsController
                 continue;
             }
 
-            $this->addTagToCategory($categories, $Category, $Tag, $descriptions, $checked_tag_names);
+            $this->addTagToCategory($categories, $Category, $Tag, $descriptions, $checked_tag_names, $reciprocal_tag_set);
         }
 
         foreach (array_unique(array_merge($current_tag_names, array_keys($checked_tag_names))) as $tag_name) {
@@ -274,7 +278,7 @@ class SingleAccountEditTagsController
         if ($unknown_tags) {
             $UnknownCategory = $this->BSN->getUnknownTagCategory();
             foreach ($unknown_tags as $Tag) {
-                $this->addTagToCategory($categories, $UnknownCategory, $Tag, $descriptions, $checked_tag_names);
+                $this->addTagToCategory($categories, $UnknownCategory, $Tag, $descriptions, $checked_tag_names, $reciprocal_tag_set);
             }
         }
 
@@ -301,6 +305,7 @@ class SingleAccountEditTagsController
         Tag $Tag,
         array $descriptions,
         array $checked_tag_names,
+        array $reciprocal_tag_set,
     ): void {
         $category_id = $Category->getId();
         if (!isset($categories[$category_id])) {
@@ -320,7 +325,22 @@ class SingleAccountEditTagsController
             'is_single' => $Tag->isSingle(),
             'checked' => isset($checked_tag_names[$Tag->getName()]),
             'description' => $descriptions[$Tag->getName()] ?? '',
+            'reciprocal_tag_name' => $this->resolveReciprocalTagName($Tag, $reciprocal_tag_set),
         ];
+    }
+
+    private function resolveReciprocalTagName(Tag $Tag, array $reciprocal_tag_set): ?string
+    {
+        if (isset($reciprocal_tag_set[$Tag->getName()])) {
+            return $Tag->getName();
+        }
+
+        $PairTag = $Tag->getPair();
+        if ($PairTag && isset($reciprocal_tag_set[$PairTag->getName()])) {
+            return $PairTag->getName();
+        }
+
+        return null;
     }
 
     private function sortTags(array &$tags): void

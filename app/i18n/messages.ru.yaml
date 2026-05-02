@@ -1164,7 +1164,11 @@ edit_tags:
   no_changes: Изменений нет, транзакция не нужна.
   current_state:
     no_tags: Сейчас ни одного тега не установлено.
-    has_tags: "Сейчас установлены теги: %tags%."
+    has_tags: "Сейчас установлены теги:"
+    no_reciprocal_tags: Встречных тегов нет.
+    has_reciprocal_tags: "Встречные теги:"
+  reciprocal_tag:
+    exists: Есть встречный тег
   summary:
     none: ничего
     text: "Удаляем теги: %remove%. Добавляем теги: %add%."
