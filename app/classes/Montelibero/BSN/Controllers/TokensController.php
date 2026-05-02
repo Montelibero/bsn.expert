@@ -188,7 +188,7 @@ class TokensController
             message: "Open trustline",
             originDomain: "bsn.expert"
         );
-        $uri_signed = LoginController::getSignedUrl($uri, $ServerKeypair);
+        $uri_signed = SignController::signSep07Uri($uri, $ServerKeypair);
 
         $signing_form = $this->Container->get(SignController::class)->SignTransaction(null, $uri_signed);
 

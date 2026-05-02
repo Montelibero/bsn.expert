@@ -96,7 +96,7 @@ class LoginController
                 message: "bsn.expert auth",
                 originDomain: "bsn.expert"
             );
-            $uri_signed = $this::getSignedUrl($uri, $ServerKeypair);
+            $uri_signed = SignController::signSep07Uri($uri, $ServerKeypair);
 
             $data = [
                 'uri' => $uri_signed,
@@ -161,20 +161,6 @@ class LoginController
             'timer' => isset($data) ? (300 - (time() - $data['timestamp'])) : null,
             'error' => $error,
         ]);
-    }
-
-    public static function getSignedUrl(string $url, KeyPair $KeyPair): string
-    {
-        $payloadStart = array();
-        for ($i = 0; $i < 36; $i++) {
-            $payloadStart[$i] = pack('C', 0);
-        }
-        $payloadStart[35] = pack('C', 4);
-        $urlBytes = URIScheme::uriSchemePrefix . $url;
-        $payload = implode('', $payloadStart) . $urlBytes;
-        $signatureBytes = $KeyPair->sign($payload);
-        $base64Signature = base64_encode($signatureBytes);
-        return $url . '&signature=' . urlencode($base64Signature);
     }
 
     public function Callback(): string

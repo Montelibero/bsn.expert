@@ -8,6 +8,7 @@ use DI\Container;
 use GuzzleHttp\Client;
 use Montelibero\BSN\BSN;
 use Pecee\SimpleRouter\SimpleRouter;
+use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\SEP\URIScheme\URIScheme;
 use Soneso\StellarSDK\AbstractTransaction;
 use Soneso\StellarSDK\StellarSDK;
@@ -16,6 +17,8 @@ use Twig\Environment;
 
 class SignController
 {
+    private const ORIGIN_DOMAIN = 'bsn.expert';
+
     private BSN $BSN;
     private Environment $Twig;
 
@@ -110,8 +113,9 @@ class SignController
         }
         if (!$uri) {
             $UriScheme = new URIScheme();
-            $uri = $UriScheme->generateSignTransactionURI($xdr);
+            $uri = $UriScheme->generateSignTransactionURI($xdr, originDomain: self::ORIGIN_DOMAIN);
         }
+        $uri = self::ensureSignedUri($uri);
 
         $QROptions = new QROptions();
         $QROptions->outputBase64 = false;
@@ -145,6 +149,34 @@ class SignController
             'sign' => $sign,
             'can_collect_multisig' => $can_collect_multisig,
         ]);
+    }
+
+    public static function signSep07Uri(string $uri, KeyPair $KeyPair): string
+    {
+        $payloadStart = array();
+        for ($i = 0; $i < 36; $i++) {
+            $payloadStart[$i] = pack('C', 0);
+        }
+        $payloadStart[35] = pack('C', 4);
+        $urlBytes = URIScheme::uriSchemePrefix . $uri;
+        $payload = implode('', $payloadStart) . $urlBytes;
+        $signatureBytes = $KeyPair->sign($payload);
+        $base64Signature = base64_encode($signatureBytes);
+        return $uri . '&signature=' . urlencode($base64Signature);
+    }
+
+    private static function ensureSignedUri(string $uri): string
+    {
+        if (preg_match('/[?&]signature=/', $uri)) {
+            return $uri;
+        }
+
+        if (!preg_match('/[?&]origin_domain=/', $uri)) {
+            $uri .= (str_contains($uri, '?') ? '&' : '?')
+                . URIScheme::originDomainParameterName . '=' . urlencode(self::ORIGIN_DOMAIN);
+        }
+
+        return self::signSep07Uri($uri, KeyPair::fromSeed($_ENV['SERVER_STELLAR_SECRET_KEY']));
     }
 
     private function canCollectMultisig(?string $xdr): bool
