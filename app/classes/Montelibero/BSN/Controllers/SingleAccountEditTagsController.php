@@ -256,7 +256,11 @@ class SingleAccountEditTagsController
 
             $Category = $Tag->getCategory() ?? $this->BSN->getUnknownTagCategory();
             if ($Category->isUnknown()) {
-                if (isset($checked_tag_names[$Tag->getName()]) || in_array($Tag->getName(), $current_tag_names, true)) {
+                if (
+                    isset($checked_tag_names[$Tag->getName()])
+                    || in_array($Tag->getName(), $current_tag_names, true)
+                    || in_array($Tag->getName(), $reciprocal_tag_names, true)
+                ) {
                     $unknown_tags[$Tag->getName()] = $Tag;
                 }
                 continue;
@@ -265,7 +269,7 @@ class SingleAccountEditTagsController
             $this->addTagToCategory($categories, $Category, $Tag, $descriptions, $checked_tag_names, $reciprocal_tag_set);
         }
 
-        foreach (array_unique(array_merge($current_tag_names, array_keys($checked_tag_names))) as $tag_name) {
+        foreach (array_unique(array_merge($current_tag_names, array_keys($checked_tag_names), $reciprocal_tag_names)) as $tag_name) {
             if (!$this->validateEditableTagName($tag_name)) {
                 continue;
             }
