@@ -1169,7 +1169,7 @@ editor2:
   mode:
     title: Who gets tags
     instruction: By default, the website will collect accounts you previously interacted with, accounts that tagged you, and, if you are authorized, your contacts. You can specify exact addresses here instead.
-    counterparties: Counterparties
+    counterparties: Counterparties (optional)
     counterparties_help: You can enter several Stellar accounts separated by commas.
   tags:
     title: Which tags to edit

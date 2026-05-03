@@ -42,26 +42,6 @@
 
 <form method="post" action="/editor2/">
     <section class="block">
-        <h2 class="title is-4">{{ 'editor2.mode.title'|trans }}</h2>
-        <p class="block">{{ 'editor2.mode.instruction'|trans }}</p>
-
-        <div class="field">
-            <label class="label" for="counterparties">{{ 'editor2.mode.counterparties'|trans }}</label>
-            <input
-                id="counterparties"
-                class="input"
-                type="text"
-                name="counterparties"
-                value="{{ counterparties_value|e('html_attr') }}"
-                placeholder="G..."
-                autocomplete="off"
-                spellcheck="false"
-            >
-            <p class="help">{{ 'editor2.mode.counterparties_help'|trans }}</p>
-        </div>
-    </section>
-
-    <section class="block">
         <h2 class="title is-4">{{ 'editor2.tags.title'|trans }}</h2>
         <p class="block">{{ 'editor2.tags.instruction'|trans }}</p>
 
@@ -115,6 +95,26 @@
                 spellcheck="false"
             >
             <p class="help">{{ 'editor2.tags.custom_help'|trans }}</p>
+        </div>
+    </section>
+
+    <section class="block">
+        <h2 class="title is-4">{{ 'editor2.mode.title'|trans }}</h2>
+        <p class="block">{{ 'editor2.mode.instruction'|trans }}</p>
+
+        <div class="field">
+            <label class="label" for="counterparties">{{ 'editor2.mode.counterparties'|trans }}</label>
+            <input
+                id="counterparties"
+                class="input"
+                type="text"
+                name="counterparties"
+                value="{{ counterparties_value|e('html_attr') }}"
+                placeholder="G..."
+                autocomplete="off"
+                spellcheck="false"
+            >
+            <p class="help">{{ 'editor2.mode.counterparties_help'|trans }}</p>
         </div>
     </section>
 
