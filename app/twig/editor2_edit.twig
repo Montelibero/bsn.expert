@@ -1,0 +1,234 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'editor2.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/editor2/" aria-current="page">{{ 'editor2.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ source_account.short_id }}</a></li>
+{% endblock %}
+
+{% block content %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const syncRows = function () {
+            document.querySelectorAll('[data-editor2-tag-row]').forEach(function (row) {
+                const input = row.querySelector('input');
+                row.classList.toggle('has-background-primary', Boolean(input && input.checked));
+                row.classList.toggle('has-text-primary-invert', Boolean(input && input.checked));
+            });
+        };
+
+        document.querySelectorAll('[data-editor2-tag-row] input').forEach(function (input) {
+            input.addEventListener('change', syncRows);
+        });
+        syncRows();
+    });
+</script>
+
+<h1 class="title">{{ 'editor2.title'|trans }}</h1>
+<h2 class="subtitle">{{ 'editor2.source_account'|trans }}: {{ include('account_link.twig', {data: source_account}, with_context = false) }}</h2>
+
+{% if notice and notice.type == 'current_account_changed' %}
+    <article class="message is-warning">
+        <div class="message-body">
+            {{ 'editor2.notice.current_account_changed'|trans }}
+            {{ include('account_link.twig', {data: notice.account}, with_context = false) }}
+        </div>
+    </article>
+{% endif %}
+
+{% if signing_form %}
+    <article class="message is-info">
+        <div class="message-body">
+            <p>{{ 'edit_tags.timeout_notice'|trans }}</p>
+        </div>
+    </article>
+
+    <h2 class="title is-4">{{ 'editor.sign.header'|trans }}</h2>
+    <p class="block">{{ 'editor.transaction_label'|trans }}: {{ transaction_summary.operations_count }}</p>
+    {{ signing_form|raw }}
+{% elseif no_changes %}
+    <article class="message is-success">
+        <div class="message-body">{{ 'edit_tags.no_changes'|trans }}</div>
+    </article>
+{% endif %}
+
+<form method="post">
+    <input type="hidden" name="selected_tags" value="{{ selected_tags|join(', ')|e('html_attr') }}">
+    <input type="hidden" name="counterparties" value="{{ counterparty_ids_value|e('html_attr') }}">
+
+    {% if not has_explicit_counterparties %}
+        <div class="field is-grouped my-5">
+            <div class="control">
+                <button type="submit" name="action" value="save" class="button is-link">
+                    <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                    <span>{{ 'editor2.save'|trans }}</span>
+                </button>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if single_keep_values %}
+        <section class="box">
+            <h2 class="title is-4">{{ 'editor2.single.keep_title'|trans }}</h2>
+            <p class="help mb-3">{{ 'editor2.single.keep_help'|trans }}</p>
+
+            <div class="fixed-grid has-auto-count">
+                <div class="grid is-gap-1">
+                    {% for item in single_keep_values %}
+                        <label
+                            class="cell py-2 px-3 has-radius-normal{% if item.checked %} has-background-primary has-text-primary-invert{% endif %}"
+                            data-editor2-tag-row
+                        >
+                            <input
+                                type="radio"
+                                name="single_tag[{{ item.tag_name }}]"
+                                value="{{ keep_single_value }}"
+                                {% if item.checked %}checked{% endif %}
+                            >
+                            <span class="has-text-weight-semibold">{{ item.tag_name }}</span>
+                            <br>
+                            <span class="is-size-7">
+                                {% if item.value_account %}
+                                    {{ include('account_link.twig', {data: item.value_account}, with_context = false) }}
+                                {% else %}
+                                    {{ item.value }}
+                                {% endif %}
+                            </span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+    {% if single_empty_values %}
+        <section class="box">
+            <h2 class="title is-4">{{ 'editor2.single.empty_title'|trans }}</h2>
+
+            <div class="fixed-grid has-auto-count">
+                <div class="grid is-gap-1">
+                    {% for item in single_empty_values %}
+                        <label
+                            class="cell py-2 px-3 has-radius-normal{% if item.checked %} has-background-primary has-text-primary-invert{% endif %}"
+                            data-editor2-tag-row
+                        >
+                            <input
+                                type="radio"
+                                name="single_tag[{{ item.tag_name }}]"
+                                value=""
+                                {% if item.checked %}checked{% endif %}
+                            >
+                            <span class="has-text-weight-semibold">{{ item.tag_name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+    {% for counterparty in counterparties %}
+        <section class="block">
+            <h2 class="title is-4">{{ include('account_link.twig', {data: counterparty.account}, with_context = false) }}</h2>
+
+            <div class="columns is-desktop is-multiline">
+                {% for category in counterparty.tag_categories %}
+                    <div class="column is-half-desktop">
+                        <section class="box">
+                            <h3 class="title is-5">{{ category.name }}</h3>
+
+                            {% for tag in category.tags %}
+                                <label
+                                    class="is-block py-2 px-3 mb-2 has-radius-normal{% if tag.checked %} has-background-primary has-text-primary-invert{% endif %}"
+                                    data-editor2-tag-row
+                                >
+                                    <span class="is-flex is-align-items-flex-start" style="gap: 0.65rem;">
+                                        {% if tag.is_single %}
+                                            <input
+                                                style="flex: 0 0 auto; margin-top: 0.4rem;"
+                                                type="radio"
+                                                name="single_tag[{{ tag.name }}]"
+                                                value="{{ counterparty.account.id }}"
+                                                {% if tag.checked %}checked{% endif %}
+                                            >
+                                        {% else %}
+                                            <input
+                                                style="flex: 0 0 auto; margin-top: 0.4rem;"
+                                                type="checkbox"
+                                                name="tag[{{ tag.name }}][{{ counterparty.account.id }}]"
+                                                value="1"
+                                                {% if tag.checked %}checked{% endif %}
+                                            >
+                                        {% endif %}
+                                        <span>
+                                            <span class="has-text-weight-semibold">{{ tag.name }}</span>
+                                            {% if tag.is_single %}
+                                                <span class="tag is-small ml-1">single</span>
+                                            {% endif %}
+                                            {% if tag.description %}
+                                                <br>
+                                                <span class="is-size-7">{{ tag.description }}</span>
+                                            {% endif %}
+                                            {% if tag.reciprocal_tag_name %}
+                                                <br>
+                                                <span class="is-size-7">
+                                                    <span class="icon is-small has-text-danger"><i class="fa-solid fa-exclamation"></i></span>
+                                                    {{ 'edit_tags.reciprocal_tag.exists'|trans }}
+                                                    <span class="tag is-info">{{ tag.reciprocal_tag_name }}</span>
+                                                </span>
+                                            {% endif %}
+                                        </span>
+                                    </span>
+                                </label>
+                            {% endfor %}
+                        </section>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% if not loop.last %}
+            <hr>
+        {% endif %}
+    {% else %}
+        <article class="message is-warning">
+            <div class="message-body">{{ 'editor2.no_counterparties'|trans }}</div>
+        </article>
+    {% endfor %}
+
+    {% if not has_explicit_counterparties %}
+        <section class="box">
+            <h2 class="title is-4">{{ 'editor2.add_accounts.title'|trans }}</h2>
+            <div class="field has-addons">
+                <div class="control is-expanded">
+                    <input
+                        class="input"
+                        type="text"
+                        name="add_accounts"
+                        value=""
+                        placeholder="G..., G..."
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                </div>
+                <div class="control">
+                    <button type="submit" name="action" value="add_accounts" class="button is-primary">
+                        <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                        <span>{{ 'editor2.add_accounts.add'|trans }}</span>
+                    </button>
+                </div>
+            </div>
+            <p class="help">{{ 'editor2.add_accounts.help'|trans }}</p>
+        </section>
+    {% endif %}
+
+    <div class="field is-grouped my-5">
+        <div class="control">
+            <button type="submit" name="action" value="save" class="button is-link">
+                <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                <span>{{ 'editor2.save'|trans }}</span>
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

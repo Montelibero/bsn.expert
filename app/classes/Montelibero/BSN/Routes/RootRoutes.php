@@ -70,6 +70,9 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/editor'], function () use ($Container) {
             EditorRouter::register($Container);
         });
+        SimpleRouter::group(['prefix' => '/editor2'], function () use ($Container) {
+            Editor2Router::register($Container);
+        });
         SimpleRouter::group(['prefix' => '/tools'], function () use ($Container) {
             ToolsRouter::register($Container);
         });
@@ -78,6 +81,9 @@ class RootRoutes
             return $Container->get(WebApp::class)->Preferences();
         });
         SimpleRouter::get('/who_you_are', function () use ($Container) {
+            return $Container->get(WebApp::class)->WhoYouAre();
+        });
+        SimpleRouter::get('/who_are_you', function () use ($Container) {
             return $Container->get(WebApp::class)->WhoYouAre();
         });
         SimpleRouter::match(['get', 'post'], '/preferences/api', function () use ($Container) {

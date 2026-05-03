@@ -1,0 +1,130 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'editor2.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'editor2.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-editor2-tag-row] input[type="checkbox"]').forEach(function (checkbox) {
+            const row = checkbox.closest('[data-editor2-tag-row]');
+            const sync = function () {
+                row.classList.toggle('has-background-primary', checkbox.checked);
+                row.classList.toggle('has-text-primary-invert', checkbox.checked);
+            };
+            checkbox.addEventListener('change', sync);
+            sync();
+        });
+    });
+</script>
+
+<h1 class="title">{{ 'editor2.title'|trans }}</h1>
+<h2 class="subtitle">{{ 'editor2.source_account'|trans }}: {{ include('account_link.twig', {data: source_account}, with_context = false) }}</h2>
+
+{% if notice and notice.type == 'current_account_changed' %}
+    <article class="message is-warning">
+        <div class="message-body">
+            {{ 'editor2.notice.current_account_changed'|trans }}
+            {{ include('account_link.twig', {data: notice.account}, with_context = false) }}
+        </div>
+    </article>
+{% endif %}
+
+{% if error %}
+    <article class="message is-danger">
+        <div class="message-body">{{ error }}</div>
+    </article>
+{% endif %}
+
+<form method="post" action="/editor2/">
+    <section class="block">
+        <h2 class="title is-4">{{ 'editor2.mode.title'|trans }}</h2>
+        <p class="block">{{ 'editor2.mode.instruction'|trans }}</p>
+
+        <div class="field">
+            <label class="label" for="counterparties">{{ 'editor2.mode.counterparties'|trans }}</label>
+            <input
+                id="counterparties"
+                class="input"
+                type="text"
+                name="counterparties"
+                value="{{ counterparties_value|e('html_attr') }}"
+                placeholder="G..."
+                autocomplete="off"
+                spellcheck="false"
+            >
+            <p class="help">{{ 'editor2.mode.counterparties_help'|trans }}</p>
+        </div>
+    </section>
+
+    <section class="block">
+        <h2 class="title is-4">{{ 'editor2.tags.title'|trans }}</h2>
+        <p class="block">{{ 'editor2.tags.instruction'|trans }}</p>
+
+        <div class="columns is-desktop is-multiline">
+            {% for category in tag_categories %}
+                <div class="column is-half-desktop">
+                    <section class="box">
+                        <h3 class="title is-5">{{ category.name }}</h3>
+
+                        {% for tag in category.tags %}
+                            <label
+                                class="is-block py-2 px-3 mb-2 has-radius-normal{% if tag.checked %} has-background-primary has-text-primary-invert{% endif %}"
+                                data-editor2-tag-row
+                            >
+                                <span class="is-flex is-align-items-flex-start" style="gap: 0.65rem;">
+                                    <input
+                                        style="flex: 0 0 auto; margin-top: 0.4rem;"
+                                        type="checkbox"
+                                        name="tags[]"
+                                        value="{{ tag.name }}"
+                                        {% if tag.checked %}checked{% endif %}
+                                    >
+                                    <span>
+                                        <span class="has-text-weight-semibold">{{ tag.name }}</span>
+                                        {% if tag.is_single %}
+                                            <span class="tag is-small ml-1">single</span>
+                                        {% endif %}
+                                        {% if tag.description %}
+                                            <br>
+                                            <span class="is-size-7">{{ tag.description }}</span>
+                                        {% endif %}
+                                    </span>
+                                </span>
+                            </label>
+                        {% endfor %}
+                    </section>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="field">
+            <label class="label" for="custom_tags">{{ 'editor2.tags.custom'|trans }}</label>
+            <input
+                id="custom_tags"
+                class="input"
+                type="text"
+                name="custom_tags"
+                value="{{ custom_tags_value|e('html_attr') }}"
+                placeholder="Love, MyCustomTag"
+                autocomplete="off"
+                spellcheck="false"
+            >
+            <p class="help">{{ 'editor2.tags.custom_help'|trans }}</p>
+        </div>
+    </section>
+
+    <div class="field is-grouped">
+        <div class="control">
+            <button type="submit" name="action" value="start" class="button is-link">
+                <span class="icon"><i class="fa-solid fa-tags"></i></span>
+                <span>{{ 'editor2.start'|trans }}</span>
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

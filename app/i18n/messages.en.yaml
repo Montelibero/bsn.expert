@@ -1155,9 +1155,39 @@ tools_xdr2lab:
   errors:
     empty_xdr: Paste a transaction XDR first.
 
+editor2:
+  title: Tags editor
+  source_account: Setting tags as
+  selected_tags: "Editing tags:"
+  start: Set tags
+  save: Save (prepare transaction)
+  no_counterparties: No counterparties were found for editing. You can add accounts manually below.
+  notice:
+    current_account_changed: "Your current account was automatically changed to"
+  errors:
+    no_tags: Select at least one tag.
+  mode:
+    title: Who gets tags
+    instruction: By default, the website will collect accounts you previously interacted with, accounts that tagged you, and, if you are authorized, your contacts. You can specify exact addresses here instead.
+    counterparties: Counterparties
+    counterparties_help: You can enter several Stellar accounts separated by commas.
+  tags:
+    title: Which tags to edit
+    instruction: On the next screen you will be able to set and remove the selected tags. You can select one tag or several.
+    custom: Additional tags
+    custom_help: You can enter several tags separated by commas. Use Latin letters, digits, and underscore.
+  single:
+    keep_title: Do not change value
+    keep_help: These single tags currently point to a value outside the counterparty list on this screen.
+    empty_title: No value
+  add_accounts:
+    title: Add counterparties
+    add: Add
+    help: You can add one or several Stellar accounts separated by commas.
+
 edit_tags:
   title: Set tags
-  save: Save changes
+  save: Save (prepare transaction)
   timeout_notice: Changes on the website will appear within 10 minutes after the transaction is signed and submitted to the blockchain.
   no_changes: There are no changes, so no transaction is needed.
   current_state:

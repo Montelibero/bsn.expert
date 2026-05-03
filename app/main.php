@@ -12,6 +12,7 @@ use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ApiController;
 use Montelibero\BSN\Controllers\ContactsController;
 use Montelibero\BSN\Controllers\DocumentsController;
+use Montelibero\BSN\Controllers\Editor2Controller;
 use Montelibero\BSN\Controllers\EditorController;
 use Montelibero\BSN\Controllers\ErrorController;
 use Montelibero\BSN\Controllers\FederationController;
@@ -250,6 +251,7 @@ $ContainerBuilder->addDefinitions([
     LoginController::class => autowire(),
     AccountsController::class => autowire(),
     ApiController::class => autowire(),
+    Editor2Controller::class => autowire(),
     EditorController::class => autowire(),
     ContactsController::class => autowire(),
     TagsController::class => autowire(),
