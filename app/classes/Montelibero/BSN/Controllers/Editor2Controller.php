@@ -687,6 +687,11 @@ class Editor2Controller
         $tags_to_remove = [];
         $tags_to_add = [];
         $operations = [];
+        $summary_add_by_account = [];
+        $summary_remove_by_account = [];
+        $summary_add_by_tag = [];
+        $summary_remove_by_tag = [];
+        $summary_clear_tags = [];
 
         foreach ($selected_tag_names as $tag_name) {
             $Tag = $this->BSN->getTag($tag_name) ?? $this->BSN->makeTagByName($tag_name);
@@ -703,6 +708,9 @@ class Editor2Controller
                         $keys_to_remove[$entry['key']] = true;
                         $tags_to_remove[$tag_name] = true;
                     }
+                    if ($entries) {
+                        $summary_clear_tags[$tag_name] = true;
+                    }
                     continue;
                 }
 
@@ -716,7 +724,12 @@ class Editor2Controller
                     }
                 }
 
-                if (($this->getExactDataEntryValue($entries, $tag_name) ?? null) !== $desired_value) {
+                $current_value = $this->getExactDataEntryValue($entries, $tag_name);
+                if (($current_value ?? null) !== $desired_value) {
+                    if (BSN::validateStellarAccountIdFormat($current_value)) {
+                        $this->addSummaryAccountTag($summary_remove_by_account, $summary_remove_by_tag, $current_value, $tag_name);
+                    }
+                    $this->addSummaryAccountTag($summary_add_by_account, $summary_add_by_tag, $desired_value, $tag_name);
                     $tags_to_add[$tag_name] = [$desired_value];
                     $operations[] = (new ManageDataOperationBuilder($tag_name, $desired_value))->build();
                 }
@@ -740,12 +753,14 @@ class Editor2Controller
                 if (!isset($desired_values[$value])) {
                     $keys_to_remove[$entry['key']] = true;
                     $tags_to_remove[$tag_name][] = $value;
+                    $this->addSummaryAccountTag($summary_remove_by_account, $summary_remove_by_tag, $value, $tag_name);
                 }
             }
 
             foreach (array_keys($desired_values) as $account_id) {
                 if (!isset($current_values[$account_id])) {
                     $tags_to_add[$tag_name][] = $account_id;
+                    $this->addSummaryAccountTag($summary_add_by_account, $summary_add_by_tag, $account_id, $tag_name);
                 }
             }
         }
@@ -787,8 +802,91 @@ class Editor2Controller
                 'remove' => array_keys($tags_to_remove),
                 'add' => array_keys($tags_to_add),
                 'operations_count' => count($operations),
+                'report' => $this->buildTransactionReport(
+                    $summary_add_by_account,
+                    $summary_remove_by_account,
+                    $summary_add_by_tag,
+                    $summary_remove_by_tag,
+                    $summary_clear_tags
+                ),
             ],
         ];
+    }
+
+    private function addSummaryAccountTag(array &$by_account, array &$by_tag, string $account_id, string $tag_name): void
+    {
+        if (!BSN::validateStellarAccountIdFormat($account_id)) {
+            return;
+        }
+
+        $by_account[$account_id][$tag_name] = true;
+        $by_tag[$tag_name][$account_id] = true;
+    }
+
+    private function buildTransactionReport(
+        array $add_by_account,
+        array $remove_by_account,
+        array $add_by_tag,
+        array $remove_by_tag,
+        array $clear_tags,
+    ): array {
+        $affected_account_ids = array_values(array_unique(array_merge(
+            array_keys($add_by_account),
+            array_keys($remove_by_account)
+        )));
+
+        return [
+            'mode' => count($affected_account_ids) <= self::MANY_COUNTERPARTIES_LEGEND_THRESHOLD ? 'accounts' : 'tags',
+            'accounts' => $this->buildTransactionReportAccountGroups($affected_account_ids, $add_by_account, $remove_by_account),
+            'add_tags' => $this->buildTransactionReportTagGroups($add_by_tag),
+            'remove_tags' => $this->buildTransactionReportTagGroups($remove_by_tag),
+            'clear_tags' => $this->sortTagNames(array_keys($clear_tags)),
+        ];
+    }
+
+    private function buildTransactionReportAccountGroups(array $account_ids, array $add_by_account, array $remove_by_account): array
+    {
+        usort($account_ids, function (string $a, string $b): int {
+            return strcasecmp(
+                $this->BSN->makeAccountById($a)->getDisplayName(),
+                $this->BSN->makeAccountById($b)->getDisplayName()
+            );
+        });
+
+        $groups = [];
+        foreach ($account_ids as $account_id) {
+            $groups[] = [
+                'account' => $this->BSN->makeAccountById($account_id)->jsonSerialize(),
+                'add' => $this->sortTagNames(array_keys($add_by_account[$account_id] ?? [])),
+                'remove' => $this->sortTagNames(array_keys($remove_by_account[$account_id] ?? [])),
+            ];
+        }
+
+        return $groups;
+    }
+
+    private function buildTransactionReportTagGroups(array $by_tag): array
+    {
+        $groups = [];
+        foreach ($this->sortTagNames(array_keys($by_tag)) as $tag_name) {
+            $account_ids = array_keys($by_tag[$tag_name]);
+            usort($account_ids, function (string $a, string $b): int {
+                return strcasecmp(
+                    $this->BSN->makeAccountById($a)->getDisplayName(),
+                    $this->BSN->makeAccountById($b)->getDisplayName()
+                );
+            });
+
+            $groups[] = [
+                'tag_name' => $tag_name,
+                'accounts' => array_map(
+                    fn(string $account_id): array => $this->BSN->makeAccountById($account_id)->jsonSerialize(),
+                    $account_ids
+                ),
+            ];
+        }
+
+        return $groups;
     }
 
     private function getExactDataEntryValue(array $entries, string $key_name): ?string

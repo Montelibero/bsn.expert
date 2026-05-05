@@ -1190,6 +1190,13 @@ editor2:
     empty_title: Без значения
   legend:
     title: Легенда
+  transaction_report:
+    title: Предлагаемые изменения
+    set: установить
+    unset: снять
+    set_tag: Установить тег
+    unset_tag: Снять тег
+    clear_tag: Очистить тег
   add_accounts:
     title: Добавить контрагентов
     add: Добавить

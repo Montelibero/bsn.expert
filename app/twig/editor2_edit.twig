@@ -39,6 +39,58 @@
 {% endif %}
 
 {% if signing_form %}
+    {% if transaction_summary.report %}
+        <p class="has-text-weight-semibold mb-2">{{ 'editor2.transaction_report.title'|trans }}</p>
+
+        {% if transaction_summary.report.mode == 'accounts' %}
+            {% for item in transaction_summary.report.accounts %}
+                <p class="block">
+                    {{ include('account_link.twig', {data: item.account}, with_context = false) }}:
+                    {% if item.add %}
+                        {{ 'editor2.transaction_report.set'|trans }}
+                        {% for tag_name in item.add %}
+                            <span class="tag is-info">{{ tag_name }}</span>
+                        {% endfor %}
+                    {% endif %}
+                    {% if item.remove %}
+                        {% if item.add %}; {% endif %}
+                        {{ 'editor2.transaction_report.unset'|trans }}
+                        {% for tag_name in item.remove %}
+                            <span class="tag is-info">{{ tag_name }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </p>
+            {% endfor %}
+        {% else %}
+            {% for group in transaction_summary.report.add_tags %}
+                <p class="block">
+                    {{ 'editor2.transaction_report.set_tag'|trans }}
+                    <span class="tag is-info">{{ group.tag_name }}</span>:
+                    {% for account in group.accounts %}
+                        {{ include('account_link.twig', {data: account}, with_context = false) }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+            {% endfor %}
+
+            {% for group in transaction_summary.report.remove_tags %}
+                <p class="block">
+                    {{ 'editor2.transaction_report.unset_tag'|trans }}
+                    <span class="tag is-info">{{ group.tag_name }}</span>:
+                    {% for account in group.accounts %}
+                        {{ include('account_link.twig', {data: account}, with_context = false) }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+            {% endfor %}
+        {% endif %}
+
+        {% for tag_name in transaction_summary.report.clear_tags %}
+            <p class="block">
+                {{ 'editor2.transaction_report.clear_tag'|trans }}
+                <span class="tag is-info">{{ tag_name }}</span>.
+            </p>
+        {% endfor %}
+    {% endif %}
+
     <article class="message is-info">
         <div class="message-body">
             <p>{{ 'edit_tags.timeout_notice'|trans }}</p>
