@@ -35,21 +35,40 @@ class Editor2Controller
         $this->Twig->addGlobal('server', $_SERVER);
     }
 
+    public function LegacyPathRedirect(string $legacy_source_id): ?string
+    {
+        if (!$this->isValidAccountId($legacy_source_id)) {
+            SimpleRouter::response()->redirect('/editor2/', 302);
+            return null;
+        }
+
+        // Legacy /editor compatibility: translate /editor/{source}/ links to the new query-mode entrypoint.
+        $this->applyLegacySourceAccount(strtoupper($legacy_source_id));
+        if ($single_account_edit_tags_url = $this->buildLegacySingleAccountEditTagsRedirectUrl()) {
+            SimpleRouter::response()->redirect($single_account_edit_tags_url, 302);
+            return null;
+        }
+
+        SimpleRouter::response()->redirect($this->buildLegacyPathRedirectUrl(strtoupper($legacy_source_id)), 302);
+        return null;
+    }
+
     public function Editor(): ?string
     {
         $notice = null;
-        $source_account_id = $this->CurrentUser->getCurrentAccountId();
-
-        if (($legacy_source_id = $this->getRequestAccountId('id')) !== null) {
-            if ($legacy_source_id !== $source_account_id) {
-                $this->CurrentUser->setCurrentAccountId($legacy_source_id);
-                $source_account_id = $legacy_source_id;
-                $notice = [
-                    'type' => 'current_account_changed',
-                    'account' => $this->BSN->makeAccountById($legacy_source_id)->jsonSerialize(),
-                ];
+        // Legacy /editor compatibility: old form links used /editor/?id={source_account_id}.
+        if (($query_source_id = $this->getRequestAccountId('id')) !== null) {
+            $this->applyLegacySourceAccount($query_source_id);
+            if ($single_account_edit_tags_url = $this->buildLegacySingleAccountEditTagsRedirectUrl()) {
+                SimpleRouter::response()->redirect($single_account_edit_tags_url, 302);
+                return null;
             }
+
+            SimpleRouter::response()->redirect($this->buildLegacyQueryRedirectUrl(), 302);
+            return null;
         }
+
+        $source_account_id = $this->CurrentUser->getCurrentAccountId();
 
         if (!$source_account_id) {
             SimpleRouter::response()->redirect(
@@ -67,7 +86,7 @@ class Editor2Controller
                 return $this->renderStartScreen(
                     $source_account_id,
                     $notice,
-                    $this->Translator->trans('editor2.errors.no_tags')
+                    $this->Translator->trans('editor2.errors.no_tags'),
                 );
             }
 
@@ -81,7 +100,7 @@ class Editor2Controller
             return null;
         }
 
-        if (!$selected_tag_names && $_SERVER['REQUEST_METHOD'] !== 'POST' && !$this->hasEditQuery()) {
+        if (!$selected_tag_names && $_SERVER['REQUEST_METHOD'] !== 'POST') {
             return $this->renderStartScreen($source_account_id, $notice);
         }
 
@@ -89,7 +108,7 @@ class Editor2Controller
             return $this->renderStartScreen(
                 $source_account_id,
                 $notice,
-                $this->Translator->trans('editor2.errors.no_tags')
+                $this->Translator->trans('editor2.errors.no_tags'),
             );
         }
 
@@ -138,14 +157,23 @@ class Editor2Controller
         );
     }
 
-    private function renderStartScreen(string $source_account_id, ?array $notice, ?string $error = null): string
+    private function renderStartScreen(
+        string $source_account_id,
+        ?array $notice,
+        ?string $error = null,
+    ): string
     {
         $Template = $this->Twig->load('editor2_start.twig');
 
         return $Template->render([
             'source_account' => $this->BSN->makeAccountById($source_account_id)->jsonSerialize(),
             'tag_categories' => $this->buildSelectionTagCategories($this->getSelectedTagNames()),
-            'counterparties_value' => (string) ($_POST['counterparties'] ?? $_GET['contacts'] ?? $_GET['contact'] ?? ''),
+            'counterparties_value' => (string) (
+                $_POST['counterparties']
+                ?? $_GET['contacts']
+                ?? $_GET['contact']
+                ?? ''
+            ),
             'custom_tags_value' => (string) ($_POST['custom_tags'] ?? ''),
             'notice' => $notice,
             'error' => $error,
@@ -429,7 +457,11 @@ class Editor2Controller
         return $tag_names;
     }
 
-    private function getCounterpartyIds(string $source_account_id, array $selected_tag_names, array $data_entries): array
+    private function getCounterpartyIds(
+        string $source_account_id,
+        array $selected_tag_names,
+        array $data_entries,
+    ): array
     {
         $posted_counterparties = $this->parseAccountList((string) ($_POST['counterparties'] ?? ''));
         if ($posted_counterparties) {
@@ -437,7 +469,9 @@ class Editor2Controller
         }
 
         $query_counterparties = $this->parseAccountList(
-            isset($_GET['contacts']) ? (string) $_GET['contacts'] : (string) ($_GET['contact'] ?? '')
+            isset($_GET['contacts'])
+                ? (string) $_GET['contacts']
+                : (string) ($_GET['contact'] ?? '')
         );
         if ($query_counterparties) {
             return $query_counterparties;
@@ -815,14 +849,99 @@ class Editor2Controller
         return BSN::validateStellarAccountIdFormat($account_id) ? $account_id : null;
     }
 
-    private function hasEditQuery(): bool
+    private function isValidAccountId(?string $account_id): bool
     {
-        return isset($_GET['tags']) || isset($_GET['contacts']) || isset($_GET['tag']) || isset($_GET['contact']);
+        return BSN::validateStellarAccountIdFormat(strtoupper(trim((string) $account_id)));
     }
 
     private function hasExplicitCounterparties(): bool
     {
         return isset($_GET['contacts']) || isset($_GET['contact']);
+    }
+
+    private function applyLegacySourceAccount(string $legacy_source_id): void
+    {
+        $current_source_id = $this->CurrentUser->getCurrentAccountId();
+        if ($legacy_source_id === $current_source_id) {
+            return;
+        }
+
+        $this->CurrentUser->setCurrentAccountId($legacy_source_id);
+        $this->CurrentUser->rememberAutoCurrentAccountChange($legacy_source_id);
+    }
+
+    private function buildLegacyQueryRedirectUrl(): string
+    {
+        $query_parts = [];
+
+        $tag_names = $this->parseTagList(isset($_GET['tags']) ? (string) $_GET['tags'] : (string) ($_GET['tag'] ?? ''));
+        if ($tag_names) {
+            $query_parts[] = (count($tag_names) === 1 ? 'tag' : 'tags')
+                . '=' . $this->encodeCommaSeparatedList($tag_names);
+        }
+
+        $counterparty_ids = $this->parseAccountList(
+            isset($_GET['contacts']) ? (string) $_GET['contacts'] : (string) ($_GET['contact'] ?? '')
+        );
+        if ($counterparty_ids) {
+            $query_parts[] = (count($counterparty_ids) === 1 ? 'contact' : 'contacts')
+                . '=' . $this->encodeCommaSeparatedList($counterparty_ids);
+        }
+
+        return '/editor2/' . ($query_parts ? '?' . implode('&', $query_parts) : '');
+    }
+
+    private function buildLegacySingleAccountEditTagsRedirectUrl(): ?string
+    {
+        $tag_names = $this->parseTagList(isset($_GET['tags']) ? (string) $_GET['tags'] : (string) ($_GET['tag'] ?? ''));
+        if ($tag_names) {
+            return null;
+        }
+
+        // Legacy /editor compatibility: contact-only editor links map to the single-account tag editor.
+        $counterparty_ids = $this->parseAccountList(
+            isset($_GET['contacts'])
+                ? (string) $_GET['contacts']
+                : (
+                    isset($_GET['contact'])
+                        ? (string) $_GET['contact']
+                        : (string) ($_GET['id'] ?? '')
+                )
+        );
+
+        if (count($counterparty_ids) !== 1) {
+            return null;
+        }
+
+        return '/accounts/' . rawurlencode($counterparty_ids[0]) . '/edit_tags';
+    }
+
+    private function buildLegacyPathRedirectUrl(string $legacy_source_id): string
+    {
+        $query_parts = [];
+
+        $tag_names = $this->parseTagList(isset($_GET['tags']) ? (string) $_GET['tags'] : (string) ($_GET['tag'] ?? ''));
+        if ($tag_names) {
+            $query_parts[] = (count($tag_names) === 1 ? 'tag' : 'tags')
+                . '=' . $this->encodeCommaSeparatedList($tag_names);
+        }
+
+        // Legacy /editor compatibility: in /editor/{source}/ links, query id meant contact.
+        $counterparty_ids = $this->parseAccountList(
+            isset($_GET['contacts'])
+                ? (string) $_GET['contacts']
+                : (
+                    isset($_GET['contact'])
+                        ? (string) $_GET['contact']
+                        : (string) ($_GET['id'] ?? '')
+                )
+        );
+        if ($counterparty_ids) {
+            $query_parts[] = (count($counterparty_ids) === 1 ? 'contact' : 'contacts')
+                . '=' . $this->encodeCommaSeparatedList($counterparty_ids);
+        }
+
+        return '/editor2/' . ($query_parts ? '?' . implode('&', $query_parts) : '');
     }
 
     private function buildEditUrl(array $tag_names, array $counterparty_ids): string

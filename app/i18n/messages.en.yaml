@@ -1,6 +1,7 @@
 common:
   short_name: BSN
   full_name: Blockchain Social Network
+  close: Close
 
 nav:
   home: Home
@@ -28,6 +29,11 @@ nav:
   preferences: Preferences
   login: Login
   logout: Logout
+
+current_account_notice:
+  title: Current account changed
+  account_text: "The link parameters set your action mode to use this account:"
+  preferences_text: "Note the corresponding marker in the menu. You can change this account here:"
 
 index_page:
   accounts: "{0} No accounts|{1} 1 account|]1,Inf] %count% accounts"

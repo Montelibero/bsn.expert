@@ -11,6 +11,7 @@ class CurrentUser
     private const SESSION_ACCOUNT_KEY = 'account';
     private const SESSION_CURRENT_ACCOUNT_KEY = 'current_account_id';
     private const SESSION_HISTORY_KEY = 'current_account_history';
+    private const SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY = 'auto_current_account_notice';
     private const HISTORY_LIMIT = 20;
     private BSN $BSN;
 
@@ -116,6 +117,27 @@ class CurrentUser
         }
 
         return null;
+    }
+
+    public function rememberAutoCurrentAccountChange(string $account_id): void
+    {
+        if (!BSN::validateStellarAccountIdFormat($account_id)) {
+            return;
+        }
+
+        $this->session[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY] = $account_id;
+    }
+
+    public function consumeAutoCurrentAccountNotice(): ?array
+    {
+        $account_id = $this->session[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY] ?? null;
+        unset($this->session[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY]);
+
+        if (!BSN::validateStellarAccountIdFormat($account_id)) {
+            return null;
+        }
+
+        return $this->BSN->makeAccountById($account_id)->jsonSerialize();
     }
 
 

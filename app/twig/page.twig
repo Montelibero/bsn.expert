@@ -169,6 +169,48 @@
         </div>
     </div>
 </nav>
+{% set auto_current_account_notice = current_user.consumeAutoCurrentAccountNotice() %}
+{% if auto_current_account_notice %}
+<section class="hero is-small is-warning" id="auto-current-account-notice">
+    <div class="hero-body">
+        <div class="is-flex is-justify-content-space-between is-align-items-flex-start" style="gap: 1rem;">
+            <div>
+                <p class="title">{{ 'current_account_notice.title'|trans }}</p>
+                <p class="block">
+                    {{ 'current_account_notice.account_text'|trans }}
+                    {{ include('account_link.twig', {data: auto_current_account_notice}, with_context = false) }}
+                </p>
+                <p class="block">
+                    {{ 'current_account_notice.preferences_text'|trans }}
+                    <a class="button is-warning is-light" href="/preferences">
+                        <span class="icon"><i class="fa-solid fa-gears"></i></span>
+                        <span>{{ 'nav.preferences'|trans }}</span>
+                    </a>
+                </p>
+            </div>
+            <button
+                class="delete is-hidden"
+                type="button"
+                id="auto-current-account-notice-close"
+                aria-label="{{ 'common.close'|trans }}"
+            ></button>
+        </div>
+    </div>
+</section>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const notice = document.getElementById('auto-current-account-notice');
+        const close = document.getElementById('auto-current-account-notice-close');
+        if (!notice || !close) {
+            return;
+        }
+        close.classList.remove('is-hidden');
+        close.addEventListener('click', function () {
+            notice.remove();
+        });
+    });
+</script>
+{% endif %}
 <section class="section">
     {% set is_wide_page = is_wide_page|default(false) %}
     {% if not is_wide_page %}
