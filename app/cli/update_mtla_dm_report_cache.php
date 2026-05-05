@@ -30,13 +30,13 @@ $warning = $snapshot['warning'] ?? null;
 $from_cache = (bool) ($snapshot['from_cache'] ?? false);
 
 if ($warning !== null && $age_seconds === null) {
-    fwrite(STDERR, sprintf("MTLA RP report cache unavailable: %s\n", $warning));
+    fwrite(STDERR, sprintf("DM report cache unavailable: %s\n", $warning));
     exit(1);
 }
 
 if (!$from_cache) {
     printf(
-        "MTLA RP report cache rebuilt automatically. programs=%d age=%s\n",
+        "DM report cache rebuilt automatically. programs=%d age=%s\n",
         count($program_account_ids),
         formatAge($age_seconds)
     );
@@ -45,7 +45,7 @@ if (!$from_cache) {
 
 if ($age_seconds !== null && $age_seconds <= REFRESH_AFTER_SECONDS) {
     printf(
-        "MTLA RP report cache is fresh enough. age=%s threshold=%s programs=%d\n",
+        "DM report cache is fresh enough. age=%s threshold=%s programs=%d\n",
         formatAge($age_seconds),
         formatAge(REFRESH_AFTER_SECONDS),
         count($program_account_ids)
@@ -54,7 +54,7 @@ if ($age_seconds !== null && $age_seconds <= REFRESH_AFTER_SECONDS) {
 }
 
 printf(
-    "Refreshing MTLA RP report cache. current_age=%s threshold=%s programs=%d\n",
+    "Refreshing DM report cache. current_age=%s threshold=%s programs=%d\n",
     formatAge($age_seconds),
     formatAge(REFRESH_AFTER_SECONDS),
     count($program_account_ids)
@@ -63,12 +63,12 @@ printf(
 $snapshot = $ReportService->fetchMtlaSnapshot($program_account_ids, true);
 $warning = $snapshot['warning'] ?? null;
 if ($warning !== null) {
-    fwrite(STDERR, sprintf("MTLA RP report cache refresh failed: %s\n", $warning));
+    fwrite(STDERR, sprintf("DM report cache refresh failed: %s\n", $warning));
     exit(1);
 }
 
 printf(
-    "MTLA RP report cache refreshed successfully. age=%s programs=%d\n",
+    "DM report cache refreshed successfully. age=%s programs=%d\n",
     formatAge($snapshot['age_seconds'] ?? null),
     count($program_account_ids)
 );

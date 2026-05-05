@@ -21,7 +21,7 @@ use Throwable;
 class MtlaProgramReportService
 {
     private const MTLA_ACCOUNT = MtlaController::MTLA_ACCOUNT;
-    private const CACHE_KEY_PREFIX = 'mtla_rp_report_snapshot:v5';
+    private const CACHE_KEY_PREFIX = 'mtla_dm_report_snapshot:v5';
     private const CACHE_TTL = 604800;
     private const LOOKBACK_DAYS = 90;
     private const ACTIVIST_MIN_MTLAP = 4;
@@ -960,7 +960,7 @@ class MtlaProgramReportService
     private function cacheStore(string $key, mixed $value, int $ttl): void
     {
         $this->CacheManager->store($key, $value, $ttl, [
-            'scope' => 'mtla_rp_report_snapshot',
+            'scope' => 'mtla_dm_report_snapshot',
         ]);
     }
 }

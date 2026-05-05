@@ -17,5 +17,8 @@
         <li>./<a href="/mtla/council">{{ 'nav.council'|trans }}</a></li>
         <li>./<a href="/mtla/participants">{{ 'nav.participants'|trans }}</a></li>
         <li>./<a href="/mtla/programs">{{ 'nav.programs'|trans }}</a></li>
+        {% if current_user.isImpactActivist %}
+            <li>./<a href="/mtla/dm_report">{{ 'nav.tools.mtla_dm_report'|trans }}</a></li>
+        {% endif %}
     </ul>
 {% endblock %}

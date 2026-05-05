@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Routes;
 
 use DI\Container;
 use Montelibero\BSN\Controllers\MtlaController;
+use Montelibero\BSN\Controllers\MtlaDmReportController;
 use Pecee\SimpleRouter\SimpleRouter;
 
 class MtlaRouter
@@ -31,6 +32,14 @@ class MtlaRouter
 
         SimpleRouter::get('/programs/{account_id}', function ($account_id) use ($Container) {
             return $Container->get(MtlaController::class)->MtlaProgram($account_id);
+        });
+
+        SimpleRouter::get('/dm_report', function () use ($Container) {
+            return $Container->get(MtlaDmReportController::class)->MtlaDmReport();
+        });
+
+        SimpleRouter::get('/rp_report', function () {
+            SimpleRouter::response()->redirect('/mtla/dm_report', 301);
         });
     }
 }

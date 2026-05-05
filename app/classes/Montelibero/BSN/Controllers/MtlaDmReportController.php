@@ -9,11 +9,11 @@ use Pecee\SimpleRouter\SimpleRouter;
 use Twig\Environment;
 use function htmlspecialchars;
 
-class MtlaRpReportController implements RefreshDataCodeInterface
+class MtlaDmReportController implements RefreshDataCodeInterface
 {
     use RefreshDataCodeTrait;
 
-    private const REFRESH_SCOPE = 'mtla_rp_report_snapshot';
+    private const REFRESH_SCOPE = 'mtla_dm_report_snapshot';
 
     private BSN $BSN;
     private Environment $Twig;
@@ -35,7 +35,7 @@ class MtlaRpReportController implements RefreshDataCodeInterface
         $this->ReportService = $ReportService;
     }
 
-    public function MtlaRpReport(): ?string
+    public function MtlaDmReport(): ?string
     {
         $can_refresh = $this->ReportService->canRefreshSnapshot();
         $force_refresh = $can_refresh && $this->isRefreshDataRequested(self::REFRESH_SCOPE);
@@ -68,7 +68,7 @@ class MtlaRpReportController implements RefreshDataCodeInterface
         $refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
         $can_copy_clipboard = $this->CurrentUser->getMemberLevel() >= 4;
 
-        $Template = $this->Twig->load('tools_mtla_rp_report.twig');
+        $Template = $this->Twig->load('mtla_dm_report.twig');
         return $Template->render([
             'is_wide_page' => true,
             'mtla_account' => $this->ReportService->getMtlaAccountData(),

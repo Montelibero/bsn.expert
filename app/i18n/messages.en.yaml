@@ -19,7 +19,7 @@ nav:
     percent_pay: Bulk Percent Payment
     xdr2lab: XDR to LAB
     mtla_votes: MTLA Votes
-    mtla_rp_report: MTLA RP Report
+    mtla_dm_report: DM Report
   mtla: MTLA
   council: Council
   programs: Programs
@@ -1068,8 +1068,8 @@ tools_percent_pay:
     insufficient_balance: "Account %account% does not have enough %token% for these payments: available %available%, required %required%."
     no_eligible_trustlines: No recipients with an open trustline to the selected payment token were found, so the distribution transaction was not generated.
 
-mtla_rp_report_page:
-  title: MTLA RP Report
+mtla_dm_report_page:
+  title: DM Report
   header: MTLA Activists Report
   description: >
     A summary of MTLA activists with formal checks: whether the timetoken is described,

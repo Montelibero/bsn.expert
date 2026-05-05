@@ -5,7 +5,6 @@ namespace Montelibero\BSN\Routes;
 use DI\Container;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MtlaRpExclusionController;
-use Montelibero\BSN\Controllers\MtlaRpReportController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\DecisionTransactionsController;
@@ -57,8 +56,8 @@ class ToolsRouter
             return $Container->get(RecommendVerificationController::class)->MtlaRecommendVerification();
         });
 
-        SimpleRouter::get('/mtla/rp_report', function () use ($Container) {
-            return $Container->get(MtlaRpReportController::class)->MtlaRpReport();
+        SimpleRouter::get('/mtla/rp_report', function () {
+            SimpleRouter::response()->redirect('/mtla/dm_report', 301);
         });
 
         SimpleRouter::match(['get', 'post'], '/timetoken', function () use ($Container) {

@@ -19,7 +19,7 @@ nav:
     percent_pay: Выплата процентов
     xdr2lab: XDR to LAB
     mtla_votes: MTLA Votes
-    mtla_rp_report: MTLA RP Report
+    mtla_dm_report: РП Отчет
   mtla: Ассоциация
   council: Совет
   programs: Программы
@@ -1071,8 +1071,8 @@ tools_percent_pay:
     insufficient_balance: "На аккаунте %account% недостаточно токенов %token% для этих выплат: доступно %available%, требуется %required%."
     no_eligible_trustlines: Для выбранного токена выплаты не найдено ни одного получателя с открытой линией доверия, поэтому транзакция раздачи не сформирована.
 
-mtla_rp_report_page:
-  title: MTLA RP Report
+mtla_dm_report_page:
+  title: РП Отчет
   header: Отчёт по активистам MTLA
   description: >
     Сводка по активистам MTLA с формальными проверками: описан ли таймтокен, открыта ли к нему
