@@ -74,7 +74,6 @@
     </article>
 
     <h2 class="title is-4">{{ 'editor.sign.header'|trans }}</h2>
-    <p class="block">{{ 'editor.transaction_label'|trans }}: {{ transaction_summary.operations_count }}</p>
     {{ signing_form|raw }}
 {% elseif no_changes %}
     <article class="message is-success">
