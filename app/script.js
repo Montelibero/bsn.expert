@@ -22,6 +22,34 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    document.querySelectorAll('.js-signing-toggle').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            const form = button.closest('form');
+            const targetName = button.dataset.signingToggle;
+            const target = form ? form.querySelector('[data-signing-panel="' + targetName + '"]') : null;
+
+            if (!target) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const shouldShow = !target.classList.contains('is-visible');
+
+            form.querySelectorAll('[data-signing-panel]').forEach(function (panel) {
+                panel.classList.remove('is-visible');
+            });
+            form.querySelectorAll('.js-signing-toggle').forEach(function (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+            });
+
+            if (shouldShow) {
+                target.classList.add('is-visible');
+                button.setAttribute('aria-expanded', 'true');
+            }
+        });
+    });
 });
 
 /* Rich Copy */

@@ -1,0 +1,15 @@
+{% if signing_view == 'qr' %}
+    <p class="block">{{ 'editor.sign.qr_instruction'|trans }}</p>
+    {% if qr_svg %}
+        <p class="block qr_svg">{{ qr_svg|raw }}</p>
+    {% else %}
+        <p class="block">{{ 'editor.sign.no_qr_text'|trans }}</p>
+    {% endif %}
+{% elseif signing_view == 'xdr' and xdr %}
+    <p class="block">{{ 'editor.sign.xdr_instruction'|trans }}</p>
+    <div class="field">
+        <div class="control">
+            <textarea class="textarea is-family-monospace" rows="5" readonly>{{ xdr }}</textarea>
+        </div>
+    </div>
+{% endif %}

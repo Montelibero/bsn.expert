@@ -7,6 +7,19 @@
     cursor: copy;
 }
 
+.qr_svg svg {
+    color: var(--bulma-body-color);
+    width: 40vmin;
+}
+
+.signing-collapsible {
+    display: none;
+}
+
+.signing-collapsible.is-visible {
+    display: block;
+}
+
 /* Rich Copy */
 .js-rich-copy-button {
     display: none;

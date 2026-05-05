@@ -950,6 +950,8 @@ editor:
     sep_07_button_name: Sunce, Lobstr etc
     link_text: A special Stellar link that can be opened, for example, by Sunce Wallet.
     qr_text: Magic QR for your mobile
+    qr_instruction: QR with the transaction. You can sign it with your favorite wallet, or simply share it.
+    xdr_instruction: Source XDR of the prepared transaction. You probably already know what to do with it.
     no_qr_text: Unfortunately, without QR, it's too large a transaction.
     collect_multisig_button_name: Collect multisig
     collect_multisig_disabled_title: No text memo longer than 3 characters

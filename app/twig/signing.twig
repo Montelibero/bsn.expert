@@ -3,13 +3,12 @@
     <input type="hidden" name="uri" value="{{ uri }}">
     <input type="hidden" name="description" value="{{ description }}">
     <input type="hidden" name="sign" value="{{ sign }}">
-<style>
-    .qr_svg svg {
-        color: var(--bulma-body-color);
-        width: 40vmin;
-    }
-</style>
 <div class="buttons">
+    <button type="submit" name="action" value="qr" formtarget="_self" class="button js-signing-toggle" data-signing-toggle="qr" aria-expanded="false">
+        <span class="icon"><i class="fa-solid fa-qrcode"></i></span>
+        <span>QR</span>
+    </button>
+
     <a href="{{ uri }}" class="button is-primary">
         <span class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
         <span>{{ 'editor.sign.sep_07_button_name'|trans }}</span>
@@ -41,21 +40,22 @@
             <span>{{ 'editor.sign.collect_multisig_button_name'|trans }}</span>
         </button>
     {% endif %}
+
+    {% if xdr %}
+        <button type="submit" name="action" value="xdr" formtarget="_self" class="button js-signing-toggle" data-signing-toggle="xdr" aria-expanded="false">
+            <span class="icon"><i class="fa-solid fa-file-code"></i></span>
+            <span>XDR</span>
+        </button>
+    {% endif %}
 </div>
 
-{% if qr_svg %}
-<p class="block">{{ 'editor.sign.qr_text'|trans }}:</p>
-<p class="block qr_svg">{{ qr_svg|raw }}</p>
-{% else %}
-<p class="block">{{ 'editor.sign.no_qr_text'|trans }}</p>
-{% endif %}
+<div class="signing-collapsible" data-signing-panel="qr">
+    {{ include('signing_content.twig', {signing_view: 'qr'}) }}
+</div>
 
 {% if xdr %}
-<div class="field">
-    <label for="xdr_body">{{ 'editor.transaction_label'|trans }}:</label>
-    <div class="control">
-        <textarea class="textarea" id="xdr_body">{{ xdr }}</textarea>
-    </div>
+<div class="signing-collapsible" data-signing-panel="xdr">
+    {{ include('signing_content.twig', {signing_view: 'xdr'}) }}
 </div>
 {% endif %}
 </form>

@@ -51,7 +51,12 @@ class SignController
         }
 
         $action = $_POST['action'] ?? '';
-        if (!in_array($action, ['mmwb', 'eurmtl'])) {
+        if (!in_array($action, ['mmwb', 'eurmtl', 'qr', 'xdr'], true)) {
+            SimpleRouter::response()->httpCode(400);
+            return null;
+        }
+
+        if ($action === 'xdr' && !$xdr) {
             SimpleRouter::response()->httpCode(400);
             return null;
         }
@@ -66,6 +71,13 @@ class SignController
         if (!isset($_POST['sign']) || $_POST['sign'] !== $right_sign) {
             SimpleRouter::response()->httpCode(403);
             return null;
+        }
+
+        if ($action === 'qr' || $action === 'xdr') {
+            $Template = $this->Twig->load('signing_page.twig');
+            return $Template->render($this->buildSigningTemplateData($xdr, $uri, $description) + [
+                'signing_view' => $action,
+            ]);
         }
 
         $url = null;
@@ -108,6 +120,12 @@ class SignController
          *  Тогда не отображаем TX, но показываем кнопы подписать и QR
          */
 
+        $Template = $this->Twig->load('signing.twig');
+        return $Template->render($this->buildSigningTemplateData($xdr, $uri, $description));
+    }
+
+    private function buildSigningTemplateData(?string $xdr, ?string $uri, ?string $description): array
+    {
         if (!$xdr && !$uri) {
             throw new \Exception('No transaction or uri provided');
         }
@@ -140,15 +158,14 @@ class SignController
 
         $sign = md5($xdr . $uri . $description . $_ENV['SERVER_STELLAR_SECRET_KEY']);
 
-        $Template = $this->Twig->load('signing.twig');
-        return $Template->render([
+        return [
             'xdr' => $xdr,
             'uri' => $uri,
             'description' => $description,
             'qr_svg' => $qr_svg,
             'sign' => $sign,
             'can_collect_multisig' => $can_collect_multisig,
-        ]);
+        ];
     }
 
     public static function signSep07Uri(string $uri, KeyPair $KeyPair): string
