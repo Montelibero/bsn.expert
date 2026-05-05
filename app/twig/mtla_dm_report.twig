@@ -134,7 +134,9 @@
                         {% if activist.programs %}
                             <div class="dm-report-programs">
                                 {% for program in activist.programs %}
-                                    <span>{{ include('account_link.twig', {data: program}, with_context = false) }}</span>
+                                    <span>
+                                        <a href="/mtla/programs/{{ program.id }}">{{ program.name ?: program.short_id }}</a>
+                                    </span>
                                 {% endfor %}
                             </div>
                         {% else %}
@@ -286,7 +288,11 @@
                 <tbody>
                 {% for program in programs %}
                     <tr>
-                        <td>{{ include('account_link.twig', {data: program.data}, with_context = false) }}</td>
+                        <td>
+                            <a href="/mtla/programs/{{ program.data.id }}">
+                                {{ program.data.name ?: program.data.short_id }}
+                            </a>
+                        </td>
                         <td>
                             {% if program.coordinator %}
                                 {{ include('account_link.twig', {data: program.coordinator}, with_context = false) }}
