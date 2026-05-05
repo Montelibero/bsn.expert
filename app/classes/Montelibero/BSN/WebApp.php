@@ -281,9 +281,9 @@ class WebApp
         ]);
     }
 
-    public function WhoYouAre(): string
+    public function WhoAreYou(): string
     {
-        $Template = $this->Twig->load('who_you_are.twig');
+        $Template = $this->Twig->load('who_are_you.twig');
         $return_to = $this->resolveReturnToFromRequest('/');
         $current_account_id = strtoupper(trim((string) ($_GET['current_account'] ?? '')));
 
@@ -294,7 +294,7 @@ class WebApp
         return $Template->render([
             'return_to' => $return_to,
             'current_account_value' => $current_account_id,
-            'current_account_error' => $this->resolveWhoYouAreError(),
+            'current_account_error' => $this->resolveWhoAreYouError(),
         ]);
     }
 
@@ -386,7 +386,7 @@ class WebApp
         $return_to = $this->resolveReturnToFromRequest('/');
 
         if ($current_account === '' || !$this->CurrentUser->setCurrentAccountId($current_account)) {
-            $redirect_url = '/who_you_are?error=invalid_account_id&return_to=' . urlencode($return_to);
+            $redirect_url = '/who_are_you?error=invalid_account_id&return_to=' . urlencode($return_to);
             if ($current_account !== '') {
                 $redirect_url .= '&current_account=' . urlencode($current_account);
             }
@@ -397,7 +397,7 @@ class WebApp
         SimpleRouter::response()->redirect($return_to, 302);
     }
 
-    private function resolveWhoYouAreError(): ?string
+    private function resolveWhoAreYouError(): ?string
     {
         if (($_GET['error'] ?? null) !== 'invalid_account_id') {
             return null;
@@ -423,7 +423,7 @@ class WebApp
     private function normalizeReturnTo(?string $return_to, string $fallback = '/'): string
     {
         $return_to = LoginController::normalizeReturnTo($return_to, $fallback);
-        if (preg_match('~^/(who_you_are|preferences)(?:[/?#]|$)~', $return_to)) {
+        if (preg_match('~^/(who_are_you|preferences)(?:[/?#]|$)~', $return_to)) {
             return LoginController::normalizeReturnTo($fallback, '/');
         }
 

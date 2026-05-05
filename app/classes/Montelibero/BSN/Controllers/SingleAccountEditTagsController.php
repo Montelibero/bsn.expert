@@ -54,7 +54,7 @@ class SingleAccountEditTagsController
         $source_account_id = $this->CurrentUser->getCurrentAccountId();
         if (!$source_account_id) {
             SimpleRouter::response()->redirect(
-                '/who_you_are?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/'),
+                '/who_are_you?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/'),
                 302
             );
             return null;

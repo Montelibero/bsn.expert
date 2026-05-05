@@ -226,7 +226,7 @@ preferences:
       delete_failed: Could not delete the key.
       name_required: Please set a key name.
 
-who_you_are:
+who_are_you:
   title: Who are you acting as?
   intro: >
     This action needs to know which Stellar account you want to act as.

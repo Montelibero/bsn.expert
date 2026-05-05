@@ -53,7 +53,7 @@ class Editor2Controller
 
         if (!$source_account_id) {
             SimpleRouter::response()->redirect(
-                '/who_you_are?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/editor2/'),
+                '/who_are_you?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/editor2/'),
                 302
             );
             return null;

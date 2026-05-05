@@ -80,11 +80,8 @@ class RootRoutes
         SimpleRouter::match(['get', 'post'], '/preferences', function () use ($Container) {
             return $Container->get(WebApp::class)->Preferences();
         });
-        SimpleRouter::get('/who_you_are', function () use ($Container) {
-            return $Container->get(WebApp::class)->WhoYouAre();
-        });
         SimpleRouter::get('/who_are_you', function () use ($Container) {
-            return $Container->get(WebApp::class)->WhoYouAre();
+            return $Container->get(WebApp::class)->WhoAreYou();
         });
         SimpleRouter::match(['get', 'post'], '/preferences/api', function () use ($Container) {
             return $Container->get(ApiController::class)->PreferencesApi();

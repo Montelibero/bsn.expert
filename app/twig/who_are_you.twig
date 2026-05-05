@@ -1,23 +1,23 @@
 {% extends "page.twig" %}
 
-{% block title %}{{ 'who_you_are.title'|trans }}{% endblock %}
+{% block title %}{{ 'who_are_you.title'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">BSN</a></li>
-    <li class="is-active"><a href="#" aria-current="page">{{ 'who_you_are.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'who_are_you.title'|trans }}</a></li>
 {% endblock %}
 
 {% block content %}
-    <h1 class="title">{{ 'who_you_are.title'|trans }}</h1>
+    <h1 class="title">{{ 'who_are_you.title'|trans }}</h1>
 
     <div class="content">
-        <p>{{ 'who_you_are.intro'|trans }}</p>
-        <p>{{ 'who_you_are.safety'|trans }}</p>
+        <p>{{ 'who_are_you.intro'|trans }}</p>
+        <p>{{ 'who_are_you.safety'|trans }}</p>
     </div>
 
     <article class="message is-info">
         <div class="message-body">
-            {{ 'who_you_are.multisig_note'|trans }}
+            {{ 'who_are_you.multisig_note'|trans }}
         </div>
     </article>
 
@@ -25,7 +25,7 @@
         <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}">
 
         <div class="field">
-            <label class="label" for="current_account">{{ 'who_you_are.form.account_label'|trans }}</label>
+            <label class="label" for="current_account">{{ 'who_are_you.form.account_label'|trans }}</label>
             <div class="control">
                 <input
                     class="input {% if current_account_error %}is-danger{% endif %}"
@@ -42,17 +42,17 @@
             {% if current_account_error %}
             <p class="help is-danger">{{ current_account_error }}</p>
             {% endif %}
-            <p class="help">{{ 'who_you_are.form.account_hint'|trans }}</p>
+            <p class="help">{{ 'who_are_you.form.account_hint'|trans }}</p>
         </div>
 
         <div class="field is-grouped">
             <div class="control">
-                <button type="submit" class="button is-primary">{{ 'who_you_are.form.submit'|trans }}</button>
+                <button type="submit" class="button is-primary">{{ 'who_are_you.form.submit'|trans }}</button>
             </div>
             {% if not current_user.account %}
             <div class="control is-flex is-align-items-center">
                 <a href="/login?return_to={{ return_to|url_encode }}">
-                    {{ 'who_you_are.form.login'|trans }}
+                    {{ 'who_are_you.form.login'|trans }}
                 </a>
             </div>
             {% endif %}
