@@ -21,6 +21,7 @@ use Twig\Environment;
 class Editor2Controller
 {
     private const KEEP_SINGLE_VALUE = '__keep';
+    private const MANY_COUNTERPARTIES_LEGEND_THRESHOLD = 5;
 
     public function __construct(
         private readonly BSN $BSN,
@@ -192,6 +193,7 @@ class Editor2Controller
         bool $no_changes,
     ): string {
         $counterparties = [];
+        $show_tag_legend = count($counterparty_ids) > self::MANY_COUNTERPARTIES_LEGEND_THRESHOLD;
         $single_values = $this->getCurrentSingleValues($selected_tag_names, $data_entries);
         $desired_single_values = $this->getDesiredSingleValues($single_values);
         $counterparty_set = array_fill_keys($counterparty_ids, true);
@@ -226,7 +228,8 @@ class Editor2Controller
                     $account_id,
                     $desired_single_values,
                     $desired_multi_tags,
-                    isset($posted_counterparty_set[$account_id])
+                    isset($posted_counterparty_set[$account_id]),
+                    !$show_tag_legend
                 ),
             ];
         }
@@ -265,6 +268,8 @@ class Editor2Controller
             'selected_tags' => $selected_tag_names,
             'counterparty_ids_value' => implode(', ', $counterparty_ids),
             'counterparties' => $counterparties,
+            'show_tag_legend' => $show_tag_legend,
+            'tag_legend_categories' => $show_tag_legend ? $this->buildTagLegendCategories($selected_tag_names) : [],
             'single_keep_values' => $single_keep_values,
             'single_empty_values' => $single_empty_values,
             'keep_single_value' => self::KEEP_SINGLE_VALUE,
@@ -316,8 +321,9 @@ class Editor2Controller
         array $desired_single_values,
         array $desired_multi_tags,
         bool $use_posted_multi_values,
+        bool $include_descriptions = true,
     ): array {
-        $descriptions = $this->loadKnownTagDescriptions();
+        $descriptions = $include_descriptions ? $this->loadKnownTagDescriptions() : [];
         $current_tag_set = array_fill_keys($current_tag_names, true);
         $reciprocal_tag_set = array_fill_keys($reciprocal_tag_names, true);
         $categories = [];
@@ -341,6 +347,29 @@ class Editor2Controller
                 $descriptions,
                 [$tag_name => $checked],
                 $this->resolveReciprocalTagName($Tag, $reciprocal_tag_set)
+            );
+        }
+
+        $this->sortCategories($categories);
+
+        return array_values($categories);
+    }
+
+    private function buildTagLegendCategories(array $selected_tag_names): array
+    {
+        $descriptions = $this->loadKnownTagDescriptions();
+        $categories = [];
+
+        foreach ($selected_tag_names as $tag_name) {
+            $Tag = $this->BSN->getTag($tag_name) ?? $this->BSN->makeTagByName($tag_name);
+            $Category = $Tag->getCategory() ?? $this->BSN->getUnknownTagCategory();
+
+            $this->addTagToCategory(
+                $categories,
+                $Category,
+                $Tag,
+                $descriptions,
+                []
             );
         }
 

@@ -1188,6 +1188,8 @@ editor2:
     keep_title: Не менять значение
     keep_help: Эти single-теги сейчас указывают на значение вне списка контрагентов на экране.
     empty_title: Без значения
+  legend:
+    title: Легенда
   add_accounts:
     title: Добавить контрагентов
     add: Добавить

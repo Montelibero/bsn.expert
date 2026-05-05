@@ -1186,6 +1186,8 @@ editor2:
     keep_title: Do not change value
     keep_help: These single tags currently point to a value outside the counterparty list on this screen.
     empty_title: No value
+  legend:
+    title: Legend
   add_accounts:
     title: Add counterparties
     add: Add
