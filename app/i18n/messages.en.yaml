@@ -947,7 +947,11 @@ editor:
   transaction_label: Your Transaction (XDR)
   sign:
     header: Sign transaction
+    default_instruction: >
+      We prepared a transaction for you. To apply the changes, sign it in your favorite app
+      (usually called a wallet), then send it to the blockchain.
     sep_07_button_name: Sunce, Lobstr etc
+    secret_key_button_name: Sign by secret key
     link_text: A special Stellar link that can be opened, for example, by Sunce Wallet.
     qr_text: Magic QR for your mobile
     qr_instruction: QR with the transaction. You can sign it with your favorite wallet, or simply share it.

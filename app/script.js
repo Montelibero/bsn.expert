@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const form = button.closest('form');
             const targetName = button.dataset.signingToggle;
             const target = form ? form.querySelector('[data-signing-panel="' + targetName + '"]') : null;
+            const details = form ? form.querySelector('[data-signing-details]') : null;
+            const defaultInstruction = details ? details.querySelector('[data-signing-default]') : null;
 
             if (!target) {
                 return;
@@ -35,18 +37,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
             event.preventDefault();
 
-            const shouldShow = !target.classList.contains('is-visible');
+            const shouldShow = target.classList.contains('is-hidden');
 
             form.querySelectorAll('[data-signing-panel]').forEach(function (panel) {
-                panel.classList.remove('is-visible');
+                panel.classList.add('is-hidden');
             });
             form.querySelectorAll('.js-signing-toggle').forEach(function (toggle) {
                 toggle.setAttribute('aria-expanded', 'false');
             });
 
             if (shouldShow) {
-                target.classList.add('is-visible');
+                target.classList.remove('is-hidden');
                 button.setAttribute('aria-expanded', 'true');
+            }
+
+            if (defaultInstruction) {
+                defaultInstruction.classList.toggle('is-hidden', shouldShow);
             }
         });
     });
