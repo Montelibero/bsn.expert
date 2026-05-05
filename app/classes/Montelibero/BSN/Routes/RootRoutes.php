@@ -68,11 +68,9 @@ class RootRoutes
             ContactsRouter::register($Container);
         });
         SimpleRouter::group(['prefix' => '/editor'], function () use ($Container) {
-            EditorRouter::register($Container);
-        });
-        SimpleRouter::group(['prefix' => '/editor2'], function () use ($Container) {
             Editor2Router::register($Container);
         });
+        SimpleRouter::match(['get', 'post'], '/editor2/{path?}', self::getRedirectCallbackToWithoutPath('/editor'))->where(['path' => '.*']);
         SimpleRouter::group(['prefix' => '/tools'], function () use ($Container) {
             ToolsRouter::register($Container);
         });
@@ -173,6 +171,16 @@ class RootRoutes
             if (!empty($path)) {
                 $redirect_url .= '/' . $path;
             }
+            if (!empty($query_string)) {
+                $redirect_url .= '?' . $query_string;
+            }
+            SimpleRouter::response()->redirect($redirect_url, 301);
+        };
+    }
+
+    private static function getRedirectCallbackToWithoutPath(string $redirect_url): callable {
+        return function () use ($redirect_url) {
+            $query_string = $_SERVER['QUERY_STRING'] ?? '';
             if (!empty($query_string)) {
                 $redirect_url .= '?' . $query_string;
             }

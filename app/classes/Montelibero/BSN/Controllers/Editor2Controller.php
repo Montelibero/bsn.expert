@@ -39,7 +39,7 @@ class Editor2Controller
     public function LegacyPathRedirect(string $legacy_source_id): ?string
     {
         if (!$this->isValidAccountId($legacy_source_id)) {
-            SimpleRouter::response()->redirect('/editor2/', 302);
+            SimpleRouter::response()->redirect('/editor/', 302);
             return null;
         }
 
@@ -73,7 +73,7 @@ class Editor2Controller
 
         if (!$source_account_id) {
             SimpleRouter::response()->redirect(
-                '/who_are_you?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/editor2/'),
+                '/who_are_you?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/editor/'),
                 302
             );
             return null;
@@ -917,7 +917,7 @@ class Editor2Controller
                 . '=' . $this->encodeCommaSeparatedList($counterparty_ids);
         }
 
-        return '/editor2/' . ($query_parts ? '?' . implode('&', $query_parts) : '');
+        return '/editor/' . ($query_parts ? '?' . implode('&', $query_parts) : '');
     }
 
     private function buildLegacySingleAccountEditTagsRedirectUrl(): ?string
@@ -970,7 +970,7 @@ class Editor2Controller
                 . '=' . $this->encodeCommaSeparatedList($counterparty_ids);
         }
 
-        return '/editor2/' . ($query_parts ? '?' . implode('&', $query_parts) : '');
+        return '/editor/' . ($query_parts ? '?' . implode('&', $query_parts) : '');
     }
 
     private function buildEditUrl(array $tag_names, array $counterparty_ids): string
@@ -984,7 +984,7 @@ class Editor2Controller
                 . '=' . $this->encodeCommaSeparatedList($counterparty_ids);
         }
 
-        return '/editor2/?' . implode('&', $query_parts);
+        return '/editor/?' . implode('&', $query_parts);
     }
 
     private function encodeCommaSeparatedList(array $items): string
