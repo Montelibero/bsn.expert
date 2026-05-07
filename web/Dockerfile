@@ -1,4 +1,4 @@
-FROM node:22-alpine AS fa-assets
+FROM node:24-alpine AS fa-assets
 
 WORKDIR /build
 

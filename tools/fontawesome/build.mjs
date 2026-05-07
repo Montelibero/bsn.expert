@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { SVGIcons2SVGFontStream } from 'svgicons2svgfont';
 import svg2ttf from 'svg2ttf';
-import ttf2woff2 from 'ttf2woff2';
+import wawoff2 from 'wawoff2';
 import {
   configPath,
   linkPartialPath,
@@ -70,7 +70,7 @@ async function buildWoff2(entries) {
   const svgFont = await buildSvgFont(entries);
   const ttf = svg2ttf(svgFont, {});
   const ttfBuffer = Buffer.from(ttf.buffer);
-  return Buffer.from(ttf2woff2(ttfBuffer));
+  return Buffer.from(await wawoff2.compress(ttfBuffer));
 }
 
 function buildSvgFont(entries) {
