@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "scripts": {
+    "fa_build": "node tools/fontawesome/build.mjs",
+    "fa_test": "node tools/fontawesome/test.mjs"
+  },
+  "devDependencies": {
+    "@fortawesome/free-brands-svg-icons": "^7.2.0",
+    "@fortawesome/free-regular-svg-icons": "^7.2.0",
+    "@fortawesome/free-solid-svg-icons": "^7.2.0",
+    "svg2ttf": "^6.1.0",
+    "svgicons2svgfont": "^15.0.1",
+    "ttf2woff2": "^8.0.1"
+  }
+}

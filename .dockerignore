@@ -1,11 +1,12 @@
-# IntelliJ project files
+.git
 .idea
 *.iml
 
-vendor/
 node_modules/
+vendor/
+app/vendor/
+
 .env
-mtl-observer*
 .DS_Store
 
 app/fontawesome/

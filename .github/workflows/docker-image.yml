@@ -34,10 +34,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Check Font Awesome subset config
+        run: npm ci && npm run fa_test
+
       - name: Build APP Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./app
+          context: .
+          file: app/Dockerfile
           target: prod
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_APP_NAME }}:latest

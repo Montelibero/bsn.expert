@@ -5,8 +5,8 @@
 services:
   app:
     build:
-      context: ./app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: app/Dockerfile
     volumes:
       - bsn_shared_data:/var/www/bsn
     expose:
@@ -19,8 +19,8 @@ services:
 
   app-cron:
     build:
-      context: ./app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: app/Dockerfile
     command: ["sh", "/var/www/html/cron/start-cron.sh"]
     volumes:
       - bsn_shared_data:/var/www/bsn
