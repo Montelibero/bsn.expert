@@ -264,8 +264,6 @@ class WebApp
 
         $current_account_options = $this->buildCurrentAccountOptions();
 
-        $this->Twig->addGlobal('session', $_SESSION);
-
         return $Template->render([
             'current_value' => $this->default_viewer,
             'current_language' => $current_language,

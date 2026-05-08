@@ -35,6 +35,7 @@ use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
+use Montelibero\BSN\RequestArrayView;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
@@ -197,6 +198,8 @@ $BSN->loadContacts();
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
 $CurrentUser = new CurrentUser($BSN);
+$SessionView = new RequestArrayView();
+$ServerView = new RequestArrayView();
 
 $ContainerBuilder = new ContainerBuilder();
 $ContainerBuilder->addDefinitions([
@@ -226,7 +229,7 @@ $ContainerBuilder->addDefinitions([
         return $translator;
     },
 
-    Environment::class => function(Container $container) use ($CurrentUser) {
+    Environment::class => function(Container $container) use ($CurrentUser, $SessionView, $ServerView) {
         $is_prod = getenv('APP_ENV') === 'prod';
         $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'), [
             'cache' => $is_prod ? '/tmp/bsn-twig-cache' : false,
@@ -235,6 +238,9 @@ $ContainerBuilder->addDefinitions([
         $twig->addExtension(new TwigExtension($container->get(Translator::class)));
         $twig->addExtension(new TranslationExtension($container->get(Translator::class)));
         $twig->addExtension(new TwigPluralizeExtension($container->get(Translator::class)));
+        $twig->addGlobal('session', $SessionView);
+        $twig->addGlobal('server', $ServerView);
+        $twig->addGlobal('current_user', $CurrentUser);
 
         return $twig;
     },
@@ -275,7 +281,7 @@ $ContainerBuilder->addDefinitions([
     TransactionsController::class => autowire(),
 ]);
 $Container = $ContainerBuilder->build();
-syncRequestContext($Container, $CurrentUser);
+syncRequestContext($CurrentUser, $SessionView, $ServerView);
 
 if (!IS_CLI_CONTEXT) {
     RootRoutes::register($Container, $BSN, $AccountsManager);
@@ -291,14 +297,11 @@ if (!IS_CLI_CONTEXT) {
     SimpleRouter::start();
 }
 
-function syncRequestContext(Container $Container, CurrentUser $CurrentUser): void
+function syncRequestContext(CurrentUser $CurrentUser, RequestArrayView $SessionView, RequestArrayView $ServerView): void
 {
+    $SessionView->bind($_SESSION);
+    $ServerView->bind($_SERVER);
     $CurrentUser->beginRequest();
-
-    $Twig = $Container->get(Environment::class);
-    $Twig->addGlobal('session', $_SESSION);
-    $Twig->addGlobal('server', $_SERVER);
-    $Twig->addGlobal('current_user', $CurrentUser);
 }
 
 function gristRequest($url, $method, $data = null)
