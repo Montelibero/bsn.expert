@@ -61,8 +61,6 @@ class WebApp
         $this->AccountsManager = $AccountsManager;
 
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
 
 
         $this->Container = $Container;

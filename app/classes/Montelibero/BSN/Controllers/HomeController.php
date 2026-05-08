@@ -21,8 +21,6 @@ class HomeController
     {
         $this->BSN = $BSN;
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
     }
 
     public function Index(): string

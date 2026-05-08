@@ -19,8 +19,6 @@ class RecommendVerificationController
     {
         $this->BSN = $BSN;
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
     }
 
     public function MtlaRecommendVerification(): string

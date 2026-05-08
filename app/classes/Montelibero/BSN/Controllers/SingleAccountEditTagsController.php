@@ -36,8 +36,6 @@ class SingleAccountEditTagsController
     ) {
         $this->BSN = $BSN;
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
         $this->Stellar = $Stellar;
         $this->CurrentUser = $CurrentUser;
         $this->Container = $Container;

@@ -24,8 +24,6 @@ class VotesController
         $this->BSN = $BSN;
         $this->Twig = $Twig;
         $this->Translator = $Translator;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
     }
 
     public function MtlaVotes(): string

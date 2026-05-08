@@ -29,8 +29,6 @@ class MtlaDmReportController implements RefreshDataCodeInterface
     {
         $this->BSN = $BSN;
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
         $this->CurrentUser = $CurrentUser;
         $this->ReportService = $ReportService;
     }

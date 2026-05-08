@@ -16,8 +16,6 @@ class ApiController
     public function __construct(Environment $Twig, ApiKeysManager $ApiKeysManager, Translator $Translator)
     {
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
 
         $this->ApiKeysManager = $ApiKeysManager;
         $this->Translator = $Translator;

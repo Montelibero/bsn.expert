@@ -11,8 +11,6 @@ class GraphController
     public function __construct(Environment $Twig)
     {
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
     }
 
     public function Graph(): string

@@ -32,8 +32,6 @@ class Editor2Controller
         private readonly Container $Container,
         private readonly Translator $Translator,
     ) {
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
     }
 
     public function LegacyPathRedirect(string $legacy_source_id): ?string

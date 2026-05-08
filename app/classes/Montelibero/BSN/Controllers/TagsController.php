@@ -21,8 +21,6 @@ class TagsController
         $this->Twig = $Twig;
         $this->Translator = $Translator;
         $this->CurrentUser = $CurrentUser;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
     }
 
     public function Tags(): ?string

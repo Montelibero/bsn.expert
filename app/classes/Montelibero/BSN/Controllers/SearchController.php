@@ -28,8 +28,6 @@ class SearchController
         private readonly Translator $Translator,
         private readonly CurrentUser $CurrentUser,
     ) {
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
     }
 
     public function Search(): ?string

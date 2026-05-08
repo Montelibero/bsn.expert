@@ -25,8 +25,6 @@ class PercentPayController
         $this->BSN = $BSM;
 
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
         
         $this->Stellar = $Stellar;
         $this->Container = $Container;

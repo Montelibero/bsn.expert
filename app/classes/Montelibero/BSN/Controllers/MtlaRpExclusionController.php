@@ -33,8 +33,6 @@ class MtlaRpExclusionController
     public function __construct(Environment $Twig, StellarSDK $Stellar, BSN $BSN, SignController $SignController)
     {
         $this->Twig = $Twig;
-        $this->Twig->addGlobal('session', $_SESSION);
-        $this->Twig->addGlobal('server', $_SERVER);
 
         $this->Stellar = $Stellar;
         $this->BSN = $BSN;
