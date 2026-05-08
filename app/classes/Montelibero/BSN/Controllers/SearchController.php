@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -27,6 +28,7 @@ class SearchController
         private readonly Environment $Twig,
         private readonly Translator $Translator,
         private readonly CurrentUser $CurrentUser,
+        private readonly CurrentContacts $CurrentContacts,
     ) {
     }
 
@@ -353,7 +355,7 @@ class SearchController
             ];
         }
 
-        if ($Account->isContact() && ($contact_name = $Account->getContactName())) {
+        if ($contact_name = $this->CurrentContacts->getContactName($Account)) {
             $candidates[] = [
                 'field' => 'contact_name',
                 'label' => $this->Translator->trans('search.fields.contact_name'),
@@ -442,7 +444,7 @@ class SearchController
     private function resolveAccountTitle(Account $Account): string
     {
         return $Account->getName()[0]
-            ?? $Account->getContactName()
+            ?? $this->CurrentContacts->getContactName($Account)
             ?? ($Account->getUsername() ? '@' . $Account->getUsername() : null)
             ?? $Account->getShortId();
     }
@@ -459,7 +461,7 @@ class SearchController
             $variants[] = $Account->getShortId();
         }
 
-        if ($Account->isContact() && ($contact_name = $Account->getContactName()) && $contact_name !== $title) {
+        if (($contact_name = $this->CurrentContacts->getContactName($Account)) && $contact_name !== $title) {
             $variants[] = $contact_name;
         }
 

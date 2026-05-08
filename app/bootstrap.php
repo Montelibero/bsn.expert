@@ -9,6 +9,7 @@ use Montelibero\BSN\ApiKeysManager;
 use Montelibero\BSN\ApplicationContext;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
+use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ApiController;
 use Montelibero\BSN\Controllers\ContactsController;
@@ -105,7 +106,7 @@ $Memcached->addServer("cache", 11211);
 $AccountsManager = new AccountsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $DocumentsManager = new DocumentsManager($MongoManager, $_ENV['MONGO_BASENAME']);
-$BSN = new BSN($AccountsManager, $ContactsManager, $DocumentsManager);
+$BSN = new BSN($AccountsManager, $DocumentsManager);
 
 // Single tags
 $BSN->makeTagByName('mtl_delegate')->isSingle(true);
@@ -195,10 +196,10 @@ if (function_exists('apcu_exists') && function_exists('apcu_fetch')) {
     }
 }
 $BSN->loadMtlaMembersFromJson($mtla_members);
-$BSN->loadContacts();
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
 $CurrentUser = new CurrentUser($BSN);
+$CurrentContacts = new CurrentContacts($BSN, $ContactsManager, $CurrentUser);
 $SessionView = new RequestArrayView();
 $ServerView = new RequestArrayView();
 
@@ -215,6 +216,7 @@ $ContainerBuilder->addDefinitions([
         return new MongoCacheManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },
     CurrentUser::class => $CurrentUser,
+    CurrentContacts::class => $CurrentContacts,
     ApiKeysManager::class => function() use ($MongoManager) {
         return new ApiKeysManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },
@@ -230,7 +232,7 @@ $ContainerBuilder->addDefinitions([
         return $translator;
     },
 
-    Environment::class => function(Container $container) use ($CurrentUser, $SessionView, $ServerView) {
+    Environment::class => function(Container $container) use ($CurrentUser, $CurrentContacts, $SessionView, $ServerView) {
         $is_prod = getenv('APP_ENV') === 'prod';
         $Translator = $container->get(Translator::class);
         $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'), [
@@ -243,6 +245,7 @@ $ContainerBuilder->addDefinitions([
         $twig->addGlobal('session', $SessionView);
         $twig->addGlobal('server', $ServerView);
         $twig->addGlobal('current_user', $CurrentUser);
+        $twig->addGlobal('current_contacts', $CurrentContacts);
         $twig->addGlobal('app_locale', $Translator->getLocale());
 
         return $twig;
@@ -348,6 +351,7 @@ function gristRequest($url, $method, $data = null)
 return new ApplicationContext(
     $Container,
     $CurrentUser,
+    $CurrentContacts,
     $SessionView,
     $ServerView,
 );

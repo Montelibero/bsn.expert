@@ -31,8 +31,6 @@ class Account implements JsonSerializable
     private ?string $telegram_id = null;
     private ?string $telegram_username = null;
 
-    private bool $is_contact = false;
-    private ?string $contact_name = null;
     /** @var Signature[] */
     private array $signatures = [];
     private array $profile = [];
@@ -57,27 +55,8 @@ class Account implements JsonSerializable
     public function getDisplayName($ignore_contact = false): string
     {
         $result = $this->getShortId();
-        $public_name = '';
         if (($name = $this->getName()) && ($name = $name[0])) {
-            $public_name = $name;
-        }
-        $contact_name = null;
-        $contact_mode = $this->isContact() && !$ignore_contact;
-        if ($contact_mode && ($contact_name = $this->getContactName())) {
-            $result .= ' [📒 ' . $contact_name . ']';
-        } elseif ($contact_mode && $public_name) {
-            $result .= ' [📒 ' . $public_name . ']';
-        } elseif ($contact_mode) {
-            $result .= ' [📒]';
-        } elseif ($public_name) {
-            $result .= ' [' . $public_name . ']';
-        }
-        if (
-            $contact_name === null
-            && ($_SESSION['show_telegram_usernames'] ?? false)
-            && $tg_username = $this->getTelegramUsername()
-        ) {
-            $result .= ' @' . $tg_username;
+            $result .= ' [' . $name . ']';
         }
 
         if ($emoji = $this->getEmoji()) {
@@ -477,25 +456,6 @@ class Account implements JsonSerializable
         }
 
         return $data;
-    }
-
-    public function isContact(?bool $value = null): bool
-    {
-        if ($value !== null) {
-            $this->is_contact = $value;
-        }
-
-        return $this->is_contact;
-    }
-
-    public function getContactName(): ?string
-    {
-        return $this->contact_name;
-    }
-
-    public function setContactName(?string $contact_name): void
-    {
-        $this->contact_name = $contact_name;
     }
 
     public function calcBsnScore(): int

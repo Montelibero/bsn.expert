@@ -10,6 +10,7 @@ class ApplicationContext
     public function __construct(
         public readonly Container $Container,
         public readonly CurrentUser $CurrentUser,
+        public readonly CurrentContacts $CurrentContacts,
         public readonly RequestArrayView $SessionView,
         public readonly RequestArrayView $ServerView,
     ) {
@@ -26,5 +27,6 @@ class ApplicationContext
         $this->SessionView->bind($_SESSION);
         $this->ServerView->bind($_SERVER);
         $this->CurrentUser->beginRequest();
+        $this->CurrentContacts->beginRequest();
     }
 }

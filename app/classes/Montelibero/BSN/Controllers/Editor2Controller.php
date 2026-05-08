@@ -5,7 +5,7 @@ namespace Montelibero\BSN\Controllers;
 use DI\Container;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
-use Montelibero\BSN\ContactsManager;
+use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\TagCategory;
@@ -28,9 +28,9 @@ class Editor2Controller
         private readonly Environment $Twig,
         private readonly StellarSDK $Stellar,
         private readonly CurrentUser $CurrentUser,
-        private readonly ContactsManager $ContactsManager,
         private readonly Container $Container,
         private readonly Translator $Translator,
+        private readonly CurrentContacts $CurrentContacts,
     ) {
     }
 
@@ -169,7 +169,7 @@ class Editor2Controller
         $Template = $this->Twig->load('editor2_start.twig');
 
         return $Template->render([
-            'source_account' => $this->BSN->makeAccountById($source_account_id)->jsonSerialize(),
+            'source_account' => $this->CurrentContacts->serialize($this->BSN->makeAccountById($source_account_id)),
             'tag_categories' => $this->buildSelectionTagCategories($this->getSelectedTagNames()),
             'counterparties_value' => (string) (
                 $_POST['counterparties']
@@ -221,7 +221,7 @@ class Editor2Controller
             $current_tag_names = $this->getCurrentTagNamesForCounterparty($selected_tag_names, $data_entries, $account_id);
             $reciprocal_tag_names = $this->getReciprocalTagNames($this->BSN->makeAccountById($source_account_id), $Account, $selected_tag_names);
             $counterparties[] = [
-                'account' => $Account->jsonSerialize(),
+                'account' => $this->CurrentContacts->serialize($Account),
                 'current_tag_names' => $current_tag_names,
                 'reciprocal_tag_names' => array_values(array_unique(array_filter($reciprocal_tag_names))),
                 'tag_categories' => $this->buildEditTagCategories(
@@ -252,7 +252,7 @@ class Editor2Controller
                     'tag_name' => $tag_name,
                     'value' => $value,
                     'value_account' => BSN::validateStellarAccountIdFormat($value)
-                        ? $this->BSN->makeAccountById($value)->jsonSerialize()
+                        ? $this->CurrentContacts->serialize($this->BSN->makeAccountById($value))
                         : null,
                     'checked' => $desired_value === self::KEEP_SINGLE_VALUE,
                 ];
@@ -267,7 +267,7 @@ class Editor2Controller
         $Template = $this->Twig->load('editor2_edit.twig');
 
         return $Template->render([
-            'source_account' => $this->BSN->makeAccountById($source_account_id)->jsonSerialize(),
+            'source_account' => $this->CurrentContacts->serialize($this->BSN->makeAccountById($source_account_id)),
             'selected_tags' => $selected_tag_names,
             'counterparty_ids_value' => implode(', ', $counterparty_ids),
             'counterparties' => $counterparties,
@@ -533,14 +533,12 @@ class Editor2Controller
             $priorities[$account_id] = min($priorities[$account_id] ?? 3, 2);
         }
 
-        if ($this->CurrentUser->isAuthorized()) {
-            foreach ($this->ContactsManager->getContacts($this->CurrentUser->getAccountId()) as $account_id => $_) {
-                if (!BSN::validateStellarAccountIdFormat($account_id)) {
-                    continue;
-                }
-                $candidates[$account_id] = true;
-                $priorities[$account_id] ??= 3;
+        foreach ($this->CurrentContacts->getAccountIds() as $account_id) {
+            if (!BSN::validateStellarAccountIdFormat($account_id)) {
+                continue;
             }
+            $candidates[$account_id] = true;
+            $priorities[$account_id] ??= 3;
         }
 
         $ids = array_keys($candidates);
@@ -551,8 +549,8 @@ class Editor2Controller
             }
 
             return strcasecmp(
-                $this->BSN->makeAccountById($a)->getDisplayName(),
-                $this->BSN->makeAccountById($b)->getDisplayName()
+                $this->CurrentContacts->getDisplayName($this->BSN->makeAccountById($a)),
+                $this->CurrentContacts->getDisplayName($this->BSN->makeAccountById($b))
             );
         });
 
@@ -852,15 +850,15 @@ class Editor2Controller
     {
         usort($account_ids, function (string $a, string $b): int {
             return strcasecmp(
-                $this->BSN->makeAccountById($a)->getDisplayName(),
-                $this->BSN->makeAccountById($b)->getDisplayName()
+                $this->CurrentContacts->getDisplayName($this->BSN->makeAccountById($a)),
+                $this->CurrentContacts->getDisplayName($this->BSN->makeAccountById($b))
             );
         });
 
         $groups = [];
         foreach ($account_ids as $account_id) {
             $groups[] = [
-                'account' => $this->BSN->makeAccountById($account_id)->jsonSerialize(),
+                'account' => $this->CurrentContacts->serialize($this->BSN->makeAccountById($account_id)),
                 'add' => $this->sortTagNames(array_keys($add_by_account[$account_id] ?? [])),
                 'remove' => $this->sortTagNames(array_keys($remove_by_account[$account_id] ?? [])),
             ];
@@ -876,15 +874,15 @@ class Editor2Controller
             $account_ids = array_keys($by_tag[$tag_name]);
             usort($account_ids, function (string $a, string $b): int {
                 return strcasecmp(
-                    $this->BSN->makeAccountById($a)->getDisplayName(),
-                    $this->BSN->makeAccountById($b)->getDisplayName()
+                    $this->CurrentContacts->getDisplayName($this->BSN->makeAccountById($a)),
+                    $this->CurrentContacts->getDisplayName($this->BSN->makeAccountById($b))
                 );
             });
 
             $groups[] = [
                 'tag_name' => $tag_name,
                 'accounts' => array_map(
-                    fn(string $account_id): array => $this->BSN->makeAccountById($account_id)->jsonSerialize(),
+                    fn(string $account_id): array => $this->CurrentContacts->serialize($this->BSN->makeAccountById($account_id)),
                     $account_ids
                 ),
             ];

@@ -5,6 +5,7 @@ use DI\Container;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\LoginController;
 use Montelibero\BSN\Controllers\TokensController;
+use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
@@ -16,6 +17,7 @@ class WebApp
     private AccountsManager $AccountsManager;
     private Environment $Twig;
     private CurrentUser $CurrentUser;
+    private CurrentContacts $CurrentContacts;
 
     public static array $sort_tags_example = [
         'Friend',
@@ -56,6 +58,7 @@ class WebApp
         Environment $Twig,
         Container $Container,
         CurrentUser $CurrentUser,
+        CurrentContacts $CurrentContacts,
     ) {
         $this->BSN = $BSN;
         $this->AccountsManager = $AccountsManager;
@@ -65,6 +68,7 @@ class WebApp
 
         $this->Container = $Container;
         $this->CurrentUser = $CurrentUser;
+        $this->CurrentContacts = $CurrentContacts;
 
         if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
             $this->default_viewer = $_COOKIE['default_viewer'];
@@ -268,7 +272,7 @@ class WebApp
             'current_value' => $this->default_viewer,
             'current_language' => $current_language,
             'current_show_unknown_tags' => $current_show_unknown_tags,
-            'account' => $Account ? $Account->jsonSerialize() : [],
+            'account' => $Account ? $this->CurrentContacts->serialize($Account) : [],
             'contacts_count' => $contacts_count,
             'current_account_value' => $current_account_value,
             'current_account_input_value' => $current_account_input_value,
@@ -301,14 +305,14 @@ class WebApp
         if ($account_id) {
             $Account = $this->BSN->makeAccountById($account_id);
             $options[$account_id] = array_merge(
-                $Account->jsonSerialize(),
+                $this->CurrentContacts->serialize($Account),
                 ['source' => 'self']
             );
         }
 
         foreach ($this->getOwnedAccounts($account_id) as $Account) {
             $options[$Account->getId()] = array_merge(
-                $Account->jsonSerialize(),
+                $this->CurrentContacts->serialize($Account),
                 ['source' => 'owned']
             );
         }
@@ -332,7 +336,7 @@ class WebApp
             }
             $Account = $this->BSN->makeAccountById($history_account_id);
             $options[$history_account_id] = array_merge(
-                $Account->jsonSerialize(),
+                $this->CurrentContacts->serialize($Account),
                 ['source' => 'history']
             );
         }

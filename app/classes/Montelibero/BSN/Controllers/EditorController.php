@@ -5,7 +5,7 @@ namespace Montelibero\BSN\Controllers;
 use DI\Container;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
-use Montelibero\BSN\ContactsManager;
+use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
@@ -22,23 +22,23 @@ class EditorController
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
-    private ContactsManager $ContactsManager;
     private Container $Container;
+    private CurrentContacts $CurrentContacts;
 
     public function __construct(
         BSN $BSN,
         Environment $Twig,
         StellarSDK $Stellar,
-        ContactsManager $ContactsManager,
         Container $Container,
+        CurrentContacts $CurrentContacts,
     ) {
         $this->BSN = $BSN;
 
         $this->Twig = $Twig;
 
         $this->Stellar = $Stellar;
-        $this->ContactsManager = $ContactsManager;
         $this->Container = $Container;
+        $this->CurrentContacts = $CurrentContacts;
     }
 
     public function EditorForm(): string
@@ -242,12 +242,9 @@ class EditorController
                     $contacts[$Contact->getId()] = $Contact;
                 }
             }
-            // Add from contact book
-            if ($_SESSION['account'] ?? null) {
-                foreach ($this->ContactsManager->getContacts($_SESSION['account']['id']) as $stellar_address => $item) {
-                    if (!array_key_exists($stellar_address, $contacts)) {
-                        $contacts[$stellar_address] = $this->BSN->makeAccountById($stellar_address);
-                    }
+            foreach ($this->CurrentContacts->getAccountIds() as $stellar_address) {
+                if (!array_key_exists($stellar_address, $contacts)) {
+                    $contacts[$stellar_address] = $this->BSN->makeAccountById($stellar_address);
                 }
             }
         }
@@ -270,7 +267,7 @@ class EditorController
 
         $Template = $this->Twig->load('editor.twig');
         return $Template->render([
-            'account' => $Account->jsonSerialize(),
+            'account' => $this->CurrentContacts->serialize($Account),
             'single_tag' => $single_tag,
             'single_contact' => $single_contact,
             'tags' => array_map(fn(Tag $Tag) => [
@@ -278,7 +275,7 @@ class EditorController
                 'is_single' => $Tag->isSingle(),
             ], $tags),
             'group_tags' => $group_tags,
-            'contacts' => array_map(fn($Contact) => $Contact->jsonSerialize(), $contacts),
+            'contacts' => array_map(fn($Contact) => $this->CurrentContacts->serialize($Contact), $contacts),
             'values' => $values,
             'single_tag_has_value' => $single_tag_has_value,
         ]);
@@ -452,7 +449,7 @@ class EditorController
             'account' => [
                 'id' => $Account->getId(),
                 'short_id' => $Account->getShortId(),
-                'display_name' => $Account->getDisplayName(),
+                'display_name' => $this->CurrentContacts->getDisplayName($Account),
             ],
             'operations_count' => count($operations),
             'signing_form' => $signing_form,

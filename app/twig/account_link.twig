@@ -1,4 +1,4 @@
 {% set id = id ?: data.id ?: data.account_id %}
-{% set name = name ?: data.display_name %}
+{% set name = name ?: current_contacts.displayName(data, data.ignore_contact ?? false) ?: data.display_name %}
 {% set username = username ?: data.username %}
 <a href="{% if username %}/@{{ username }}{% else %}/accounts/{{ id }}{% endif %}" class="account_name">{{ name }}</a>

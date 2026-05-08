@@ -7,7 +7,7 @@ use League\Uri\Exceptions\SyntaxError;
 use League\Uri\Http;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
-use Montelibero\BSN\ContactsManager;
+use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
@@ -57,16 +57,16 @@ class AccountsController
     private ?string $default_viewer = null;
     private StellarSDK $Stellar;
     private Container $Container;
-    private ContactsManager $ContactsManager;
     private CurrentUser $CurrentUser;
+    private CurrentContacts $CurrentContacts;
 
     public function __construct(
         BSN $BSN,
         Environment $Twig,
         StellarSDK $Stellar,
         Container $Container,
-        ContactsManager $ContactsManager,
-        CurrentUser $CurrentUser
+        CurrentUser $CurrentUser,
+        CurrentContacts $CurrentContacts,
     ) {
         $this->BSN = $BSN;
 
@@ -79,8 +79,8 @@ class AccountsController
         }
 
         $this->Container = $Container;
-        $this->ContactsManager = $ContactsManager;
         $this->CurrentUser = $CurrentUser;
+        $this->CurrentContacts = $CurrentContacts;
     }
 
     /**
@@ -144,7 +144,7 @@ class AccountsController
         }
         $accounts = [];
         foreach ($list_accounts as $Account) {
-            $accounts[] = $Account->jsonSerialize() + [
+            $accounts[] = $this->CurrentContacts->serialize($Account) + [
                 'bsn_score' => $Account->calcBsnScore(),
             ];
         }
@@ -176,9 +176,9 @@ class AccountsController
 
         $is_contact = false;
         $is_logged = false;
-        if ($_SESSION['account'] ?? null) {
+        if ($this->CurrentUser->isAuthorized()) {
             $is_logged = true;
-            $is_contact = (bool) $this->ContactsManager->getContact($_SESSION['account']['id'], $Account->getId());
+            $is_contact = $this->CurrentContacts->isContact($Account);
         }
 
         $income_tags = [];
@@ -194,7 +194,7 @@ class AccountsController
             foreach ($Account->getIncomeLinks($Tag) as $LinkAccount) {
                 $tag_data['links'][$LinkAccount->getId()] = [
                     'has_pair' => $Pair && in_array($LinkAccount, $Account->getOutcomeLinks($Pair)),
-                ] + $LinkAccount->jsonSerialize();
+                ] + $this->CurrentContacts->serialize($LinkAccount);
             }
             $income_tags[$Tag->getName()] = $tag_data;
         }
@@ -213,7 +213,7 @@ class AccountsController
             foreach ($Account->getOutcomeLinks($Tag) as $LinkAccount) {
                 $tag_data['links'][$LinkAccount->getId()] = [
                     'has_pair' => $Pair && in_array($LinkAccount, $Account->getIncomeLinks($Pair)),
-                ] + $LinkAccount->jsonSerialize();
+                ] + $this->CurrentContacts->serialize($LinkAccount);
             }
             $outcome_tags[$Tag->getName()] = $tag_data;
         }
@@ -290,7 +290,7 @@ class AccountsController
             $outcome_links_count = $this->countTagLinks($outcome_tags);
 
             $result = [
-                'account' => $Account->jsonSerialize(),
+                'account' => $this->CurrentContacts->serialize($Account),
                 'self_presentation' => [
                     'name' => $Account->getName(),
                     'about' => $Account->getAbout(),
@@ -350,7 +350,7 @@ class AccountsController
             'canonical_url' => SimpleRouter::getUrl('account', ['id' => $Account->getId()]),
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
-            'display_name' => $Account->getDisplayName(),
+            'display_name' => $this->CurrentContacts->getDisplayName($Account),
             'username' => $Account->getUsername(),
             'is_logged' => $is_logged,
             'is_contact' => $is_contact,
@@ -459,7 +459,7 @@ class AccountsController
             ];
             /** @var Account $Contact */
             foreach (array_merge($Account->getOutcomeLinks($Tag), $Account->getIncomeLinks($Tag)) as $Contact) {
-                $connection = $Contact->jsonSerialize();
+                $connection = $this->CurrentContacts->serialize($Contact);
                 $connection['bsn_score'] = $Contact->calcBsnScore();
                 $connections[$Contact->getId()] = $connection;
             }
@@ -469,7 +469,7 @@ class AccountsController
         return $Template->render([
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
-            'display_name' => $Account->getDisplayName(),
+            'display_name' => $this->CurrentContacts->getDisplayName($Account),
             'connections' => $connections,
             'tags' => $tags,
         ]);
@@ -560,8 +560,8 @@ class AccountsController
 
         $Template = $this->Twig->load('account_and_account.twig');
         return $Template->render([
-            'account1' => $Account1->jsonSerialize(),
-            'account2' => $Account2->jsonSerialize(),
+            'account1' => $this->CurrentContacts->serialize($Account1),
+            'account2' => $this->CurrentContacts->serialize($Account2),
             'links' => $links,
         ]);
     }
@@ -577,7 +577,7 @@ class AccountsController
         $links = [];
         foreach ($Account->getOutcomeLinks($Tag) as $Contact) {
             $links[$Contact->getId()] = [
-                'contact' => $Contact->jsonSerialize(),
+                'contact' => $this->CurrentContacts->serialize($Contact),
                 'out' => true,
                 'in' => false,
             ];
@@ -587,7 +587,7 @@ class AccountsController
                 $links[$Contact->getId()]['in'] = true;
             } else {
                 $links[$Contact->getId()] = [
-                    'contact' => $Contact->jsonSerialize(),
+                    'contact' => $this->CurrentContacts->serialize($Contact),
                     'out' => false,
                     'in' => true,
                 ];
@@ -605,7 +605,7 @@ class AccountsController
         return $Template->render([
             'account_id' => $Account->getId(),
             'account_short_id' => $Account->getShortId(),
-            'account_display_name' => $Account->getDisplayName(),
+            'account_display_name' => $this->CurrentContacts->getDisplayName($Account),
             'tag_name' => $Tag->getName(),
             'tag_pair_name' => $PairTag->getName(),
             'is_pair' => $is_pair,
@@ -739,7 +739,7 @@ class AccountsController
             /** @var Account $SignerAccount */
             $SignerAccount = $signer['account'];
 
-            return $SignerAccount->jsonSerialize() + [
+            return $this->CurrentContacts->serialize($SignerAccount) + [
                 'weight' => (int) ($signer['weight'] ?? 0),
                 'can_sign_alone' => (int) ($signer['weight'] ?? 0) >= $med_threshold,
             ];
@@ -775,7 +775,7 @@ class AccountsController
             $med_threshold = (int) ($participation['med_threshold'] ?? 0);
 
             return [
-                'account' => $MultisigAccount->jsonSerialize(),
+                'account' => $this->CurrentContacts->serialize($MultisigAccount),
                 'weight' => $weight,
                 'med_threshold' => $med_threshold,
                 'can_sign_alone' => $weight >= $med_threshold,
@@ -831,7 +831,7 @@ class AccountsController
                 continue;
             }
 
-            $signers[] = $this->BSN->makeAccountById($Signer->getKey())->jsonSerialize() + [
+            $signers[] = $this->CurrentContacts->serialize($this->BSN->makeAccountById($Signer->getKey())) + [
                 'weight' => $weight,
                 'can_sign_alone' => $weight >= $med_threshold,
             ];

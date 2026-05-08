@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
+use Montelibero\BSN\CurrentContacts;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
@@ -15,8 +16,13 @@ class ContactsController
     private Translator $Translator;
     private ContactsManager $ContactsManager;
 
-    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator, ContactsManager $ContactsManager)
-    {
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        Translator $Translator,
+        ContactsManager $ContactsManager,
+        private readonly CurrentContacts $CurrentContacts,
+    ) {
         $this->BSN = $BSN;
 
         $this->Twig = $Twig;
@@ -50,9 +56,9 @@ class ContactsController
 
         foreach ($contacts as $stellar_account => &$contact) {
             $Account = $this->BSN->makeAccountById($stellar_account);
-            $contact = [
-                'display_name' => $Account->getDisplayName(ignore_contact: true),
-            ] + $Account->jsonSerialize() + $contact;
+            $contact = $this->CurrentContacts->serialize($Account, ignore_contact: true) + [
+                'ignore_contact' => true,
+            ] + $contact;
         }
         unset($contact);
 
@@ -75,6 +81,7 @@ class ContactsController
                     $_POST['new_stellar_account_1'],
                     $_POST['new_name_1'] ?: ''
                 );
+                $this->CurrentContacts->refresh();
             }
 
             if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] === UPLOAD_ERR_OK) {
@@ -92,6 +99,7 @@ class ContactsController
                         if ($duplicates === 'update' && $name !== $contacts[$address]['name']) {
                             try {
                                 $this->ContactsManager->updateContact($_SESSION['account']['id'], $address, $name);
+                                $this->CurrentContacts->refresh();
                             } catch (\Exception $e) {
                                 $errors[] = "Не смог обновить контакт $address: {$e->getMessage()}";
                             }
@@ -99,6 +107,7 @@ class ContactsController
                     } elseif (!in_array($address, $new_accounts, true)) {
                         try {
                             $this->ContactsManager->addContact($_SESSION['account']['id'], $address, $name ?: '');
+                            $this->CurrentContacts->refresh();
                             $new_accounts[] = $address;
                         } catch (\Exception $e) {
                             $errors[] = "Не смог добавить контакт $address: {$e->getMessage()}";
@@ -215,10 +224,13 @@ class ContactsController
         if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {
                 $ContactsManager->deleteContact($_SESSION['account']['id'], $account_id);
+                $this->CurrentContacts->refresh();
             } elseif ($_POST['action'] && $exists_contact) {
                 $ContactsManager->updateContact($_SESSION['account']['id'], $account_id, trim($_POST['name']));
+                $this->CurrentContacts->refresh();
             } elseif ($_POST['action'] && !$exists_contact) {
                 $ContactsManager->addContact($_SESSION['account']['id'], $account_id, trim($_POST['name']));
+                $this->CurrentContacts->refresh();
             }
             SimpleRouter::response()->redirect($return_to, 302);
         }
@@ -233,8 +245,7 @@ class ContactsController
             'account' => [
                 'id' => $Account->getId(),
                 'short_id' => $Account->getShortId(),
-                'display_name' => $Account->getDisplayName(ignore_contact: true),
-            ],
+            ] + $this->CurrentContacts->serialize($Account, ignore_contact: true),
             'csrf_token' => $csrf_token,
             'return_to' => $return_to,
             'is_exists' => (bool) $exists_contact,

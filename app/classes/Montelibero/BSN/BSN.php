@@ -25,13 +25,11 @@ class BSN
 
     public const IGNORE_MEMBER_TOKENS = 'GDGC46H4MQKRW3TZTNCWUU6R2C7IPXGN7HQLZBJTNQO6TW7ZOS6MSECR';
     private AccountsManager $AccountsManager;
-    private ContactsManager $ContactsManager;
     private DocumentsManager $DocumentsManager;
 
-    public function __construct(AccountsManager $AccountsManager, ContactsManager $ContactsManager, DocumentsManager $DocumentsManager)
+    public function __construct(AccountsManager $AccountsManager, DocumentsManager $DocumentsManager)
     {
         $this->AccountsManager = $AccountsManager;
-        $this->ContactsManager = $ContactsManager;
         $this->DocumentsManager = $DocumentsManager;
         $this->Signatures = new SignatureCollection($DocumentsManager);
     }
@@ -113,17 +111,6 @@ class BSN
             $Account->setTelegramId($item['tg_id']);
             $Account->setTelegramUsername($item['tg_username']);
             $this->tg_id_to_account[$item['tg_id']] = $Account;
-        }
-    }
-
-    public function loadContacts(): void
-    {
-        if ($_SESSION['account'] ?? false) {
-            foreach ($this->ContactsManager->getContacts($_SESSION['account']['id']) as $stellar_address => $item) {
-                $Account = $this->makeAccountById($stellar_address);
-                $Account->isContact(true);
-                $Account->setContactName($item['name'] ?? null);
-            }
         }
     }
 
