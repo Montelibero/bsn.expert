@@ -34,7 +34,6 @@ class TransactionsController
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
-    private ?array $known_tokens = null;
     private Container $Container;
 
     public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container)
@@ -528,19 +527,7 @@ class TransactionsController
 
     private function getKnownToken(string $code, string $issuer): ?array
     {
-        if ($this->known_tokens === null) {
-            $this->known_tokens = [];
-            $cached = apcu_fetch('known_tokens');
-            if (is_array($cached)) {
-                foreach ($cached as $item) {
-                    $key = ($item['code'] ?? '') . '-' . ($item['issuer'] ?? '');
-                    $this->known_tokens[$key] = $item;
-                }
-            }
-        }
-
-        $key = $code . '-' . $issuer;
-        return $this->known_tokens[$key] ?? null;
+        return $this->Container->get(TokensController::class)->getKnownToken($code . '-' . $issuer);
     }
 
     private function normalizeUnsupported(): array

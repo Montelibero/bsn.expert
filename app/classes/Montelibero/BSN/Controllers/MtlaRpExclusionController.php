@@ -28,7 +28,6 @@ class MtlaRpExclusionController
     private StellarSDK $Stellar;
     private BSN $BSN;
     private SignController $SignController;
-    private ?array $gristTimeTokensByAccount = null;
 
     public function __construct(Environment $Twig, StellarSDK $Stellar, BSN $BSN, SignController $SignController)
     {
@@ -127,8 +126,7 @@ class MtlaRpExclusionController
             try {
                 $tt_asset = $this->resolveTimeTokenAsset($Account);
             } catch (\RuntimeException $RuntimeException) {
-                $warning .= $RuntimeException->getMessage()
-                    . '. TT-шаги для этого аккаунта будут пропущены.' . "\n";
+                $warning .= $RuntimeException->getMessage() . "\n";
                 $tt_asset = null;
             }
 
@@ -170,46 +168,7 @@ class MtlaRpExclusionController
             }
         }
 
-        $grist_asset = $this->fetchTimeTokenFromGrist($Account->getId());
-        if ($grist_asset !== null) {
-            return $grist_asset;
-        }
-
-        throw new \RuntimeException('Не найден корректный TT для ' . $Account->getId() . ' ни в BSN, ни в grist');
-    }
-
-    private function fetchTimeTokenFromGrist(string $account_id): ?array
-    {
-        if ($this->gristTimeTokensByAccount === null) {
-            $this->gristTimeTokensByAccount = [];
-            $grist_response = \gristRequest(
-                'https://montelibero.getgrist.com/api/docs/aYk6cpKAp9CDPJe51sP3AT/tables/Users/records',
-                'GET'
-            );
-
-            foreach ($grist_response['records'] ?? [] as $item) {
-                $fields = $item['fields'] ?? [];
-                $stellar = trim((string) ($fields['Stellar'] ?? ''));
-                $code = trim((string) ($fields['Own_token'] ?? ''));
-                $issuer = trim((string) (($fields['Alt_issuer'] ?? '') ?: $stellar));
-
-                if (
-                    !BSN::validateStellarAccountIdFormat($stellar)
-                    || !BSN::validateTokenNameFormat($code)
-                    || !BSN::validateStellarAccountIdFormat($issuer)
-                ) {
-                    continue;
-                }
-
-                $this->gristTimeTokensByAccount[$stellar] = [
-                    'code' => $code,
-                    'issuer' => $issuer,
-                    'key' => $code . '-' . $issuer,
-                ];
-            }
-        }
-
-        return $this->gristTimeTokensByAccount[$account_id] ?? null;
+        throw new \RuntimeException('Не найден корректный TT для ' . $Account->getId() . ' в BSN');
     }
 
     private function buildTransaction(array $items, string $memo, string $seq_num): array

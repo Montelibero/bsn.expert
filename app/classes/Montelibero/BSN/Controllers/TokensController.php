@@ -20,6 +20,8 @@ use Twig\Environment;
 
 class TokensController
 {
+    private const KNOWN_TOKENS_REFRESH_INTERVAL = 60;
+
     private BSN $BSN;
     private Environment $Twig;
 
@@ -29,6 +31,7 @@ class TokensController
 
     private array $known_tokens = [];
     private array $known_tokens_by_code = [];
+    private int $known_tokens_checked_at = 0;
 
     public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container)
     {
@@ -39,12 +42,12 @@ class TokensController
         $this->Stellar = $Stellar;
 
         $this->Container = $Container;
-
-        $this->loadKnownTokens();
     }
 
     public function Tokens(): ?string
     {
+        $this->ensureKnownTokensLoaded();
+
         $categories = [
             'membership',
             'mtl_shares',
@@ -275,10 +278,22 @@ class TokensController
         }
 
         apcu_store('known_tokens', $known_tokens, 3600);
+        $this->applyKnownTokens($known_tokens);
+        $this->known_tokens_checked_at = time();
+    }
+
+    private function ensureKnownTokensLoaded(): void
+    {
+        if ($this->known_tokens && time() - $this->known_tokens_checked_at < self::KNOWN_TOKENS_REFRESH_INTERVAL) {
+            return;
+        }
+
+        $this->loadKnownTokens();
     }
 
     private function loadKnownTokens(): void
     {
+        $this->known_tokens_checked_at = time();
         $known_tokens = apcu_fetch('known_tokens');
         if (!$known_tokens) {
             $this->reloadKnownTokens();
@@ -287,6 +302,14 @@ class TokensController
                 return;
             }
         }
+
+        $this->applyKnownTokens($known_tokens);
+    }
+
+    private function applyKnownTokens(array $known_tokens): void
+    {
+        $this->known_tokens = [];
+        $this->known_tokens_by_code = [];
 
         foreach ($known_tokens as $item) {
             $key = $item['code'] . '-' . $item['issuer'];
@@ -297,21 +320,29 @@ class TokensController
 
     public function getKnownToken(string $key): ?array
     {
+        $this->ensureKnownTokensLoaded();
+
         return $this->known_tokens[$key] ?? null;
     }
 
     public function getKnownTokenByCode(string $code): ?array
     {
+        $this->ensureKnownTokensLoaded();
+
         return $this->known_tokens_by_code[$code] ?? null;
     }
 
     public function getKnownTokens(): array
     {
+        $this->ensureKnownTokensLoaded();
+
         return array_values($this->known_tokens);
     }
 
     public function searchKnownTokenByCode(string $search): ?array
     {
+        $this->ensureKnownTokensLoaded();
+
         $search = strtolower($search);
         foreach ($this->known_tokens_by_code as $code => $known_token) {
             if (strtolower($code) === $search) {
