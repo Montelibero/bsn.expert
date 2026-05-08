@@ -106,6 +106,9 @@
 {% endif %}
 
 <form method="post">
+    {% if current_account_param %}
+        <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+    {% endif %}
     <input type="hidden" name="selected_tags" value="{{ selected_tags|join(', ')|e('html_attr') }}">
     <input type="hidden" name="counterparties" value="{{ counterparty_ids_value|e('html_attr') }}">
 

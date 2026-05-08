@@ -59,6 +59,10 @@ class SingleAccountEditTagsController
             );
             return null;
         }
+        if ($cleanup_url = $this->CurrentUser->getCurrentAccountCleanupUrl()) {
+            SimpleRouter::response()->redirect($cleanup_url, 302);
+            return null;
+        }
 
         $TargetAccount = $this->BSN->makeAccountById($target_account_id);
         $SourceAccount = $this->BSN->makeAccountById($source_account_id);
@@ -116,6 +120,7 @@ class SingleAccountEditTagsController
             'signing_form' => $signing_form,
             'transaction_summary' => $transaction_summary,
             'no_changes' => $no_changes,
+            'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
         ]);
     }
 

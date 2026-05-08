@@ -394,6 +394,10 @@ class WebApp
             return;
         }
 
+        if (!isset($_COOKIE[session_name()]) && $this->isCurrentAccountEditorReturnTo($return_to)) {
+            $return_to = $this->appendQueryParameters($return_to, ['current_account' => $current_account]);
+        }
+
         SimpleRouter::response()->redirect($return_to, 302);
     }
 
@@ -428,6 +432,34 @@ class WebApp
         }
 
         return $return_to;
+    }
+
+    private function appendQueryParameters(string $url, array $parameters): string
+    {
+        $parts = parse_url($url);
+        if ($parts === false) {
+            return $url;
+        }
+
+        parse_str($parts['query'] ?? '', $query);
+        foreach ($parameters as $key => $value) {
+            $query[$key] = $value;
+        }
+
+        $result = $parts['path'] ?? '/';
+        if ($query) {
+            $result .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        }
+        if (isset($parts['fragment']) && $parts['fragment'] !== '') {
+            $result .= '#' . $parts['fragment'];
+        }
+
+        return $result;
+    }
+
+    private function isCurrentAccountEditorReturnTo(string $return_to): bool
+    {
+        return preg_match('~^/(?:editor(?:[/?#]|$)|accounts/[A-Z0-9]+/edit_tags(?:[/?#]|$))~', $return_to) === 1;
     }
 
     private function handleShowUnknownTagsPreference(string $value): void

@@ -42,6 +42,10 @@ class ProfileEditorController
             );
             return null;
         }
+        if ($cleanup_url = $this->CurrentUser->getCurrentAccountCleanupUrl()) {
+            SimpleRouter::response()->redirect($cleanup_url, 302);
+            return null;
+        }
 
         $raw_data = $this->fetchAccountData($account_id);
         $fresh_profile = $this->parseProfileData($raw_data);
@@ -123,6 +127,7 @@ class ProfileEditorController
             'signing_form' => $signing_form,
             'no_changes' => $no_changes,
             'max_value_bytes' => self::MAX_DATA_VALUE_BYTES,
+            'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
         ]);
     }
 

@@ -41,6 +41,10 @@
 {% endif %}
 
 <form method="post" action="/editor/">
+    {% if current_account_param %}
+        <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+    {% endif %}
+
     <section class="block">
         <h2 class="title is-4">{{ 'editor2.tags.title'|trans }}</h2>
         <p class="block">{{ 'editor2.tags.instruction'|trans }}</p>

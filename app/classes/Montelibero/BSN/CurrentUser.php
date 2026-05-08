@@ -14,6 +14,7 @@ class CurrentUser
     private const SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY = 'auto_current_account_notice';
     private const HISTORY_LIMIT = 20;
     private BSN $BSN;
+    private ?string $request_current_account_id = null;
 
     public function __construct(array &$session, BSN $BSN)
     {
@@ -22,6 +23,11 @@ class CurrentUser
 
         if (!isset($this->session[self::SESSION_HISTORY_KEY]) || !is_array($this->session[self::SESSION_HISTORY_KEY])) {
             $this->session[self::SESSION_HISTORY_KEY] = [];
+        }
+
+        $this->request_current_account_id = $this->resolveRequestCurrentAccountId();
+        if ($this->request_current_account_id !== null) {
+            $this->setCurrentAccountId($this->request_current_account_id);
         }
     }
 
@@ -81,6 +87,10 @@ class CurrentUser
 
     public function getCurrentAccountId(): ?string
     {
+        if ($this->request_current_account_id !== null) {
+            return $this->request_current_account_id;
+        }
+
         $explicit = $this->session[self::SESSION_CURRENT_ACCOUNT_KEY] ?? null;
         if ($explicit) {
             return $explicit;
@@ -91,6 +101,47 @@ class CurrentUser
         }
 
         return null;
+    }
+
+    public function getCurrentAccountRequestParam(): ?string
+    {
+        return $this->request_current_account_id;
+    }
+
+    public function getCurrentAccountCleanupUrl(): ?string
+    {
+        if ($this->request_current_account_id === null) {
+            return null;
+        }
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            return null;
+        }
+        if (!isset($_COOKIE[session_name()])) {
+            return null;
+        }
+
+        $request_uri = $_SERVER['REQUEST_URI'] ?? null;
+        if (!is_string($request_uri) || $request_uri === '') {
+            return null;
+        }
+
+        $parts = parse_url($request_uri);
+        if ($parts === false) {
+            return null;
+        }
+
+        parse_str($parts['query'] ?? '', $query);
+        unset($query['current_account']);
+
+        $url = $parts['path'] ?? '/';
+        if ($query) {
+            $url .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        }
+        if (isset($parts['fragment']) && $parts['fragment'] !== '') {
+            $url .= '#' . $parts['fragment'];
+        }
+
+        return $url;
     }
 
     public function setCurrentAccountId(?string $account_id): bool
@@ -157,5 +208,17 @@ class CurrentUser
         array_unshift($history, $account_id);
         $history = array_slice(array_values(array_unique($history)), 0, self::HISTORY_LIMIT);
         $this->session[self::SESSION_HISTORY_KEY] = $history;
+    }
+
+    private function resolveRequestCurrentAccountId(): ?string
+    {
+        foreach ([$_POST['current_account'] ?? null, $_GET['current_account'] ?? null] as $value) {
+            $account_id = strtoupper(trim((string) $value));
+            if (BSN::validateStellarAccountIdFormat($account_id)) {
+                return $account_id;
+            }
+        }
+
+        return null;
     }
 }

@@ -114,6 +114,10 @@
 {% endif %}
 
 <form method="post" data-profile-editor data-max-bytes="{{ max_value_bytes }}">
+    {% if current_account_param %}
+        <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+    {% endif %}
+
     <div class="field is-grouped mb-5">
         <div class="control">
             <button type="submit" name="action" value="save" class="button is-link">
