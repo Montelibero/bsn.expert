@@ -26,6 +26,7 @@ class Account implements JsonSerializable
     private Relation|null $Relation = null;
 
     private ?self $Owner = null;
+    private bool $owner_found = false;
 
     private ?string $telegram_id = null;
     private ?string $telegram_username = null;
@@ -402,19 +403,18 @@ class Account implements JsonSerializable
 
     public function getOwner(): ?Account
     {
-        static $found = false;
-        if (!$found) {
+        if (!$this->owner_found) {
             $owner = $this->getOutcomeLinks(Tag::fromName('Owner'));
             if (count($owner) === 1) {
                 $Owner = $owner[0];
                 foreach ($Owner->getOutcomeLinks(Tag::fromName('OwnershipFull')) as $OutcomeLink) {
                     if ($OutcomeLink->getId() === $this->getId()) {
-                        $this->Owner = $OutcomeLink;
+                        $this->Owner = $Owner;
                         break;
                     }
                 }
             }
-            $found = true;
+            $this->owner_found = true;
         }
 
         return $this->Owner;
