@@ -40,6 +40,7 @@ use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
 use Montelibero\BSN\RequestArrayView;
 use Montelibero\BSN\RequestLocale;
+use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
@@ -156,8 +157,6 @@ if (IS_CLI_CONTEXT) {
         ),
         true
     );
-
-    session_start();
 }
 
 $BSN->loadFromJson(json_decode(file_get_contents(JSON_DATA_FILE_PATH), JSON_OBJECT_AS_ARRAY));
@@ -180,6 +179,7 @@ $CurrentUser = new CurrentUser($BSN);
 $CurrentContacts = new CurrentContacts($BSN, $ContactsManager, $CurrentUser);
 $SessionView = new RequestArrayView();
 $ServerView = new RequestArrayView();
+$RequestSession = new RequestSession(!IS_CLI_CONTEXT);
 $Translator = new Translator($RequestLocale->getLocale());
 $Translator->addLoader('yaml', new YamlFileLoader());
 $Translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');
@@ -200,6 +200,7 @@ $ContainerBuilder->addDefinitions([
     },
     CurrentUser::class => $CurrentUser,
     CurrentContacts::class => $CurrentContacts,
+    RequestSession::class => $RequestSession,
     RequestLocale::class => $RequestLocale,
     KnownTagsCatalog::class => $KnownTagsCatalog,
     ApiKeysManager::class => function() use ($MongoManager) {
@@ -326,6 +327,7 @@ function gristRequest($url, $method, $data = null)
 
 return new ApplicationContext(
     $Container,
+    $RequestSession,
     $RequestLocale,
     $Translator,
     $CurrentUser,

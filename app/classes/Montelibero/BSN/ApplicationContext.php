@@ -10,6 +10,7 @@ class ApplicationContext
 {
     public function __construct(
         public readonly Container $Container,
+        public readonly RequestSession $RequestSession,
         public readonly RequestLocale $RequestLocale,
         public readonly Translator $Translator,
         public readonly CurrentUser $CurrentUser,
@@ -21,12 +22,17 @@ class ApplicationContext
 
     public function handleRequest(): void
     {
-        $this->syncRequestContext();
-        SimpleRouter::start();
+        try {
+            $this->syncRequestContext();
+            SimpleRouter::start();
+        } finally {
+            $this->RequestSession->endRequest();
+        }
     }
 
     public function syncRequestContext(): void
     {
+        $this->RequestSession->beginRequest();
         $this->SessionView->bind($_SESSION);
         $this->ServerView->bind($_SERVER);
         $this->RequestLocale->beginRequest();

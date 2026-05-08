@@ -15,6 +15,7 @@ use Montelibero\BSN\Controllers\SearchController;
 use Montelibero\BSN\Controllers\SignController;
 use Montelibero\BSN\Controllers\SingleAccountEditTagsController;
 use Montelibero\BSN\Controllers\TransactionsController;
+use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
 
@@ -37,7 +38,7 @@ class RootRoutes
             LoginRouter::register($Container);
         });
         SimpleRouter::get('/logout', function () use ($Container) {
-            session_destroy();
+            $Container->get(RequestSession::class)->destroy();
             SimpleRouter::response()->redirect('/', 302);
         });
         SimpleRouter::group(['prefix' => '/accounts'], function () use ($Container) {
