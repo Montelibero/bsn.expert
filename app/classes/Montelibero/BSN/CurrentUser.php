@@ -25,8 +25,15 @@ class CurrentUser
             $this->session[self::SESSION_HISTORY_KEY] = [];
         }
 
+        $previous_current_account_id = $this->getCurrentAccountIdWithoutRequestParam();
         $this->request_current_account_id = $this->resolveRequestCurrentAccountId();
         if ($this->request_current_account_id !== null) {
+            if (
+                $previous_current_account_id !== null
+                && $previous_current_account_id !== $this->request_current_account_id
+            ) {
+                $this->rememberAutoCurrentAccountChange($this->request_current_account_id);
+            }
             $this->setCurrentAccountId($this->request_current_account_id);
         }
     }
@@ -91,6 +98,11 @@ class CurrentUser
             return $this->request_current_account_id;
         }
 
+        return $this->getCurrentAccountIdWithoutRequestParam();
+    }
+
+    private function getCurrentAccountIdWithoutRequestParam(): ?string
+    {
         $explicit = $this->session[self::SESSION_CURRENT_ACCOUNT_KEY] ?? null;
         if ($explicit) {
             return $explicit;

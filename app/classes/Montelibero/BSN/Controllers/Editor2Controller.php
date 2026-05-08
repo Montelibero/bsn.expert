@@ -1000,7 +1000,9 @@ class Editor2Controller
         }
 
         $this->CurrentUser->setCurrentAccountId($legacy_source_id);
-        $this->CurrentUser->rememberAutoCurrentAccountChange($legacy_source_id);
+        if ($current_source_id !== null) {
+            $this->CurrentUser->rememberAutoCurrentAccountChange($legacy_source_id);
+        }
     }
 
     private function buildLegacyQueryRedirectUrl(string $source_account_id): string
