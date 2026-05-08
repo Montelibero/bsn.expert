@@ -10,6 +10,7 @@ class CurrentUser
     private const SESSION_CURRENT_ACCOUNT_KEY = 'current_account_id';
     private const SESSION_HISTORY_KEY = 'current_account_history';
     private const SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY = 'auto_current_account_notice';
+    private const SESSION_SHOW_TELEGRAM_USERNAMES_KEY = 'show_telegram_usernames';
     private const HISTORY_LIMIT = 20;
     private BSN $BSN;
     private ?string $request_current_account_id = null;
@@ -48,6 +49,17 @@ class CurrentUser
         return (bool) $this->getAccountId();
     }
 
+    public function authenticate(string $account_id): void
+    {
+        $Account = $this->BSN->makeAccountById($account_id);
+        $this->session()[self::SESSION_ACCOUNT_KEY] = $Account->jsonSerialize();
+
+        $Relation = $Account->getRelation();
+        if (($Relation instanceof Member) && $Relation->getLevel() >= 2) {
+            $this->session()[self::SESSION_SHOW_TELEGRAM_USERNAMES_KEY] = true;
+        }
+    }
+
     public function getAccount(): ?Account
     {
         if ($account_id = $this->getAccountId()) {
@@ -84,7 +96,7 @@ class CurrentUser
             return true;
         }
 
-        return (bool) ($this->session()['show_telegram_usernames'] ?? false);
+        return (bool) ($this->session()[self::SESSION_SHOW_TELEGRAM_USERNAMES_KEY] ?? false);
     }
 
     public function getShowUnknownTags(): bool

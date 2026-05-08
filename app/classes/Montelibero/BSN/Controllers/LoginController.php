@@ -6,7 +6,7 @@ use DateTime;
 use DI\Container;
 use Memcached;
 use Montelibero\BSN\BSN;
-use Montelibero\BSN\Relations\Member;
+use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Account;
@@ -32,6 +32,7 @@ class LoginController
     private StellarSDK $Stellar;
     private Memcached $Memcached;
     private Container $Container;
+    private CurrentUser $CurrentUser;
 
     public function __construct(
         BSN $BSN,
@@ -39,6 +40,7 @@ class LoginController
         StellarSDK $Stellar,
         Memcached $Memcached,
         Container $Container,
+        CurrentUser $CurrentUser,
     ) {
         $this->BSN = $BSN;
 
@@ -48,6 +50,7 @@ class LoginController
         $this->Memcached = $Memcached;
 
         $this->Container = $Container;
+        $this->CurrentUser = $CurrentUser;
     }
 
     public function Login(): ?string
@@ -441,10 +444,6 @@ class LoginController
 
     private function authenticate($account_id): void
     {
-        $_SESSION['account'] = $this->BSN->makeAccountById($account_id)->jsonSerialize();
-        $Relation = $this->BSN->makeAccountById($account_id)->getRelation();
-        if (($Relation instanceof Member) && $Relation->getLevel() >= 2) {
-            $_SESSION['show_telegram_usernames'] = true;
-        }
+        $this->CurrentUser->authenticate($account_id);
     }
 }
