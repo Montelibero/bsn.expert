@@ -1164,6 +1164,27 @@ tools_xdr2lab:
   errors:
     empty_xdr: Paste a transaction XDR first.
 
+editor_profile:
+  title: Profile editor
+  account: Editing profile for
+  save: Save (prepare transaction)
+  add_row: Add row
+  no_extra_tags: There are no other profile DATA entries right now.
+  single_extra_warning: This is a single tag; multiple rows are not supported.
+  signing_notice: The transaction was prepared against fresh account data from the blockchain.
+  errors:
+    value_too_long: "Row %row% in %tag% uses %bytes% bytes out of %limit%."
+    key_too_long: "Row %row% in %tag% produces a DATA name that is too long."
+    too_many_operations: Too many changes for one transaction. Save part of the changes separately.
+    protected_key_conflict: "DATA %key% is already used in a format the profile editor does not handle. This key will not be overwritten."
+  custom_tag:
+    title: Custom profile tag
+    add: Add
+    help: Use Latin letters and digits. The final character cannot be a digit.
+    invalid: The tag must contain only Latin letters and digits.
+    non_latin: The tag name contains non-Latin characters. Check lookalike letters such as Cyrillic а, е, о, с, р, х and replace them with Latin letters.
+    trailing_digits: Digits at the end are used as row numbers. Remove the trailing digits.
+
 editor2:
   title: Tags editor
   source_account: Setting tags as

@@ -1,0 +1,66 @@
+<section class="box" data-profile-group data-profile-tag="{{ group.name|e('html_attr') }}">
+    <div class="level is-mobile mb-3">
+        <div class="level-left">
+            <div>
+                <h2 class="title is-4 mb-1">{{ group.name }}</h2>
+                {% if group.description %}
+                    <p class="help">{{ group.description }}</p>
+                {% endif %}
+                {% if group.is_single %}
+                    <span class="tag is-small mt-2">single</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div data-profile-rows>
+        {% for value in group.values %}
+            <div class="field" data-profile-row>
+                <div class="field has-addons">
+                    <div class="control is-expanded">
+                        <input
+                            class="input {% if value|length > max_value_bytes %}is-danger{% endif %}"
+                            data-profile-value
+                            type="text"
+                            name="profile[{{ group.name }}][]"
+                            value="{{ value|e('html_attr') }}"
+                            autocomplete="off"
+                        >
+                    </div>
+                    <div class="control">
+                        <span class="button is-static {% if value|length > max_value_bytes %}has-text-danger{% endif %}" data-byte-counter>
+                            {{ value|length }} / {{ max_value_bytes }}
+                        </span>
+                    </div>
+                </div>
+                {% if group.is_single and loop.index > 1 %}
+                    <p class="help is-warning">
+                        <span class="icon is-small"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                        {{ 'editor_profile.single_extra_warning'|trans }}
+                    </p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if not group.is_single %}
+        <button
+            type="submit"
+            name="add_row_tag"
+            value="{{ group.name|e('html_attr') }}"
+            class="button is-small mt-2"
+            data-add-profile-row-submit
+        >
+            <span class="icon"><i class="fa-solid fa-plus"></i></span>
+            <span>{{ 'editor_profile.add_row'|trans }}</span>
+        </button>
+        <button
+            type="button"
+            class="button is-small mt-2 is-hidden"
+            data-add-profile-row
+        >
+            <span class="icon"><i class="fa-solid fa-plus"></i></span>
+            <span>{{ 'editor_profile.add_row'|trans }}</span>
+        </button>
+    {% endif %}
+</section>

@@ -1,0 +1,181 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'editor_profile.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/editor/" aria-current="page">{{ 'nav.editor'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'editor_profile.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const root = document.querySelector('[data-profile-editor]');
+        if (!root) {
+            return;
+        }
+
+        const maxBytes = Number(root.dataset.maxBytes || 64);
+        const encoder = window.TextEncoder ? new TextEncoder() : null;
+        const countBytes = function (value) {
+            return encoder ? encoder.encode(value).length : unescape(encodeURIComponent(value)).length;
+        };
+
+        const syncCounter = function (input) {
+            const row = input.closest('[data-profile-row]');
+            const counter = row ? row.querySelector('[data-byte-counter]') : null;
+            if (!counter) {
+                return;
+            }
+
+            const bytes = countBytes(input.value);
+            counter.textContent = bytes + ' / ' + maxBytes;
+            counter.classList.toggle('has-text-danger', bytes > maxBytes);
+            input.classList.toggle('is-danger', bytes > maxBytes);
+        };
+
+        root.querySelectorAll('[data-profile-value]').forEach(function (input) {
+            input.addEventListener('input', function () {
+                syncCounter(input);
+            });
+            syncCounter(input);
+        });
+
+        root.querySelectorAll('[data-add-profile-row]').forEach(function (button) {
+            button.classList.remove('is-hidden');
+            const submitButton = button.parentElement ? button.parentElement.querySelector('[data-add-profile-row-submit]') : null;
+            if (submitButton) {
+                submitButton.classList.add('is-hidden');
+            }
+            button.addEventListener('click', function () {
+                const group = button.closest('[data-profile-group]');
+                const rows = group ? group.querySelector('[data-profile-rows]') : null;
+                const tagName = group ? group.dataset.profileTag : '';
+                if (!rows || !tagName) {
+                    return;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'field';
+                row.setAttribute('data-profile-row', '');
+                row.innerHTML = ''
+                    + '<div class="field has-addons">'
+                    + '<div class="control is-expanded">'
+                    + '<input class="input" data-profile-value type="text" name="profile[' + tagName.replace(/"/g, '&quot;') + '][]" value="" autocomplete="off">'
+                    + '</div>'
+                    + '<div class="control">'
+                    + '<span class="button is-static" data-byte-counter>0 / ' + maxBytes + '</span>'
+                    + '</div>'
+                    + '</div>';
+                rows.appendChild(row);
+
+                const input = row.querySelector('[data-profile-value]');
+                input.addEventListener('input', function () {
+                    syncCounter(input);
+                });
+                syncCounter(input);
+                input.focus();
+            });
+        });
+    });
+</script>
+
+<h1 class="title">{{ 'editor_profile.title'|trans }}</h1>
+<h2 class="subtitle">
+    {{ 'editor_profile.account'|trans }}:
+    {{ include('account_link.twig', {data: account}, with_context = false) }}
+</h2>
+
+{% if errors %}
+    <article class="message is-danger">
+        <div class="message-body">
+            {% for error in errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    </article>
+{% endif %}
+
+{% if signing_form %}
+    <article class="message is-info">
+        <div class="message-body">
+            <p>{{ 'editor_profile.signing_notice'|trans }}</p>
+            <p>{{ 'edit_tags.timeout_notice'|trans }}</p>
+        </div>
+    </article>
+
+    <h2 class="title is-4">{{ 'editor.sign.header'|trans }}</h2>
+    {{ signing_form|raw }}
+{% elseif no_changes %}
+    <article class="message is-success">
+        <div class="message-body">{{ 'edit_tags.no_changes'|trans }}</div>
+    </article>
+{% endif %}
+
+<form method="post" data-profile-editor data-max-bytes="{{ max_value_bytes }}">
+    <div class="field is-grouped mb-5">
+        <div class="control">
+            <button type="submit" name="action" value="save" class="button is-link">
+                <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                <span>{{ 'editor_profile.save'|trans }}</span>
+            </button>
+        </div>
+    </div>
+
+    {% for group in profile_groups %}
+        {% if group.is_primary %}
+            {% include 'editor_profile_group.twig' with {group: group, max_value_bytes: max_value_bytes} only %}
+        {% endif %}
+    {% endfor %}
+
+    <hr>
+
+    {% for group in profile_groups %}
+        {% if not group.is_primary %}
+            {% include 'editor_profile_group.twig' with {group: group, max_value_bytes: max_value_bytes} only %}
+        {% endif %}
+    {% endfor %}
+
+    {% if not has_extra_groups %}
+        <p class="has-text-grey mb-5">{{ 'editor_profile.no_extra_tags'|trans }}</p>
+    {% endif %}
+
+    <section class="box" id="custom-profile-tag">
+        <h2 class="title is-4">{{ 'editor_profile.custom_tag.title'|trans }}</h2>
+        <div class="field has-addons">
+            <div class="control is-expanded">
+                <input
+                    class="input {% if custom_tag_error %}is-danger{% endif %}"
+                    type="text"
+                    name="custom_tag"
+                    value="{{ custom_tag_value|e('html_attr') }}"
+                    placeholder="TelegramUserID"
+                    autocomplete="off"
+                    spellcheck="false"
+                >
+            </div>
+            <div class="control">
+                <button type="submit" name="action" value="add_custom_tag" class="button is-primary">
+                    <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                    <span>{{ 'editor_profile.custom_tag.add'|trans }}</span>
+                </button>
+            </div>
+        </div>
+        {% if custom_tag_error %}
+            <p class="help is-danger">{{ custom_tag_error }}</p>
+        {% else %}
+            <p class="help">{{ 'editor_profile.custom_tag.help'|trans }}</p>
+        {% endif %}
+    </section>
+
+    <div class="field is-grouped">
+        <div class="control">
+            <button type="submit" name="action" value="save" class="button is-link">
+                <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                <span>{{ 'editor_profile.save'|trans }}</span>
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
