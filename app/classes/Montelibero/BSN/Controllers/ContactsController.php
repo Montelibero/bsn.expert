@@ -5,6 +5,7 @@ namespace Montelibero\BSN\Controllers;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
 use Montelibero\BSN\CurrentContacts;
+use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
@@ -21,6 +22,7 @@ class ContactsController
         Environment $Twig,
         Translator $Translator,
         ContactsManager $ContactsManager,
+        private readonly CurrentUser $CurrentUser,
         private readonly CurrentContacts $CurrentContacts,
     ) {
         $this->BSN = $BSN;
@@ -35,7 +37,8 @@ class ContactsController
     {
         $is_json_request = $this->isJsonContactsRequest();
 
-        if (empty($_SESSION['account'])) {
+        $current_account_id = $this->CurrentUser->getAccountId();
+        if ($current_account_id === null) {
             if ($is_json_request) {
                 $this->setJsonSecurityHeaders();
                 SimpleRouter::response()->header('Content-Type: application/json; charset=utf-8');
@@ -46,7 +49,7 @@ class ContactsController
             return null;
         }
 
-        $contacts = $this->ContactsManager->getContacts($_SESSION['account']['id']);
+        $contacts = $this->ContactsManager->getContacts($current_account_id);
 
         if ($is_json_request) {
             $this->setJsonSecurityHeaders();
@@ -77,7 +80,7 @@ class ContactsController
                 && !array_key_exists($_POST['new_stellar_account_1'], $contacts)
             ) {
                 $this->ContactsManager->addContact(
-                    $_SESSION['account']['id'],
+                    $current_account_id,
                     $_POST['new_stellar_account_1'],
                     $_POST['new_name_1'] ?: ''
                 );
@@ -98,7 +101,7 @@ class ContactsController
                     if (array_key_exists($address, $contacts)) {
                         if ($duplicates === 'update' && $name !== $contacts[$address]['name']) {
                             try {
-                                $this->ContactsManager->updateContact($_SESSION['account']['id'], $address, $name);
+                                $this->ContactsManager->updateContact($current_account_id, $address, $name);
                                 $this->CurrentContacts->refresh();
                             } catch (\Exception $e) {
                                 $errors[] = "Не смог обновить контакт $address: {$e->getMessage()}";
@@ -106,7 +109,7 @@ class ContactsController
                         }
                     } elseif (!in_array($address, $new_accounts, true)) {
                         try {
-                            $this->ContactsManager->addContact($_SESSION['account']['id'], $address, $name ?: '');
+                            $this->ContactsManager->addContact($current_account_id, $address, $name ?: '');
                             $this->CurrentContacts->refresh();
                             $new_accounts[] = $address;
                         } catch (\Exception $e) {
@@ -205,7 +208,8 @@ class ContactsController
 
         $csrf_token = md5(session_id() . 'contacts');
 
-        if (empty($_SESSION['account'])) {
+        $current_account_id = $this->CurrentUser->getAccountId();
+        if ($current_account_id === null) {
             SimpleRouter::response()->redirect(LoginController::getLoginUrlForCurrentRequest(SimpleRouter::getUrl('account', ['id' => $account_id])), 302);
             return null;
         }
@@ -214,7 +218,7 @@ class ContactsController
 
         $ContactsManager = $this->ContactsManager;
 
-        $exists_contact = $ContactsManager->getContact($_SESSION['account']['id'], $account_id);
+        $exists_contact = $ContactsManager->getContact($current_account_id, $account_id);
 
         $return_to = LoginController::normalizeReturnTo(
             $_POST['return_to'] ?? $_SERVER['HTTP_REFERER'] ?? null,
@@ -223,13 +227,13 @@ class ContactsController
 
         if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {
-                $ContactsManager->deleteContact($_SESSION['account']['id'], $account_id);
+                $ContactsManager->deleteContact($current_account_id, $account_id);
                 $this->CurrentContacts->refresh();
             } elseif ($_POST['action'] && $exists_contact) {
-                $ContactsManager->updateContact($_SESSION['account']['id'], $account_id, trim($_POST['name']));
+                $ContactsManager->updateContact($current_account_id, $account_id, trim($_POST['name']));
                 $this->CurrentContacts->refresh();
             } elseif ($_POST['action'] && !$exists_contact) {
-                $ContactsManager->addContact($_SESSION['account']['id'], $account_id, trim($_POST['name']));
+                $ContactsManager->addContact($current_account_id, $account_id, trim($_POST['name']));
                 $this->CurrentContacts->refresh();
             }
             SimpleRouter::response()->redirect($return_to, 302);

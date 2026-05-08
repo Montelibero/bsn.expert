@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 
 use DI\Container;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\StellarSDK;
@@ -17,13 +18,20 @@ class TimeTokenController
     private StellarSDK $Stellar;
     private Translator $Translator;
     private Container $Container;
+    private CurrentUser $CurrentUser;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar, Translator $Translator, Container $Container)
-    {
+    public function __construct(
+        Environment $Twig,
+        StellarSDK $Stellar,
+        Translator $Translator,
+        Container $Container,
+        CurrentUser $CurrentUser,
+    ) {
         $this->Twig = $Twig;
         $this->Stellar = $Stellar;
         $this->Translator = $Translator;
         $this->Container = $Container;
+        $this->CurrentUser = $CurrentUser;
     }
 
     public function TimeToken(): ?string
@@ -43,9 +51,10 @@ class TimeTokenController
             return null;
         }
 
-        if (empty($_GET['account']) && ($_SESSION['account']['id'] ?? null)) {
+        $current_account_id = $this->CurrentUser->getAccountId();
+        if (empty($_GET['account']) && $current_account_id !== null) {
             SimpleRouter::response()->redirect(
-                SimpleRouter::router()->getUrl('tool_timetoken') . "?account=" . urlencode($_SESSION['account']['id']),
+                SimpleRouter::router()->getUrl('tool_timetoken') . "?account=" . urlencode($current_account_id),
                 302
             );
             return null;

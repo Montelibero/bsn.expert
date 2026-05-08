@@ -50,4 +50,22 @@ class RequestSession
 
         session_destroy();
     }
+
+    public function get(string $key): mixed
+    {
+        return $_SESSION[$key] ?? null;
+    }
+
+    public function set(string $key, mixed $value): void
+    {
+        $_SESSION[$key] = $value;
+    }
+
+    public function consume(string $key): mixed
+    {
+        $value = $this->get($key);
+        unset($_SESSION[$key]);
+
+        return $value;
+    }
 }

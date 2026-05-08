@@ -627,21 +627,23 @@ class DocumentsController
 
     private function getCurrentAccount(): ?Account
     {
-        if (empty($_SESSION['account']['id']) || !BSN::validateStellarAccountIdFormat($_SESSION['account']['id'])) {
+        $account_id = $this->CurrentUser->getAccountId();
+        if ($account_id === null || !BSN::validateStellarAccountIdFormat($account_id)) {
             return null;
         }
 
-        return $this->BSN->makeAccountById($_SESSION['account']['id']);
+        return $this->BSN->makeAccountById($account_id);
     }
 
     private function requireAuthAccount(): ?Account
     {
-        if (empty($_SESSION['account']['id']) || !BSN::validateStellarAccountIdFormat($_SESSION['account']['id'])) {
+        $account_id = $this->CurrentUser->getAccountId();
+        if ($account_id === null || !BSN::validateStellarAccountIdFormat($account_id)) {
             SimpleRouter::response()->redirect(LoginController::getLoginUrlForCurrentRequest('/documents/'), 302);
             return null;
         }
 
-        return $this->BSN->makeAccountById($_SESSION['account']['id']);
+        return $this->BSN->makeAccountById($account_id);
     }
 
     private function hasMtlaToken(Account $Account): bool

@@ -3,32 +3,45 @@
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\ApiKeysManager;
+use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 class ApiController
 {
+    private const SESSION_API_KEY_FLASH = 'api_key_flash';
+
     private Environment $Twig;
     private ApiKeysManager $ApiKeysManager;
     private Translator $Translator;
+    private CurrentUser $CurrentUser;
+    private RequestSession $RequestSession;
 
-    public function __construct(Environment $Twig, ApiKeysManager $ApiKeysManager, Translator $Translator)
-    {
+    public function __construct(
+        Environment $Twig,
+        ApiKeysManager $ApiKeysManager,
+        Translator $Translator,
+        CurrentUser $CurrentUser,
+        RequestSession $RequestSession,
+    ) {
         $this->Twig = $Twig;
 
         $this->ApiKeysManager = $ApiKeysManager;
         $this->Translator = $Translator;
+        $this->CurrentUser = $CurrentUser;
+        $this->RequestSession = $RequestSession;
     }
 
     public function PreferencesApi(): ?string
     {
-        if (empty($_SESSION['account'])) {
+        if (!$this->CurrentUser->isAuthorized()) {
             SimpleRouter::response()->httpCode(401);
             return null;
         }
 
-        $account_id = $_SESSION['account']['id'];
+        $account_id = $this->CurrentUser->getAccountId();
         $errors = [];
         $default_permissions = [
             'contacts' => [
@@ -40,8 +53,7 @@ class ApiController
         ];
         $form_permissions = $default_permissions;
         $form_name = '';
-        $flash_key = $_SESSION['api_key_flash'] ?? null;
-        unset($_SESSION['api_key_flash']);
+        $flash_key = $this->RequestSession->consume(self::SESSION_API_KEY_FLASH);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = $_POST['action'] ?? 'create';
@@ -71,7 +83,7 @@ class ApiController
 
                 if (!$errors) {
                     $key = $this->ApiKeysManager->createKey($account_id, $name, $form_permissions);
-                    $_SESSION['api_key_flash'] = $key['key'];
+                    $this->RequestSession->set(self::SESSION_API_KEY_FLASH, $key['key']);
                     SimpleRouter::response()->redirect('/preferences/api', 302);
                     return null;
                 }
