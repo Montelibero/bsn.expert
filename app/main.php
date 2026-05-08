@@ -235,9 +235,6 @@ $ContainerBuilder->addDefinitions([
         $twig->addExtension(new TwigExtension($container->get(Translator::class)));
         $twig->addExtension(new TranslationExtension($container->get(Translator::class)));
         $twig->addExtension(new TwigPluralizeExtension($container->get(Translator::class)));
-        $twig->addGlobal('session', $_SESSION);
-        $twig->addGlobal('server', $_SERVER);
-        $twig->addGlobal('current_user', $CurrentUser);
 
         return $twig;
     },
@@ -278,6 +275,7 @@ $ContainerBuilder->addDefinitions([
     TransactionsController::class => autowire(),
 ]);
 $Container = $ContainerBuilder->build();
+syncRequestContext($Container, $CurrentUser);
 
 if (!IS_CLI_CONTEXT) {
     RootRoutes::register($Container, $BSN, $AccountsManager);
@@ -291,6 +289,16 @@ if (!IS_CLI_CONTEXT) {
     });
 
     SimpleRouter::start();
+}
+
+function syncRequestContext(Container $Container, CurrentUser $CurrentUser): void
+{
+    $CurrentUser->beginRequest();
+
+    $Twig = $Container->get(Environment::class);
+    $Twig->addGlobal('session', $_SESSION);
+    $Twig->addGlobal('server', $_SERVER);
+    $Twig->addGlobal('current_user', $CurrentUser);
 }
 
 function gristRequest($url, $method, $data = null)

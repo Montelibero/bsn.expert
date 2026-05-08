@@ -17,7 +17,6 @@ class CurrentUser
     public function __construct(BSN $BSN)
     {
         $this->BSN = $BSN;
-        $this->beginRequest();
     }
 
     public function beginRequest(): void
