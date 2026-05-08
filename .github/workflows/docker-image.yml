@@ -9,7 +9,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_APP_NAME: montelibero/bsn_app
-  IMAGE_WEB_NAME: montelibero/bsn_web
   OCI_SOURCE: https://github.com/${{ github.repository }}
   OCI_REVISION: ${{ github.sha }}
 
@@ -57,23 +56,9 @@ jobs:
           cache-from: type=gha,scope=bsn-app
           cache-to: type=gha,scope=bsn-app,mode=max
 
-      - name: Build WEB Docker image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: web/Dockerfile
-          target: prod
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_WEB_NAME }}:latest
-          labels: |
-            org.opencontainers.image.source=${{ env.OCI_SOURCE }}
-            org.opencontainers.image.revision=${{ env.OCI_REVISION }}
-          cache-from: type=gha,scope=bsn-web
-          cache-to: type=gha,scope=bsn-web,mode=max
-
       - name: Notify Telegram
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
-            -d '{"chat_id": "-1003339919065", "text": "Docker image pushed to registry /info_bsn_app or /info_bsn_web (@sozidatel!)"}'
+            -d '{"chat_id": "-1003339919065", "text": "Docker image pushed to registry /info_bsn_app (@sozidatel!)"}'
           
