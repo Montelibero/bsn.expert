@@ -2,7 +2,10 @@
   "presentation": {
     "About": {},
     "Name": {},
-    "TimeTokenCode": {},
+    "TimeTokenCode": {
+      "category": "timetoken",
+      "single": true
+    },
     "Website": {}
   },
   "links": {
