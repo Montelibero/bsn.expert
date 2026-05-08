@@ -51,14 +51,12 @@ COPY app/php-prod.ini /usr/local/etc/php/conf.d/zz-env.ini
 
 COPY app/composer.json app/composer.lock ./
 RUN --mount=type=cache,target=/root/.composer/cache \
-    composer install --no-dev --prefer-dist --no-interaction --no-scripts --no-autoloader
+    composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader --apcu-autoloader
 
-COPY app/ .
-COPY --from=fa-assets /build/app/fontawesome ./fontawesome
-COPY --from=fa-assets /build/app/twig/fontawesome_link.twig twig/fontawesome_link.twig
+COPY --link --from=fa-assets /build/app/fontawesome ./fontawesome
+COPY --link --from=fa-assets /build/app/twig/fontawesome_link.twig twig/fontawesome_link.twig
+COPY --link app/ .
 
-RUN composer dump-autoload --apcu
-RUN chmod +x /var/www/html/init.sh /var/www/html/cron/start-cron.sh
 RUN find /var/www/html -type f \( \
         -name '*.css' -o \
         -name '*.html' -o \
