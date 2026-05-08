@@ -35,9 +35,11 @@ use Montelibero\BSN\Controllers\TagsController;
 use Montelibero\BSN\Controllers\VotesController;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
+use Montelibero\BSN\KnownTagsCatalog;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
 use Montelibero\BSN\RequestArrayView;
+use Montelibero\BSN\RequestLocale;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
@@ -64,25 +66,6 @@ const JSON_DATA_FILE_PATH = '/var/www/bsn/bsn.json';
 const IS_CLI_CONTEXT = PHP_SAPI === 'cli';
 //const JSON_DATA_FILE_PATH = '../BoR/bsn.json';
 
-function resolveAppLocale(array $supported_locales = ['en', 'ru'], string $default_locale = 'en'): string
-{
-    $locale = $default_locale;
-    if (stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false && in_array('ru', $supported_locales, true)) {
-        $locale = 'ru';
-    }
-
-    $cookie_locale = $_COOKIE['language'] ?? null;
-    if (
-        is_string($cookie_locale)
-        && preg_match('/^[a-z]{2}$/', $cookie_locale) === 1
-        && in_array($cookie_locale, $supported_locales, true)
-    ) {
-        $locale = $cookie_locale;
-    }
-
-    return $locale;
-}
-
 //$memory1 = memory_get_usage();
 
 $MongoManager = new Manager(
@@ -106,6 +89,8 @@ $Memcached->addServer("cache", 11211);
 $AccountsManager = new AccountsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $DocumentsManager = new DocumentsManager($MongoManager, $_ENV['MONGO_BASENAME']);
+$RequestLocale = new RequestLocale();
+$KnownTagsCatalog = new KnownTagsCatalog($RequestLocale, __DIR__ . '/known_tags');
 $BSN = new BSN($AccountsManager, $DocumentsManager);
 
 // Single tags
@@ -129,14 +114,7 @@ $promoted_tags = [
 foreach ($promoted_tags as $tag_name) {
     $BSN->makeTagByName($tag_name)->isPromote(true);
 }
-$known_tags = json_decode(file_get_contents('./known_tags/list.json'), JSON_OBJECT_AS_ARRAY);
-$known_tags_locale = resolveAppLocale();
-$known_tags_translation_path = __DIR__ . '/known_tags/lang-' . $known_tags_locale . '.json';
-if (!is_file($known_tags_translation_path)) {
-    $known_tags_translation_path = __DIR__ . '/known_tags/lang-en.json';
-}
-$known_tag_translations = json_decode(file_get_contents($known_tags_translation_path), JSON_OBJECT_AS_ARRAY) ?: [];
-$BSN->loadKnownTags($known_tags, $known_tag_translations);
+$BSN->loadKnownTags($KnownTagsCatalog->list());
 
 $functional_tags = [
     'Owner',
@@ -202,6 +180,11 @@ $CurrentUser = new CurrentUser($BSN);
 $CurrentContacts = new CurrentContacts($BSN, $ContactsManager, $CurrentUser);
 $SessionView = new RequestArrayView();
 $ServerView = new RequestArrayView();
+$Translator = new Translator($RequestLocale->getLocale());
+$Translator->addLoader('yaml', new YamlFileLoader());
+$Translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');
+$Translator->addResource('yaml', __DIR__ . '/i18n/messages.en.yaml', 'en');
+$Translator->setFallbackLocales(['en']);
 
 $ContainerBuilder = new ContainerBuilder();
 $ContainerBuilder->addDefinitions([
@@ -217,22 +200,15 @@ $ContainerBuilder->addDefinitions([
     },
     CurrentUser::class => $CurrentUser,
     CurrentContacts::class => $CurrentContacts,
+    RequestLocale::class => $RequestLocale,
+    KnownTagsCatalog::class => $KnownTagsCatalog,
     ApiKeysManager::class => function() use ($MongoManager) {
         return new ApiKeysManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },
 
-    Translator::class => function() {
-        $locale = resolveAppLocale();
-        $translator = new Translator($locale);
-        $translator->addLoader('yaml', new YamlFileLoader());
-        $translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');
-        $translator->addResource('yaml', __DIR__ . '/i18n/messages.en.yaml', 'en');
-        $translator->setFallbackLocales(['en']);
-        
-        return $translator;
-    },
+    Translator::class => $Translator,
 
-    Environment::class => function(Container $container) use ($CurrentUser, $CurrentContacts, $SessionView, $ServerView) {
+    Environment::class => function(Container $container) use ($CurrentUser, $CurrentContacts, $SessionView, $ServerView, $RequestLocale) {
         $is_prod = getenv('APP_ENV') === 'prod';
         $Translator = $container->get(Translator::class);
         $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'), [
@@ -246,7 +222,7 @@ $ContainerBuilder->addDefinitions([
         $twig->addGlobal('server', $ServerView);
         $twig->addGlobal('current_user', $CurrentUser);
         $twig->addGlobal('current_contacts', $CurrentContacts);
-        $twig->addGlobal('app_locale', $Translator->getLocale());
+        $twig->addGlobal('app_locale', $RequestLocale);
 
         return $twig;
     },
@@ -350,6 +326,8 @@ function gristRequest($url, $method, $data = null)
 
 return new ApplicationContext(
     $Container,
+    $RequestLocale,
+    $Translator,
     $CurrentUser,
     $CurrentContacts,
     $SessionView,

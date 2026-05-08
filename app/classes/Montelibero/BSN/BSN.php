@@ -254,22 +254,9 @@ class BSN
         $this->tags_by_category_id[$Category->getId()][$Tag->getName()] = $Tag;
     }
 
-    public function loadKnownTags(array $known_tags, array $known_tag_translations = []): void
+    public function loadKnownTags(array $known_tags): void
     {
-        $category_names = is_array($known_tag_translations['categories'] ?? null)
-            ? $known_tag_translations['categories']
-            : [];
-
-        $this->makeTagCategoryById(
-            TagCategory::UNKNOWN_ID,
-            $category_names[TagCategory::UNKNOWN_ID] ?? TagCategory::UNKNOWN_ID
-        );
-
-        foreach ($category_names as $category_id => $category_name) {
-            if (is_string($category_id) && is_string($category_name)) {
-                $this->makeTagCategoryById($category_id, $category_name);
-            }
-        }
+        $this->makeTagCategoryById(TagCategory::UNKNOWN_ID);
 
         foreach ($known_tags['links'] ?? [] as $link_name => $link_data) {
             if (!is_array($link_data)) {
@@ -282,7 +269,7 @@ class BSN
 
             if (is_string($link_data['category'] ?? null)) {
                 $category_id = $link_data['category'];
-                $Category = $this->makeTagCategoryById($category_id, $category_names[$category_id] ?? $category_id);
+                $Category = $this->makeTagCategoryById($category_id);
                 $this->assignTagCategory($Tag, $Category);
             }
 

@@ -7,6 +7,7 @@ use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\KnownTagsCatalog;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\TagCategory;
 use Montelibero\BSN\WebApp;
@@ -31,6 +32,7 @@ class Editor2Controller
         private readonly Container $Container,
         private readonly Translator $Translator,
         private readonly CurrentContacts $CurrentContacts,
+        private readonly KnownTagsCatalog $KnownTagsCatalog,
     ) {
     }
 
@@ -394,7 +396,7 @@ class Editor2Controller
         if (!isset($categories[$category_id])) {
             $categories[$category_id] = [
                 'id' => $category_id,
-                'name' => $Category->getName(),
+                'name' => $this->KnownTagsCatalog->categoryName($category_id),
                 'is_unknown' => $Category->isUnknown(),
                 'tags' => [],
             ];
@@ -1126,19 +1128,6 @@ class Editor2Controller
 
     private function loadKnownTagDescriptions(): array
     {
-        static $descriptions_by_locale = [];
-
-        $locale = $this->Translator->getLocale();
-        if (!array_key_exists($locale, $descriptions_by_locale)) {
-            $path = dirname(__DIR__, 4) . '/known_tags/lang-' . $locale . '.json';
-            if (!is_file($path)) {
-                $path = dirname(__DIR__, 4) . '/known_tags/lang-en.json';
-            }
-
-            $parsed = json_decode(file_get_contents($path), true) ?? [];
-            $descriptions_by_locale[$locale] = is_array($parsed['tags'] ?? null) ? $parsed['tags'] : $parsed;
-        }
-
-        return $descriptions_by_locale[$locale];
+        return $this->KnownTagsCatalog->tagDescriptions($this->Translator->getLocale());
     }
 }

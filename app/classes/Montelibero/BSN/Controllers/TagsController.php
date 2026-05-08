@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\KnownTagsCatalog;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
@@ -14,13 +15,20 @@ class TagsController
     private Environment $Twig;
     private Translator $Translator;
     private CurrentUser $CurrentUser;
+    private KnownTagsCatalog $KnownTagsCatalog;
 
-    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator, CurrentUser $CurrentUser)
-    {
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        Translator $Translator,
+        CurrentUser $CurrentUser,
+        KnownTagsCatalog $KnownTagsCatalog,
+    ) {
         $this->BSN = $BSN;
         $this->Twig = $Twig;
         $this->Translator = $Translator;
         $this->CurrentUser = $CurrentUser;
+        $this->KnownTagsCatalog = $KnownTagsCatalog;
     }
 
     public function Tags(): ?string
@@ -70,7 +78,7 @@ class TagsController
             if (!array_key_exists($category_id, $tag_categories)) {
                 $tag_categories[$category_id] = [
                     'id' => $category_id,
-                    'name' => $Category->getName(),
+                    'name' => $this->KnownTagsCatalog->categoryName($category_id),
                     'is_unknown' => $Category->isUnknown(),
                     'total' => 0,
                     'tags' => [],
@@ -206,52 +214,20 @@ class TagsController
 
     private function getKnownTagMetadata(string $tag_name): array
     {
-        $known_tags = $this->loadKnownTagsList();
+        $known_tags = $this->KnownTagsCatalog->list();
         $known_tag = $known_tags['links'][$tag_name] ?? null;
-        $descriptions = $this->loadKnownTagDescriptions();
+        $descriptions = $this->KnownTagsCatalog->tagDescriptions($this->Translator->getLocale());
         $Category = $this->BSN->getTagCategoryByTag($tag_name);
 
         return [
             'is_known' => $known_tag !== null,
             'description' => $descriptions[$tag_name] ?? null,
             'category_id' => $Category?->getId(),
-            'category_name' => $Category?->getName(),
+            'category_name' => $Category ? $this->KnownTagsCatalog->categoryName($Category->getId()) : null,
             'is_standard' => (bool) ($known_tag['standard'] ?? false),
             'is_pair' => (bool) ($known_tag['pair'] ?? false),
             'is_pair_strong' => (bool) ($known_tag['strong_pair'] ?? false),
             'pair_name' => is_string($known_tag['pair'] ?? null) ? $known_tag['pair'] : null,
         ];
-    }
-
-    private function loadKnownTagsList(): array
-    {
-        static $known_tags = null;
-
-        if ($known_tags === null) {
-            $known_tags = json_decode(
-                file_get_contents(dirname(__DIR__, 4) . '/known_tags/list.json'),
-                true
-            );
-        }
-
-        return $known_tags;
-    }
-
-    private function loadKnownTagDescriptions(): array
-    {
-        static $descriptions_by_locale = [];
-
-        $locale = $this->Translator->getLocale();
-        if (!array_key_exists($locale, $descriptions_by_locale)) {
-            $path = dirname(__DIR__, 4) . '/known_tags/lang-' . $locale . '.json';
-            if (!is_file($path)) {
-                $path = dirname(__DIR__, 4) . '/known_tags/lang-en.json';
-            }
-
-            $parsed = json_decode(file_get_contents($path), true) ?? [];
-            $descriptions_by_locale[$locale] = is_array($parsed['tags'] ?? null) ? $parsed['tags'] : $parsed;
-        }
-
-        return $descriptions_by_locale[$locale];
     }
 }
