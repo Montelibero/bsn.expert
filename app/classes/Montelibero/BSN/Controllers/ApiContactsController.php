@@ -15,15 +15,13 @@ class ApiContactsController
     private ApiKeysManager $ApiKeysManager;
     private ContactsManager $ContactsManager;
 
-    private array $key;
-
     public function __construct(ApiKeysManager $ApiKeysManager, ContactsManager $ContactsManager)
     {
         $this->ApiKeysManager = $ApiKeysManager;
         $this->ContactsManager = $ContactsManager;
     }
 
-    private function checkAuth()
+    private function checkAuth(): array|string
     {
         $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
         if (!$auth_header || stripos($auth_header, 'Bearer ') !== 0) {
@@ -37,30 +35,31 @@ class ApiContactsController
             return $this->jsonResponse(['status' => 'error', 'message' => 'Missing Bearer token']);
         }
 
-        $this->key = $this->ApiKeysManager->findByKey($token);
-        if (!$this->key) {
+        $key = $this->ApiKeysManager->findByKey($token);
+        if (!$key) {
             SimpleRouter::response()->httpCode(401);
             return $this->jsonResponse(['status' => 'error', 'message' => 'Invalid API key']);
         }
 
-        $this->ApiKeysManager->markUsed($this->key["id"], $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+        $this->ApiKeysManager->markUsed($key["id"], $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
-        if (!$this->key['permissions']['contacts'] ?? null) {
+        if (!is_array($key['permissions']['contacts'] ?? null)) {
             SimpleRouter::response()->httpCode(403);
             return $this->jsonResponse(['status' => 'error', 'message' => 'API key does not have contacts permissions']);
         }
 
-        return true;
+        return $key;
     }
 
     public function Sync(): string
     {
-        if (($result = $this->checkAuth()) !== true) {
-            return $result;
+        $key = $this->checkAuth();
+        if (is_string($key)) {
+            return $key;
         }
 
-        $account_id = $this->key['account_id'];
-        $permissions = $this->key['permissions']['contacts'];
+        $account_id = $key['account_id'];
+        $permissions = $key['permissions']['contacts'];
 
         $request = file_get_contents('php://input');
         try {
@@ -193,7 +192,7 @@ class ApiContactsController
         }
 
         // Tell new data to the client
-        $last_sync_at = $this->key['last_succeed_contacts_sync_at'] ?? 0;
+        $last_sync_at = $key['last_succeed_contacts_sync_at'] ?? 0;
 
         $response = [
             'status' => 'OK',
@@ -209,7 +208,7 @@ class ApiContactsController
             }
         }
 
-        $this->updateLastSyncAt();
+        $this->updateLastSyncAt($key);
 
         return $this->jsonResponse($response);
     }
@@ -249,9 +248,9 @@ class ApiContactsController
         return true;
     }
 
-    private function updateLastSyncAt(): void
+    private function updateLastSyncAt(array $key): void
     {
-        $this->ApiKeysManager->updateKey($this->key['id'], [
+        $this->ApiKeysManager->updateKey($key['id'], [
             'last_succeed_contacts_sync_at' => new UTCDateTime((int) (microtime(true) * 1000)),
         ]);
     }

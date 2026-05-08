@@ -54,7 +54,6 @@ class AccountsController
         'WelcomeGuest',
     ];
 
-    private ?string $default_viewer = null;
     private StellarSDK $Stellar;
     private Container $Container;
     private CurrentUser $CurrentUser;
@@ -73,10 +72,6 @@ class AccountsController
         $this->Twig = $Twig;
 
         $this->Stellar = $Stellar;
-
-        if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
-            $this->default_viewer = $_COOKIE['default_viewer'];
-        }
 
         $this->Container = $Container;
         $this->CurrentUser = $CurrentUser;
@@ -167,9 +162,10 @@ class AccountsController
         }
 
         if (!isset($_SERVER['HTTP_REFERER']) || !str_contains($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST'])) {
-            if ($this->default_viewer === 'eurmtl') {
+            $default_viewer = $this->resolveDefaultViewer();
+            if ($default_viewer === 'eurmtl') {
                 SimpleRouter::response()->redirect('https://viewer.eurmtl.me/account/' . $Account->getId(), 302);
-            } elseif ($this->default_viewer === 'brainbox') {
+            } elseif ($default_viewer === 'brainbox') {
                 SimpleRouter::response()->redirect('https://bsn.brainbox.no/accounts/' . $Account->getId(), 302);
             }
         }
@@ -378,6 +374,13 @@ class AccountsController
             'multisig_participations' => $multisig_participations,
             'mtla_program_page_url' => $mtla_program_page_url,
         ]);
+    }
+
+    private function resolveDefaultViewer(): ?string
+    {
+        $default_viewer = $_COOKIE['default_viewer'] ?? null;
+
+        return is_string($default_viewer) && $default_viewer !== '' ? $default_viewer : null;
     }
 
     private function countTagLinks(array $tags): int

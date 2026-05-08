@@ -49,7 +49,6 @@ class WebApp
         'FactionMember',
         'WelcomeGuest',
     ];
-    private ?string $default_viewer = null;
     private Container $Container;
 
     public function __construct(
@@ -69,10 +68,6 @@ class WebApp
         $this->Container = $Container;
         $this->CurrentUser = $CurrentUser;
         $this->CurrentContacts = $CurrentContacts;
-
-        if (isset($_COOKIE['default_viewer']) && $_COOKIE['default_viewer']) {
-            $this->default_viewer = $_COOKIE['default_viewer'];
-        }
     }
 
     public function Search(): ?string
@@ -177,6 +172,7 @@ class WebApp
         $current_account_input_value = $this->CurrentUser->isAuthorized() ? '' : $current_account_value;
         $current_language = $Translator->getLocale();
         $current_show_unknown_tags = $this->CurrentUser->getShowUnknownTags();
+        $current_default_viewer = $this->resolveDefaultViewer();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $current_account_action = trim((string) ($_POST['current_account_action'] ?? ''));
@@ -193,7 +189,7 @@ class WebApp
             $variants = ['this', 'eurmtl', 'brainbox'];
             $viewer_input = (string) ($_POST['viewer'] ?? '');
             $viewer = in_array($viewer_input, $variants, true) ? $viewer_input : '';
-            $this->default_viewer = $viewer;
+            $current_default_viewer = $viewer;
             setcookie(
                 'default_viewer',
                 $viewer,
@@ -269,7 +265,7 @@ class WebApp
         $current_account_options = $this->buildCurrentAccountOptions();
 
         return $Template->render([
-            'current_value' => $this->default_viewer,
+            'current_value' => $current_default_viewer,
             'current_language' => $current_language,
             'current_show_unknown_tags' => $current_show_unknown_tags,
             'account' => $Account ? $this->CurrentContacts->serialize($Account) : [],
@@ -279,6 +275,13 @@ class WebApp
             'current_account_options' => $current_account_options,
             'current_account_error' => $current_account_error,
         ]);
+    }
+
+    private function resolveDefaultViewer(): ?string
+    {
+        $default_viewer = $_COOKIE['default_viewer'] ?? null;
+
+        return is_string($default_viewer) && $default_viewer !== '' ? $default_viewer : null;
     }
 
     public function WhoAreYou(): string

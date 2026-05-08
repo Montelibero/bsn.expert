@@ -22,7 +22,6 @@ class SignController
     private BSN $BSN;
     private Environment $Twig;
 
-    private ?string $default_viewer = null;
     private StellarSDK $Stellar;
 
     private Container $Container;

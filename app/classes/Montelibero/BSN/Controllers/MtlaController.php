@@ -8,6 +8,7 @@ use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MTLA\CalcDelegations\CalcVoices;
 use Montelibero\BSN\MTLA\MtlaProgramReportService;
 use Montelibero\BSN\Relations\Member;
+use Montelibero\BSN\RequestLocale;
 use Soneso\StellarSDK\ChangeTrustOperationBuilder;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
@@ -40,6 +41,7 @@ class MtlaController implements RefreshDataCodeInterface
     private CurrentUser $CurrentUser;
     private SignController $SignController;
     private MongoCacheManager $CacheManager;
+    private RequestLocale $RequestLocale;
 
     public function __construct(
         BSN $BSN,
@@ -48,7 +50,8 @@ class MtlaController implements RefreshDataCodeInterface
         MtlaProgramReportService $ReportService,
         CurrentUser $CurrentUser,
         SignController $SignController,
-        MongoCacheManager $CacheManager
+        MongoCacheManager $CacheManager,
+        RequestLocale $RequestLocale
     ) {
         $this->BSN = $BSN;
 
@@ -59,6 +62,7 @@ class MtlaController implements RefreshDataCodeInterface
         $this->CurrentUser = $CurrentUser;
         $this->SignController = $SignController;
         $this->CacheManager = $CacheManager;
+        $this->RequestLocale = $RequestLocale;
     }
 
     public function Mtla(): ?string
@@ -172,12 +176,7 @@ class MtlaController implements RefreshDataCodeInterface
 
     private function resolveAgreementUrl(): string
     {
-        $locale = $_COOKIE['language'] ?? null;
-        if (!$locale) {
-            $locale = stripos($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '', 'ru') !== false ? 'ru' : 'en';
-        }
-
-        return $locale === 'ru'
+        return $this->RequestLocale->getLocale() === 'ru'
             ? 'https://docs.mtla.me/Agreement/Agreement.ru.html'
             : 'https://docs.mtla.me/Agreement/Agreement.en.html';
     }
