@@ -40,11 +40,13 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Development with FrankenPHP classic mode
 FROM base AS dev
+ENV APP_ENV=dev
 COPY app/php-dev.ini /usr/local/etc/php/conf.d/zz-env.ini
 CMD ["sh", "-c", "composer install --no-dev --optimize-autoloader && sh /var/www/html/init.sh && exec frankenphp run --config /etc/caddy/Caddyfile"]
 
 # Production with FrankenPHP classic mode
 FROM base AS prod
+ENV APP_ENV=prod
 COPY app/php-prod.ini /usr/local/etc/php/conf.d/zz-env.ini
 
 COPY app/composer.json app/composer.lock ./

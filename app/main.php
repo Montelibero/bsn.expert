@@ -226,7 +226,11 @@ $ContainerBuilder->addDefinitions([
     },
 
     Environment::class => function(Container $container) use ($CurrentUser) {
-        $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'));
+        $is_prod = getenv('APP_ENV') === 'prod';
+        $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'), [
+            'cache' => $is_prod ? '/tmp/bsn-twig-cache' : false,
+            'auto_reload' => !$is_prod,
+        ]);
         $twig->addExtension(new TwigExtension($container->get(Translator::class)));
         $twig->addExtension(new TranslationExtension($container->get(Translator::class)));
         $twig->addExtension(new TwigPluralizeExtension($container->get(Translator::class)));
