@@ -5,6 +5,3 @@ services:
   app-cron:
     build:
       target: prod
-  web:
-    build:
-      target: prod

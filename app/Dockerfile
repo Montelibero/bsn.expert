@@ -15,49 +15,35 @@ COPY fontawesome.json ./
 COPY tools/fontawesome ./tools/fontawesome
 RUN npm run fa_build
 
-FROM php:8.5-fpm-alpine AS base
+FROM dunglas/frankenphp:1-php8.5-bookworm AS base
 
 WORKDIR /var/www/html
 
-RUN apk add --no-cache \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    libzip-dev \
-    libmemcached-dev \
-    openssl-dev \
-    icu-dev \
-    cyrus-sasl-dev \
-    zlib-dev \
-    curl-dev \
-    oniguruma-dev \
-    autoconf \
-    g++ \
-    make \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends cron unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && install-php-extensions \
+        apcu \
         bcmath \
         curl \
         gd \
         intl \
+        memcached \
+        mongodb \
         pcntl \
-    && pecl install apcu \
-    && pecl install memcached \
-    && pecl install mongodb \
-    && docker-php-ext-enable apcu memcached mongodb
+        zip
 
 COPY app/custom-php.ini /usr/local/etc/php/conf.d/99-custom.ini
-
-COPY app/php-fpm-logs.conf /usr/local/etc/php-fpm.d/zz-logs.conf
+COPY app/Caddyfile /etc/caddy/Caddyfile
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Development
+# Development with FrankenPHP classic mode
 FROM base AS dev
 COPY app/php-dev.ini /usr/local/etc/php/conf.d/zz-env.ini
-CMD ["sh", "-c", "sh /var/www/html/init.sh && composer install --no-dev --optimize-autoloader && php-fpm"]
+CMD ["sh", "-c", "composer install --no-dev --optimize-autoloader && sh /var/www/html/init.sh && exec frankenphp run --config /etc/caddy/Caddyfile"]
 
-# Production
+# Production with FrankenPHP classic mode
 FROM base AS prod
 COPY app/php-prod.ini /usr/local/etc/php/conf.d/zz-env.ini
 
@@ -66,9 +52,22 @@ RUN --mount=type=cache,target=/root/.composer/cache \
     composer install --no-dev --prefer-dist --no-interaction --no-scripts --no-autoloader
 
 COPY app/ .
+COPY --from=fa-assets /build/app/fontawesome ./fontawesome
 COPY --from=fa-assets /build/app/twig/fontawesome_link.twig twig/fontawesome_link.twig
 
 RUN composer dump-autoload --apcu
 RUN chmod +x /var/www/html/init.sh /var/www/html/cron/start-cron.sh
+RUN find /var/www/html -type f \( \
+        -name '*.css' -o \
+        -name '*.html' -o \
+        -name '*.js' -o \
+        -name '*.json' -o \
+        -name '*.mjs' -o \
+        -name '*.svg' -o \
+        -name '*.toml' -o \
+        -name '*.ttf' -o \
+        -name '*.txt' -o \
+        -name '*.xml' \
+    \) -exec sh -c 'for file do gzip -kf -9 "$file" && touch -r "$file" "$file.gz"; done' sh {} +
 
-CMD ["sh", "-c", "sh /var/www/html/init.sh && php-fpm -F"]
+CMD ["sh", "-c", "sh /var/www/html/init.sh && exec frankenphp run --config /etc/caddy/Caddyfile"]

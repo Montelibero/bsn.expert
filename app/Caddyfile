@@ -1,0 +1,79 @@
+{
+	servers {
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		client_ip_headers CF-Connecting-IP X-Forwarded-For
+	}
+}
+
+:80 {
+	root * /var/www/html
+	encode zstd gzip
+
+	log {
+		output stdout
+		format json
+	}
+
+	route {
+		@subdomain header_regexp subdomain Host ^(.+)\.bsn\.expert(?::\d+)?$
+		redir @subdomain https://bsn.expert/@{re.subdomain.1} 301
+
+		@xmlrpc path /xmlrpc.php
+		respond @xmlrpc 404
+
+		@hidden path /.ht* */.ht*
+		respond @hidden 403
+
+		handle /robots.txt {
+			header Cache-Control "public, max-age=300"
+			file_server
+		}
+
+		handle /.well-known/stellar.toml {
+			header Access-Control-Allow-Origin "*"
+			header Content-Type "text/plain"
+			file_server
+		}
+
+		rewrite /known_tags.json /known_tags/index.php?lang=en
+
+		@knownTags path_regexp knownTags ^/known_tags\.([a-z][a-z])\.json$
+		rewrite @knownTags /known_tags/index.php?lang={re.knownTags.1}
+
+		handle /json {
+			root * /var/www/bsn
+			rewrite * /bsn.json.gz
+			header Access-Control-Allow-Origin "*"
+			header Content-Type "application/json"
+			header Content-Encoding "gzip"
+			header Content-Disposition "inline; filename=\"bsn.json\""
+			file_server
+		}
+
+		handle /html {
+			root * /var/www/bsn
+			rewrite * /bsn.html.gz
+			header Content-Type "text/html"
+			header Content-Encoding "gzip"
+			file_server
+		}
+
+		@static path_regexp static (?i)\.(?:css|js|mjs|map|json|svg|ico|png|jpe?g|gif|webp|avif|woff2?|ttf|otf|eot|txt|xml|toml)$
+		handle @static {
+			header Cache-Control "public, max-age=2592000"
+			file_server {
+				precompressed gzip
+			}
+		}
+
+		header Access-Control-Allow-Origin "*"
+		try_files {path} /main.php?{query}
+
+		@php path *.php
+		php @php
+
+		file_server {
+			precompressed gzip
+		}
+	}
+}

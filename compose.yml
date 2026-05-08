@@ -7,10 +7,12 @@ services:
     build:
       context: .
       dockerfile: app/Dockerfile
+    ports:
+      - "44077:80"
     volumes:
       - bsn_shared_data:/var/www/bsn
     expose:
-      - "9000"  # php-fpm
+      - "80"
     env_file:
       - .env
     depends_on:
@@ -22,6 +24,8 @@ services:
       context: .
       dockerfile: app/Dockerfile
     command: ["sh", "/var/www/html/cron/start-cron.sh"]
+    healthcheck:
+      test: ["NONE"]
     volumes:
       - bsn_shared_data:/var/www/bsn
     env_file:
@@ -29,17 +33,6 @@ services:
     depends_on:
       - cache
       - mongo
-
-  web:
-    build:
-      context: .
-      dockerfile: web/Dockerfile
-    ports:
-      - "44077:80"
-    depends_on:
-      - app
-    volumes:
-      - bsn_shared_data:/var/www/bsn
 
   mongo:
     image: mongo:7
