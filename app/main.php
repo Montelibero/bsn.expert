@@ -196,7 +196,7 @@ $BSN->loadMtlaMembersFromJson($mtla_members);
 $BSN->loadContacts();
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
-$CurrentUser = new CurrentUser($_SESSION, $BSN);
+$CurrentUser = new CurrentUser($BSN);
 
 $ContainerBuilder = new ContainerBuilder();
 $ContainerBuilder->addDefinitions([

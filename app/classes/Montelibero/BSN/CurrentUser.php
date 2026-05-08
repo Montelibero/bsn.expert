@@ -6,8 +6,6 @@ use Montelibero\BSN\Relations\Member;
 
 class CurrentUser
 {
-    private array $session;
-
     private const SESSION_ACCOUNT_KEY = 'account';
     private const SESSION_CURRENT_ACCOUNT_KEY = 'current_account_id';
     private const SESSION_HISTORY_KEY = 'current_account_history';
@@ -16,13 +14,16 @@ class CurrentUser
     private BSN $BSN;
     private ?string $request_current_account_id = null;
 
-    public function __construct(array &$session, BSN $BSN)
+    public function __construct(BSN $BSN)
     {
-        $this->session = & $session;
         $this->BSN = $BSN;
+        $this->beginRequest();
+    }
 
-        if (!isset($this->session[self::SESSION_HISTORY_KEY]) || !is_array($this->session[self::SESSION_HISTORY_KEY])) {
-            $this->session[self::SESSION_HISTORY_KEY] = [];
+    public function beginRequest(): void
+    {
+        if (!isset($this->session()[self::SESSION_HISTORY_KEY]) || !is_array($this->session()[self::SESSION_HISTORY_KEY])) {
+            $this->session()[self::SESSION_HISTORY_KEY] = [];
         }
 
         $previous_current_account_id = $this->getCurrentAccountIdWithoutRequestParam();
@@ -40,7 +41,7 @@ class CurrentUser
 
     public function getAccountId(): ?string
     {
-        return $this->session[self::SESSION_ACCOUNT_KEY]['id'] ?? null;
+        return $this->session()[self::SESSION_ACCOUNT_KEY]['id'] ?? null;
     }
 
     public function isAuthorized(): bool
@@ -84,7 +85,7 @@ class CurrentUser
             return true;
         }
 
-        return (bool) ($this->session['show_telegram_usernames'] ?? false);
+        return (bool) ($this->session()['show_telegram_usernames'] ?? false);
     }
 
     public function getShowUnknownTags(): bool
@@ -103,7 +104,7 @@ class CurrentUser
 
     private function getCurrentAccountIdWithoutRequestParam(): ?string
     {
-        $explicit = $this->session[self::SESSION_CURRENT_ACCOUNT_KEY] ?? null;
+        $explicit = $this->session()[self::SESSION_CURRENT_ACCOUNT_KEY] ?? null;
         if ($explicit) {
             return $explicit;
         }
@@ -164,7 +165,7 @@ class CurrentUser
             return false;
         }
 
-        $this->session[self::SESSION_CURRENT_ACCOUNT_KEY] = $account_id ?: null;
+        $this->session()[self::SESSION_CURRENT_ACCOUNT_KEY] = $account_id ?: null;
 
         if ($account_id) {
             $this->rememberCurrentAccount($account_id);
@@ -188,13 +189,13 @@ class CurrentUser
             return;
         }
 
-        $this->session[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY] = $account_id;
+        $this->session()[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY] = $account_id;
     }
 
     public function consumeAutoCurrentAccountNotice(): ?array
     {
-        $account_id = $this->session[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY] ?? null;
-        unset($this->session[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY]);
+        $account_id = $this->session()[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY] ?? null;
+        unset($this->session()[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY]);
 
         if (!BSN::validateStellarAccountIdFormat($account_id)) {
             return null;
@@ -206,7 +207,7 @@ class CurrentUser
 
     public function getCurrentAccountHistory(): array
     {
-        $history = $this->session[self::SESSION_HISTORY_KEY] ?? [];
+        $history = $this->session()[self::SESSION_HISTORY_KEY] ?? [];
         return array_values(array_filter(array_unique($history)));
     }
 
@@ -216,10 +217,15 @@ class CurrentUser
             return;
         }
 
-        $history = $this->session[self::SESSION_HISTORY_KEY] ?? [];
+        $history = $this->session()[self::SESSION_HISTORY_KEY] ?? [];
         array_unshift($history, $account_id);
         $history = array_slice(array_values(array_unique($history)), 0, self::HISTORY_LIMIT);
-        $this->session[self::SESSION_HISTORY_KEY] = $history;
+        $this->session()[self::SESSION_HISTORY_KEY] = $history;
+    }
+
+    private function &session(): array
+    {
+        return $_SESSION;
     }
 
     private function resolveRequestCurrentAccountId(): ?string
