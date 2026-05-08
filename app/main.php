@@ -231,16 +231,18 @@ $ContainerBuilder->addDefinitions([
 
     Environment::class => function(Container $container) use ($CurrentUser, $SessionView, $ServerView) {
         $is_prod = getenv('APP_ENV') === 'prod';
+        $Translator = $container->get(Translator::class);
         $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'), [
             'cache' => $is_prod ? '/tmp/bsn-twig-cache' : false,
             'auto_reload' => !$is_prod,
         ]);
-        $twig->addExtension(new TwigExtension($container->get(Translator::class)));
-        $twig->addExtension(new TranslationExtension($container->get(Translator::class)));
-        $twig->addExtension(new TwigPluralizeExtension($container->get(Translator::class)));
+        $twig->addExtension(new TwigExtension($Translator));
+        $twig->addExtension(new TranslationExtension($Translator));
+        $twig->addExtension(new TwigPluralizeExtension($Translator));
         $twig->addGlobal('session', $SessionView);
         $twig->addGlobal('server', $ServerView);
         $twig->addGlobal('current_user', $CurrentUser);
+        $twig->addGlobal('app_locale', $Translator->getLocale());
 
         return $twig;
     },

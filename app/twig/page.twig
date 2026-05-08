@@ -1,4 +1,4 @@
-<html lang="en" class="has-navbar-fixed-top">
+<html lang="{{ app_locale|default('en')|e('html_attr') }}" class="has-navbar-fixed-top">
 <head>
     <title>{% block title %}{% endblock %} — BSN viewer</title>
     <meta charset="utf-8">
