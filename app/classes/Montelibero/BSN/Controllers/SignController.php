@@ -117,11 +117,16 @@ class SignController
          *  Тогда не отображаем TX, но показываем кнопы подписать и QR
          */
 
-        $Template = $this->Twig->load('signing.twig');
-        return $Template->render($this->buildSigningTemplateData($xdr, $uri, $description));
+        return $this->renderSigningTemplateData($this->buildSigningTemplateData($xdr, $uri, $description));
     }
 
-    private function buildSigningTemplateData(?string $xdr, ?string $uri, ?string $description): array
+    public function renderSigningTemplateData(array $data): string
+    {
+        $Template = $this->Twig->load('signing.twig');
+        return $Template->render($data);
+    }
+
+    public function buildSigningTemplateData(?string $xdr, ?string $uri, ?string $description): array
     {
         if (!$xdr && !$uri) {
             throw new \Exception('No transaction or uri provided');

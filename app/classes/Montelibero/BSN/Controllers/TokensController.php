@@ -21,6 +21,7 @@ use Twig\Environment;
 class TokensController
 {
     private const KNOWN_TOKENS_REFRESH_INTERVAL = 60;
+    private const TOKEN_TRUSTLINE_FORM_CACHE_TTL = 604800; // week
 
     private BSN $BSN;
     private Environment $Twig;
@@ -172,8 +173,36 @@ class TokensController
             $balance['account'] = $this->BSN->makeAccountById($balance['id'])->jsonSerialize();
         }
 
-        // SEP-07 URL to open trustline
-        $ServerKeypair = Keypair::fromSeed($_ENV['SERVER_STELLAR_SECRET_KEY']);
+        $signing_form = $this->buildTokenTrustlineForm($code, $issuer);
+
+        $Template = $this->Twig->load('token.twig');
+        return $Template->render([
+            'code' => $code,
+            'issuer' => $Issuer->jsonSerialize(),
+            'holders_count' => $holders_count,
+            'issued' => $issued,
+            'category' => $category,
+            'category_name' => $category_name,
+            'offer_link' => $offer_link,
+            'add_trustline_form' => $signing_form,
+            'holders' => $holders,
+        ]);
+    }
+
+    private function buildTokenTrustlineForm(string $code, string $issuer): string
+    {
+        $cache_key = sprintf(
+            'token_trustline_form:v2:%s:%s',
+            $issuer,
+            $code
+        );
+        $cached = apcu_fetch($cache_key);
+        $SignController = $this->Container->get(SignController::class);
+        if (is_array($cached)) {
+            return $SignController->renderSigningTemplateData($cached);
+        }
+
+        $ServerKeypair = KeyPair::fromSeed($_ENV['SERVER_STELLAR_SECRET_KEY']);
         $StellarAccount = new \Soneso\StellarSDK\Account($ServerKeypair->getAccountId(), new BigInteger(0));
         $Transaction = new TransactionBuilder($StellarAccount);
         $Operation = new ChangeTrustOperationBuilder(Asset::createNonNativeAsset($code, $issuer));
@@ -189,20 +218,10 @@ class TokensController
         );
         $uri_signed = SignController::signSep07Uri($uri, $ServerKeypair);
 
-        $signing_form = $this->Container->get(SignController::class)->SignTransaction(null, $uri_signed);
+        $signing_data = $SignController->buildSigningTemplateData(null, $uri_signed, null);
+        apcu_store($cache_key, $signing_data, self::TOKEN_TRUSTLINE_FORM_CACHE_TTL);
 
-        $Template = $this->Twig->load('token.twig');
-        return $Template->render([
-            'code' => $code,
-            'issuer' => $Issuer->jsonSerialize(),
-            'holders_count' => $holders_count,
-            'issued' => $issued,
-            'category' => $category,
-            'category_name' => $category_name,
-            'offer_link' => $offer_link,
-            'add_trustline_form' => $signing_form,
-            'holders' => $holders,
-        ]);
+        return $SignController->renderSigningTemplateData($signing_data);
     }
 
     public function reloadKnownTokens(): void
