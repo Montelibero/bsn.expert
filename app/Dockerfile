@@ -38,15 +38,19 @@ COPY app/Caddyfile /etc/caddy/Caddyfile
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Development with FrankenPHP classic mode
+# Development with FrankenPHP worker mode
 FROM base AS dev
-ENV APP_ENV=dev
+ENV APP_ENV=dev \
+    FRANKENPHP_WORKER_NUM=1 \
+    MAX_REQUESTS=200
 COPY app/php-dev.ini /usr/local/etc/php/conf.d/zz-env.ini
 CMD ["sh", "-c", "composer install --no-dev --optimize-autoloader && sh /var/www/html/init.sh && exec frankenphp run --config /etc/caddy/Caddyfile"]
 
-# Production with FrankenPHP classic mode
+# Production with FrankenPHP worker mode
 FROM base AS prod
-ENV APP_ENV=prod
+ENV APP_ENV=prod \
+    FRANKENPHP_WORKER_NUM=8 \
+    MAX_REQUESTS=1000
 COPY app/php-prod.ini /usr/local/etc/php/conf.d/zz-env.ini
 
 COPY app/composer.json app/composer.lock ./

@@ -3,11 +3,16 @@
 namespace Montelibero\BSN;
 
 use DI\Container;
+use Pecee\Http\Request;
 use Pecee\SimpleRouter\SimpleRouter;
+use ReflectionProperty;
 use Symfony\Component\Translation\Translator;
 
 class ApplicationContext
 {
+    private static ?ReflectionProperty $RouterRequestProperty = null;
+    private static ?ReflectionProperty $RouterResponseProperty = null;
+
     public function __construct(
         public readonly Container $Container,
         public readonly RequestSession $RequestSession,
@@ -24,6 +29,7 @@ class ApplicationContext
     {
         try {
             $this->syncRequestContext();
+            $this->refreshRouterRequest();
             SimpleRouter::start();
         } finally {
             $this->RequestSession->endRequest();
@@ -39,5 +45,18 @@ class ApplicationContext
         $this->Translator->setLocale($this->RequestLocale->getLocale());
         $this->CurrentUser->beginRequest();
         $this->CurrentContacts->beginRequest();
+    }
+
+    private function refreshRouterRequest(): void
+    {
+        $router = SimpleRouter::router();
+
+        $RequestProperty = self::$RouterRequestProperty ??= new ReflectionProperty($router, 'request');
+        $RequestProperty->setAccessible(true);
+        $RequestProperty->setValue($router, new Request());
+
+        $ResponseProperty = self::$RouterResponseProperty ??= new ReflectionProperty(SimpleRouter::class, 'response');
+        $ResponseProperty->setAccessible(true);
+        $ResponseProperty->setValue(null, null);
     }
 }

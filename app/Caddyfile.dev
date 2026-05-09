@@ -77,8 +77,14 @@
 		php @php {
 			worker {
 				file /var/www/html/worker.php
-				num {$FRANKENPHP_WORKER_NUM:8}
+				num 1
 				match /main.php
+				watch /var/www/html/*.php
+				watch /var/www/html/**/*.php
+				watch /var/www/html/**/*.twig
+				watch /var/www/html/**/*.yaml
+				watch /var/www/html/**/*.yml
+				watch /var/www/html/known_tags/**/*.json
 			}
 		}
 
