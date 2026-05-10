@@ -10,6 +10,7 @@ nav:
   tokens: Токены
   transactions: Транзакции
   tags: Теги
+  profile: Профиль
   documents: Документы
   editor: Редактор
   graph: Граф
@@ -1172,6 +1173,8 @@ editor_profile:
   account: Редактируем профиль аккаунта
   save: Сохранить (подготовить транзакцию)
   add_row: Добавить строку
+  show_all_fields: Отобразить все поля
+  hide_extra_fields: Скрыть нестандартные поля
   no_extra_tags: Других профильных DATA сейчас нет.
   single_extra_warning: Это единичный тег, несколько строк не поддерживается.
   signing_notice: Транзакция подготовлена по свежим данным аккаунта из блокчейна.

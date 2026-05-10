@@ -117,6 +117,7 @@
     {% if current_account_param %}
         <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
     {% endif %}
+    <input type="hidden" name="show_all_fields" value="{% if show_all_fields %}yes{% else %}no{% endif %}">
 
     <div class="field is-grouped mb-5">
         <div class="control">
@@ -124,6 +125,19 @@
                 <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
                 <span>{{ 'editor_profile.save'|trans }}</span>
             </button>
+        </div>
+        <div class="control">
+            {% if show_all_fields %}
+                <button type="submit" name="action" value="hide_extra_fields" class="button">
+                    <span class="icon"><i class="fa-solid fa-eye-slash"></i></span>
+                    <span>{{ 'editor_profile.hide_extra_fields'|trans }}</span>
+                </button>
+            {% else %}
+                <button type="submit" name="action" value="show_all_fields" class="button">
+                    <span class="icon"><i class="fa-solid fa-list"></i></span>
+                    <span>{{ 'editor_profile.show_all_fields'|trans }}</span>
+                </button>
+            {% endif %}
         </div>
     </div>
 
@@ -133,6 +147,7 @@
         {% endif %}
     {% endfor %}
 
+    {% if show_all_fields %}
     <hr>
 
     {% for group in profile_groups %}
@@ -172,6 +187,7 @@
             <p class="help">{{ 'editor_profile.custom_tag.help'|trans }}</p>
         {% endif %}
     </section>
+    {% endif %}
 
     <div class="field is-grouped">
         <div class="control">

@@ -10,6 +10,7 @@ nav:
   tokens: Tokens
   transactions: Transactions
   tags: Tags
+  profile: Profile
   documents: Documents
   editor: Editor
   graph: Graph
@@ -1170,6 +1171,8 @@ editor_profile:
   account: Editing profile for
   save: Save (prepare transaction)
   add_row: Add row
+  show_all_fields: Show all fields
+  hide_extra_fields: Hide custom fields
   no_extra_tags: There are no other profile DATA entries right now.
   single_extra_warning: This is a single tag; multiple rows are not supported.
   signing_notice: The transaction was prepared against fresh account data from the blockchain.

@@ -3,6 +3,9 @@
     <title>{% block title %}{% endblock %} — BSN viewer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% if robots_meta %}
+    <meta name="robots" content="{{ robots_meta }}">
+    {% endif %}
     {% if og_title %}
     <meta property="og:type" content="profile" />
     <meta property="og:site_name" content="{{ 'common.full_name'|trans }}" />
@@ -88,10 +91,20 @@
                 </div>
             </div>
 
-            <a class="navbar-item" href="/editor/">
-                <i class="fa-regular fa-square-check"></i>
-                {{ 'nav.editor'|trans }}
-            </a>
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link" href="/editor/">
+                    <i class="fa-regular fa-square-check"></i>
+                    {{ 'nav.editor'|trans }}
+                </a>
+                <div class="navbar-dropdown">
+                    <a class="navbar-item" href="/editor/">
+                        {{ 'nav.tags'|trans }}
+                    </a>
+                    <a class="navbar-item" href="/editor/profile">
+                        {{ 'nav.profile'|trans }}
+                    </a>
+                </div>
+            </div>
 
             <a class="navbar-item" href="/graph">
                 <i class="fa-solid fa-diagram-project"></i>

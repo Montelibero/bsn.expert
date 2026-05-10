@@ -47,9 +47,10 @@ class ProfileEditorController
 
         $raw_data = $this->fetchAccountData($account_id);
         $fresh_profile = $this->parseProfileData($raw_data);
+        $show_all_fields = $this->shouldShowAllFields();
         $form_profile = $_SERVER['REQUEST_METHOD'] === 'POST'
-            ? $this->buildProfileFromPost($fresh_profile)
-            : $this->buildInitialFormProfile($fresh_profile);
+            ? $this->buildProfileFromPost($fresh_profile, $show_all_fields)
+            : $this->buildInitialFormProfile($fresh_profile, $show_all_fields);
 
         $custom_tag_value = $this->getCustomTagInput();
         $custom_tag_error = null;
@@ -99,7 +100,8 @@ class ProfileEditorController
             $custom_tag_error,
             $errors,
             $signing_form,
-            $no_changes
+            $no_changes,
+            $show_all_fields
         );
     }
 
@@ -111,6 +113,7 @@ class ProfileEditorController
         array $errors,
         ?string $signing_form,
         bool $no_changes,
+        bool $show_all_fields,
     ): string {
         $Template = $this->Twig->load('editor_profile.twig');
 
@@ -126,11 +129,16 @@ class ProfileEditorController
             'no_changes' => $no_changes,
             'max_value_bytes' => self::MAX_DATA_VALUE_BYTES,
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
+            'show_all_fields' => $show_all_fields,
         ]);
     }
 
-    private function buildInitialFormProfile(array $profile): array
+    private function buildInitialFormProfile(array $profile, bool $show_all_fields): array
     {
+        if (!$show_all_fields) {
+            $profile = array_intersect_key($profile, array_fill_keys(self::PRIMARY_TAGS, true));
+        }
+
         foreach (self::PRIMARY_TAGS as $tag_name) {
             $profile[$tag_name] ??= $this->makeProfileGroup($tag_name, ['']);
             if (!$profile[$tag_name]['values']) {
@@ -141,7 +149,7 @@ class ProfileEditorController
         return $profile;
     }
 
-    private function buildProfileFromPost(array $fresh_profile): array
+    private function buildProfileFromPost(array $fresh_profile, bool $show_all_fields): array
     {
         $profile = [];
         foreach ($_POST['profile'] ?? [] as $tag_name => $values) {
@@ -149,11 +157,20 @@ class ProfileEditorController
             if ($tag_name === null) {
                 continue;
             }
+            if (!$show_all_fields && !in_array($tag_name, self::PRIMARY_TAGS, true)) {
+                continue;
+            }
 
             $profile[$tag_name] = $this->makeProfileGroup(
                 $tag_name,
                 array_values(array_map('strval', (array) $values))
             );
+        }
+
+        if ($show_all_fields) {
+            foreach ($fresh_profile as $tag_name => $group) {
+                $profile[$tag_name] ??= $group;
+            }
         }
 
         foreach (self::PRIMARY_TAGS as $tag_name) {
@@ -166,6 +183,24 @@ class ProfileEditorController
         }
 
         return $profile;
+    }
+
+    private function shouldShowAllFields(): bool
+    {
+        $action = (string) ($_POST['action'] ?? '');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if ($action === 'show_all_fields' || $action === 'add_custom_tag') {
+                return true;
+            }
+            if ($action === 'hide_extra_fields') {
+                return false;
+            }
+
+            return ($_POST['show_all_fields'] ?? '') === 'yes';
+        }
+
+        return ($_GET['show_all_fields'] ?? '') === 'yes';
     }
 
     private function normalizeDesiredProfile(array $profile): array
