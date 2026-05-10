@@ -3,9 +3,6 @@
     <title>{% block title %}{% endblock %} — BSN viewer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {% if robots_meta %}
-    <meta name="robots" content="{{ robots_meta }}">
-    {% endif %}
     {% if og_title %}
     <meta property="og:type" content="profile" />
     <meta property="og:site_name" content="{{ 'common.full_name'|trans }}" />

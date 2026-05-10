@@ -15,6 +15,10 @@
 	}
 
 	route {
+		# Ban abusive User-Agent substrings before PHP starts.
+		@mj12bot header User-Agent *http://mj12bot.com/*
+		respond @mj12bot 403
+
 		@subdomain header_regexp subdomain Host ^(.+)\.bsn\.expert(?::\d+)?$
 		redir @subdomain https://bsn.expert/@{re.subdomain.1} 301
 
