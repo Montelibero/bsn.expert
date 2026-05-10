@@ -8,6 +8,10 @@
 :80 {
 	root * /var/www/html
 	encode zstd gzip
+	header {
+		-X-Powered-By
+		Server "Caddy"
+	}
 
 	log {
 		output stdout
