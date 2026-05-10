@@ -5,6 +5,8 @@ Disallow: /editor/?*
 Disallow: /graph
 Disallow: /login?*
 Disallow: /login/?*
+Disallow: /login/manual?*
+Disallow: /login/manual/?*
 Disallow: /transactions
 Disallow: /who_are_you
 Disallow: /*/edit_tags
