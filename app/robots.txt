@@ -1,9 +1,12 @@
 User-agent: *
-Allow: /
-Disallow: /sign
-
-User-agent: GPTBot
-Disallow: /
-
-User-agent: ClaudeBot
-Disallow: /
+Disallow: /api
+Disallow: /editor?*
+Disallow: /editor/?*
+Disallow: /graph
+Disallow: /login?*
+Disallow: /login/?*
+Disallow: /transactions
+Disallow: /who_are_you
+Disallow: /*/edit_tags
+Disallow: /tokens/*-*
+Crawl-delay: 10
