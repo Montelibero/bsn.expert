@@ -45,6 +45,11 @@ class MtlaDmReportController implements RefreshDataCodeInterface
             ),
             $force_refresh
         );
+        $programs['items'] = $this->attachProgramTurnover($programs['items'], $snapshot);
+        $programs['problem_items'] = array_values(array_filter(
+            $programs['items'],
+            static fn(array $item): bool => $item['has_issues']
+        ));
         $activists = $this->ReportService->collectActivists($programs['memberships'], $snapshot);
 
         if ($force_refresh) {
@@ -93,6 +98,44 @@ class MtlaDmReportController implements RefreshDataCodeInterface
             'programs' => $programs['items'],
             'problem_programs' => $programs['problem_items'],
         ]);
+    }
+
+    private function attachProgramTurnover(array $programs, array $snapshot): array
+    {
+        foreach ($programs as &$program) {
+            $program_id = $program['data']['id'] ?? null;
+            $program_outgoing = is_string($program_id)
+                ? (array) ($snapshot['program_outgoing_totals'][$program_id] ?? [])
+                : [];
+
+            $turnover_total = 0.0;
+            $turnover_participants = 0;
+
+            foreach ($program['participants'] as $participant) {
+                $asset_key = null;
+                if (!empty($participant['tt_code']) && !empty($participant['tt_issuer'])) {
+                    $asset_key = $participant['tt_code'] . '-' . $participant['tt_issuer'];
+                }
+
+                if ($asset_key === null) {
+                    continue;
+                }
+
+                $amount = (float) ($program_outgoing[$asset_key] ?? 0.0);
+                if ($amount <= 0.0) {
+                    continue;
+                }
+
+                $turnover_total += $amount;
+                $turnover_participants++;
+            }
+
+            $program['turnover_total'] = $turnover_total;
+            $program['turnover_participants'] = $turnover_participants;
+        }
+        unset($program);
+
+        return $programs;
     }
 
     private function buildClipboardPayload(array $items): ?array

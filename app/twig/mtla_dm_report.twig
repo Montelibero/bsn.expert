@@ -275,12 +275,13 @@
     <h2 class="title is-4">{{ 'mtla_dm_report_page.programs.title'|trans }}</h2>
     {% if programs %}
         <div class="table-container block">
-            <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[3,0],[2,1]]">
+            <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[4,0],[2,1]]">
                 <thead>
                 <tr>
                     <th>{{ 'mtla_dm_report_page.programs.table.program'|trans }}</th>
                     <th>{{ 'mtla_dm_report_page.programs.table.coordinator'|trans }}</th>
                     <th data-sorter="digit" class="has-text-right">{{ 'mtla_dm_report_page.programs.table.participants'|trans }}</th>
+                    <th data-sorter="digit" class="has-text-right">{{ 'mtla_dm_report_page.programs.table.turnover'|trans }}</th>
                     <th data-sorter="digit">{{ 'mtla_dm_report_page.programs.table.status'|trans }}</th>
                     <th>{{ 'mtla_dm_report_page.programs.table.broken_outgoing'|trans }}</th>
                 </tr>
@@ -301,6 +302,9 @@
                             {% endif %}
                         </td>
                         <td class="has-text-right">{{ program.participants|length }}</td>
+                        <td class="has-text-right{% if program.turnover_participants == 0 %} has-text-grey{% endif %}" data-text="{{ program.turnover_total }}">
+                            {{ program.turnover_total|round(0, 'floor') }} / {{ program.turnover_participants }}
+                        </td>
                         <td data-text="{{ program.severity }}">
                             <div class="dm-report-issues">
                                 {% if not program.has_issues %}

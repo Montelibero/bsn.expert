@@ -1139,6 +1139,7 @@ mtla_dm_report_page:
       program: Program
       coordinator: Coordinator
       participants: Participants
+      turnover: Turnover
       status: Status
       broken_outgoing: No PartOf
     issues:

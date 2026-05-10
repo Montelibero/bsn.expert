@@ -1141,6 +1141,7 @@ mtla_dm_report_page:
       program: Программа
       coordinator: Координатор
       participants: Участников
+      turnover: Токенооборот
       status: Статус
       broken_outgoing: Нет встречного PartOf
     issues:
