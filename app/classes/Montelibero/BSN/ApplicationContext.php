@@ -32,6 +32,7 @@ class ApplicationContext
             $this->refreshRouterRequest();
             SimpleRouter::start();
         } finally {
+            $this->logServerErrorStatus();
             $this->RequestSession->endRequest();
         }
     }
@@ -58,5 +59,20 @@ class ApplicationContext
         $ResponseProperty = self::$RouterResponseProperty ??= new ReflectionProperty(SimpleRouter::class, 'response');
         $ResponseProperty->setAccessible(true);
         $ResponseProperty->setValue(null, null);
+    }
+
+    private function logServerErrorStatus(): void
+    {
+        $status_code = http_response_code();
+        if (!is_int($status_code) || $status_code < 500) {
+            return;
+        }
+
+        error_log(sprintf(
+            'PHP request finished with HTTP %d: %s %s',
+            $status_code,
+            $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+            $_SERVER['REQUEST_URI'] ?? ''
+        ));
     }
 }

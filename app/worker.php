@@ -10,6 +10,11 @@ $handler = static function () use ($App): void {
         normalizeFrankenPhpWorkerRequest();
         $App->handleRequest();
     } catch (Throwable $Throwable) {
+        error_log(sprintf(
+            'PHP request failed: %s %s',
+            $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+            $_SERVER['REQUEST_URI'] ?? ''
+        ));
         error_log((string) $Throwable);
 
         if (!headers_sent()) {
