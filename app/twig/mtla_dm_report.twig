@@ -275,7 +275,7 @@
     <h2 class="title is-4">{{ 'mtla_dm_report_page.programs.title'|trans }}</h2>
     {% if programs %}
         <div class="table-container block">
-            <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[4,0],[2,1]]">
+            <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[4,0],[3,1]]">
                 <thead>
                 <tr>
                     <th>{{ 'mtla_dm_report_page.programs.table.program'|trans }}</th>
@@ -302,7 +302,7 @@
                             {% endif %}
                         </td>
                         <td class="has-text-right">{{ program.participants|length }}</td>
-                        <td class="has-text-right{% if program.turnover_participants == 0 %} has-text-grey{% endif %}" data-text="{{ program.turnover_total }}">
+                        <td class="has-text-right{% if program.turnover_participants == 0 %} has-text-grey{% endif %}" data-text="{{ program.turnover_participants }}">
                             {{ program.turnover_total|round(0, 'floor') }} / {{ program.turnover_participants }}
                         </td>
                         <td data-text="{{ program.severity }}">
