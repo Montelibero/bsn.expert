@@ -6,23 +6,23 @@
     <div class="columns is-desktop">
         <div class="column">
             <div>
-                <button type="submit" name="action" value="qr" formtarget="_self" class="button is-info is-large is-fullwidth is-justify-content-flex-start mb-3 js-signing-toggle" data-signing-toggle="qr" aria-expanded="false">
+                <button type="submit" name="action" value="qr" formtarget="_self" class="button is-info is-medium is-fullwidth is-justify-content-flex-start mb-3 js-signing-toggle" data-signing-toggle="qr" aria-expanded="false">
                     <span class="icon"><i class="fa-solid fa-qrcode"></i></span>
                     <span>QR</span>
                 </button>
 
-                <a href="{{ uri }}" class="button is-large is-fullwidth is-justify-content-flex-start is-primary mb-3">
+                <a href="{{ uri }}" class="button is-medium is-fullwidth is-justify-content-flex-start is-primary mb-3">
                     <span class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
                     <span>{{ 'editor.sign.sep_07_button_name'|trans }}</span>
                 </a>
 
-                <button type="submit" name="action" value="mmwb" class="button is-large is-fullwidth is-justify-content-flex-start is-link mb-3">
+                <button type="submit" name="action" value="mmwb" class="button is-medium is-fullwidth is-justify-content-flex-start is-link mb-3">
                     <span class="icon"><i class="fa-brands fa-telegram"></i></span>
                     <span>@MyMTLWalletBot</span>
                 </button>
 
                 {% if xdr %}
-                <a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}" target="_blank" class="button is-large is-fullwidth is-justify-content-flex-start is-dark mb-3">
+                <a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}" target="_blank" class="button is-medium is-fullwidth is-justify-content-flex-start is-dark mb-3">
                     <span class="icon"><i class="fa-solid fa-key"></i></span>
                     <span>{{ 'editor.sign.secret_key_button_name'|trans }}</span>
                 </a>
@@ -33,7 +33,7 @@
                         type="submit"
                         name="action"
                         value="eurmtl"
-                        class="button is-large is-fullwidth is-justify-content-flex-start is-warning mb-3"
+                        class="button is-medium is-fullwidth is-justify-content-flex-start is-warning mb-3"
                         {% if not can_collect_multisig %}disabled title="{{ 'editor.sign.collect_multisig_disabled_title'|trans }}"{% endif %}
                     >
                         <span class="icon"><i class="fa-solid fa-signature"></i></span>
@@ -42,7 +42,7 @@
                 {% endif %}
 
                 {% if xdr %}
-                    <button type="submit" name="action" value="xdr" formtarget="_self" class="button is-large is-fullwidth is-justify-content-flex-start is-danger js-signing-toggle" data-signing-toggle="xdr" aria-expanded="false">
+                    <button type="submit" name="action" value="xdr" formtarget="_self" class="button is-medium is-fullwidth is-justify-content-flex-start is-danger js-signing-toggle" data-signing-toggle="xdr" aria-expanded="false">
                         <span class="icon"><i class="fa-solid fa-file-code"></i></span>
                         <span>XDR</span>
                     </button>
