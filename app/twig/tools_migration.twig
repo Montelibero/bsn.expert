@@ -1,0 +1,327 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_migration.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_migration.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_migration.title'|trans }}</h1>
+    <p class="block">{{ 'tools_migration.description'|trans({'%xlm_base%': xlm_base}) }}</p>
+    {% set show_top_reserve_warning = analysis
+        and analysis.reserve.new_entries > 0
+        and analysis.reserve.missing != '0.0000000'
+        and (signing_forms or errors or xdr_warnings)
+    %}
+
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    {% if not signing_forms %}
+        {% for warning in xdr_warnings %}
+            <div class="notification is-warning">{{ warning }}</div>
+        {% endfor %}
+    {% endif %}
+
+    {% if show_top_reserve_warning %}
+        <div class="notification is-warning">
+            {{ 'tools_migration.reserve.missing'|trans({
+                '%required%': analysis.reserve.required_short,
+                '%available%': analysis.reserve.available_short,
+                '%top_up%': analysis.reserve.missing_rounded
+            }) }}
+        </div>
+    {% endif %}
+
+    {% if signing_forms %}
+        <h2 class="title is-3">{{ 'tools_migration.signing.title'|trans }}</h2>
+        {% for warning in xdr_warnings %}
+            <div class="notification is-warning">{{ warning }}</div>
+        {% endfor %}
+        <div class="notification is-info">
+            {{ 'tools_migration.signing.multisig_notice'|trans }}
+        </div>
+        {% if signing_forms|length > 1 %}
+            <div class="notification is-info">
+                {{ 'tools_migration.signing.order_notice'|trans({'%transaction_count%': signing_forms|length}) }}
+            </div>
+        {% endif %}
+        {% for signing_form in signing_forms %}
+            <div class="box">
+                <h3 class="title is-5">{{ 'tools_migration.signing.transaction'|trans({'%number%': loop.index, '%total%': signing_forms|length}) }}</h3>
+                {{ signing_form|raw }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if show_account_form %}
+        <form method="get" action="/tools/migration" class="box">
+            <input type="hidden" name="action" value="analyze">
+            <div class="field">
+                <label class="label" for="source">{{ 'tools_migration.form.source'|trans }}</label>
+                <input class="input is-family-monospace" id="source" name="source" value="{{ source }}" placeholder="G...">
+                <p class="help">{{ 'tools_migration.form.source_hint'|trans }}</p>
+            </div>
+            <div class="field">
+                <label class="label" for="target">{{ 'tools_migration.form.target'|trans }}</label>
+                <input class="input is-family-monospace" id="target" name="target" value="{{ target }}" placeholder="G...">
+                <p class="help">{{ 'tools_migration.form.target_hint'|trans }}</p>
+            </div>
+            <div class="field">
+                <label class="label" for="fee_payer">{{ 'tools_migration.form.fee_payer'|trans }}</label>
+                <div class="select is-fullwidth">
+                    <select id="fee_payer" name="actor">
+                        <option value="source"{% if fee_payer == 'source' %} selected{% endif %}>{{ 'tools_migration.fee_payer.source'|trans }}</option>
+                        <option value="target"{% if fee_payer == 'target' %} selected{% endif %}>{{ 'tools_migration.fee_payer.target'|trans }}</option>
+                    </select>
+                </div>
+                <p class="help">{{ 'tools_migration.form.fee_payer_hint'|trans }}</p>
+            </div>
+            <button class="button is-primary" type="submit">
+                <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                <span>{{ 'tools_migration.form.analyze'|trans }}</span>
+            </button>
+        </form>
+    {% endif %}
+
+    {% if analysis %}
+        <h2 class="title is-2">{{ 'tools_migration.summary_title'|trans }}</h2>
+        <p class="block">
+            {{ 'tools_migration.summary_prefix'|trans }}
+            {{ include('account_link.twig', {data: analysis.source_account}, with_context = false) }}
+            →
+            {{ include('account_link.twig', {data: analysis.target_account}, with_context = false) }}
+            <a
+                class="button is-small"
+                href="/tools/migration?action=analyze&amp;source={{ analysis.source|url_encode }}&amp;target={{ analysis.target|url_encode }}&amp;actor={{ analysis.fee_payer|url_encode }}&amp;show_form=yes"
+            >{{ 'tools_migration.form.edit'|trans }}</a>
+        </p>
+
+        {% if analysis.reserve.new_entries > 0 %}
+            {% if analysis.reserve.missing != '0.0000000' %}
+                {% if not show_top_reserve_warning %}
+                    <div class="notification is-warning block">
+                        {{ 'tools_migration.reserve.missing'|trans({
+                            '%required%': analysis.reserve.required_short,
+                            '%available%': analysis.reserve.available_short,
+                            '%top_up%': analysis.reserve.missing_rounded
+                        }) }}
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="block">
+                    {{ 'tools_migration.reserve.ok'|trans({
+                        '%required%': analysis.reserve.required_short,
+                        '%available%': analysis.reserve.available_short
+                    }) }}
+                </p>
+            {% endif %}
+        {% endif %}
+
+        <form method="post" action="/tools/migration">
+            <input type="hidden" name="source" value="{{ analysis.source }}">
+            <input type="hidden" name="target" value="{{ analysis.target }}">
+            <input type="hidden" name="actor" value="{{ analysis.fee_payer }}">
+            <input type="hidden" name="action" value="build">
+
+            <h3 class="title is-3">{{ 'tools_migration.tokens.title'|trans }}</h3>
+            {% if analysis.tokens %}
+                <div class="field is-grouped is-align-items-center is-hidden" data-migration-bulk-control>
+                    <div class="control">
+                        <label class="label mb-0" for="migration_token_bulk_action">{{ 'tools_migration.bulk.label'|trans }}</label>
+                    </div>
+                    <div class="control is-expanded">
+                        <div class="select is-fullwidth">
+                            <select
+                                id="migration_token_bulk_action"
+                                data-migration-bulk-select
+                                data-target-selector="[data-migration-token-action]"
+                                data-action-order="ignore open open_transfer open_transfer_close"
+                            >
+                                {% for action in ['ignore', 'open', 'open_transfer', 'open_transfer_close'] %}
+                                    <option value="{{ action }}">{{ ('tools_migration.tokens.actions.' ~ action)|trans }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns is-multiline">
+                    {% for token in analysis.tokens %}
+                        {% set selected = analysis.selected_token_actions[token.key] %}
+                        <div class="column is-12-mobile is-6-tablet is-4-desktop">
+                            <div class="box">
+                                <h3 class="title is-5">
+                                    {% if not token.source_authorized %}
+                                        <span>⚠️</span>
+                                    {% elseif token.target_has_trustline %}
+                                        <span title="{{ 'tools_migration.tokens.target_trustline_exists'|trans }}">☑️</span>
+                                    {% else %}
+                                        <span title="{{ 'tools_migration.tokens.target_trustline_missing'|trans }}">🆕</span>
+                                    {% endif %}
+                                    <a href="{{ token.url }}">{{ token.code }}</a>
+                                </h3>
+                                <p class="block">
+                                    <span class="has-text-weight-semibold">{{ 'tools_migration.tokens.balance'|trans }}:</span>
+                                    {% include 'amount.twig' with {value: token.balance} only %}
+                                </p>
+                                {% if not token.source_authorized %}
+                                    <div class="notification is-warning">
+                                        {{ 'tools_migration.tokens.issuer_auth_required'|trans }}
+                                    </div>
+                                {% endif %}
+                                <div class="field">
+                                    <div class="select is-fullwidth">
+                                        <select id="token_action_{{ loop.index }}" name="token_action[{{ token.key }}]" data-migration-token-action>
+                                            {% for action in ['ignore', 'open', 'open_transfer', 'open_transfer_close'] %}
+                                                <option value="{{ action }}"
+                                                    {% if selected == action %} selected{% endif %}
+                                                    {% if action not in token.available_actions %} disabled{% endif %}
+                                                >
+                                                    {% if action == 'open' and token.target_has_trustline %}&#10003; {% endif %}{{ ('tools_migration.tokens.actions.' ~ action)|trans }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="notification is-success">{{ 'tools_migration.tokens.empty'|trans }}</div>
+            {% endif %}
+
+            {% if analysis.offers %}
+                <h3 class="title is-3">{{ 'tools_migration.offers.title'|trans }}</h3>
+                <p class="block">{{ 'tools_migration.offers.warning'|trans }}</p>
+                <div class="field is-grouped is-align-items-center is-hidden" data-migration-bulk-control>
+                    <div class="control">
+                        <label class="label mb-0" for="migration_offer_bulk_action">{{ 'tools_migration.bulk.label'|trans }}</label>
+                    </div>
+                    <div class="control is-expanded">
+                        <div class="select is-fullwidth">
+                            <select
+                                id="migration_offer_bulk_action"
+                                data-migration-bulk-select
+                                data-target-selector="[data-migration-offer-action]"
+                                data-action-order="ignore close move"
+                            >
+                                {% for action in ['ignore', 'close', 'move'] %}
+                                    <option value="{{ action }}">{{ ('tools_migration.offers.actions.' ~ action)|trans }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns is-multiline">
+                    {% for offer in analysis.offers %}
+                        {% set selected = analysis.selected_offer_actions[offer.id] %}
+                        <div class="column is-12-mobile is-6-tablet">
+                            <div class="box">
+                                <h4 class="title is-5" title="{{ 'tools_migration.offers.offer'|trans({'%id%': offer.id}) }}">
+                                    {{ 'tools_migration.offers.offer_pair'|trans }}
+                                    {% if offer.selling.url %}<a href="{{ offer.selling.url }}">{{ offer.selling.label }}</a>{% else %}{{ offer.selling.label }}{% endif %}
+                                    →
+                                    {% if offer.buying.url %}<a href="{{ offer.buying.url }}">{{ offer.buying.label }}</a>{% else %}{{ offer.buying.label }}{% endif %}
+                                </h4>
+                                <p class="block">
+                                    {{ 'tools_migration.offers.amounts'|trans({
+                                        '%amount%': offer.amount,
+                                        '%total%': offer.total
+                                    }) }}
+                                </p>
+                                <div class="field">
+                                    <div class="select is-fullwidth">
+                                        <select id="offer_action_{{ loop.index }}" name="offer_action[{{ offer.id }}]" data-migration-offer-action>
+                                            {% for action in ['ignore', 'close', 'move'] %}
+                                                <option value="{{ action }}"
+                                                    {% if selected == action %} selected{% endif %}
+                                                    {% if action not in offer.available_actions %} disabled{% endif %}
+                                                >
+                                                    {{ ('tools_migration.offers.actions.' ~ action)|trans }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if analysis.source_data %}
+                <h3 class="title is-3">{{ 'tools_migration.data.title'|trans }}</h3>
+                {% if analysis.target_data_count > 0 %}
+                    <div class="notification is-warning">
+                        {{ 'tools_migration.data.target_not_empty'|trans }}
+                    </div>
+                {% else %}
+                    <div class="box">
+                        <p class="block">
+                            {{ 'tools_migration.data.entries'|trans({'%entries_count%': analysis.source_data|length}) }}
+                        </p>
+                        <div class="field">
+                            <div class="select is-fullwidth">
+                                <select id="data_action" name="data_action">
+                                    {% for action in ['ignore', 'copy', 'move'] %}
+                                        <option value="{{ action }}"{% if analysis.selected_data_action == action %} selected{% endif %}>
+                                            {{ ('tools_migration.data.actions.' ~ action)|trans }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            <button class="button is-primary is-large is-fullwidth" type="submit">
+                <span class="icon"><i class="fa-solid fa-file-signature"></i></span>
+                <span>{{ 'tools_migration.form.build'|trans }}</span>
+            </button>
+        </form>
+    {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-migration-bulk-control]').forEach(function (control) {
+                control.classList.remove('is-hidden');
+            });
+
+            document.querySelectorAll('[data-migration-bulk-select]').forEach(function (bulkSelect) {
+                const order = (bulkSelect.dataset.actionOrder || '').split(' ').filter(Boolean);
+                const targetSelector = bulkSelect.dataset.targetSelector;
+
+                bulkSelect.addEventListener('change', function () {
+                    const desiredIndex = order.indexOf(bulkSelect.value);
+                    if (desiredIndex === -1 || !targetSelector) {
+                        return;
+                    }
+
+                    document.querySelectorAll(targetSelector).forEach(function (targetSelect) {
+                        const nextOption = Array.from(targetSelect.options).reduce(function (best, option) {
+                            const optionIndex = order.indexOf(option.value);
+                            if (option.disabled || optionIndex === -1 || optionIndex > desiredIndex) {
+                                return best;
+                            }
+                            if (!best || optionIndex > order.indexOf(best.value)) {
+                                return option;
+                            }
+                            return best;
+                        }, null);
+
+                        if (nextOption) {
+                            targetSelect.value = nextOption.value;
+                            targetSelect.dispatchEvent(new Event('change', {bubbles: true}));
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+{% endblock %}

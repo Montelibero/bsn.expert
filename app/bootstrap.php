@@ -22,6 +22,7 @@ use Montelibero\BSN\Controllers\GraphController;
 use Montelibero\BSN\Controllers\HomeController;
 use Montelibero\BSN\Controllers\LoginController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
+use Montelibero\BSN\Controllers\MigrationController;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MtlaDmReportController;
 use Montelibero\BSN\Controllers\MultisigController;
@@ -42,6 +43,7 @@ use Montelibero\BSN\RequestArrayView;
 use Montelibero\BSN\RequestLocale;
 use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\Routes\RootRoutes;
+use Montelibero\BSN\StellarAccountReserveCalculator;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
@@ -262,6 +264,8 @@ $ContainerBuilder->addDefinitions([
     SingleAccountEditTagsController::class => autowire(),
     ErrorController::class => autowire(),
     TransactionsController::class => autowire(),
+    MigrationController::class => autowire(),
+    StellarAccountReserveCalculator::class => autowire(),
 ]);
 $Container = $ContainerBuilder->build();
 

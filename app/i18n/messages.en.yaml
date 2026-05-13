@@ -17,6 +17,7 @@ nav:
   tools:
     title: Tools
     multisig: Multisig Editor
+    migration: Migration
     timetoken: Timetoken
     percent_pay: Bulk Percent Payment
     xdr2lab: XDR to LAB
@@ -1250,3 +1251,91 @@ edit_tags:
     invalid: The tag must contain only Latin letters, digits, and underscore.
     non_latin: The tag name contains non-Latin characters. Check lookalike letters such as Cyrillic а, е, о, с, р, х and replace them with Latin letters.
     trailing_digits: Digits at the end of a tag name are used as a service number in blockchain DATA and are stripped when read, so this tag cannot be saved. Remove the trailing digits.
+
+tools_migration:
+  title: Migration
+  description: >
+    A tool for a large move from one Stellar account to another. It helps move tokens and BSN data.
+    For correct operation, the new account should have an XLM buffer: each entity, such as a token trustline,
+    BSN tag, or open exchange offer, locks %xlm_base% XLM.
+  summary_title: Migration plan
+  summary_prefix: "Accounts:"
+  form:
+    source: Source account
+    source_hint: Donor account whose structure will be copied and whose assets will be moved.
+    target: Target account
+    target_hint: New account where assets and data will be moved.
+    fee_payer: Transaction account
+    fee_payer_hint: The fee will be charged from this account.
+    analyze: Next step
+    build: Prepare transaction
+    edit: Edit
+  fee_payer:
+    source: Source account
+    target: Target account
+  bulk:
+    label: "Bulk selection:"
+  reserve:
+    ok: "The target account has enough free XLM for new reserves: %required% XLM required, %available% XLM available."
+    missing: "New reserves require %required% XLM, but only %available% XLM is available. Top up the account by %top_up% XLM to run this operation."
+  tokens:
+    title: Tokens
+    balance: Balance
+    action: Action
+    empty: The source account has no tokens.
+    target_trustline_exists: Trustline exists
+    target_trustline_missing: Trustline missing
+    issuer_auth_required: This token can be moved only with issuer approval.
+    actions:
+      ignore: Ignore
+      open: Open trustline
+      open_transfer: Open trustline and transfer all
+      open_transfer_close: Open, transfer all, and close the source trustline
+  offers:
+    title: Offers
+    offer: "Offer #%id%"
+    offer_pair: Offer
+    action: Action
+    warning: >
+      Moving offers can break the whole migration if any trade executes against them between XDR generation and
+      submission to the network. If that happens, rebuild the XDR.
+    amounts: "%amount% for %total%"
+    actions:
+      ignore: Ignore
+      close: Close
+      move: Move
+  data:
+    title: DATA
+    action: BSN (DATA)
+    entries: "Source account DATA entries: %entries_count%."
+    target_not_empty: >
+      Your BSN tags cannot be moved because the target account already has DATA. Handling every possible collision is
+      too complex for now. The script can help only when the target account has no tags at all.
+    actions:
+      ignore: Ignore
+      copy: Copy
+      move: Move
+  signing:
+    title: Signing
+    multisig_notice: >
+      The final transaction requires signatures from both accounts. The multisig collection button is recommended.
+    order_notice: "There are a lot of operations, so several transactions were created (%transaction_count%). Sign and submit them strictly in order."
+    transaction: "Transaction %number% of %total%"
+    description: "Migration %source% → %target%, transaction %number% of %total%"
+  warnings:
+    no_operations: The selected plan has no operations.
+    moved_offers_can_break: >
+      If a trade executes against a moved offer after XDR generation, the transaction can become stale.
+  errors:
+    invalid_source: Provide a valid source Stellar account.
+    invalid_target: Provide a valid target Stellar account.
+    same_accounts: Source and target accounts must be different.
+    source_not_found: Source account was not found in Horizon.
+    target_not_found: Target account was not found in Horizon.
+    token_action_unavailable: "The selected mode is not available for token %asset%."
+    token_requires_issuer_approval: "Problem with token %asset%: %message%"
+    offer_move_requires_selling_transfer: "Offer #%offer% sells %asset%, so moving the offer requires moving that asset."
+    offer_move_requires_buying_trustline: "Offer #%offer% buys %asset%, so the target account must have or open that trustline."
+    token_transfer_blocked_by_ignored_selling_offer: "Token %asset% cannot be moved while offer #%offer% sells it and remains ignored."
+    token_close_blocked_by_ignored_buying_offer: "Trustline %asset% cannot be closed while offer #%offer% buys it and remains ignored."
+    target_data_not_empty: The target account already has DATA.
