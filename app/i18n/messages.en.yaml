@@ -1353,6 +1353,8 @@ tools_close_trustlines:
   token:
     balance: Balance
     issuer: Issuer
+    buying_offers_warning: Can be removed only together with buy offers
+    offer: Offer
   zero:
     title: Zero-balance assets
     empty: This account has no zero-balance tokens.
@@ -1367,5 +1369,6 @@ tools_close_trustlines:
     description: "Close trustlines for %account%, transaction %number% of %total%"
   errors:
     account_not_found: Account was not found in Horizon.
+    offers_not_loaded: Failed to load account offers. Trustlines cannot be closed reliably without them.
     no_tokens_selected: Select at least one token to close its trustline.
     token_not_zero: "Trustline %asset% cannot be closed: its latest balance is no longer zero or the token is missing."

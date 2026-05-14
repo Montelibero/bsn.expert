@@ -10,10 +10,13 @@ use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
+use Soneso\StellarSDK\AssetTypeCreditAlphanum;
 use Soneso\StellarSDK\ChangeTrustOperationBuilder;
+use Soneso\StellarSDK\ManageSellOfferOperationBuilder;
 use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
+use Soneso\StellarSDK\Responses\Offers\OfferResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
 use Symfony\Component\Translation\Translator;
@@ -58,7 +61,8 @@ final class CloseTrustlinesController
 
         $AccountResponse = $this->fetchAccount($account_id, $errors);
         if ($AccountResponse !== null) {
-            [$zero_tokens, $nonzero_tokens] = $this->buildTokenLists($AccountResponse);
+            $offers = $this->loadOffers($account_id, $errors);
+            [$zero_tokens, $nonzero_tokens] = $this->buildTokenLists($AccountResponse, $offers);
 
             if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 if (!$selected_token_keys) {
@@ -96,12 +100,35 @@ final class CloseTrustlinesController
     }
 
     /**
+     * @return list<OfferResponse>
+     */
+    private function loadOffers(string $account_id, array &$errors): array
+    {
+        $result = [];
+        try {
+            $page = $this->Stellar->offers()->forAccount($account_id)->limit(200)->execute();
+            do {
+                foreach ($page->getOffers() as $Offer) {
+                    $result[] = $Offer;
+                }
+                $page = $page->getNextPage();
+            } while ($page !== null && $page->getOffers()->count() > 0);
+        } catch (\Throwable) {
+            $errors[] = $this->Translator->trans('tools_close_trustlines.errors.offers_not_loaded');
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param list<OfferResponse> $offers
      * @return array{0: array<string, array>, 1: array<string, array>}
      */
-    private function buildTokenLists(AccountResponse $Account): array
+    private function buildTokenLists(AccountResponse $Account, array $offers): array
     {
         $zero_tokens = [];
         $nonzero_tokens = [];
+        $buying_offers_by_asset = $this->buyingOffersByAsset($offers);
 
         foreach ($Account->getBalances() as $Balance) {
             $key = $this->balanceAssetKey($Balance);
@@ -123,6 +150,7 @@ final class CloseTrustlinesController
                 'balance' => $Balance->getBalance(),
                 'buying_liabilities' => $Balance->getBuyingLiabilities() ?? '0.0000000',
                 'selling_liabilities' => $Balance->getSellingLiabilities() ?? '0.0000000',
+                'buying_offers' => $buying_offers_by_asset[$key] ?? [],
             ];
 
             if (bccomp($Balance->getBalance(), '0', 7) === 0) {
@@ -139,6 +167,42 @@ final class CloseTrustlinesController
         uasort($nonzero_tokens, $sort);
 
         return [$zero_tokens, $nonzero_tokens];
+    }
+
+    /**
+     * @param list<OfferResponse> $offers
+     * @return array<string, list<array>>
+     */
+    private function buyingOffersByAsset(array $offers): array
+    {
+        $result = [];
+        foreach ($offers as $Offer) {
+            $buying_key = $this->assetKey($Offer->getBuying());
+            if ($buying_key === null) {
+                continue;
+            }
+
+            $selling = $this->assetView($Offer->getSelling());
+            $buying = $this->assetView($Offer->getBuying());
+            $result[$buying_key][] = [
+                'id' => $Offer->getOfferId(),
+                'selling' => $selling,
+                'buying' => $buying,
+                'amount' => $Offer->getAmount(),
+                'amount_short' => $this->shortAmount($Offer->getAmount()),
+                'price' => $Offer->getPrice(),
+                'total' => bcmul($Offer->getAmount(), $Offer->getPrice(), 7),
+                'total_short' => $this->shortAmount(bcmul($Offer->getAmount(), $Offer->getPrice(), 7)),
+                'offer_response' => $Offer,
+            ];
+        }
+
+        return $result;
+    }
+
+    private function shortAmount(string $amount): string
+    {
+        return (string) (float) $amount;
     }
 
     private function selectedTokenKeys(mixed $posted_tokens): array
@@ -178,6 +242,27 @@ final class CloseTrustlinesController
     private function buildSigningForms(AccountResponse $Account, array $zero_tokens, array $selected_token_keys): array
     {
         $operations = [];
+        $closed_offer_ids = [];
+        foreach ($selected_token_keys as $key) {
+            $token = $zero_tokens[$key] ?? null;
+            if ($token === null) {
+                continue;
+            }
+            foreach ($token['buying_offers'] as $offer) {
+                $offer_id = (int) $offer['id'];
+                if (isset($closed_offer_ids[$offer_id])) {
+                    continue;
+                }
+                $closed_offer_ids[$offer_id] = true;
+                $operations[] = (new ManageSellOfferOperationBuilder(
+                    $offer['offer_response']->getSelling(),
+                    $offer['offer_response']->getBuying(),
+                    '0',
+                    $offer['price']
+                ))->setOfferId($offer_id)->build();
+            }
+        }
+
         foreach ($selected_token_keys as $key) {
             $token = $zero_tokens[$key] ?? null;
             if ($token === null) {
@@ -218,6 +303,41 @@ final class CloseTrustlinesController
         }
 
         return $code . '-' . $issuer;
+    }
+
+    private function assetKey(Asset $Asset): ?string
+    {
+        if ($Asset->getType() === Asset::TYPE_NATIVE) {
+            return null;
+        }
+        if (!$Asset instanceof AssetTypeCreditAlphanum) {
+            return null;
+        }
+
+        return $Asset->getCode() . '-' . $Asset->getIssuer();
+    }
+
+    private function assetView(Asset $Asset): array
+    {
+        if ($Asset->getType() === Asset::TYPE_NATIVE) {
+            return [
+                'label' => 'XLM',
+                'url' => '/tokens/XLM',
+            ];
+        }
+
+        if (!$Asset instanceof AssetTypeCreditAlphanum) {
+            return [
+                'label' => $Asset->getType(),
+                'url' => null,
+            ];
+        }
+
+        return [
+            'label' => $Asset->getCode(),
+            'url' => '/tokens/' . rawurlencode($Asset->getCode() . '-' . $Asset->getIssuer()),
+            'issuer' => $Asset->getIssuer(),
+        ];
     }
 
     private function assetFromToken(array $token): Asset

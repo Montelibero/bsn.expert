@@ -1355,6 +1355,8 @@ tools_close_trustlines:
   token:
     balance: Баланс
     issuer: Эмитент
+    buying_offers_warning: Можно удалить только вместе с ордерами на покупку
+    offer: Ордер
   zero:
     title: Активы с нулевым балансом
     empty: На аккаунте нет токенов с нулевым балансом.
@@ -1369,5 +1371,6 @@ tools_close_trustlines:
     description: "Удаление линий доверия аккаунта %account%, транзакция %number% из %total%"
   errors:
     account_not_found: Аккаунт не найден в Horizon.
+    offers_not_loaded: Не удалось загрузить ордера аккаунта. Без них нельзя надежно подготовить удаление линий доверия.
     no_tokens_selected: Выберите хотя бы один токен для удаления линии доверия.
     token_not_zero: "Линию доверия %asset% нельзя удалить: актуальный баланс уже не нулевой или токен отсутствует."

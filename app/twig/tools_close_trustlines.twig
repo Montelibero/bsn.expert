@@ -78,6 +78,21 @@
                                 <span class="has-text-weight-semibold">{{ 'tools_close_trustlines.token.issuer'|trans }}:</span>
                                 {{ include('account_link.twig', {data: token.issuer_account}, with_context = false) }}
                             </span>
+                            {% if token.buying_offers %}
+                                <span class="notification is-warning is-block mt-3 mb-0 py-2 px-3">
+                                    <span class="is-block has-text-weight-semibold">{{ 'tools_close_trustlines.token.buying_offers_warning'|trans }}</span>
+                                    {% for offer in token.buying_offers %}
+                                        <span class="is-block mt-1">
+                                            {{ 'tools_close_trustlines.token.offer'|trans }}:
+                                            {{ offer.amount_short }}
+                                            {% if offer.selling.url %}<a href="{{ offer.selling.url }}">{{ offer.selling.label }}</a>{% else %}{{ offer.selling.label }}{% endif %}
+                                            →
+                                            {{ offer.total_short }}
+                                            {% if offer.buying.url %}<a href="{{ offer.buying.url }}">{{ offer.buying.label }}</a>{% else %}{{ offer.buying.label }}{% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </span>
+                            {% endif %}
                         </label>
                     </div>
                 {% endfor %}
@@ -137,7 +152,7 @@
             });
         });
 
-        document.querySelectorAll('[data-close-trustlines-card-link]').forEach(function (link) {
+        document.querySelectorAll('.close-trustlines-card a').forEach(function (link) {
             link.addEventListener('click', function (event) {
                 event.stopPropagation();
             });
