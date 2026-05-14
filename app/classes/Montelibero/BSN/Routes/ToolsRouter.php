@@ -3,6 +3,7 @@
 namespace Montelibero\BSN\Routes;
 
 use DI\Container;
+use Montelibero\BSN\Controllers\CloseTrustlinesController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MigrationController;
 use Montelibero\BSN\Controllers\MtlaRpExclusionController;
@@ -36,6 +37,10 @@ class ToolsRouter
         SimpleRouter::match(['get', 'post'], '/migration', function () use ($Container) {
             return $Container->get(MigrationController::class)->Migration();
         })->name('tool_migration');
+
+        SimpleRouter::match(['get', 'post'], '/close_trustlines', function () use ($Container) {
+            return $Container->get(CloseTrustlinesController::class)->CloseTrustlines();
+        })->name('tool_close_trustlines');
 
         SimpleRouter::match(['get', 'post'], '/mtla/membership_distribution', function () use ($Container) {
             return $Container->get(MembershipDistributionController::class)->MtlaMembershipDistribution();

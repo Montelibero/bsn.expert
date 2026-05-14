@@ -1,0 +1,146 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_close_trustlines.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_close_trustlines.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_close_trustlines.title'|trans }}</h1>
+    <p class="block">{{ 'tools_close_trustlines.description'|trans }}</p>
+    <p class="block">
+        {{ 'tools_close_trustlines.account'|trans }}:
+        {{ include('account_link.twig', {data: account}, with_context = false) }}
+    </p>
+
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    {% if signing_forms %}
+        <h2 class="title is-3">{{ 'tools_close_trustlines.signing.title'|trans }}</h2>
+        {% if signing_forms|length > 1 %}
+            <div class="notification is-info">
+                {{ 'tools_close_trustlines.signing.order_notice'|trans({'%transaction_count%': signing_forms|length}) }}
+            </div>
+        {% endif %}
+        {% for signing_form in signing_forms %}
+            <div class="box">
+                <h3 class="title is-5">{{ 'tools_close_trustlines.signing.transaction'|trans({'%number%': loop.index, '%total%': signing_forms|length}) }}</h3>
+                {{ signing_form|raw }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" action="/tools/close_trustlines">
+        {% if current_account_param %}
+            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+        {% endif %}
+
+        {% if zero_tokens %}
+            <div class="field is-grouped is-grouped-multiline">
+                <div class="control">
+                    <button class="button is-primary" type="submit">
+                        <span class="icon"><i class="fa-solid fa-file-signature"></i></span>
+                        <span>{{ 'tools_close_trustlines.form.build'|trans }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <h2 class="title is-3">{{ 'tools_close_trustlines.zero.title'|trans }}</h2>
+            <p class="block is-hidden" data-close-trustlines-bulk>
+                <button class="pseudo-link" type="button" data-close-trustlines-select="all">{{ 'tools_close_trustlines.bulk.select_all'|trans }}</button>
+                /
+                <button class="pseudo-link" type="button" data-close-trustlines-select="none">{{ 'tools_close_trustlines.bulk.select_none'|trans }}</button>
+            </p>
+            <div class="columns is-multiline">
+                {% for token in zero_tokens %}
+                    {% set checked = token.key in selected_token_keys %}
+                    <div class="column is-12-mobile is-6-tablet is-4-desktop">
+                        <label class="box close-trustlines-card{% if checked %} close-trustlines-card--selected{% endif %}" for="close_trustline_{{ loop.index }}">
+                            <span class="close-trustlines-card__header">
+                                <input
+                                    type="checkbox"
+                                    id="close_trustline_{{ loop.index }}"
+                                    name="tokens[{{ token.key|e('html_attr') }}]"
+                                    value="1"
+                                    data-close-trustlines-checkbox
+                                    {% if checked %}checked{% endif %}
+                                >
+                                <span class="title is-5 mb-0">
+                                    <a href="{{ token.url }}" data-close-trustlines-card-link>{{ token.code }}</a>
+                                </span>
+                            </span>
+                            <span class="is-block mt-3">
+                                <span class="has-text-weight-semibold">{{ 'tools_close_trustlines.token.issuer'|trans }}:</span>
+                                {{ include('account_link.twig', {data: token.issuer_account}, with_context = false) }}
+                            </span>
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="field">
+                <button class="button is-primary" type="submit">
+                    <span class="icon"><i class="fa-solid fa-file-signature"></i></span>
+                    <span>{{ 'tools_close_trustlines.form.build'|trans }}</span>
+                </button>
+            </div>
+        {% else %}
+            <div class="notification is-success">{{ 'tools_close_trustlines.zero.empty'|trans }}</div>
+        {% endif %}
+    </form>
+
+    <h2 class="title is-3">{{ 'tools_close_trustlines.nonzero.title'|trans }}</h2>
+    <p class="block">{{ 'tools_close_trustlines.nonzero.description'|trans }}</p>
+    {% if nonzero_tokens %}
+        <div class="columns is-multiline">
+            {% for token in nonzero_tokens %}
+                <div class="column is-12-mobile is-6-tablet is-4-desktop">
+                    <div class="box">
+                        <h3 class="title is-5"><a href="{{ token.url }}">{{ token.code }}</a></h3>
+                        <p class="block">
+                            <span class="has-text-weight-semibold">{{ 'tools_close_trustlines.token.balance'|trans }}:</span>
+                            {% include 'amount.twig' with {value: token.balance} only %}
+                        </p>
+                        <p class="block">
+                            <span class="has-text-weight-semibold">{{ 'tools_close_trustlines.token.issuer'|trans }}:</span>
+                            {{ include('account_link.twig', {data: token.issuer_account}, with_context = false) }}
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="notification is-success">{{ 'tools_close_trustlines.nonzero.empty'|trans }}</div>
+    {% endif %}
+
+    <script>
+        document.querySelectorAll('[data-close-trustlines-bulk]').forEach(function (bulk) {
+            const form = bulk.closest('form');
+            const checkboxes = form ? form.querySelectorAll('[data-close-trustlines-checkbox]') : [];
+            if (!checkboxes.length) {
+                return;
+            }
+
+            bulk.classList.remove('is-hidden');
+            bulk.querySelectorAll('[data-close-trustlines-select]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const checked = button.dataset.closeTrustlinesSelect === 'all';
+                    checkboxes.forEach(function (checkbox) {
+                        checkbox.checked = checked;
+                    });
+                });
+            });
+        });
+
+        document.querySelectorAll('[data-close-trustlines-card-link]').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.stopPropagation();
+            });
+        });
+    </script>
+{% endblock %}

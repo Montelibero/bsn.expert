@@ -397,7 +397,7 @@ class WebApp
             return;
         }
 
-        if (!isset($_COOKIE[session_name()]) && $this->isCurrentAccountEditorReturnTo($return_to)) {
+        if (!isset($_COOKIE[session_name()]) && $this->isCurrentAccountReturnTo($return_to)) {
             $return_to = $this->appendQueryParameters($return_to, ['current_account' => $current_account]);
         }
 
@@ -460,9 +460,9 @@ class WebApp
         return $result;
     }
 
-    private function isCurrentAccountEditorReturnTo(string $return_to): bool
+    private function isCurrentAccountReturnTo(string $return_to): bool
     {
-        return preg_match('~^/(?:editor(?:[/?#]|$)|accounts/[A-Z0-9]+/edit_tags(?:[/?#]|$))~', $return_to) === 1;
+        return preg_match('~^/(?:editor(?:[/?#]|$)|accounts/[A-Z0-9]+/edit_tags(?:[/?#]|$)|tools/close_trustlines(?:[/?#]|$))~', $return_to) === 1;
     }
 
     private function handleShowUnknownTagsPreference(string $value): void

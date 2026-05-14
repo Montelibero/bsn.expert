@@ -181,3 +181,41 @@
 .search-autocomplete .search-highlight {
     padding: 0 0.06em;
 }
+
+.close-trustlines-card {
+    display: block;
+    height: 100%;
+    cursor: pointer;
+}
+
+.close-trustlines-card--selected,
+.close-trustlines-card:has(input:checked) {
+    border-color: var(--bulma-primary);
+    box-shadow: 0 0 0 1px var(--bulma-primary);
+}
+
+.close-trustlines-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.close-trustlines-card__header input {
+    flex: 0 0 auto;
+}
+
+.pseudo-link {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px dotted currentColor;
+    background: transparent;
+    color: var(--bulma-link-text, var(--bulma-link));
+    cursor: pointer;
+    font: inherit;
+}
+
+.pseudo-link:hover,
+.pseudo-link:focus {
+    color: var(--bulma-link-text-hover, var(--bulma-link-hover));
+}

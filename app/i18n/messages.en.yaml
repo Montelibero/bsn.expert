@@ -18,6 +18,7 @@ nav:
     title: Tools
     multisig: Multisig Editor
     migration: Migration
+    close_trustlines: Close trustlines
     timetoken: Timetoken
     percent_pay: Bulk Percent Payment
     xdr2lab: XDR to LAB
@@ -1339,3 +1340,32 @@ tools_migration:
     token_transfer_blocked_by_ignored_selling_offer: "Token %asset% cannot be moved while offer #%offer% sells it and remains ignored."
     token_close_blocked_by_ignored_buying_offer: "Trustline %asset% cannot be closed while offer #%offer% buys it and remains ignored."
     target_data_not_empty: The target account already has DATA.
+
+tools_close_trustlines:
+  title: Close trustlines
+  description: This tool helps clean your account from obsolete zero-balance assets. It is more convenient and faster than doing it manually, especially when many assets have accumulated.
+  account: Account
+  form:
+    build: Create transaction
+  bulk:
+    select_all: Select all
+    select_none: clear all selections
+  token:
+    balance: Balance
+    issuer: Issuer
+  zero:
+    title: Zero-balance assets
+    empty: This account has no zero-balance tokens.
+  nonzero:
+    title: Non-zero balances
+    description: These assets have a balance. To remove them from the account, send these tokens somewhere first.
+    empty: This account has no tokens with a non-zero balance.
+  signing:
+    title: Signing
+    order_notice: "There are a lot of operations, so several transactions were created (%transaction_count%). Sign and submit them strictly in order."
+    transaction: "Transaction %number% of %total%"
+    description: "Close trustlines for %account%, transaction %number% of %total%"
+  errors:
+    account_not_found: Account was not found in Horizon.
+    no_tokens_selected: Select at least one token to close its trustline.
+    token_not_zero: "Trustline %asset% cannot be closed: its latest balance is no longer zero or the token is missing."
