@@ -7,6 +7,7 @@ use MongoDB\Driver\WriteConcern;
 use Montelibero\BSN\AccountsManager;
 use Montelibero\BSN\ApiKeysManager;
 use Montelibero\BSN\ApplicationContext;
+use Montelibero\BSN\AssetVersions;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
 use Montelibero\BSN\CurrentContacts;
@@ -181,6 +182,7 @@ $BSN->loadMtlaMembersFromJson($mtla_members);
 //print $memory2 - $memory1 . "\n";
 $CurrentUser = new CurrentUser($BSN);
 $CurrentContacts = new CurrentContacts($BSN, $ContactsManager, $CurrentUser);
+$AssetVersions = new AssetVersions(__DIR__);
 $SessionView = new RequestArrayView();
 $ServerView = new RequestArrayView();
 $RequestSession = new RequestSession(!IS_CLI_CONTEXT);
@@ -204,6 +206,7 @@ $ContainerBuilder->addDefinitions([
     },
     CurrentUser::class => $CurrentUser,
     CurrentContacts::class => $CurrentContacts,
+    AssetVersions::class => $AssetVersions,
     CurrentAccountOptions::class => autowire(),
     RequestSession::class => $RequestSession,
     RequestLocale::class => $RequestLocale,
@@ -214,14 +217,14 @@ $ContainerBuilder->addDefinitions([
 
     Translator::class => $Translator,
 
-    Environment::class => function(Container $container) use ($CurrentUser, $CurrentContacts, $SessionView, $ServerView, $RequestLocale) {
+    Environment::class => function(Container $container) use ($CurrentUser, $CurrentContacts, $AssetVersions, $SessionView, $ServerView, $RequestLocale) {
         $is_prod = getenv('APP_ENV') === 'prod';
         $Translator = $container->get(Translator::class);
         $twig = new Environment(new FilesystemLoader(__DIR__ . '/twig'), [
             'cache' => $is_prod ? '/tmp/bsn-twig-cache' : false,
             'auto_reload' => !$is_prod,
         ]);
-        $twig->addExtension(new TwigExtension($Translator));
+        $twig->addExtension(new TwigExtension($Translator, $AssetVersions));
         $twig->addExtension(new TranslationExtension($Translator));
         $twig->addExtension(new TwigPluralizeExtension($Translator));
         $twig->addGlobal('session', $SessionView);

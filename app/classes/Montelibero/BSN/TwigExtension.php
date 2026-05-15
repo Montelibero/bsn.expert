@@ -4,13 +4,16 @@ namespace Montelibero\BSN;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 class TwigExtension extends AbstractExtension
 {
     private TranslatorInterface $translator;
 
-    public function __construct(TranslatorInterface $translator)
-    {
+    public function __construct(
+        TranslatorInterface $translator,
+        private readonly AssetVersions $AssetVersions,
+    ) {
         $this->translator = $translator;
     }
 
@@ -27,6 +30,13 @@ class TwigExtension extends AbstractExtension
 //                    'html'
 //                ]
 //            ]),
+        ];
+    }
+
+    public function getFunctions(): array
+    {
+        return [
+            new TwigFunction('asset_url', [$this->AssetVersions, 'url']),
         ];
     }
 
