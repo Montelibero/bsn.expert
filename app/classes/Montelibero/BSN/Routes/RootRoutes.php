@@ -17,6 +17,7 @@ use Montelibero\BSN\Controllers\SingleAccountEditTagsController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\WhoAreYouController;
 use Montelibero\BSN\RequestSession;
+use Montelibero\BSN\ReturnTo;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
 
@@ -39,8 +40,12 @@ class RootRoutes
             LoginRouter::register($Container);
         });
         SimpleRouter::get('/logout', function () use ($Container) {
+            $return_to = ReturnTo::resolve([
+                $_GET['return_to'] ?? null,
+                $_SERVER['HTTP_REFERER'] ?? null,
+            ]);
             $Container->get(RequestSession::class)->destroy();
-            SimpleRouter::response()->redirect('/', 302);
+            SimpleRouter::response()->redirect($return_to, 302);
         });
         SimpleRouter::group(['prefix' => '/accounts'], function () use ($Container) {
             AccountsRoutes::register($Container);
@@ -79,6 +84,12 @@ class RootRoutes
 
         SimpleRouter::match(['get', 'post'], '/preferences', function () use ($Container) {
             return $Container->get(WebApp::class)->Preferences();
+        });
+        SimpleRouter::get('/who_are_you/modal', function () use ($Container) {
+            return $Container->get(WhoAreYouController::class)->Modal();
+        });
+        SimpleRouter::post('/who_are_you/ignore_option', function () use ($Container) {
+            return $Container->get(WhoAreYouController::class)->IgnoreOption();
         });
         SimpleRouter::get('/who_are_you', function () use ($Container) {
             return $Container->get(WhoAreYouController::class)->WhoAreYou();

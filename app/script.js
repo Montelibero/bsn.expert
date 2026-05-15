@@ -122,6 +122,177 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+/* Current Account Modal */
+document.addEventListener('DOMContentLoaded', function () {
+    const trigger = document.querySelector('[data-current-account-modal-trigger]');
+    if (!trigger) {
+        return;
+    }
+
+    let modal = null;
+    let isLoading = false;
+
+    function setLoading(loading) {
+        isLoading = loading;
+        trigger.classList.toggle('is-current-account-loading', loading);
+        trigger.setAttribute('aria-busy', loading ? 'true' : 'false');
+    }
+
+    function closeModal() {
+        if (modal) {
+            modal.classList.remove('is-active');
+            document.documentElement.classList.remove('is-clipped');
+        }
+    }
+
+    function hasVisibleCurrentAccountOptions() {
+        if (!modal) {
+            return false;
+        }
+
+        return Array.from(modal.querySelectorAll('[data-current-account-option]')).some(function (option) {
+            return !option.hidden && option.getClientRects().length > 0;
+        });
+    }
+
+    function hideCurrentAccountOption(option) {
+        if (window.jQuery) {
+            window.jQuery(option).stop(true, true).slideUp(160);
+            return;
+        }
+
+        option.hidden = true;
+    }
+
+    function showCurrentAccountOption(option) {
+        option.hidden = false;
+        if (window.jQuery) {
+            window.jQuery(option).stop(true, true).slideDown(160);
+        }
+    }
+
+    function showModal() {
+        if (modal) {
+            document.documentElement.classList.add('is-clipped');
+            modal.classList.add('is-active');
+            if (hasVisibleCurrentAccountOptions()) {
+                return;
+            }
+            const input = modal.querySelector('input[name="current_account"]');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+    }
+
+    function mountModal(html) {
+        modal = document.createElement('div');
+        modal.className = 'modal current-account-modal';
+        modal.innerHTML = '<div class="modal-background" data-current-account-modal-close></div>' + html;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', function (event) {
+            if (event.target.closest('[data-current-account-modal-close]')) {
+                event.preventDefault();
+                closeModal();
+            }
+        });
+
+        modal.addEventListener('submit', function (event) {
+            const form = event.target.closest('form[action="/who_are_you/ignore_option"]');
+            if (!form) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const removeButton = form.querySelector('[data-current-account-option-remove]');
+            const option = form.closest('[data-current-account-option]');
+            if (!option || !removeButton || removeButton.disabled) {
+                return;
+            }
+
+            removeButton.disabled = true;
+            hideCurrentAccountOption(option);
+
+            fetch(form.getAttribute('action'), {
+                method: form.getAttribute('method') || 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams(new FormData(form))
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Current account option failed to hide');
+                    }
+                    return response.json();
+                })
+                .then(function (payload) {
+                    if (!payload || payload.status !== 'ok') {
+                        throw new Error('Current account option failed to hide');
+                    }
+                })
+                .catch(function (error) {
+                    console.error(error);
+                    showCurrentAccountOption(option);
+                    removeButton.disabled = false;
+                });
+        });
+    }
+
+    trigger.addEventListener('click', function (event) {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (isLoading) {
+            return;
+        }
+
+        if (modal) {
+            showModal();
+            return;
+        }
+
+        setLoading(true);
+        fetch(trigger.dataset.currentAccountModalUrl, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'text/html'
+            }
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('Current account modal failed to load');
+                }
+                return response.text();
+            })
+            .then(function (html) {
+                mountModal(html);
+                showModal();
+            })
+            .catch(function (error) {
+                console.error(error);
+            })
+            .finally(function () {
+                setLoading(false);
+            });
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal && modal.classList.contains('is-active')) {
+            closeModal();
+        }
+    });
+});
+
 /* Search Autocomplete */
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('[data-search-autocomplete-form]');

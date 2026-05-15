@@ -3,9 +3,7 @@ namespace Montelibero\BSN;
 
 use DI\Container;
 use Montelibero\BSN\Controllers\AccountsController;
-use Montelibero\BSN\Controllers\LoginController;
 use Montelibero\BSN\Controllers\TokensController;
-use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
@@ -17,7 +15,6 @@ class WebApp
     private AccountsManager $AccountsManager;
     private Environment $Twig;
     private CurrentUser $CurrentUser;
-    private CurrentContacts $CurrentContacts;
 
     public static array $sort_tags_example = [
         'Friend',
@@ -57,7 +54,6 @@ class WebApp
         Environment $Twig,
         Container $Container,
         CurrentUser $CurrentUser,
-        CurrentContacts $CurrentContacts,
     ) {
         $this->BSN = $BSN;
         $this->AccountsManager = $AccountsManager;
@@ -67,7 +63,6 @@ class WebApp
 
         $this->Container = $Container;
         $this->CurrentUser = $CurrentUser;
-        $this->CurrentContacts = $CurrentContacts;
     }
 
     public function Search(): ?string
@@ -167,24 +162,11 @@ class WebApp
             return null;
         }
 
-        $current_account_error = null;
-        $current_account_value = $this->CurrentUser->getCurrentAccountId();
-        $current_account_input_value = $this->CurrentUser->isAuthorized() ? '' : $current_account_value;
         $current_language = $Translator->getLocale();
         $current_show_unknown_tags = $this->CurrentUser->getShowUnknownTags();
         $current_default_viewer = $this->resolveDefaultViewer();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $current_account_action = trim((string) ($_POST['current_account_action'] ?? ''));
-            if ($current_account_action === 'reset') {
-                $reset_account_id = $this->CurrentUser->isAuthorized()
-                    ? $this->CurrentUser->getAccountId()
-                    : null;
-                $this->CurrentUser->setCurrentAccountId($reset_account_id);
-                SimpleRouter::response()->redirect($this->resolvePreferencesReturnTo('/'), 302);
-                return null;
-            }
-
             $time = time() + (6 * 30 * 24 * 60 * 60); // 6 months
             $variants = ['this', 'eurmtl', 'brainbox'];
             $viewer_input = (string) ($_POST['viewer'] ?? '');
@@ -224,56 +206,15 @@ class WebApp
             $current_show_unknown_tags = $show_unknown_tags;
             $this->setShowUnknownTagsCookie($show_unknown_tags);
 
-            $posted_input = trim((string) ($_POST['current_account_id'] ?? ''));
-            $posted_radio = trim((string) ($_POST['current_account_radio'] ?? ''));
-            $current_account_input = strtoupper($posted_input);
-            if ($current_account_input === '') {
-                $current_account_input = $posted_radio;
-            }
-
-            if ($current_account_input === '') {
-                $this->CurrentUser->setCurrentAccountId(null);
-                $current_account_value = $this->CurrentUser->getCurrentAccountId();
-            } elseif (!$this->CurrentUser->setCurrentAccountId($current_account_input)) {
-                $current_account_error = $Translator->trans('preferences.current_account.errors.invalid_account_id');
-                $current_account_value = $current_account_input;
-                $current_account_input_value = $current_account_input;
-            } else {
-                $current_account_value = $this->CurrentUser->getCurrentAccountId();
-                if ($this->CurrentUser->isAuthorized()) {
-                    $current_account_input_value = '';
-                } else {
-                    $current_account_input_value = $current_account_value;
-                }
-            }
-
-            if ($current_account_error === null) {
-                SimpleRouter::response()->redirect('/preferences', 302);
-            }
+            SimpleRouter::response()->redirect('/preferences', 302);
         }
 
         $Template = $this->Twig->load('preferences.twig');
-
-        $Account = null;
-        $contacts_count = null;
-        $account_id = $this->CurrentUser->getAccountId();
-        if ($account_id) {
-            $Account = $this->BSN->makeAccountById($account_id);
-            $contacts_count = count(($this->Container->get(ContactsManager::class))->getContacts($account_id));
-        }
-
-        $current_account_options = $this->buildCurrentAccountOptions();
 
         return $Template->render([
             'current_value' => $current_default_viewer,
             'current_language' => $current_language,
             'current_show_unknown_tags' => $current_show_unknown_tags,
-            'account' => $Account ? $this->CurrentContacts->serialize($Account) : [],
-            'contacts_count' => $contacts_count,
-            'current_account_value' => $current_account_value,
-            'current_account_input_value' => $current_account_input_value,
-            'current_account_options' => $current_account_options,
-            'current_account_error' => $current_account_error,
         ]);
     }
 
@@ -282,88 +223,6 @@ class WebApp
         $default_viewer = $_COOKIE['default_viewer'] ?? null;
 
         return is_string($default_viewer) && $default_viewer !== '' ? $default_viewer : null;
-    }
-
-    private function buildCurrentAccountOptions(): array
-    {
-        $options = [];
-        $account_id = $this->CurrentUser->getAccountId();
-        if ($account_id) {
-            $Account = $this->BSN->makeAccountById($account_id);
-            $options[$account_id] = array_merge(
-                $this->CurrentContacts->serialize($Account),
-                ['source' => 'self']
-            );
-        }
-
-        foreach ($this->getOwnedAccounts($account_id) as $Account) {
-            $options[$Account->getId()] = array_merge(
-                $this->CurrentContacts->serialize($Account),
-                ['source' => 'owned']
-            );
-        }
-
-        $history_account_ids = $this->CurrentUser->getCurrentAccountHistory();
-        $current_account_id = $this->CurrentUser->getCurrentAccountId();
-        if (
-            $current_account_id
-            && $current_account_id !== $account_id
-            && !in_array($current_account_id, $history_account_ids, true)
-        ) {
-            array_unshift($history_account_ids, $current_account_id);
-        }
-
-        foreach ($history_account_ids as $history_account_id) {
-            if (!BSN::validateStellarAccountIdFormat($history_account_id)) {
-                continue;
-            }
-            if (array_key_exists($history_account_id, $options)) {
-                continue;
-            }
-            $Account = $this->BSN->makeAccountById($history_account_id);
-            $options[$history_account_id] = array_merge(
-                $this->CurrentContacts->serialize($Account),
-                ['source' => 'history']
-            );
-        }
-
-        return array_values($options);
-    }
-
-    private function getOwnedAccounts(?string $owner_id): array
-    {
-        if (!$owner_id) {
-            return [];
-        }
-
-        $OwnerTag = Tag::fromName('Owner');
-        $OwnershipFullTag = Tag::fromName('OwnershipFull');
-        $owned = [];
-        foreach ($this->BSN->getAccounts() as $Account) {
-            $owners = $Account->getOutcomeLinks($OwnerTag);
-            if (count($owners) !== 1) {
-                continue;
-            }
-
-            $Owner = $owners[0];
-            if ($Owner->getId() !== $owner_id || $Account->getId() === $owner_id) {
-                continue;
-            }
-
-            foreach ($Owner->getOutcomeLinks($OwnershipFullTag) as $OutcomeLink) {
-                if ($OutcomeLink->getId() === $Account->getId()) {
-                    $owned[$Account->getId()] = $Account;
-                    break;
-                }
-            }
-        }
-
-        return array_values($owned);
-    }
-
-    private function resolvePreferencesReturnTo(string $fallback = '/preferences'): string
-    {
-        return LoginController::normalizeReturnTo($_POST['return_to'] ?? $_SERVER['REQUEST_URI'] ?? null, $fallback);
     }
 
     private function handleCurrentAccountPreference(string $current_account): void
@@ -389,24 +248,7 @@ class WebApp
 
     private function resolveReturnToFromRequest(string $fallback = '/'): string
     {
-        foreach ([$_GET['return_to'] ?? null, $_POST['return_to'] ?? null, $_SERVER['HTTP_REFERER'] ?? null] as $candidate) {
-            $return_to = $this->normalizeReturnTo($candidate, '');
-            if ($return_to !== '') {
-                return $return_to;
-            }
-        }
-
-        return $this->normalizeReturnTo($fallback, '/');
-    }
-
-    private function normalizeReturnTo(?string $return_to, string $fallback = '/'): string
-    {
-        $return_to = LoginController::normalizeReturnTo($return_to, $fallback);
-        if (preg_match('~^/(who_are_you|preferences)(?:[/?#]|$)~', $return_to)) {
-            return LoginController::normalizeReturnTo($fallback, '/');
-        }
-
-        return $return_to;
+        return ReturnTo::getFromRequest($fallback, ['login', 'logout', 'who_are_you', 'preferences']);
     }
 
     private function appendQueryParameters(string $url, array $parameters): string
@@ -472,40 +314,7 @@ class WebApp
 
     private function resolveSameHostRefererPath(): ?string
     {
-        $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
-        if ($referer === '') {
-            return null;
-        }
-
-        $referer_host = parse_url($referer, PHP_URL_HOST);
-        if (!is_string($referer_host) || $referer_host === '') {
-            return null;
-        }
-
-        $referer_port = parse_url($referer, PHP_URL_PORT);
-        if (is_int($referer_port)) {
-            $referer_host .= ':' . $referer_port;
-        }
-
-        if (strcasecmp($referer_host, (string) ($_SERVER['HTTP_HOST'] ?? '')) !== 0) {
-            return null;
-        }
-
-        $path = parse_url($referer, PHP_URL_PATH);
-        if (!is_string($path) || $path === '' || !str_starts_with($path, '/')) {
-            $path = '/';
-        }
-
-        $query = parse_url($referer, PHP_URL_QUERY);
-        if (is_string($query) && $query !== '') {
-            $path .= '?' . $query;
-        }
-
-        $fragment = parse_url($referer, PHP_URL_FRAGMENT);
-        if (is_string($fragment) && $fragment !== '') {
-            $path .= '#' . $fragment;
-        }
-
-        return $path;
+        $return_to = ReturnTo::normalize($_SERVER['HTTP_REFERER'] ?? null, '');
+        return $return_to === '' ? null : $return_to;
     }
 }

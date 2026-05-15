@@ -9,7 +9,9 @@ class CurrentUser
     private const SESSION_ACCOUNT_KEY = 'account';
     private const SESSION_CURRENT_ACCOUNT_KEY = 'current_account_id';
     private const SESSION_HISTORY_KEY = 'current_account_history';
+    private const SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY = 'current_account_options_ignore';
     private const SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY = 'auto_current_account_notice';
+    private const SESSION_CURRENT_ACCOUNT_SWITCH_KEY = 'current_account_switch_key';
     private const SESSION_SHOW_TELEGRAM_USERNAMES_KEY = 'show_telegram_usernames';
     private const HISTORY_LIMIT = 20;
     private BSN $BSN;
@@ -32,6 +34,7 @@ class CurrentUser
             if (
                 $previous_current_account_id !== null
                 && $previous_current_account_id !== $this->request_current_account_id
+                && !$this->shouldSuppressAutoCurrentAccountNotice()
             ) {
                 $this->rememberAutoCurrentAccountChange($this->request_current_account_id);
             }
@@ -180,6 +183,7 @@ class CurrentUser
 
         if ($account_id) {
             $this->rememberCurrentAccount($account_id);
+            $this->forgetIgnoredCurrentAccountOption($account_id);
         }
 
         return true;
@@ -222,6 +226,42 @@ class CurrentUser
         return array_values(array_filter(array_unique($history)));
     }
 
+    public function getIgnoredCurrentAccountOptionIds(): array
+    {
+        $ignored = $this->session()[self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY] ?? [];
+        return array_values(array_filter(array_unique($ignored), [BSN::class, 'validateStellarAccountIdFormat']));
+    }
+
+    public function ignoreCurrentAccountOption(string $account_id): bool
+    {
+        $account_id = strtoupper(trim($account_id));
+        if (!BSN::validateStellarAccountIdFormat($account_id)) {
+            return false;
+        }
+
+        $ignored = $this->getIgnoredCurrentAccountOptionIds();
+        $ignored[] = $account_id;
+        $this->session()[self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY] = array_values(array_unique($ignored));
+
+        return true;
+    }
+
+    public function getCurrentAccountSwitchKey(): string
+    {
+        $key = $this->session()[self::SESSION_CURRENT_ACCOUNT_SWITCH_KEY] ?? null;
+        if (!is_string($key) || $key === '') {
+            $key = bin2hex(random_bytes(16));
+            $this->session()[self::SESSION_CURRENT_ACCOUNT_SWITCH_KEY] = $key;
+        }
+
+        return $key;
+    }
+
+    public function isCurrentAccountSwitchKeyValid(?string $key): bool
+    {
+        return is_string($key) && hash_equals($this->getCurrentAccountSwitchKey(), $key);
+    }
+
     private function rememberCurrentAccount(string $account_id): void
     {
         if (!BSN::validateStellarAccountIdFormat($account_id)) {
@@ -232,6 +272,19 @@ class CurrentUser
         array_unshift($history, $account_id);
         $history = array_slice(array_values(array_unique($history)), 0, self::HISTORY_LIMIT);
         $this->session()[self::SESSION_HISTORY_KEY] = $history;
+    }
+
+    private function forgetIgnoredCurrentAccountOption(string $account_id): void
+    {
+        if (!BSN::validateStellarAccountIdFormat($account_id)) {
+            return;
+        }
+
+        $ignored = $this->getIgnoredCurrentAccountOptionIds();
+        $this->session()[self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY] = array_values(array_filter(
+            $ignored,
+            fn(string $ignored_account_id): bool => $ignored_account_id !== $account_id
+        ));
     }
 
     private function &session(): array
@@ -249,5 +302,11 @@ class CurrentUser
         }
 
         return null;
+    }
+
+    private function shouldSuppressAutoCurrentAccountNotice(): bool
+    {
+        $key = $_POST['ca_key'] ?? $_GET['ca_key'] ?? null;
+        return $this->isCurrentAccountSwitchKeyValid(is_string($key) ? $key : null);
     }
 }

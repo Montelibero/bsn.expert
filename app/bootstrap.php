@@ -34,6 +34,8 @@ use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
 use Montelibero\BSN\Controllers\VotesController;
+use Montelibero\BSN\Controllers\WhoAreYouController;
+use Montelibero\BSN\CurrentAccountOptions;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\KnownTagsCatalog;
@@ -202,6 +204,7 @@ $ContainerBuilder->addDefinitions([
     },
     CurrentUser::class => $CurrentUser,
     CurrentContacts::class => $CurrentContacts,
+    CurrentAccountOptions::class => autowire(),
     RequestSession::class => $RequestSession,
     RequestLocale::class => $RequestLocale,
     KnownTagsCatalog::class => $KnownTagsCatalog,
@@ -261,6 +264,7 @@ $ContainerBuilder->addDefinitions([
     GraphController::class => autowire(),
     HomeController::class => autowire(),
     SearchController::class => autowire(),
+    WhoAreYouController::class => autowire(),
     SingleAccountEditTagsController::class => autowire(),
     ErrorController::class => autowire(),
     TransactionsController::class => autowire(),

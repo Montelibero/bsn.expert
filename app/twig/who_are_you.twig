@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-    <h1 class="title">{{ 'who_are_you.title'|trans }}</h1>
+    <h1 class="title">{{ 'who_are_you.switcher_title'|trans }}</h1>
 
     <div class="content">
         <p>{{ 'who_are_you.intro'|trans }}</p>
@@ -21,41 +21,5 @@
         </div>
     </article>
 
-    <form action="/preferences" method="get">
-        <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}">
-
-        <div class="field">
-            <label class="label" for="current_account">{{ 'who_are_you.form.account_label'|trans }}</label>
-            <div class="control">
-                <input
-                    class="input {% if current_account_error %}is-danger{% endif %}"
-                    type="text"
-                    id="current_account"
-                    name="current_account"
-                    value="{{ current_account_value|e('html_attr') }}"
-                    placeholder="G..."
-                    autocomplete="off"
-                    spellcheck="false"
-                    required
-                >
-            </div>
-            {% if current_account_error %}
-            <p class="help is-danger">{{ current_account_error }}</p>
-            {% endif %}
-            <p class="help">{{ 'who_are_you.form.account_hint'|trans }}</p>
-        </div>
-
-        <div class="field is-grouped">
-            <div class="control">
-                <button type="submit" class="button is-primary">{{ 'who_are_you.form.submit'|trans }}</button>
-            </div>
-            {% if not current_user.account %}
-            <div class="control is-flex is-align-items-center">
-                <a href="/login?return_to={{ return_to|url_encode }}">
-                    {{ 'who_are_you.form.login'|trans }}
-                </a>
-            </div>
-            {% endif %}
-        </div>
-    </form>
+    {{ include('who_are_you_switcher.twig') }}
 {% endblock %}

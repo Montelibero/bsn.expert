@@ -1,0 +1,109 @@
+{% set input_id = input_id|default('way_current_account') %}
+{% set is_modal = is_modal|default(false) %}
+{% set show_empty_hint = not current_account_options and (not is_modal or (not current_user.isAuthorized and not current_user.currentAccountId)) %}
+{% if current_account_options %}
+<nav class="panel">
+    {% for option in current_account_options %}
+    {% set is_current = option.id == current_account_value %}
+    {% set can_remove = not current_user.account or option.id != current_user.account.id %}
+    <div
+        class="panel-block {% if is_current %}is-active{% endif %}"
+        data-current-account-option
+        data-current-account-option-id="{{ option.id|e('html_attr') }}"
+    >
+        <span class="panel-icon {% if is_current %}has-text-primary{% endif %}">
+            <i class="fa-solid fa-{{ is_current ? 'check' : 'user' }}" aria-hidden="true"></i>
+        </span>
+        <span class="is-flex is-flex-direction-column is-flex-grow-1">
+            <a
+                class="has-text-text"
+                href="/preferences?current_account={{ option.id|url_encode }}&ca_key={{ ca_key|url_encode }}&return_to={{ return_to|url_encode }}"
+            >{{ option.display_name }}</a>
+            <span class="is-size-7 has-text-grey">
+                {% if option.source == 'self' %}
+                {{ 'preferences.current_account.tags.self'|trans }}
+                <span class="mx-1">&middot;</span>
+                <a href="/contacts">{{ 'nav.contacts'|trans }}</a>
+                <span class="mx-1">&middot;</span>
+                <a href="/logout?return_to={{ return_to|url_encode }}">{{ 'nav.logout'|trans }}</a>
+                {% elseif option.source == 'owned' %}
+                {{ 'preferences.current_account.tags.owned'|trans }}
+                {% elseif option.source == 'history' %}
+                {{ 'preferences.current_account.tags.history'|trans }}
+                {% endif %}
+            </span>
+        </span>
+        {% if can_remove %}
+        <form class="ml-2" action="/who_are_you/ignore_option" method="post">
+            <input type="hidden" name="account_id" value="{{ option.id|e('html_attr') }}">
+            <input type="hidden" name="ca_key" value="{{ ca_key|e('html_attr') }}">
+            <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}">
+            <button
+                class="delete is-small"
+                type="submit"
+                aria-label="{{ 'who_are_you.switcher.hide_account'|trans }}"
+                data-current-account-option-remove
+                data-account-id="{{ option.id|e('html_attr') }}"
+                data-ca-key="{{ ca_key|e('html_attr') }}"
+            ></button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</nav>
+{% endif %}
+
+{% if show_empty_hint %}
+<div class="content is-size-7 has-text-grey">
+    <p>{{ 'who_are_you.switcher.empty_hint'|trans }}</p>
+</div>
+{% endif %}
+
+<form action="/preferences" method="get">
+    <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}">
+    <input type="hidden" name="ca_key" value="{{ ca_key|e('html_attr') }}">
+
+    <div class="field">
+        <label class="label" for="{{ input_id|e('html_attr') }}">
+            {% if current_account_options %}
+            {{ 'who_are_you.switcher.custom_account_label'|trans }}
+            {% else %}
+            {{ 'who_are_you.switcher.any_account_label'|trans }}
+            {% endif %}
+        </label>
+        <div class="field has-addons">
+            <div class="control is-expanded">
+                <input
+                    class="input {% if current_account_error %}is-danger{% endif %}"
+                    type="text"
+                    id="{{ input_id|e('html_attr') }}"
+                    name="current_account"
+                    value=""
+                    placeholder="G..."
+                    autocomplete="off"
+                    spellcheck="false"
+                    required
+                >
+            </div>
+            <div class="control">
+                <button class="button is-primary" type="submit" aria-label="{{ 'who_are_you.form.submit'|trans }}">
+                    <span class="icon">
+                        <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
+                    </span>
+                </button>
+            </div>
+        </div>
+        {% if current_account_error %}
+        <p class="help is-danger">{{ current_account_error }}</p>
+        {% endif %}
+        <p class="help">{{ 'who_are_you.switcher.custom_account_hint'|trans }}</p>
+    </div>
+
+    {% if not current_user.account %}
+    <p class="block">
+        <a href="/login?return_to={{ return_to|url_encode }}">
+            {{ 'who_are_you.form.login'|trans }}
+        </a>
+    </p>
+    {% endif %}
+</form>

@@ -7,6 +7,43 @@
     cursor: copy;
 }
 
+.is-current-account-loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.current-account-navbar-item {
+    min-width: 0;
+}
+
+.current-account-navbar-label {
+    display: inline-block;
+    max-width: 21ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+    white-space: nowrap;
+}
+
+@media screen and (max-width: 768px) {
+    .current-account-navbar-label {
+        max-width: min(31ch, calc(100vw - 9rem));
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .current-account-modal .modal-card {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        margin: 0;
+    }
+
+    .current-account-modal .modal-card-body {
+        flex-grow: 1;
+    }
+}
+
 .qr_svg svg {
     color: var(--bulma-body-color);
     width: 35vmin;

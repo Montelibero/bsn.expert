@@ -1,0 +1,9 @@
+<div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="who-are-you-modal-title">
+    <header class="modal-card-head">
+        <p class="modal-card-title" id="who-are-you-modal-title">{{ 'who_are_you.switcher_title'|trans }}</p>
+        <button class="delete" type="button" aria-label="{{ 'common.close'|trans }}" data-current-account-modal-close></button>
+    </header>
+    <section class="modal-card-body">
+        {{ include('who_are_you_switcher.twig', {input_id: 'way_modal_current_account', is_modal: true}) }}
+    </section>
+</div>

@@ -7,6 +7,7 @@ use DI\Container;
 use Memcached;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\ReturnTo;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Account;
@@ -359,87 +360,12 @@ class LoginController
 
     public static function normalizeReturnTo(?string $return_to, string $fallback = '/'): string
     {
-        $fallback = $fallback === '' ? '' : (self::normalizeLocalReturnPath($fallback) ?? '/');
-        $return_to = trim((string) $return_to);
-        if ($return_to === '') {
-            return $fallback;
-        }
-
-        $parts = parse_url($return_to);
-        if ($parts === false) {
-            return $fallback;
-        }
-
-        if (isset($parts['scheme']) || isset($parts['host'])) {
-            if (empty($parts['host']) || !self::isCurrentHost($parts)) {
-                return $fallback;
-            }
-
-            $path = $parts['path'] ?? '/';
-            if ($path === '') {
-                $path = '/';
-            }
-            if (isset($parts['query']) && $parts['query'] !== '') {
-                $path .= '?' . $parts['query'];
-            }
-            if (isset($parts['fragment']) && $parts['fragment'] !== '') {
-                $path .= '#' . $parts['fragment'];
-            }
-
-            return self::normalizeLocalReturnPath($path) ?? $fallback;
-        }
-
-        return self::normalizeLocalReturnPath($return_to) ?? $fallback;
+        return ReturnTo::normalize($return_to, $fallback);
     }
 
     private function resolveReturnTo(string $fallback = '/'): string
     {
-        foreach ([$_POST['return_to'] ?? null, $_GET['return_to'] ?? null, $_SERVER['HTTP_REFERER'] ?? null] as $candidate) {
-            $return_to = self::normalizeReturnTo($candidate, '');
-            if ($return_to !== '') {
-                return $return_to;
-            }
-        }
-
-        return self::normalizeReturnTo($fallback);
-    }
-
-    private static function normalizeLocalReturnPath(string $return_to): ?string
-    {
-        if (preg_match('/[\r\n]/', $return_to)) {
-            return null;
-        }
-
-        if (!str_starts_with($return_to, '/') || str_starts_with($return_to, '//')) {
-            return null;
-        }
-
-        if (preg_match('~^/(login|logout)(?:[/?#]|$)~', $return_to)) {
-            return null;
-        }
-
-        return $return_to;
-    }
-
-    private static function isCurrentHost(array $url_parts): bool
-    {
-        $current_host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
-        $current_parts = parse_url('http://' . $current_host);
-        if ($current_parts === false || empty($current_parts['host'])) {
-            return false;
-        }
-
-        if (strtolower($url_parts['host']) !== strtolower($current_parts['host'])) {
-            return false;
-        }
-
-        $current_port = $current_parts['port'] ?? null;
-        $url_port = $url_parts['port'] ?? null;
-        if ($current_port !== null || $url_port !== null) {
-            return (int) $current_port === (int) $url_port;
-        }
-
-        return true;
+        return ReturnTo::getFromRequest($fallback);
     }
 
     private function authenticate($account_id): void

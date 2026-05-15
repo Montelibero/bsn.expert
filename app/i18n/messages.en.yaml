@@ -6,6 +6,7 @@ common:
 nav:
   home: Home
   search: Search
+  explorer: Explorer
   accounts: Accounts
   tokens: Tokens
   transactions: Transactions
@@ -183,8 +184,8 @@ preferences:
     input_hint: Stellar account ID starting with G
     tags:
       self: You
-      owned: Owned
-      history: Used before
+      owned: Yours
+      history: Recent
     errors:
       invalid_account_id: This should be a valid Stellar account ID (starts with G and has 56 characters).
   description: >
@@ -238,6 +239,7 @@ preferences:
 
 who_are_you:
   title: Who are you acting as?
+  switcher_title: Who are you now?
   intro: >
     This action needs to know which Stellar account you want to act as.
     If you are logged in, we usually use your login account or the current account you selected earlier.
@@ -251,7 +253,13 @@ who_are_you:
     account_label: Stellar address
     account_hint: The address starts with G and has 56 characters.
     submit: Save
-    login: Log in instead
+    login: Sign in
+  switcher:
+    any_account_label: "Any account:"
+    custom_account_label: "Any other account:"
+    custom_account_hint: "A Stellar address, not necessarily your own."
+    empty_hint: "For some features, such as the BSN editor, it helps to know which account you are acting as right now. It does not have to be your personal account: any changes will still require a separately signed transaction."
+    hide_account: Hide from list
 
 search:
   not_found: Could not find anything 🤷‍♂️

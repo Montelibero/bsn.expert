@@ -32,12 +32,23 @@
         </a>
         {% set current_id = current_user.currentAccountId %}
 
-        <a class="navbar-item" href="/preferences">
+        <a
+            class="navbar-item current-account-navbar-item"
+            href="/who_are_you?return_to={{ server.REQUEST_URI|url_encode }}"
+            data-current-account-modal-trigger
+            data-current-account-modal-url="/who_are_you/modal?return_to={{ server.REQUEST_URI|url_encode }}"
+        >
             {% if current_id %}
-            {{ current_user.getCurrentAccount.getShortId }}
+            <i class="fa-solid fa-user" aria-hidden="true"></i>
+            {% endif %}
+            <span class="current-account-navbar-label">
+            {% if current_id %}
+            {% set current_account = current_user.getCurrentAccount %}
+            {{ current_contacts.getContactName(current_account) ?: current_account.getName[0]|default(null) ?: current_account.getShortId }}
             {% else %}
             {{ 'nav.current_account_unknown'|trans }}
             {% endif %}
+            </span>
         </a>
         <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
             <span aria-hidden="true"></span>
@@ -50,11 +61,14 @@
         <div class="navbar-start">
 
             <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link" href="/accounts/">
+                <a class="navbar-link" href="/">
                     <i class="fa-regular fa-rectangle-list"></i>
-                    {{ 'nav.accounts'|trans }}
+                    {{ 'nav.explorer'|trans }}
                 </a>
                 <div class="navbar-dropdown">
+                    <a class="navbar-item" href="/accounts/">
+                        {{ 'nav.accounts'|trans }}
+                    </a>
                     <a class="navbar-item" href="/tags/">
                         {{ 'nav.tags'|trans }}
                     </a>
@@ -85,17 +99,16 @@
                 </div>
             </div>
 
-            <a class="navbar-item" href="/graph">
-                <i class="fa-solid fa-diagram-project"></i>
-                {{ 'nav.graph'|trans }}
-            </a>
-
             <div class="navbar-item has-dropdown is-hoverable">
                 <a class="navbar-link" href="/tools/">
                     <i class="fa-solid fa-screwdriver"></i>
                     {{ 'nav.tools.title'|trans }}
                 </a>
                 <div class="navbar-dropdown">
+                    <a class="navbar-item" href="/graph">
+                        {{ 'nav.graph'|trans }}
+                    </a>
+                    <hr class="navbar-divider">
                     <a class="navbar-item" href="/tools/multisig">
                         {{ 'nav.tools.multisig'|trans }}
                     </a>
