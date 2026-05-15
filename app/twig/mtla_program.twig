@@ -58,14 +58,14 @@
         <p class="block">{{ 'mtla_program_page.participants.subtitle'|trans }}</p>
         {% if participants %}
             <div class="table-container block">
-                <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[6,0],[3,1],[4,1]]">
+                <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[6,0],[4,1],[2,1]]">
                     <thead>
                     <tr>
                         <th>{{ 'mtla_program_page.participants.table.participant'|trans }}</th>
                         <th>{{ 'mtla_program_page.participants.table.timetoken'|trans }}</th>
+                        <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.incoming'|trans }}</th>
                         <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.mtla_balance'|trans }}</th>
                         <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.program_balance'|trans }}</th>
-                        <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.incoming'|trans }}</th>
                         <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.outgoing'|trans }}</th>
                         <th data-sorter="digit">{{ 'mtla_program_page.participants.table.status'|trans }}</th>
                     </tr>
@@ -82,6 +82,14 @@
                                 {% endif %}
                             </td>
                             <td class="has-text-right">
+                                {% if participant.timetoken.url %}
+                                    {% set incoming_tt = participant.incoming_tt_90d|number_format(2, '.', '')|split('.') %}
+                                    {{ incoming_tt[0] }}<span class="has-text-grey">.{{ incoming_tt[1] }}</span>
+                                {% else %}
+                                    {{ 'mtla_snapshot_box.empty'|trans }}
+                                {% endif %}
+                            </td>
+                            <td class="has-text-right">
                                 {% if participant.mtla_tt_balance is not null %}
                                     {% set mtla_tt = participant.mtla_tt_balance|number_format(2, '.', '')|split('.') %}
                                     {{ mtla_tt[0] }}<span class="has-text-grey">.{{ mtla_tt[1] }}</span>
@@ -93,14 +101,6 @@
                                 {% if participant.program_tt_balance is not null %}
                                     {% set program_tt = participant.program_tt_balance|number_format(2, '.', '')|split('.') %}
                                     {{ program_tt[0] }}<span class="has-text-grey">.{{ program_tt[1] }}</span>
-                                {% else %}
-                                    {{ 'mtla_snapshot_box.empty'|trans }}
-                                {% endif %}
-                            </td>
-                            <td class="has-text-right">
-                                {% if participant.timetoken.url %}
-                                    {% set incoming_tt = participant.incoming_tt_90d|number_format(2, '.', '')|split('.') %}
-                                    {{ incoming_tt[0] }}<span class="has-text-grey">.{{ incoming_tt[1] }}</span>
                                 {% else %}
                                     {{ 'mtla_snapshot_box.empty'|trans }}
                                 {% endif %}
