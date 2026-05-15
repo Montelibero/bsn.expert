@@ -254,6 +254,7 @@ who_are_you:
     submit: Сохранить
     login: Авторизоваться
   switcher:
+    account_link: Аккаунт
     any_account_label: "Любой аккаунт:"
     custom_account_label: "Любой другой аккаунт:"
     custom_account_hint: "Стеллар адрес, не обязательно ваш собственный."

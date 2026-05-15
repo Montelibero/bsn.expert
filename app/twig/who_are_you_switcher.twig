@@ -16,10 +16,13 @@
         </span>
         <span class="is-flex is-flex-direction-column is-flex-grow-1">
             <a
-                class="has-text-text"
                 href="/preferences?current_account={{ option.id|url_encode }}&ca_key={{ ca_key|url_encode }}&return_to={{ return_to|url_encode }}"
             >{{ option.display_name }}</a>
             <span class="is-size-7 has-text-grey">
+                <a href="{% if option.username %}/@{{ option.username }}{% else %}/accounts/{{ option.id }}{% endif %}">
+                    {{ 'who_are_you.switcher.account_link'|trans }}
+                </a>
+                <span class="mx-1">&middot;</span>
                 {% if option.source == 'self' %}
                 {{ 'preferences.current_account.tags.self'|trans }}
                 <span class="mx-1">&middot;</span>

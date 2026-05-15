@@ -255,6 +255,7 @@ who_are_you:
     submit: Save
     login: Sign in
   switcher:
+    account_link: Account
     any_account_label: "Any account:"
     custom_account_label: "Any other account:"
     custom_account_hint: "A Stellar address, not necessarily your own."
