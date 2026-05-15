@@ -284,23 +284,6 @@ class WebApp
         return is_string($default_viewer) && $default_viewer !== '' ? $default_viewer : null;
     }
 
-    public function WhoAreYou(): string
-    {
-        $Template = $this->Twig->load('who_are_you.twig');
-        $return_to = $this->resolveReturnToFromRequest('/');
-        $current_account_id = strtoupper(trim((string) ($_GET['current_account'] ?? '')));
-
-        if ($current_account_id === '') {
-            $current_account_id = $this->CurrentUser->getCurrentAccountId() ?? '';
-        }
-
-        return $Template->render([
-            'return_to' => $return_to,
-            'current_account_value' => $current_account_id,
-            'current_account_error' => $this->resolveWhoAreYouError(),
-        ]);
-    }
-
     private function buildCurrentAccountOptions(): array
     {
         $options = [];
@@ -402,17 +385,6 @@ class WebApp
         }
 
         SimpleRouter::response()->redirect($return_to, 302);
-    }
-
-    private function resolveWhoAreYouError(): ?string
-    {
-        if (($_GET['error'] ?? null) !== 'invalid_account_id') {
-            return null;
-        }
-
-        return $this->Container
-            ->get(Translator::class)
-            ->trans('preferences.current_account.errors.invalid_account_id');
     }
 
     private function resolveReturnToFromRequest(string $fallback = '/'): string

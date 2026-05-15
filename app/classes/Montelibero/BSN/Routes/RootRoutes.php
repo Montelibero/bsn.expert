@@ -15,6 +15,7 @@ use Montelibero\BSN\Controllers\SearchController;
 use Montelibero\BSN\Controllers\SignController;
 use Montelibero\BSN\Controllers\SingleAccountEditTagsController;
 use Montelibero\BSN\Controllers\TransactionsController;
+use Montelibero\BSN\Controllers\WhoAreYouController;
 use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
@@ -80,7 +81,7 @@ class RootRoutes
             return $Container->get(WebApp::class)->Preferences();
         });
         SimpleRouter::get('/who_are_you', function () use ($Container) {
-            return $Container->get(WebApp::class)->WhoAreYou();
+            return $Container->get(WhoAreYouController::class)->WhoAreYou();
         });
         SimpleRouter::match(['get', 'post'], '/preferences/api', function () use ($Container) {
             return $Container->get(ApiController::class)->PreferencesApi();

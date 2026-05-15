@@ -32,6 +32,7 @@ nav:
   preferences: Настройки
   login: Войти
   logout: Выйти
+  current_account_unknown: Кто вы сейчас?
 
 current_account_notice:
   title: Сменился основной аккаунт

@@ -32,6 +32,7 @@ nav:
   preferences: Preferences
   login: Login
   logout: Logout
+  current_account_unknown: Who are you now?
 
 current_account_notice:
   title: Current account changed
