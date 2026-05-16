@@ -11,6 +11,7 @@ use Montelibero\BSN\AssetVersions;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
 use Montelibero\BSN\CurrentContacts;
+use Montelibero\BSN\Controllers\AdminController;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ApiController;
 use Montelibero\BSN\Controllers\ContactsController;
@@ -47,6 +48,8 @@ use Montelibero\BSN\RequestLocale;
 use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\StellarAccountReserveCalculator;
+use Montelibero\BSN\StellarTomlCrawler;
+use Montelibero\BSN\StellarTomlManager;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
@@ -204,6 +207,9 @@ $ContainerBuilder->addDefinitions([
     MongoCacheManager::class => function() use ($MongoManager) {
         return new MongoCacheManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },
+    StellarTomlManager::class => function() use ($MongoManager) {
+        return new StellarTomlManager($MongoManager, $_ENV['MONGO_BASENAME']);
+    },
     CurrentUser::class => $CurrentUser,
     CurrentContacts::class => $CurrentContacts,
     AssetVersions::class => $AssetVersions,
@@ -246,7 +252,9 @@ $ContainerBuilder->addDefinitions([
     },
 
     WebApp::class => autowire(),
+    StellarTomlCrawler::class => autowire(),
 
+    AdminController::class => autowire(),
     LoginController::class => autowire(),
     AccountsController::class => autowire(),
     ApiController::class => autowire(),

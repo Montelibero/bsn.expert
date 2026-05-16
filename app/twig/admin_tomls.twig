@@ -1,0 +1,213 @@
+{% extends "page.twig" %}
+
+{% block title %}stellar.toml{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/admin">Admin</a></li>
+    <li class="is-active"><a href="/admin/tomls" aria-current="page">stellar.toml</a></li>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">stellar.toml</h1>
+
+{% if notice %}
+    <div class="notification is-{{ notice.type }}">{{ notice.text }}</div>
+{% endif %}
+
+<div class="columns">
+    <div class="column">
+        <div class="box">
+            <p class="heading">Аккаунтов смотрим</p>
+            <p class="title is-3">{{ dashboard.accounts_count }}</p>
+            {% if dashboard.accounts_with_problem_count %}
+                <p class="has-text-danger">{{ dashboard.accounts_with_problem_count }} с проблемами</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="column">
+        <div class="box">
+            <p class="heading">Home domains</p>
+            <p class="title is-3">{{ dashboard.domains_count }}</p>
+        </div>
+    </div>
+    <div class="column">
+        <div class="box">
+            <p class="heading">OK</p>
+            <p class="title is-3 has-text-success">{{ dashboard.ok_domains_count }}</p>
+        </div>
+    </div>
+    <div class="column">
+        <div class="box">
+            <p class="heading">Ошибки</p>
+            <p class="title is-3 has-text-danger">{{ dashboard.error_domains_count }}</p>
+        </div>
+    </div>
+    <div class="column">
+        <div class="box">
+            <p class="heading">Игнор</p>
+            <p class="title is-3 has-text-grey">{{ dashboard.ignored_domains_count }}</p>
+        </div>
+    </div>
+</div>
+
+{% if dashboard.last_run %}
+    <div class="content">
+        <h2 class="title is-5">Последний проход</h2>
+        <p>
+            {{ dashboard.last_run.created_at.iso ?? 'n/a' }},
+            длительность {{ dashboard.last_run.duration_seconds ?? 'n/a' }}s,
+            MTLAP страниц Horizon: {{ dashboard.last_run.mtlap_horizon_pages ?? 0 }},
+            MTLAP holders: {{ dashboard.last_run.mtlap_holders ?? 0 }},
+            MTLAC страниц Horizon: {{ dashboard.last_run.mtlac_horizon_pages ?? 0 }},
+            MTLAC holders: {{ dashboard.last_run.mtlac_holders ?? 0 }},
+            known tokens: {{ dashboard.last_run.known_tokens ?? 0 }},
+            issuer Horizon requests: {{ dashboard.last_run.known_token_issuer_horizon_requests ?? 0 }},
+            issuer Horizon skipped: {{ dashboard.last_run.known_token_issuer_horizon_skipped ?? 0 }},
+            доменных запросов: {{ dashboard.last_run.home_domains_requested ?? 0 }},
+            в игноре: {{ dashboard.last_run.home_domains_ignored ?? 0 }}
+        </p>
+    </div>
+{% endif %}
+
+<div class="columns">
+    <div class="column">
+        <form method="post" class="box">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="action" value="refresh_domain">
+            <label class="label" for="home_domain">Обновить домен</label>
+            <div class="field has-addons">
+                <div class="control is-expanded">
+                    <input class="input" id="home_domain" name="home_domain" placeholder="example.org">
+                </div>
+                <div class="control">
+                    <button class="button is-link" type="submit">Обновить</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="column">
+        <form method="post" class="box">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="action" value="refresh_account">
+            <label class="label" for="account_id">Обновить по аккаунту</label>
+            <div class="field has-addons">
+                <div class="control is-expanded">
+                    <input class="input" id="account_id" name="account_id" placeholder="G...">
+                </div>
+                <div class="control">
+                    <button class="button is-link" type="submit">Обновить</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<form method="post" class="box">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="action" value="ignore_domain">
+    <label class="label" for="ignore_home_domain">Добавить домен в игнор</label>
+    <div class="field is-grouped">
+        <div class="control is-expanded">
+            <input class="input" id="ignore_home_domain" name="home_domain" placeholder="example.org">
+        </div>
+        <div class="control is-expanded">
+            <input class="input" name="reason" placeholder="Причина, опционально">
+        </div>
+        <div class="control">
+            <button class="button is-warning" type="submit">Игнорировать</button>
+        </div>
+    </div>
+</form>
+
+{% if dashboard.ignored_domains %}
+    <h2 class="title is-4">Домены в игноре</h2>
+    <div class="table-container">
+        <table class="table is-fullwidth is-striped">
+            <thead>
+            <tr>
+                <th>Домен</th>
+                <th>Когда</th>
+                <th>Причина</th>
+                <th>Аккаунты</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for domain in dashboard.ignored_domains %}
+                <tr>
+                    <td><code>{{ domain.home_domain }}</code></td>
+                    <td>{{ domain.ignored_at.iso ?? 'n/a' }}</td>
+                    <td>{{ domain.ignore_reason ?: '—' }}</td>
+                    <td>{{ domain.observed_accounts|length }}</td>
+                    <td class="has-text-right">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="action" value="unignore_domain">
+                            <input type="hidden" name="home_domain" value="{{ domain.home_domain|e('html_attr') }}">
+                            <button class="button is-small" type="submit">Вернуть в обход</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+<h2 class="title is-4">Проблемные домены</h2>
+
+{% if dashboard.problem_domains %}
+    <div class="table-container">
+        <table class="table is-fullwidth is-striped">
+            <thead>
+            <tr>
+                <th>Домен</th>
+                <th>Статус</th>
+                <th>Последняя попытка</th>
+                <th>Ошибка</th>
+                <th>Аккаунты</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for domain in dashboard.problem_domains %}
+                <tr>
+                    <td><code>{{ domain.home_domain }}</code></td>
+                    <td><span class="tag is-danger">{{ domain.status }}</span></td>
+                    <td>{{ domain.last_attempt_at.iso ?? 'n/a' }}</td>
+                    <td>
+                        <span class="has-text-weight-semibold">{{ domain.error.code ?? 'error' }}</span>
+                        {% if domain.error.message %}
+                            <br><span class="is-size-7">{{ domain.error.message }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for account in domain.observed_accounts %}
+                            <div class="mb-1">
+                                {{ include('account_link.twig', {data: {id: account.account_id}}, with_context = true) }}
+                                {% if account.problem %}
+                                    <span class="tag is-warning is-light">{{ account.problem }}</span>
+                                {% endif %}
+                                {% if account.sources %}
+                                    <span class="is-size-7 has-text-grey">({{ account.sources|join(', ') }})</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </td>
+                    <td class="has-text-right">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="action" value="ignore_domain">
+                            <input type="hidden" name="home_domain" value="{{ domain.home_domain|e('html_attr') }}">
+                            <button class="button is-small is-warning" type="submit">В игнор</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p class="block">Проблемных доменов нет.</p>
+{% endif %}
+{% endblock %}

@@ -2,3 +2,4 @@ SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 0 1 * * * /usr/local/bin/php /var/www/html/cli/update_mtla_dm_report_cache.php >> /proc/1/fd/1 2>> /proc/1/fd/2
+17 */3 * * * /usr/local/bin/php /var/www/html/cli/update_stellar_tomls.php >> /proc/1/fd/1 2>> /proc/1/fd/2

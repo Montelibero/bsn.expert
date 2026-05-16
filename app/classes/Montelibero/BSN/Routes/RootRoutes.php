@@ -81,6 +81,9 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/tools'], function () use ($Container) {
             ToolsRouter::register($Container);
         });
+        SimpleRouter::group(['prefix' => '/admin'], function () use ($Container) {
+            AdminRoutes::register($Container);
+        });
 
         SimpleRouter::match(['get', 'post'], '/preferences', function () use ($Container) {
             return $Container->get(WebApp::class)->Preferences();

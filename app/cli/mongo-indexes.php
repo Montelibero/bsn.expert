@@ -127,6 +127,39 @@ function ensureCacheEntriesIndexes(Manager $manager, string $database, string $c
     );
 }
 
+function ensureStellarTomlsIndexes(Manager $manager, string $database, string $collection = 'stellar_tomls'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['home_domain' => 1], 'name' => 'uniq_home_domain', 'unique' => true],
+                ['key' => ['status' => 1], 'name' => 'idx_status'],
+                ['key' => ['ignored' => 1], 'name' => 'idx_ignored'],
+                ['key' => ['last_attempt_at' => -1], 'name' => 'idx_last_attempt_at'],
+                ['key' => ['last_success_at' => -1], 'name' => 'idx_last_success_at'],
+                ['key' => ['observed_accounts.account_id' => 1], 'name' => 'idx_observed_account'],
+                ['key' => ['declared_accounts' => 1], 'name' => 'idx_declared_accounts'],
+                ['key' => ['currencies.key' => 1], 'name' => 'idx_currency_key'],
+            ],
+        ])
+    );
+}
+
+function ensureStellarTomlRunsIndexes(Manager $manager, string $database, string $collection = 'stellar_toml_runs'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['created_at' => -1], 'name' => 'idx_created_at'],
+            ],
+        ])
+    );
+}
+
 try {
     ensureUsernamesIndexes($manager, $database);
     ensureContactsIndexes($manager, $database);
@@ -134,6 +167,8 @@ try {
     ensureApiKeysIndexes($manager, $database);
     ensureSessionsIndexes($manager, $database);
     ensureCacheEntriesIndexes($manager, $database);
+    ensureStellarTomlsIndexes($manager, $database);
+    ensureStellarTomlRunsIndexes($manager, $database);
     echo "Mongo indexes ensured\n";
 } catch (\Throwable $e) {
     fwrite(STDERR, "[mongo-indexes] " . $e->getMessage() . PHP_EOL);

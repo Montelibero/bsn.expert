@@ -1,0 +1,17 @@
+{% extends "page.twig" %}
+
+{% block title %}Admin{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="is-active"><a href="/admin" aria-current="page">Admin</a></li>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">Admin</h1>
+
+<div class="content">
+    <ul>
+        <li><a href="/admin/tomls">stellar.toml</a></li>
+    </ul>
+</div>
+{% endblock %}
