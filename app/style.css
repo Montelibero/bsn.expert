@@ -72,6 +72,19 @@
     transform: translateY(-1px);
 }
 
+/* Tokens */
+.token-tag-link {
+    align-items: stretch;
+}
+
+.token-tag-logo {
+    aspect-ratio: 1 / 1;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    padding: 0;
+}
+
 /* Search Results */
 .search-highlight {
     background: rgba(72, 95, 199, 0.15);

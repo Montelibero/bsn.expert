@@ -69,6 +69,12 @@
 			file_server
 		}
 
+		handle /stellar-toml-images/* {
+			root * /var/www/bsn
+			header Cache-Control "public, max-age=2592000, immutable"
+			file_server
+		}
+
 		@static path_regexp static (?i)\.(?:css|js|mjs|map|json|svg|ico|png|jpe?g|gif|webp|avif|woff2?|ttf|otf|eot|txt|xml|toml)$
 		handle @static {
 			header Cache-Control "public, max-age=2592000"

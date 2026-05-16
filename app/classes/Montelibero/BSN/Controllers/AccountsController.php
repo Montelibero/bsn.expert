@@ -9,6 +9,7 @@ use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -58,6 +59,7 @@ class AccountsController
     private Container $Container;
     private CurrentUser $CurrentUser;
     private CurrentContacts $CurrentContacts;
+    private StellarTomlImageManager $TomlImageManager;
 
     public function __construct(
         BSN $BSN,
@@ -66,6 +68,7 @@ class AccountsController
         Container $Container,
         CurrentUser $CurrentUser,
         CurrentContacts $CurrentContacts,
+        StellarTomlImageManager $TomlImageManager,
     ) {
         $this->BSN = $BSN;
 
@@ -76,6 +79,7 @@ class AccountsController
         $this->Container = $Container;
         $this->CurrentUser = $CurrentUser;
         $this->CurrentContacts = $CurrentContacts;
+        $this->TomlImageManager = $TomlImageManager;
     }
 
     /**
@@ -247,7 +251,7 @@ class AccountsController
             }
             $balances["$asset_name-{$base_code_to_issuer[$asset_name]}"] = [
                 'code' => $asset_name,
-                'issuer' => '',
+                'issuer' => $base_code_to_issuer[$asset_name],
                 'amount' => $value,
                 'is_known' => true,
             ];
@@ -270,6 +274,7 @@ class AccountsController
             return strcmp($a['code'], $b['code']);
         });
         WebApp::semantic_sort_keys($balances, $base_assets);
+        $this->TomlImageManager->applyTokenImages($balances);
 
         if (($_SERVER['HTTP_ACCEPT'] ?? null) === 'application/json' || ($_GET['format'] ?? '') === 'json') {
             if (!empty($_GET['tag']) && BSN::validateTagNameFormat($_GET['tag'])) {
@@ -340,6 +345,11 @@ class AccountsController
         $selected_tags_tab = $this->resolveTagsTab();
         $income_links_count = $this->countTagLinks($income_tags);
         $outcome_links_count = $this->countTagLinks($outcome_tags);
+        $account_image = null;
+        if ($Account->getName()) {
+            $account_images = $this->TomlImageManager->fetchAccountImages($Account->getId());
+            $account_image = $account_images[0]['public_path'] ?? null;
+        }
 
         $Template = $this->Twig->load('account_page.twig');
         return $Template->render([
@@ -352,6 +362,7 @@ class AccountsController
             'is_contact' => $is_contact,
             'telegram_username' => $Account->getTelegramUsername(),
             'name' => $Account->getName(),
+            'account_image' => $account_image,
             'about' => $Account->getAbout(),
             'website' => array_values(array_filter(array_map(self::normalizeURL(...), $Account->getWebsite()))),
             'timetoken' => $timetoken,
@@ -803,13 +814,12 @@ class AccountsController
                 ];
             }
             $balances[$asset_name]['amount'] = (float) $Asset->getBalance();
+            $balances[$asset_name]['issuer'] = $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer();
             if ($asset_name !== 'XLM'
                 && ($kt = $TokensController->getKnownTokenByCode($balances[$asset_name]['code']))
                 && $kt['issuer'] === $Asset->getAssetIssuer()
             ) {
                 $balances[$asset_name]['is_known'] = true;
-            } else {
-                $balances[$asset_name]['issuer'] = $Asset->getAssetType() === Asset::TYPE_NATIVE ? null : $Asset->getAssetIssuer();
             }
         }
     }

@@ -49,6 +49,8 @@ use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\Routes\RootRoutes;
 use Montelibero\BSN\StellarAccountReserveCalculator;
 use Montelibero\BSN\StellarTomlCrawler;
+use Montelibero\BSN\StellarTomlImageCrawler;
+use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\StellarTomlManager;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
@@ -210,6 +212,9 @@ $ContainerBuilder->addDefinitions([
     StellarTomlManager::class => function() use ($MongoManager) {
         return new StellarTomlManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },
+    StellarTomlImageManager::class => function() use ($MongoManager) {
+        return new StellarTomlImageManager($MongoManager, $_ENV['MONGO_BASENAME']);
+    },
     CurrentUser::class => $CurrentUser,
     CurrentContacts::class => $CurrentContacts,
     AssetVersions::class => $AssetVersions,
@@ -253,6 +258,7 @@ $ContainerBuilder->addDefinitions([
 
     WebApp::class => autowire(),
     StellarTomlCrawler::class => autowire(),
+    StellarTomlImageCrawler::class => autowire(),
 
     AdminController::class => autowire(),
     LoginController::class => autowire(),

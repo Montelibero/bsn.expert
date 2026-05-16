@@ -85,38 +85,51 @@
 {% endif %}
 
 {% if name or about or website or timekoken.code %}
-<dl class="box">
-    {% if name %}
-        <dt class="title is-4">{{ 'account_page.name'|trans }}</dt>
-        <dd class="subtitle is-4">
-            {% for item in name %}
-                {{ item }}<br>
-            {% endfor %}
-        </dd>
-    {% endif %}
-    {% if about %}
-        <dt class="title is-4">{{ 'account_page.about'|trans }}</dt>
-        <dd class="subtitle is-4">
-            {% for item in about %}
-                {{ item }}<br>
-            {% endfor %}
-        </dd>
-    {% endif %}
-    {% if website %}
-        <dt class="title is-4">{{ 'account_page.website'|trans }}</dt>
-        <dd class="subtitle is-4">
-            {% for item in website %}
-                <a href="{{ item }}">{{ item|pretty_url }}</a><br>
-            {% endfor %}
-        </dd>
-    {% endif %}
-    {% if timetoken.code %}
-        <dt class="title is-4">{{ 'account_page.timetoken'|trans }}</dt>
-        <dd class="subtitle is-4">
-                <a href="/tokens/{{ timetoken.code }}{% if not timetoken.is_known %}-{{ timetoken.issuer }}{% endif %}">{{ timetoken.code }}</a><br>
-        </dd>
-    {% endif %}
-</dl>
+<div class="columns">
+        <div class="column">
+                <dl class="box">
+                    {% if name %}
+                        <dt class="title is-4">{{ 'account_page.name'|trans }}</dt>
+                        <dd class="subtitle is-4">
+                            {% for item in name %}
+                                {{ item }}<br>
+                            {% endfor %}
+                        </dd>
+                    {% endif %}
+                    {% if about %}
+                        <dt class="title is-4">{{ 'account_page.about'|trans }}</dt>
+                        <dd class="subtitle is-4">
+                            {% for item in about %}
+                                {{ item }}<br>
+                            {% endfor %}
+                        </dd>
+                    {% endif %}
+                    {% if website %}
+                        <dt class="title is-4">{{ 'account_page.website'|trans }}</dt>
+                        <dd class="subtitle is-4">
+                            {% for item in website %}
+                                <a href="{{ item }}">{{ item|pretty_url }}</a><br>
+                            {% endfor %}
+                        </dd>
+                    {% endif %}
+                    {% if timetoken.code %}
+                        <dt class="title is-4">{{ 'account_page.timetoken'|trans }}</dt>
+                        <dd class="subtitle is-4">
+                                <a href="/tokens/{{ timetoken.code }}{% if not timetoken.is_known %}-{{ timetoken.issuer }}{% endif %}">{{ timetoken.code }}</a><br>
+                        </dd>
+                    {% endif %}
+                </dl>
+        </div>
+        {% if name and account_image %}
+        <div class="column is-narrow">
+                <div class="box">
+                        <figure class="image is-128x128">
+                                <img src="{{ account_image }}" alt="{{ display_name }}">
+                        </figure>
+                </div>
+        </div>
+        {% endif %}
+</div>
 {% endif %}
 
 {% if multisig %}
@@ -207,7 +220,10 @@
         <div class="field is-grouped is-grouped-multiline">
         {% for asset, balance in balances %}
                 <div class="control">
-                <a href="/tokens/{{ balance.code }}{% if balance.issuer %}-{{ balance.issuer }}{% endif %}" class="tags has-addons">
+                <a href="/tokens/{{ balance.code }}{% if not balance.is_known and balance.issuer %}-{{ balance.issuer }}{% endif %}" class="tags has-addons">
+                {% if balance.image_path %}
+                <span class="tag token-tag-logo" style="background-image: url('{{ balance.image_path|e('html_attr') }}')" aria-hidden="true"></span>
+                {% endif %}
                 <span class="tag is-hoverable {{ balance.is_known ? "is-info" : "is-dark" }}" title="{{ asset }}">
                 {{ balance.code }}
                 </span>

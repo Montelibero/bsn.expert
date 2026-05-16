@@ -20,28 +20,42 @@
         <a class="tag is-info" href="https://scopuly.com/trade/{{ code }}-XLM/{{ issuer.id }}/native">Scopuly</a><br>
 </h1>
 
-<dl class="box">
-    {% if category %}
-        <dt class="title is-4">{{ 'token_page.category'|trans }}</dt>
-        <dd class="subtitle is-4">
-            <a href="/tokens/#category_{{ category }}">{{ category_name }}</a>
-        </dd>
+<div class="columns">
+    <div class="column">
+        <dl class="box">
+            {% if category %}
+                <dt class="title is-4">{{ 'token_page.category'|trans }}</dt>
+                <dd class="subtitle is-4">
+                    <a href="/tokens/#category_{{ category }}">{{ category_name }}</a>
+                </dd>
+            {% endif %}
+            {% if offer_link %}
+                <dt class="title is-4">{{ 'token_page.offer_link'|trans }}</dt>
+                <dd class="subtitle is-4">
+                    <a href="{{ offer_link }}">{{ offer_link }}</a>
+                </dd>
+            {% endif %}
+            <dt class="title is-4">{{ 'token_page.holders_count'|trans }}</dt>
+            <dd class="subtitle is-4">
+                {{ holders_count }}
+            </dd>
+            <dt class="title is-4">{{ 'token_page.issued'|trans }}</dt>
+            <dd class="subtitle is-4">
+                {{ issued }}
+            </dd>
+        </dl>
+    </div>
+
+    {% if token_image %}
+        <div class="column is-narrow">
+            <div class="box">
+                <figure class="image is-128x128">
+                    <img src="{{ token_image }}" alt="{{ code }}">
+                </figure>
+            </div>
+        </div>
     {% endif %}
-    {% if offer_link %}
-        <dt class="title is-4">{{ 'token_page.offer_link'|trans }}</dt>
-        <dd class="subtitle is-4">
-            <a href="{{ offer_link }}">{{ offer_link }}</a>
-        </dd>
-    {% endif %}
-    <dt class="title is-4">{{ 'token_page.holders_count'|trans }}</dt>
-    <dd class="subtitle is-4">
-        {{ holders_count }}
-    </dd>
-    <dt class="title is-4">{{ 'token_page.issued'|trans }}</dt>
-    <dd class="subtitle is-4">
-        {{ issued }}
-    </dd>
-</dl>
+</div>
 
 <div class="box">
 <h2 class="title">{{ 'token_page.add_trustline.header'|trans }}</h2>
@@ -75,4 +89,3 @@
 {% endif %}
 
 {% endblock %}
-

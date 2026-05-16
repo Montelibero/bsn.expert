@@ -25,6 +25,7 @@ class StellarTomlCrawler
         private StellarSDK $Stellar,
         private TokensController $TokensController,
         private StellarTomlManager $TomlManager,
+        private StellarTomlImageCrawler $ImageCrawler,
     ) {
     }
 
@@ -49,6 +50,13 @@ class StellarTomlCrawler
             'home_domains_error' => 0,
             'home_domains_ignored' => 0,
             'home_domains_unchanged' => 0,
+            'image_tasks' => 0,
+            'image_ok' => 0,
+            'image_downloaded' => 0,
+            'image_cached' => 0,
+            'image_not_modified' => 0,
+            'image_errors' => 0,
+            'image_unsupported' => 0,
             'errors' => [],
         ];
 
@@ -139,6 +147,7 @@ class StellarTomlCrawler
             $summary['home_domains_requested']++;
             $this->log($log, sprintf('Refreshing %s (%d accounts)', $home_domain, count($accounts)));
             $result = $this->refreshDomain($home_domain, $accounts);
+            $this->mergeImageSummary($summary, $result['image_summary'] ?? []);
 
             if (($result['status'] ?? null) === 'ok') {
                 $summary['home_domains_ok']++;
@@ -156,7 +165,7 @@ class StellarTomlCrawler
         return $summary;
     }
 
-    public function refreshAccount(string $account_id): array
+    public function refreshAccount(string $account_id, bool $force_images = false): array
     {
         $account_id = strtoupper(trim($account_id));
         if (!BSN::validateStellarAccountIdFormat($account_id)) {
@@ -189,10 +198,10 @@ class StellarTomlCrawler
                 'sources' => ['manual'],
                 'tokens' => [],
             ],
-        ]);
+        ], $force_images);
     }
 
-    public function refreshDomain(string $home_domain, array $observed_accounts = []): array
+    public function refreshDomain(string $home_domain, array $observed_accounts = [], bool $force_images = false): array
     {
         $home_domain = StellarTomlManager::normalizeHomeDomain($home_domain);
         if ($home_domain === null) {
@@ -251,8 +260,9 @@ class StellarTomlCrawler
             );
             $doc['error'] = null;
             $this->TomlManager->saveDomain($doc);
+            $image_summary = $this->refreshImages($home_domain, $doc, $force_images);
 
-            return ['status' => 'ok', 'home_domain' => $home_domain, 'unchanged' => true];
+            return ['status' => 'ok', 'home_domain' => $home_domain, 'unchanged' => true, 'image_summary' => $image_summary];
         }
 
         try {
@@ -300,8 +310,44 @@ class StellarTomlCrawler
             'error' => null,
         ];
         $this->TomlManager->saveDomain($doc);
+        $image_summary = $this->refreshImages($home_domain, $doc, $force_images);
 
-        return ['status' => 'ok', 'home_domain' => $home_domain, 'unchanged' => false];
+        return ['status' => 'ok', 'home_domain' => $home_domain, 'unchanged' => false, 'image_summary' => $image_summary];
+    }
+
+    private function refreshImages(string $home_domain, array $doc, bool $force_images): array
+    {
+        try {
+            return $this->ImageCrawler->refreshRelevantImages($home_domain, $doc, $force_images);
+        } catch (Throwable $e) {
+            return [
+                'tasks' => 0,
+                'ok' => 0,
+                'downloaded' => 0,
+                'cached' => 0,
+                'not_modified' => 0,
+                'errors' => 1,
+                'unsupported' => 0,
+                'exception' => $e->getMessage(),
+            ];
+        }
+    }
+
+    private function mergeImageSummary(array &$summary, array $image_summary): void
+    {
+        $map = [
+            'tasks' => 'image_tasks',
+            'ok' => 'image_ok',
+            'downloaded' => 'image_downloaded',
+            'cached' => 'image_cached',
+            'not_modified' => 'image_not_modified',
+            'errors' => 'image_errors',
+            'unsupported' => 'image_unsupported',
+        ];
+
+        foreach ($map as $source => $target) {
+            $summary[$target] += (int) ($image_summary[$source] ?? 0);
+        }
     }
 
     private function collectMemberTokenHolders(string $code, array &$summary): array

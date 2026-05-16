@@ -5,6 +5,7 @@ use DI\Container;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Relations\Person;
 use Montelibero\BSN\Relations\Member;
+use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
@@ -30,11 +31,13 @@ class TokensController
 
     private Container $Container;
 
+    private StellarTomlImageManager $TomlImageManager;
+
     private array $known_tokens = [];
     private array $known_tokens_by_code = [];
     private int $known_tokens_checked_at = 0;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container)
+    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container, StellarTomlImageManager $TomlImageManager)
     {
         $this->BSN = $BSN;
 
@@ -43,6 +46,8 @@ class TokensController
         $this->Stellar = $Stellar;
 
         $this->Container = $Container;
+
+        $this->TomlImageManager = $TomlImageManager;
     }
 
     public function Tokens(): ?string
@@ -84,6 +89,11 @@ class TokensController
             }
             $tokens[$asset['category']]['tokens'][$asset['code']] = $asset;
         }
+        foreach ($tokens as &$category) {
+            $this->TomlImageManager->applyTokenImages($category['tokens']);
+        }
+        unset($category);
+
         WebApp::semantic_sort_keys($tokens, $categories);
         $Translator = $this->Container->get(Translator::class);
         foreach ($tokens as $category_name => & $category) {
@@ -173,6 +183,9 @@ class TokensController
             $balance['account'] = $this->BSN->makeAccountById($balance['id'])->jsonSerialize();
         }
 
+        $token_images = $this->TomlImageManager->fetchTokenImages($code, $issuer);
+        $token_image = $token_images[0]['public_path'] ?? null;
+
         $signing_form = $this->buildTokenTrustlineForm($code, $issuer);
 
         $Template = $this->Twig->load('token.twig');
@@ -184,6 +197,7 @@ class TokensController
             'category' => $category,
             'category_name' => $category_name,
             'offer_link' => $offer_link,
+            'token_image' => $token_image,
             'add_trustline_form' => $signing_form,
             'holders' => $holders,
         ]);

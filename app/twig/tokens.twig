@@ -16,12 +16,18 @@
     {% for category in tokens %}
     <h2 class="title is-4" id="category_{{ category.name_code }}">{{ category.name }}</h2>
         <p class="block">{{ category.description }}</p>
-        <div class="tags are-medium">
+        <div class="field is-grouped is-grouped-multiline">
             {% for token in category.tokens %}
-                <a href="/tokens/{{ token.code }}" class="tag is-info">{{ token.code }}</a>
+                <div class="control">
+                    <a href="/tokens/{{ token.code }}" class="tags has-addons are-medium token-tag-link">
+                        {% if token.image_path %}
+                            <span class="tag token-tag-logo" style="background-image: url('{{ token.image_path|e('html_attr') }}')" aria-hidden="true"></span>
+                        {% endif %}
+                        <span class="tag is-info">{{ token.code }}</span>
+                    </a>
+                </div>
             {% endfor %}
         </div>
     {% endfor %}
 
 {% endblock %}
-

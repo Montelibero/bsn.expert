@@ -20,7 +20,7 @@ $summary = $Crawler->runAll(static function (string $message): void {
 });
 
 printf(
-    "stellar.toml crawl finished: status=%s accounts=%d accounts_with_home_domain=%d domains=%d mtlap_holders=%d mtlac_holders=%d issuer_requests=%d issuer_skipped=%d requested=%d ok=%d errors=%d ignored=%d unchanged=%d duration=%ss\n",
+    "stellar.toml crawl finished: status=%s accounts=%d accounts_with_home_domain=%d domains=%d mtlap_holders=%d mtlac_holders=%d issuer_requests=%d issuer_skipped=%d requested=%d ok=%d errors=%d ignored=%d unchanged=%d images=%d image_ok=%d image_downloaded=%d image_cached=%d image_errors=%d duration=%ss\n",
     $summary['status'],
     $summary['accounts_seen'],
     $summary['accounts_with_home_domain'],
@@ -34,6 +34,11 @@ printf(
     $summary['home_domains_error'],
     $summary['home_domains_ignored'],
     $summary['home_domains_unchanged'],
+    $summary['image_tasks'],
+    $summary['image_ok'],
+    $summary['image_downloaded'],
+    $summary['image_cached'],
+    $summary['image_errors'] + $summary['image_unsupported'],
     $summary['duration_seconds']
 );
 

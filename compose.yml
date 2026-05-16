@@ -11,6 +11,7 @@ services:
       - "44077:80"
     volumes:
       - bsn_shared_data:/var/www/bsn
+      - bsn_stellar_toml_images:/var/www/bsn/stellar-toml-images
     expose:
       - "80"
     env_file:
@@ -28,6 +29,7 @@ services:
       test: ["NONE"]
     volumes:
       - bsn_shared_data:/var/www/bsn
+      - bsn_stellar_toml_images:/var/www/bsn/stellar-toml-images
     env_file:
       - .env
     depends_on:
@@ -54,3 +56,4 @@ volumes:
   mongo_data:
   bsn_shared_data:
     external: true
+  bsn_stellar_toml_images:

@@ -64,7 +64,11 @@
             issuer Horizon requests: {{ dashboard.last_run.known_token_issuer_horizon_requests ?? 0 }},
             issuer Horizon skipped: {{ dashboard.last_run.known_token_issuer_horizon_skipped ?? 0 }},
             доменных запросов: {{ dashboard.last_run.home_domains_requested ?? 0 }},
-            в игноре: {{ dashboard.last_run.home_domains_ignored ?? 0 }}
+            в игноре: {{ dashboard.last_run.home_domains_ignored ?? 0 }},
+            image tasks: {{ dashboard.last_run.image_tasks ?? 0 }},
+            image downloaded: {{ dashboard.last_run.image_downloaded ?? 0 }},
+            image cached: {{ dashboard.last_run.image_cached ?? 0 }},
+            image errors: {{ (dashboard.last_run.image_errors ?? 0) + (dashboard.last_run.image_unsupported ?? 0) }}
         </p>
     </div>
 {% endif %}

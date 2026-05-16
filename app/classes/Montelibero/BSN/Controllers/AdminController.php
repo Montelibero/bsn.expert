@@ -48,14 +48,14 @@ class AdminController
             $action = (string) ($_POST['action'] ?? '');
             if ($action === 'refresh_domain') {
                 $home_domain = trim((string) ($_POST['home_domain'] ?? ''));
-                $result = $this->TomlCrawler->refreshDomain($home_domain);
+                $result = $this->TomlCrawler->refreshDomain($home_domain, [], true);
                 $notice = [
                     'type' => ($result['status'] ?? null) === 'ok' ? 'success' : (($result['status'] ?? null) === 'ignored' ? 'warning' : 'danger'),
                     'text' => $this->formatRefreshResult($result),
                 ];
             } elseif ($action === 'refresh_account') {
                 $account_id = strtoupper(trim((string) ($_POST['account_id'] ?? '')));
-                $result = $this->TomlCrawler->refreshAccount($account_id);
+                $result = $this->TomlCrawler->refreshAccount($account_id, true);
                 $notice = [
                     'type' => ($result['status'] ?? null) === 'ok' ? 'success' : (($result['status'] ?? null) === 'ignored' ? 'warning' : 'danger'),
                     'text' => $this->formatRefreshResult($result),
@@ -114,10 +114,21 @@ class AdminController
     {
         $home_domain = (string) ($result['home_domain'] ?? '');
         if (($result['status'] ?? null) === 'ok') {
+            $image_summary = $result['image_summary'] ?? [];
+            $image_text = '';
+            if (($image_summary['tasks'] ?? 0) > 0) {
+                $image_text = sprintf(
+                    ', изображения: %d ok, %d скачано',
+                    (int) ($image_summary['ok'] ?? 0),
+                    (int) ($image_summary['downloaded'] ?? 0)
+                );
+            }
+
             return sprintf(
-                '%s обновлен%s',
+                '%s обновлен%s%s',
                 $home_domain ?: 'Домен',
-                ($result['unchanged'] ?? false) ? ' без изменений' : ''
+                ($result['unchanged'] ?? false) ? ' без изменений' : '',
+                $image_text
             );
         }
         if (($result['status'] ?? null) === 'ignored') {

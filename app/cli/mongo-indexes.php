@@ -160,6 +160,39 @@ function ensureStellarTomlRunsIndexes(Manager $manager, string $database, string
     );
 }
 
+function ensureStellarTomlImagesIndexes(Manager $manager, string $database, string $collection = 'stellar_toml_images'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['image_id' => 1], 'name' => 'uniq_image_id', 'unique' => true],
+                ['key' => ['source_url' => 1], 'name' => 'idx_source_url'],
+                ['key' => ['status' => 1], 'name' => 'idx_status'],
+                ['key' => ['next_check_at' => 1], 'name' => 'idx_next_check_at'],
+                ['key' => ['last_success_at' => -1], 'name' => 'idx_last_success_at'],
+            ],
+        ])
+    );
+}
+
+function ensureStellarTomlImageRefsIndexes(Manager $manager, string $database, string $collection = 'stellar_toml_image_refs'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['home_domain' => 1], 'name' => 'idx_home_domain'],
+                ['key' => ['entity_type' => 1, 'entity_key' => 1, 'role' => 1], 'name' => 'idx_entity_role'],
+                ['key' => ['image_id' => 1], 'name' => 'idx_image_id'],
+                ['key' => ['status' => 1], 'name' => 'idx_status'],
+            ],
+        ])
+    );
+}
+
 try {
     ensureUsernamesIndexes($manager, $database);
     ensureContactsIndexes($manager, $database);
@@ -169,6 +202,8 @@ try {
     ensureCacheEntriesIndexes($manager, $database);
     ensureStellarTomlsIndexes($manager, $database);
     ensureStellarTomlRunsIndexes($manager, $database);
+    ensureStellarTomlImagesIndexes($manager, $database);
+    ensureStellarTomlImageRefsIndexes($manager, $database);
     echo "Mongo indexes ensured\n";
 } catch (\Throwable $e) {
     fwrite(STDERR, "[mongo-indexes] " . $e->getMessage() . PHP_EOL);
