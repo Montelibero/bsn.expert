@@ -50,6 +50,7 @@
             {% endif %}
             </span>
         </a>
+        {% include 'navbar_search_dropdown.twig' with { navbar_search_item_classes: 'is-hidden-desktop navbar-search-brand-item' } %}
         <a class="navbar-burger" role="button" aria-label="menu" aria-expanded="false">
             <span aria-hidden="true"></span>
             <span aria-hidden="true"></span>
@@ -173,6 +174,15 @@
             </div>
         </div>
         <div class="navbar-end">
+            {% include 'navbar_search_dropdown.twig' with { navbar_search_item_classes: 'is-hidden-touch is-hidden-fullhd' } %}
+            <div class="navbar-item is-hidden-touch is-hidden-desktop-only is-hidden-widescreen-only">
+                {% include 'search_form.twig' with {
+                    search_size: 'is-small',
+                    search_classes: 'navbar-search-form',
+                    search_button_label: false,
+                    search_value: ''
+                } %}
+            </div>
             <a class="navbar-item" href="/preferences">
                 <i class="fa-solid fa-gears"></i>
                 {{ 'nav.preferences'|trans }}

@@ -270,7 +270,7 @@ search:
   results_limited: "Показаны первые %shown% из %cnt%."
   autocomplete:
     empty: Ничего не найдено
-  loading: Ищем...
+    loading: Ищем...
   types:
     account: Аккаунт
     token: Токен

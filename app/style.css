@@ -232,6 +232,45 @@
     padding: 0 0.06em;
 }
 
+.navbar-search-brand-item {
+    margin-left: auto;
+}
+
+.navbar-search-brand-item + .navbar-burger {
+    margin-left: 0;
+}
+
+.navbar-search-form {
+    margin-bottom: 0;
+    width: min(20rem, 30vw);
+}
+
+.navbar-search-form .field {
+    margin-bottom: 0;
+}
+
+.navbar-search-dropdown {
+    width: min(24rem, calc(100vw - 1.5rem));
+}
+
+.navbar-search-dropdown .navbar-search-form {
+    width: 100%;
+}
+
+@media screen and (max-width: 1023px) {
+    .navbar-search-brand-item,
+    .navbar-search-brand-item .dropdown {
+        position: static;
+    }
+
+    .navbar-search-brand-item .dropdown.is-right .navbar-search-dropdown {
+        left: 0.75rem;
+        right: 0.75rem;
+        min-width: 0;
+        width: auto;
+    }
+}
+
 .close-trustlines-card {
     display: block;
     height: 100%;
