@@ -21,7 +21,10 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <h2 class="title is-4">Данные</h2>
         <div class="field">
-            <label class="label" for="accounts">Аккаунты</label>
+            <label class="label" for="accounts">
+                Аккаунты
+                {% include 'account_insert_helper.twig' with { target_selector: '#accounts' } %}
+            </label>
             <div class="control">
                 <textarea
                     id="accounts"

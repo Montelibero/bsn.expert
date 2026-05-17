@@ -107,7 +107,10 @@
         <p class="block">{{ 'editor2.mode.instruction'|trans }}</p>
 
         <div class="field">
-            <label class="label" for="counterparties">{{ 'editor2.mode.counterparties'|trans }}</label>
+            <label class="label" for="counterparties">
+                {{ 'editor2.mode.counterparties'|trans }}
+                {% include 'account_insert_helper.twig' with { target_selector: '#counterparties' } %}
+            </label>
             <input
                 id="counterparties"
                 class="input"

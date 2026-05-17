@@ -240,6 +240,39 @@
     margin-left: 0;
 }
 
+.js-account-insert-helper {
+    display: none;
+}
+
+.has-js .js-account-insert-helper {
+    display: inline-block;
+}
+
+.account-insert-helper {
+    position: relative;
+    margin-left: 0.35rem;
+    font-weight: 400;
+}
+
+.account-insert-dropdown {
+    position: absolute;
+    z-index: 40;
+    display: none;
+    width: min(24rem, calc(100vw - 1.5rem));
+}
+
+.account-insert-dropdown.is-active {
+    display: block;
+}
+
+.account-insert-panel {
+    display: block;
+}
+
+.account-insert-search-field {
+    margin-bottom: 0;
+}
+
 .navbar-search-form {
     margin-bottom: 0;
     width: min(20rem, 30vw);

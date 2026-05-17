@@ -1,0 +1,38 @@
+{% set search_size = search_size|default('') %}
+{% set search_classes = search_classes|default('') %}
+{% set search_button_label = search_button_label is defined ? search_button_label : true %}
+{% set search_value = search_value is defined ? search_value : q|default('') %}
+
+<form method="get" action="/search/" class="{{ search_classes }}" data-search-autocomplete-form>
+    <div class="field has-addons">
+        <div class="control is-expanded search-autocomplete-host">
+            <input
+                type="text"
+                name="q"
+                class="input {{ search_size }}"
+                placeholder="{{ 'search.placeholder_hint'|trans }}"
+                size="32"
+                maxlength="128"
+                value="{{ search_value }}"
+                autocomplete="off"
+                data-search-autocomplete-input
+            >
+            <div
+                class="search-autocomplete"
+                data-search-autocomplete-dropdown
+                data-empty-text="{{ 'search.autocomplete.empty'|trans }}"
+                data-loading-text="{{ 'search.autocomplete.loading'|trans }}"
+            ></div>
+        </div>
+        <div class="control">
+            <button type="submit" class="button is-link {{ search_size }}" data-search-results-button>
+                <span class="icon">
+                    <i class="fa-solid fa-search"></i>
+                </span>
+                {% if search_button_label %}
+                    <span>{{ 'search.action.search'|trans }}</span>
+                {% endif %}
+            </button>
+        </div>
+    </div>
+</form>

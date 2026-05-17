@@ -1,0 +1,10 @@
+{% set target_selector = target_selector|default('') %}
+
+<span
+    class="account-insert-helper js-account-insert-helper"
+    data-account-insert-helper
+    data-account-insert-target="{{ target_selector|e('html_attr') }}"
+    data-account-insert-close-label="{{ 'common.close'|trans|e('html_attr') }}"
+>
+    [<span class="pseudo-link" role="button" tabindex="0" aria-expanded="false" data-account-insert-toggle>{{ 'common.find_and_insert'|trans }}</span>]
+</span>

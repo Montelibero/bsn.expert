@@ -1,0 +1,30 @@
+{% set navbar_search_item_classes = navbar_search_item_classes|default('') %}
+
+<div class="navbar-item {{ navbar_search_item_classes }}">
+    <div class="dropdown is-right" data-navbar-search>
+        <div class="dropdown-trigger">
+            <button
+                class="button is-small"
+                type="button"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-label="{{ 'search.action.search'|trans }}"
+                data-navbar-search-toggle
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-search" data-navbar-search-toggle-icon></i>
+                </span>
+            </button>
+        </div>
+        <div class="dropdown-menu navbar-search-dropdown" role="menu">
+            <div class="dropdown-content p-3">
+                {% include 'search_form.twig' with {
+                    search_size: 'is-small',
+                    search_classes: 'navbar-search-form',
+                    search_button_label: false,
+                    search_value: ''
+                } %}
+            </div>
+        </div>
+    </div>
+</div>

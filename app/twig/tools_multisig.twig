@@ -46,6 +46,7 @@
                             placeholder="G..."
                             value="{{ account }}"
                             maxlength="56"
+                            data-account-autocomplete-input
                     />
                     <span class="icon is-left">
                         <i class="fa-solid fa-user"></i>
@@ -147,6 +148,7 @@
                             placeholder="G..."
                             value="{% if i %}{{ multisig[i].account|default('') }}{% else %}{{ account }}{% endif %}"
                             maxlength="56"
+                            data-account-autocomplete-input
                             {% if not i %}disabled{% endif %}
                     />
                     <span class="icon is-left">
@@ -185,4 +187,3 @@
         </div>
     </form>
 {% endblock %}
-

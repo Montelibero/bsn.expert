@@ -20,6 +20,7 @@ class SearchController
     private const MIN_LENGTH_TOKENS = 1;
     private const MIN_LENGTH_ACCOUNTS = 3;
     private const MIN_LENGTH_DOCUMENTS = 3;
+    private const SEARCH_SOURCES = ['tags', 'tokens', 'accounts', 'documents'];
 
     public function __construct(
         private readonly BSN $BSN,
@@ -43,7 +44,8 @@ class SearchController
             return null;
         }
 
-        $search_result = $this->performSearch($query, $limit);
+        $search_sources = $is_json_request ? $this->resolveSearchSources() : self::SEARCH_SOURCES;
+        $search_result = $this->performSearch($query, $limit, $search_sources);
 
         if ($is_json_request) {
             header('Content-Type: application/json; charset=utf-8');
@@ -80,7 +82,7 @@ class SearchController
         ]);
     }
 
-    private function performSearch(string $query, int $limit): array
+    private function performSearch(string $query, int $limit, array $search_sources): array
     {
         if ($query === '') {
             return [
@@ -94,22 +96,22 @@ class SearchController
         $sources = [];
         $query_length = mb_strlen($query);
 
-        if ($query_length >= self::MIN_LENGTH_TAGS) {
+        if (in_array('tags', $search_sources, true) && $query_length >= self::MIN_LENGTH_TAGS) {
             $sources[] = 'tags';
             $results = [...$results, ...$this->searchTags($query)];
         }
 
-        if ($query_length >= self::MIN_LENGTH_TOKENS) {
+        if (in_array('tokens', $search_sources, true) && $query_length >= self::MIN_LENGTH_TOKENS) {
             $sources[] = 'tokens';
             $results = [...$results, ...$this->searchTokens($query)];
         }
 
-        if ($query_length >= self::MIN_LENGTH_ACCOUNTS) {
+        if (in_array('accounts', $search_sources, true) && $query_length >= self::MIN_LENGTH_ACCOUNTS) {
             $sources[] = 'accounts';
             $results = [...$results, ...$this->searchAccounts($query)];
         }
 
-        if ($query_length >= self::MIN_LENGTH_DOCUMENTS) {
+        if (in_array('documents', $search_sources, true) && $query_length >= self::MIN_LENGTH_DOCUMENTS) {
             $sources[] = 'documents';
             $results = [...$results, ...$this->searchDocuments($query)];
         }
@@ -490,6 +492,14 @@ class SearchController
         }
 
         return min($limit, self::JSON_MAX_LIMIT);
+    }
+
+    private function resolveSearchSources(): array
+    {
+        $sources = preg_split('/[,\s]+/', (string) ($_GET['types'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $sources = array_values(array_intersect(self::SEARCH_SOURCES, $sources));
+
+        return $sources ?: self::SEARCH_SOURCES;
     }
 
     private function isJsonRequest(): bool
