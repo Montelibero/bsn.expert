@@ -12,52 +12,48 @@
 {% endblock %}
 
 {% block content %}
-<h1 class="title">{{ display_name }}
-        {% if current_user.account %}
-        <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}"
-           href="/contacts/{{ account_id }}"
-           title="{% if is_contact  %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}"
-        >
-                <span class="icon"><i class="fa-regular fa-address-book"></i></span>
-                {% if not is_contact %}
-                <span>{{ 'account_page.contact_button.add'|trans }}</span>
-                {% endif %}
-        </a>
-        {% endif %}
-        <a class="button is-outlined is-primary"
-           href="/accounts/{{ account_id }}/edit_tags"
-           title="{{ 'edit_tags.title'|trans }}"
-        >
-                <span class="icon"><i class="fa-solid fa-tags"></i></span>
-                <span>{{ 'edit_tags.title'|trans }}</span>
-        </a>
-        {% if current_user.account %}
-        <a class="button is-outlined is-primary"
-           href="/accounts/{{ account_id }}/operations"
-           title="{{ 'account_page.operations_button'|trans }}"
-        ><span class="icon"><i class="fa-solid fa-list"></i></span></a>
-        {% endif %}
-</h1>
+<h1 class="title">{{ display_name }}</h1>
 <h1 class="subtitle">
         <span class="stellar_address is-family-monospace">{{ account_id }}</span><br>
         {% if username %}<span class="stellar_address is-family-monospace">{{ username }}*bsn.expert</span><br>{% endif %}
-        {{ 'account_page.alternatives'|trans }}:
-        <a class="tag is-link" href="https://viewer.eurmtl.me/account/{{ account_id }}">Eurmtl.me</a>
-        <a class="tag is-dark" href="https://lore.mtlprog.xyz/accounts/{{ account_id }}">Lore</a>
-        <a class="tag is-primary" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
-        <a class="tag is-info" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
-        <a class="tag is-warning" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
-        <br>
-        {% if current_user.showTelegramUsernames and telegram_username %}
-        Telegram: <a href="https://t.me/{{ telegram_username }}">@{{ telegram_username }}</a><br>
-        {% endif %}
-        {% if nostr %}
-        Nostr: <a href="https://find.nostria.app/p/{{ nostr }}">{{ nostr }}</a><br>
-        {% endif %}
-        BSN score: {{ bsn_score }}
 </h1>
 
-{% set owner_link = outcome_tags.Owner.links[outcome_tags.Owner.links|keys|first] %}
+<div class="buttons">
+    <a class="button is-outlined is-primary" href="/accounts/{{ account_id }}/edit_tags">
+        <span class="icon"><i class="fa-solid fa-tags"></i></span>
+        <span>{{ 'edit_tags.title'|trans }}</span>
+    </a>
+    <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}"
+       href="{% if current_user.account %}/contacts/{{ account_id }}{% else %}/login/?return_to=/contacts/{{ account_id }}{% endif %}">
+        <span class="icon"><i class="fa-regular fa-address-book"></i></span>
+        {% if is_contact %}
+            <span>{{ 'account_page.contact_button.edit'|trans }}</span>
+        {% else %}
+            <span>{{ 'account_page.contact_button.add'|trans }}</span>
+        {% endif %}
+    </a>
+    <a class="button is-outlined {% if current_user.account %}is-primary{% else %}is-warning{% endif %}"
+        href="{% if current_user.account %}/accounts/{{ account_id }}/operations{% else %}/login/{% endif %}">
+        <span class="icon"><i class="fa-solid fa-list"></i></span>
+        <span>{{ 'account_page.operations_button'|trans }}</span>
+    </a>
+</div>
+<nav class="navbar" role="navigation" aria-label="dropdown navigation">
+    <div class="navbar-item has-dropdown is-hoverable">
+        <a class="navbar-link">{{ 'account_page.alternatives'|trans }}</a>
+
+        <div class="navbar-dropdown">
+            <a class="navbar-item" href="https://viewer.eurmtl.me/account/{{ account_id }}">Eurmtl.me</a>
+            <a class="navbar-item" href="https://lore.mtlprog.xyz/accounts/{{ account_id }}">Lore</a>
+            <a class="navbar-item" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
+            <hr class="navbar-divider">
+            <a class="navbar-item" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
+            <a class="navbar-item" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
+        </div>
+    </div>
+</nav>
+
+        {% set owner_link = outcome_tags.Owner.links[outcome_tags.Owner.links|keys|first] %}
 {% set block_owner %}
 {% if owner_link and owner_link.has_pair %}
         {{ 'account_page.owner_account'|trans }}:<br>
@@ -84,7 +80,11 @@
         </div>
 {% endif %}
 
-{% if name or about or website or timekoken.code %}
+<style>
+        dd {
+                margin-left: 2rem;
+        }
+</style>
 <div class="columns">
         <div class="column">
                 <dl class="box">
@@ -118,6 +118,23 @@
                                 <a href="/tokens/{{ timetoken.code }}{% if not timetoken.is_known %}-{{ timetoken.issuer }}{% endif %}">{{ timetoken.code }}</a><br>
                         </dd>
                     {% endif %}
+
+                    {% if nostr %}
+                        <dt class="title is-4">Nostr</dt>
+                        <dd class="subtitle is-4">
+                                <a href="https://find.nostria.app/p/{{ nostr }}">{{ nostr }}</a>
+                        </dd>
+                    {% endif %}
+                {% if current_user.showTelegramUsernames and telegram_username %}
+                        <dt class="title is-4">Telegram</dt>
+                        <dd class="subtitle is-4">
+                                <a href="https://t.me/{{ telegram_username }}">@{{ telegram_username }}</a>
+                        </dd>
+                {% endif %}
+                        <dt class="title is-4">BSN score</dt>
+                        <dd class="subtitle is-4">
+                                {{ bsn_score }}
+                        </dd>
                 </dl>
         </div>
         {% if name and account_image %}
@@ -130,7 +147,6 @@
         </div>
         {% endif %}
 </div>
-{% endif %}
 
 {% if multisig %}
 <div class="box">
