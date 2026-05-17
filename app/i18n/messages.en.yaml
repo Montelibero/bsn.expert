@@ -2,6 +2,7 @@ common:
   short_name: BSN
   full_name: Blockchain Social Network
   close: Close
+  find_and_insert: find and insert
 
 nav:
   home: Home
@@ -18,6 +19,7 @@ nav:
   tools:
     title: Tools
     multisig: Multisig Editor
+    asset_swap: Private Asset Swap
     migration: Migration
     close_trustlines: Close trustlines
     timetoken: Timetoken
@@ -968,7 +970,7 @@ editor:
     xdr_instruction: Source XDR of the prepared transaction. You probably already know what to do with it.
     no_qr_text: Unfortunately, without QR, it's too large a transaction.
     collect_multisig_button_name: Collect multisig
-    collect_multisig_disabled_title: No text memo longer than 3 characters
+    collect_multisig_disabled_title: No description or text memo longer than 3 characters
 
 contacts:
   edit:
@@ -1262,6 +1264,46 @@ edit_tags:
     invalid: The tag must contain only Latin letters, digits, and underscore.
     non_latin: The tag name contains non-Latin characters. Check lookalike letters such as Cyrillic а, е, о, с, р, х and replace them with Latin letters.
     trailing_digits: Digits at the end of a tag name are used as a service number in blockchain DATA and are stripped when read, so this tag cannot be saved. Remove the trailing digits.
+
+tools_asset_swap:
+  title: Private Asset Swap
+  description: >
+    Here you can create a private transaction for exchanging any assets. The selected swap will be assembled
+    into one transaction, which means either both sides receive their part of the deal, or nobody loses anything.
+  side:
+    a: Side A
+    b: Side B
+  form:
+    account: Account
+    load_assets: Show assets
+    asset: Asset
+    amount_to_send: Amount to send
+    memo: Memo
+    build: Create transaction
+    account_hint: Enter the account above to see available assets to send.
+    no_assets: This account has no sendable non-zero assets.
+  asset:
+    balance: Balance
+    available: Available
+  signing:
+    title: Signing
+    multisig_notice: The final transaction requires signatures from both accounts. The multisig collection button is recommended.
+  errors:
+    invalid_account: "Provide a valid Stellar account: %side%."
+    account_not_found: "Account was not found in Horizon: %side%."
+    side_a_required: Provide Side A account.
+    side_b_required: Provide Side B account.
+    same_accounts: Swap sides must be different accounts.
+    asset_required: "Select an asset: %side%."
+    invalid_amount: "Provide a valid amount: %side%."
+    amount_positive: "Amount must be greater than zero: %side%."
+    amount_exceeds_available: "%side% cannot send %asset%: %available% available."
+    memo_too_long: Text memo must be at most 28 bytes. For a SHA-256 hash, paste 64 hex characters.
+    receiver_needs_issuer_approval: "%side% cannot receive %asset% without issuer approval."
+    receiver_not_authorized: "%side% is not authorized to receive %asset%."
+    receiver_limit: "%side% cannot receive %asset%: trustline limit is too low."
+    reserve_not_checked: "Failed to check XLM reserve: %side%."
+    reserve_missing: "%side% does not have enough free XLM to open the trustline: %required% XLM required, %available% XLM available."
 
 tools_migration:
   title: Migration

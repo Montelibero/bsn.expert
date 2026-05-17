@@ -1,0 +1,174 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_asset_swap.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_asset_swap.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_asset_swap.title'|trans }}</h1>
+    <p class="block">{{ 'tools_asset_swap.description'|trans }}</p>
+
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    {% if signing_form %}
+        <h2 class="title is-3">{{ 'tools_asset_swap.signing.title'|trans }}</h2>
+        <div class="notification is-info">{{ 'tools_asset_swap.signing.multisig_notice'|trans }}</div>
+        <div class="box">
+            {{ signing_form|raw }}
+        </div>
+    {% endif %}
+
+    <form method="get" action="/tools/asset_swap">
+        <div class="columns">
+            <div class="column">
+                <div class="box">
+                    <h2 class="title is-3">{{ 'tools_asset_swap.side.a'|trans }}</h2>
+                    <div class="field">
+                        <label class="label" for="side_a">{{ 'tools_asset_swap.form.account'|trans }}</label>
+                        <input
+                            class="input is-family-monospace"
+                            id="side_a"
+                            name="side_a"
+                            value="{{ side_a }}"
+                            placeholder="G..."
+                            data-account-autocomplete-input
+                        >
+                    </div>
+                    <div class="field">
+                        <button class="button is-info" type="submit" name="action" value="load">
+                            {{ 'tools_asset_swap.form.load_assets'|trans }}
+                        </button>
+                    </div>
+
+                    {% if side_a_state.loaded %}
+                        {% if side_a_state.account %}
+                            <p class="block">{{ include('account_link.twig', {data: side_a_state.account}, with_context = false) }}</p>
+                        {% endif %}
+                        {% if side_a_state.tokens %}
+                            <div class="field">
+                                <label class="label">{{ 'tools_asset_swap.form.asset'|trans }}</label>
+                                {% for token in side_a_state.tokens %}
+                                    {% set checked = selected.a_asset == token.key %}
+                                    <div class="field mb-3">
+                                        <label class="radio" for="side_a_asset_{{ loop.index }}">
+                                            <input
+                                                type="radio"
+                                                id="side_a_asset_{{ loop.index }}"
+                                                name="side_a_asset"
+                                                value="{{ token.key|e('html_attr') }}"
+                                                {% if checked %}checked{% endif %}
+                                            >
+                                        </label>
+                                        <a class="has-text-weight-semibold" href="{{ token.url }}">{{ token.code }}</a>
+                                        <span>
+                                            <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.balance'|trans }}:</span>
+                                            {% include 'amount.twig' with {value: token.balance} only %}
+                                        </span>
+                                        {% if token.has_locked_balance %}
+                                            <span>
+                                                <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.available'|trans }}:</span>
+                                                {% include 'amount.twig' with {value: token.available} only %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="field">
+                                <label class="label" for="side_a_amount">{{ 'tools_asset_swap.form.amount_to_send'|trans }}</label>
+                                <input class="input" id="side_a_amount" name="side_a_amount" value="{{ selected.a_amount }}" inputmode="decimal">
+                            </div>
+                        {% else %}
+                            <div class="notification is-warning">{{ 'tools_asset_swap.form.no_assets'|trans }}</div>
+                        {% endif %}
+                    {% elseif not side_a %}
+                        <p class="block">{{ 'tools_asset_swap.form.account_hint'|trans }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="column">
+                <div class="box">
+                    <h2 class="title is-3">{{ 'tools_asset_swap.side.b'|trans }}</h2>
+                    <div class="field">
+                        <label class="label" for="side_b">{{ 'tools_asset_swap.form.account'|trans }}</label>
+                        <input
+                            class="input is-family-monospace"
+                            id="side_b"
+                            name="side_b"
+                            value="{{ side_b }}"
+                            placeholder="G..."
+                            data-account-autocomplete-input
+                        >
+                    </div>
+                    <div class="field">
+                        <button class="button is-info" type="submit" name="action" value="load">
+                            {{ 'tools_asset_swap.form.load_assets'|trans }}
+                        </button>
+                    </div>
+
+                    {% if side_b_state.loaded %}
+                        {% if side_b_state.account %}
+                            <p class="block">{{ include('account_link.twig', {data: side_b_state.account}, with_context = false) }}</p>
+                        {% endif %}
+                        {% if side_b_state.tokens %}
+                            <div class="field">
+                                <label class="label">{{ 'tools_asset_swap.form.asset'|trans }}</label>
+                                {% for token in side_b_state.tokens %}
+                                    {% set checked = selected.b_asset == token.key %}
+                                    <div class="field mb-3">
+                                        <label class="radio" for="side_b_asset_{{ loop.index }}">
+                                            <input
+                                                type="radio"
+                                                id="side_b_asset_{{ loop.index }}"
+                                                name="side_b_asset"
+                                                value="{{ token.key|e('html_attr') }}"
+                                                {% if checked %}checked{% endif %}
+                                            >
+                                        </label>
+                                        <a class="has-text-weight-semibold" href="{{ token.url }}">{{ token.code }}</a>
+                                        <span>
+                                            <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.balance'|trans }}:</span>
+                                            {% include 'amount.twig' with {value: token.balance} only %}
+                                        </span>
+                                        {% if token.has_locked_balance %}
+                                            <span>
+                                                <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.available'|trans }}:</span>
+                                                {% include 'amount.twig' with {value: token.available} only %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="field">
+                                <label class="label" for="side_b_amount">{{ 'tools_asset_swap.form.amount_to_send'|trans }}</label>
+                                <input class="input" id="side_b_amount" name="side_b_amount" value="{{ selected.b_amount }}" inputmode="decimal">
+                            </div>
+                        {% else %}
+                            <div class="notification is-warning">{{ 'tools_asset_swap.form.no_assets'|trans }}</div>
+                        {% endif %}
+                    {% elseif not side_b %}
+                        <p class="block">{{ 'tools_asset_swap.form.account_hint'|trans }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="memo">{{ 'tools_asset_swap.form.memo'|trans }}</label>
+            <input class="input" id="memo" name="memo" value="{{ selected.memo }}">
+        </div>
+
+        <div class="field">
+            <button class="button is-primary" type="submit" name="action" value="build">
+                <span class="icon"><i class="fa-solid fa-file-signature"></i></span>
+                <span>{{ 'tools_asset_swap.form.build'|trans }}</span>
+            </button>
+        </div>
+    </form>
+{% endblock %}

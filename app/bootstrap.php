@@ -14,6 +14,7 @@ use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\Controllers\AdminController;
 use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ApiController;
+use Montelibero\BSN\Controllers\AssetSwapController;
 use Montelibero\BSN\Controllers\ContactsController;
 use Montelibero\BSN\Controllers\DocumentsController;
 use Montelibero\BSN\Controllers\Editor2Controller;
@@ -285,6 +286,7 @@ $ContainerBuilder->addDefinitions([
     SingleAccountEditTagsController::class => autowire(),
     ErrorController::class => autowire(),
     TransactionsController::class => autowire(),
+    AssetSwapController::class => autowire(),
     MigrationController::class => autowire(),
     StellarAccountReserveCalculator::class => autowire(),
 ]);

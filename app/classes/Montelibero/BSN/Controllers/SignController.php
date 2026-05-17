@@ -58,7 +58,7 @@ class SignController
             return null;
         }
 
-        if ($action === 'eurmtl' && !$this->canCollectMultisig($xdr)) {
+        if ($action === 'eurmtl' && !$this->canCollectMultisig($xdr, $description)) {
             SimpleRouter::response()->httpCode(400);
             return null;
         }
@@ -153,7 +153,7 @@ class SignController
         }
 
         $memo_text = $this->getTransactionMemoText($xdr);
-        $can_collect_multisig = $this->canCollectMultisig($xdr);
+        $can_collect_multisig = $this->canCollectMultisig($xdr, $description);
         if (!$description && $can_collect_multisig) {
             $description = $memo_text;
         }
@@ -198,8 +198,12 @@ class SignController
         return self::signSep07Uri($uri, KeyPair::fromSeed($_ENV['SERVER_STELLAR_SECRET_KEY']));
     }
 
-    private function canCollectMultisig(?string $xdr): bool
+    private function canCollectMultisig(?string $xdr, ?string $description = null): bool
     {
+        if ($description !== null && strlen(trim($description)) > 3) {
+            return true;
+        }
+
         $memo_text = $this->getTransactionMemoText($xdr);
         if ($memo_text === null) {
             return false;

@@ -3,6 +3,7 @@
 namespace Montelibero\BSN\Routes;
 
 use DI\Container;
+use Montelibero\BSN\Controllers\AssetSwapController;
 use Montelibero\BSN\Controllers\CloseTrustlinesController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MigrationController;
@@ -33,6 +34,10 @@ class ToolsRouter
         SimpleRouter::match(['get', 'post'], '/multisig', function () use ($Container) {
             return $Container->get(MultisigController::class)->Multisig();
         })->name('multisig');
+
+        SimpleRouter::get('/asset_swap', function () use ($Container) {
+            return $Container->get(AssetSwapController::class)->AssetSwap();
+        })->name('tool_asset_swap');
 
         SimpleRouter::match(['get', 'post'], '/migration', function () use ($Container) {
             return $Container->get(MigrationController::class)->Migration();

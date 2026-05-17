@@ -2,6 +2,7 @@ common:
   short_name: БСН
   full_name: Социальная сеть на блокчейне
   close: Закрыть
+  find_and_insert: найти и вставить
 
 nav:
   home: Начало
@@ -18,6 +19,7 @@ nav:
   tools:
     title: Инструменты
     multisig: Редактор мультиподписи
+    asset_swap: Приватный обмен активами
     migration: Переезд
     close_trustlines: Удалить линии доверия
     timetoken: Таймтокен
@@ -969,7 +971,7 @@ editor:
     xdr_instruction: Исходник подготовленной транзакции, вы наверно и сами знаете что с нею делать.
     no_qr_text: К сожалению без QR, уж очень большая транзакция.
     collect_multisig_button_name: Собрать мультиподпись
-    collect_multisig_disabled_title: Нет текстового memo длиннее 3 символов
+    collect_multisig_disabled_title: Нет description или текстового memo длиннее 3 символов
 
 contacts:
   edit:
@@ -1264,6 +1266,46 @@ edit_tags:
     invalid: Тег должен состоять из латинских букв, цифр и подчёркивания.
     non_latin: В имени есть нелатинские символы. Проверьте похожие буквы вроде кириллических а, е, о, с, р, х и замените их на латинские.
     trailing_digits: Цифры в конце имени тега в блокчейне используются как служебный номер и при чтении обрезаются, поэтому такой тег нельзя сохранить. Уберите цифры с конца имени.
+
+tools_asset_swap:
+  title: Приватный обмен активами
+  description: >
+    Здесь можно создать транзакцию приватного обмена любыми активами. Выбранный обмен будет собран
+    в одной транзакции, что означает, что либо обе стороны получат свою часть сделки, либо никто ничего не потеряет.
+  side:
+    a: Сторона А
+    b: Сторона Б
+  form:
+    account: Аккаунт
+    load_assets: Отобразить активы
+    asset: Актив
+    amount_to_send: Сумма к отправке
+    memo: Memo
+    build: Создать транзакцию
+    account_hint: Укажите аккаунт выше, чтобы увидеть варианты активов для пересылки.
+    no_assets: На аккаунте нет доступных для пересылки активов с ненулевым балансом.
+  asset:
+    balance: Баланс
+    available: Доступно
+  signing:
+    title: Подписание
+    multisig_notice: Итоговая транзакция требует подписи обоих аккаунтов. Рекомендуется воспользоваться кнопкой сбора мультиподписи.
+  errors:
+    invalid_account: "Укажите корректный Stellar-аккаунт: %side%."
+    account_not_found: "Аккаунт не найден в Horizon: %side%."
+    side_a_required: Укажите аккаунт стороны А.
+    side_b_required: Укажите аккаунт стороны Б.
+    same_accounts: Стороны обмена должны быть разными аккаунтами.
+    asset_required: "Выберите актив: %side%."
+    invalid_amount: "Укажите корректную сумму: %side%."
+    amount_positive: "Сумма должна быть больше нуля: %side%."
+    amount_exceeds_available: "%side% не может отправить %asset%: доступно %available%."
+    memo_too_long: Текстовое memo должно быть не длиннее 28 байт. Для SHA-256 hash вставьте 64 hex-символа.
+    receiver_needs_issuer_approval: "%side% не сможет принять %asset% без одобрения эмитента."
+    receiver_not_authorized: "%side% не авторизована для получения %asset%."
+    receiver_limit: "%side% не сможет принять %asset%: не хватает лимита линии доверия."
+    reserve_not_checked: "Не удалось проверить резерв XLM: %side%."
+    reserve_missing: "%side% не хватает свободных XLM для открытия линии доверия: нужно %required% XLM, доступно %available% XLM."
 
 tools_migration:
   title: Переезд
