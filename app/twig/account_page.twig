@@ -18,40 +18,40 @@
         {% if username %}<span class="stellar_address is-family-monospace">{{ username }}*bsn.expert</span><br>{% endif %}
 </h1>
 
-<div class="buttons">
+<div class="buttons are-small">
     <a class="button is-outlined is-primary" href="/accounts/{{ account_id }}/edit_tags">
         <span class="icon"><i class="fa-solid fa-tags"></i></span>
-        <span>{{ 'edit_tags.title'|trans }}</span>
+        <span class="is-hidden-mobile">{{ 'edit_tags.title'|trans }}</span>
     </a>
     <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}"
        href="{% if current_user.account %}/contacts/{{ account_id }}{% else %}/login/?return_to=/contacts/{{ account_id }}{% endif %}">
         <span class="icon"><i class="fa-regular fa-address-book"></i></span>
-        {% if is_contact %}
-            <span>{{ 'account_page.contact_button.edit'|trans }}</span>
-        {% else %}
-            <span>{{ 'account_page.contact_button.add'|trans }}</span>
-        {% endif %}
+        <span class="is-hidden-mobile">{% if is_contact %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}</span>
     </a>
     <a class="button is-outlined {% if current_user.account %}is-primary{% else %}is-warning{% endif %}"
         href="{% if current_user.account %}/accounts/{{ account_id }}/operations{% else %}/login/{% endif %}">
         <span class="icon"><i class="fa-solid fa-list"></i></span>
-        <span>{{ 'account_page.operations_button'|trans }}</span>
+        <span class="is-hidden-mobile">{{ 'account_page.operations_button'|trans }}</span>
     </a>
-</div>
-<nav class="navbar" role="navigation" aria-label="dropdown navigation">
-    <div class="navbar-item has-dropdown is-hoverable">
-        <a class="navbar-link">{{ 'account_page.alternatives'|trans }}</a>
-
-        <div class="navbar-dropdown">
-            <a class="navbar-item" href="https://viewer.eurmtl.me/account/{{ account_id }}">Eurmtl.me</a>
-            <a class="navbar-item" href="https://lore.mtlprog.xyz/accounts/{{ account_id }}">Lore</a>
-            <a class="navbar-item" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
-            <hr class="navbar-divider">
-            <a class="navbar-item" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
-            <a class="navbar-item" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
+    <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+            <button class="button" type="button" aria-haspopup="true" aria-controls="account-alternative-viewers">
+                <span>{{ 'account_page.alternatives'|trans }}</span>
+                <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+            </button>
+        </div>
+        <div class="dropdown-menu" id="account-alternative-viewers" role="menu">
+            <div class="dropdown-content">
+                <a class="dropdown-item" href="https://viewer.eurmtl.me/account/{{ account_id }}">Eurmtl.me</a>
+                <a class="dropdown-item" href="https://lore.mtlprog.xyz/accounts/{{ account_id }}">Lore</a>
+                <a class="dropdown-item" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
+                <a class="dropdown-item" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
+            </div>
         </div>
     </div>
-</nav>
+</div>
 
         {% set owner_link = outcome_tags.Owner.links[outcome_tags.Owner.links|keys|first] %}
 {% set block_owner %}
