@@ -228,6 +228,7 @@ class AccountsController
         $TokensController = $this->Container->get(TokensController::class);
 
         $issued_tokens = $this->fetchIssuedTokens($Account->getId(), $TokensController);
+        $this->TomlImageManager->applyTokenImages($issued_tokens);
 
         $base_assets = [
             "EURMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
@@ -324,6 +325,7 @@ class AccountsController
                 $timetoken['issuer'] = $Account->getId();
             }
             $timetoken['is_known'] = $TokensController->shortKnownTokenKey($code . '-' . $timetoken['issuer']) === $code;
+            $this->TomlImageManager->applyTokenImage($timetoken);
         }
         $nostr = null;
         if (($nostr_tag = $Account->getProfileSingleItem('Nostr'))

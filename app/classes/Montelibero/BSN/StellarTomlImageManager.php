@@ -117,6 +117,13 @@ class StellarTomlImageManager
         unset($token);
     }
 
+    public function applyTokenImage(array &$token): void
+    {
+        $tokens = [$token];
+        $this->applyTokenImages($tokens);
+        $token = $tokens[0];
+    }
+
     public function saveImage(array $doc): array
     {
         $now = StellarTomlManager::now();

@@ -2,11 +2,11 @@
     {% if op.data.exchange_amount and op.data.target_amount %}
         <li>{{ 'transactions.operations.fields.exchange'|trans }}:
             {% include 'amount.twig' with {value: op.data.exchange_amount} only %}
-            {% if op.data.selling.url %}<a href="{{ op.data.selling.url }}">{{ op.data.selling.label }}</a>{% else %}{{ op.data.selling.label }}{% endif %}
+            {{ include('token_link.twig', {token: op.data.selling}, with_context = false) }}
         </li>
         <li>{{ 'transactions.operations.fields.exchange_for'|trans }}:
             {% include 'amount.twig' with {value: op.data.target_amount} only %}
-            {% if op.data.buying.url %}<a href="{{ op.data.buying.url }}">{{ op.data.buying.label }}</a>{% else %}{{ op.data.buying.label }}{% endif %}
+            {{ include('token_link.twig', {token: op.data.buying}, with_context = false) }}
         </li>
     {% endif %}
     {% if op.data.direct_rate %}

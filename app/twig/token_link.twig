@@ -1,0 +1,29 @@
+{% set item = token ?? data ?? {} %}
+{% set code = code ?? item.code ?? item.asset_code ?? null %}
+{% set issuer = issuer ?? item.issuer ?? item.asset_issuer ?? null %}
+{% set amount = amount is defined ? amount : item.amount ?? null %}
+{% set is_known = is_known is defined ? is_known : item.is_known ?? false %}
+{% set image_path = image_path ?? item.image_path ?? null %}
+{% set label = label ?? item.label ?? code %}
+{% set href = href ?? item.url ?? (code ? '/tokens/' ~ code ~ ((not is_known and issuer) ? '-' ~ issuer : '') : null) %}
+{% set title = title ?? item.title ?? (issuer ? code ~ '-' ~ issuer : label) %}
+{% set link_class = link_class ?? 'tags has-addons token-link is-inline-flex mb-0' %}
+{% set code_tag_class = code_tag_class ?? ('tag is-hoverable ' ~ (is_known ? 'is-info' : 'is-dark')) %}
+{% set amount_tag_class = amount_tag_class ?? 'tag is-hoverable' %}
+{% set has_amount = amount is not null and amount is not same as('') %}
+
+{% if code %}
+<a href="{{ href }}" class="{{ link_class }}">
+    {% if image_path %}
+        <span class="tag token-tag-logo is-info" style="background-image: url('{{ image_path|e('html_attr') }}')" aria-hidden="true"></span>
+    {% endif %}
+    <span class="{{ code_tag_class }}" {% if title %}title="{{ title }}"{% endif %}>{{ code }}</span>
+    {% if has_amount %}
+        <span class="{{ amount_tag_class }}">{{ amount }}</span>
+    {% endif %}
+</a>
+{% elseif href %}
+<a href="{{ href }}">{{ label }}</a>
+{% else %}
+{{ label }}
+{% endif %}

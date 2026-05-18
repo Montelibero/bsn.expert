@@ -156,7 +156,7 @@
                     {% if timetoken.code %}
                         <dt class="title is-4">{{ 'account_page.timetoken'|trans }}</dt>
                         <dd class="subtitle is-4">
-                                <a href="/tokens/{{ timetoken.code }}{% if not timetoken.is_known %}-{{ timetoken.issuer }}{% endif %}">{{ timetoken.code }}</a><br>
+                                {{ include('token_link.twig', {token: timetoken}, with_context = false) }}
                         </dd>
                     {% endif %}
 
@@ -257,14 +257,7 @@
         <div class="field is-grouped is-grouped-multiline">
         {% for token in issued_tokens %}
                 <div class="control">
-                <a href="/tokens/{{ token.code }}{% if not token.is_known %}-{{ token.issuer }}{% endif %}" class="tags has-addons">
-                <span class="tag is-hoverable {{ token.is_known ? "is-info" : "is-dark" }}">
-                {{ token.code }}
-                </span>
-                {% if token.amount %}
-                <span class="tag is-hoverable">{{ token.amount }}</span>
-                {% endif %}
-                </a>
+                {{ include('token_link.twig', {token: token}, with_context = false) }}
                 </div>
         {% endfor %}
         </div>
@@ -277,17 +270,7 @@
         <div class="field is-grouped is-grouped-multiline">
         {% for asset, balance in balances %}
                 <div class="control">
-                <a href="/tokens/{{ balance.code }}{% if not balance.is_known and balance.issuer %}-{{ balance.issuer }}{% endif %}" class="tags has-addons">
-                {% if balance.image_path %}
-                <span class="tag token-tag-logo" style="background-image: url('{{ balance.image_path|e('html_attr') }}')" aria-hidden="true"></span>
-                {% endif %}
-                <span class="tag is-hoverable {{ balance.is_known ? "is-info" : "is-dark" }}" title="{{ asset }}">
-                {{ balance.code }}
-                </span>
-                {% if balance.amount %}
-                <span class="tag is-hoverable">{{ balance.amount }}</span>
-                {% endif %}
-                </a>
+                {{ include('token_link.twig', {token: balance, title: asset}, with_context = false) }}
                 </div>
         {% endfor %}
         </div>

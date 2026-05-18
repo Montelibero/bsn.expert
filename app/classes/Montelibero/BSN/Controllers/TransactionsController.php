@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 use DI\Container;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\StellarTomlImageManager;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Exceptions\HorizonRequestException;
@@ -35,6 +36,7 @@ class TransactionsController
     private Environment $Twig;
     private StellarSDK $Stellar;
     private Container $Container;
+    private array $formatted_assets = [];
 
     public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container)
     {
@@ -434,6 +436,9 @@ class TransactionsController
     {
         if ($Asset->getType() === Asset::TYPE_NATIVE) {
             return [
+                'code' => 'XLM',
+                'issuer' => null,
+                'is_known' => true,
                 'label' => 'XLM',
                 'url' => '/tokens/XLM',
             ];
@@ -444,18 +449,23 @@ class TransactionsController
 
     private function formatAssetByParts(string $code, string $issuer): array
     {
-        $known = $this->getKnownToken($code, $issuer);
-        if ($known) {
-            return [
-                'label' => $code,
-                'url' => '/tokens/' . $code,
-            ];
+        $cache_key = $code . '-' . $issuer;
+        if (isset($this->formatted_assets[$cache_key])) {
+            return $this->formatted_assets[$cache_key];
         }
 
-        return [
-            'label' => $code . '-' . $issuer,
-            'url' => '/tokens/' . $code . '-' . $issuer,
+        $known = $this->getKnownToken($code, $issuer);
+        $token = [
+            'code' => $code,
+            'issuer' => $issuer,
+            'is_known' => (bool) $known,
+            'label' => $known ? $code : $code . '-' . $issuer,
+            'url' => '/tokens/' . ($known ? $code : $code . '-' . $issuer),
         ];
+
+        $this->Container->get(StellarTomlImageManager::class)->applyTokenImage($token);
+
+        return $this->formatted_assets[$cache_key] = $token;
     }
 
     private function assetParts(Asset $Asset): array

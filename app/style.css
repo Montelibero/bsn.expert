@@ -77,6 +77,10 @@
     align-items: stretch;
 }
 
+.token-link {
+    vertical-align: middle;
+}
+
 .token-tag-logo {
     aspect-ratio: 1 / 1;
     background-position: center;

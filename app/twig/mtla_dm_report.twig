@@ -109,7 +109,7 @@
                     </td>
                     <td>
                         {% if activist.timetoken.url %}
-                            <a href="{{ activist.timetoken.url }}">{{ activist.timetoken.code }}</a>
+                            {{ include('token_link.twig', {token: activist.timetoken}, with_context = false) }}
                         {% else %}
                             {{ 'mtla_dm_report_page.empty'|trans }}
                         {% endif %}

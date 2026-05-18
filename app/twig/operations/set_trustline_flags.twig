@@ -1,7 +1,7 @@
 <ul>
     {% set asset = op.data.asset %}
     <li>{{ 'transactions.operations.fields.asset'|trans }}:
-        {% if asset.url %}<a href="{{ asset.url }}">{{ asset.label }}</a>{% else %}{{ asset.label }}{% endif %}
+        {{ include('token_link.twig', {token: asset}, with_context = false) }}
     </li>
     <li>{{ 'transactions.operations.fields.trustor'|trans }}:
         {{ include('account_link.twig', {data: op.data.trustor}, with_context = false) }}

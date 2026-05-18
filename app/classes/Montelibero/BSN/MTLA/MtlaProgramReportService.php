@@ -6,8 +6,10 @@ use DateTimeImmutable;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\MtlaController;
+use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\MongoCacheManager;
+use Montelibero\BSN\StellarTomlImageManager;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Exceptions\HorizonRequestException;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
@@ -34,13 +36,24 @@ class MtlaProgramReportService
     private StellarSDK $Stellar;
     private CurrentUser $CurrentUser;
     private MongoCacheManager $CacheManager;
+    private StellarTomlImageManager $TomlImageManager;
+    private TokensController $TokensController;
 
-    public function __construct(BSN $BSN, StellarSDK $Stellar, CurrentUser $CurrentUser, MongoCacheManager $CacheManager)
+    public function __construct(
+        BSN $BSN,
+        StellarSDK $Stellar,
+        CurrentUser $CurrentUser,
+        MongoCacheManager $CacheManager,
+        StellarTomlImageManager $TomlImageManager,
+        TokensController $TokensController
+    )
     {
         $this->BSN = $BSN;
         $this->Stellar = $Stellar;
         $this->CurrentUser = $CurrentUser;
         $this->CacheManager = $CacheManager;
+        $this->TomlImageManager = $TomlImageManager;
+        $this->TokensController = $TokensController;
     }
 
     public function getMtlaAccountData(): array
@@ -203,11 +216,7 @@ class MtlaProgramReportService
             $items[] = [
                 'account' => $Account->jsonSerialize(),
                 'mtlap' => $mtlap,
-                'timetoken' => [
-                    'code' => $tt_code,
-                    'issuer' => $tt_issuer,
-                    'url' => ($tt_code && $tt_issuer) ? '/tokens/' . $tt_code . '-' . $tt_issuer : null,
-                ],
+                'timetoken' => $this->buildTimeTokenData($tt_code, $tt_issuer),
                 'mtla_tt_balance' => $asset_key ? (float) ($snapshot['trustlines'][$asset_key]['amount'] ?? 0.0) : null,
                 'incoming_tt_90d' => $incoming_tt,
                 'outgoing_tt_90d' => $outgoing_tt,
@@ -249,6 +258,8 @@ class MtlaProgramReportService
             return strcmp($a['account']['display_name'], $b['account']['display_name']);
         });
 
+        $this->applyTimeTokenImages($items);
+
         return $items;
     }
 
@@ -268,13 +279,7 @@ class MtlaProgramReportService
 
             $items[] = [
                 'account' => $Participant->jsonSerialize(),
-                'timetoken' => [
-                    'code' => $time_token['code'] ?? null,
-                    'issuer' => $time_token['issuer'] ?? null,
-                    'url' => isset($time_token['code'], $time_token['issuer'])
-                        ? '/tokens/' . $time_token['code'] . '-' . $time_token['issuer']
-                        : null,
-                ],
+                'timetoken' => $this->buildTimeTokenData($time_token['code'] ?? null, $time_token['issuer'] ?? null),
                 'mtla_tt_balance' => $asset_key ? (float) ($snapshot['trustlines'][$asset_key]['amount'] ?? 0.0) : null,
                 'program_tt_balance' => $asset_key && $has_program_trustline
                     ? (float) ($snapshot['program_trustlines'][$program_id][$asset_key]['amount'] ?? 0.0)
@@ -297,7 +302,52 @@ class MtlaProgramReportService
             return strcmp($a['account']['display_name'], $b['account']['display_name']);
         });
 
+        $this->applyTimeTokenImages($items);
+
         return $items;
+    }
+
+    private function buildTimeTokenData(?string $code, ?string $issuer): array
+    {
+        if (!$code || !$issuer) {
+            return [
+                'code' => $code,
+                'issuer' => $issuer,
+                'is_known' => false,
+                'url' => null,
+            ];
+        }
+
+        $asset_key = $code . '-' . $issuer;
+        $is_known = $this->TokensController->getKnownToken($asset_key) !== null;
+
+        return [
+            'code' => $code,
+            'issuer' => $issuer,
+            'is_known' => $is_known,
+            'url' => '/tokens/' . ($is_known ? $code : $asset_key),
+        ];
+    }
+
+    private function applyTimeTokenImages(array &$items): void
+    {
+        $tokens = [];
+        foreach ($items as $index => $item) {
+            $token = $item['timetoken'] ?? null;
+            if (!is_array($token) || empty($token['code']) || empty($token['issuer'])) {
+                continue;
+            }
+
+            $tokens[$index] = $token;
+        }
+
+        $this->TomlImageManager->applyTokenImages($tokens);
+
+        foreach ($tokens as $index => $token) {
+            if (isset($token['image_path'])) {
+                $items[$index]['timetoken']['image_path'] = $token['image_path'];
+            }
+        }
     }
 
     public function fetchMtlaSnapshot(array $program_account_ids, bool $force_refresh): array

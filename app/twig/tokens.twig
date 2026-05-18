@@ -19,12 +19,7 @@
         <div class="field is-grouped is-grouped-multiline">
             {% for token in category.tokens %}
                 <div class="control">
-                    <a href="/tokens/{{ token.code }}" class="tags has-addons are-medium token-tag-link">
-                        {% if token.image_path %}
-                            <span class="tag token-tag-logo" style="background-image: url('{{ token.image_path|e('html_attr') }}')" aria-hidden="true"></span>
-                        {% endif %}
-                        <span class="tag is-info">{{ token.code }}</span>
-                    </a>
+                    {{ include('token_link.twig', {token: token, is_known: true, link_class: 'tags has-addons are-medium token-tag-link token-link', code_tag_class: 'tag is-info'}, with_context = false) }}
                 </div>
             {% endfor %}
         </div>

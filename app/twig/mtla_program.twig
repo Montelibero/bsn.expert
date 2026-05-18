@@ -76,7 +76,7 @@
                             <td>{{ include('account_link.twig', {data: participant.account}, with_context = false) }}</td>
                             <td>
                                 {% if participant.timetoken.url %}
-                                    <a href="{{ participant.timetoken.url }}">{{ participant.timetoken.code }}</a>
+                                    {{ include('token_link.twig', {token: participant.timetoken}, with_context = false) }}
                                 {% else %}
                                     {{ 'mtla_snapshot_box.empty'|trans }}
                                 {% endif %}
