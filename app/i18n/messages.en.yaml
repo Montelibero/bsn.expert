@@ -443,6 +443,7 @@ account_page:
     edit: Edit the contact
   edit_button: Edit tags for this account
   operations_button: Account operations
+  set_current_account_button: Set as current
   alternatives: Alternative viewers
   owner_account: Parent account
   ownership_full_accounts: Subsidiary accounts

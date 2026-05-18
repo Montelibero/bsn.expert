@@ -19,20 +19,40 @@
 </h1>
 
 <div class="buttons are-small">
-    <a class="button is-outlined is-primary" href="/accounts/{{ account_id }}/edit_tags">
+    <a class="button is-primary is-outlined" href="/accounts/{{ account_id }}/edit_tags">
         <span class="icon"><i class="fa-solid fa-tags"></i></span>
         <span class="is-hidden-mobile">{{ 'edit_tags.title'|trans }}</span>
     </a>
-    <a class="button is-outlined {% if not is_contact  %}is-warning{% else %}is-primary{% endif %}"
-       href="{% if current_user.account %}/contacts/{{ account_id }}{% else %}/login/?return_to=/contacts/{{ account_id }}{% endif %}">
-        <span class="icon"><i class="fa-regular fa-address-book"></i></span>
-        <span class="is-hidden-mobile">{% if is_contact %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}</span>
-    </a>
-    <a class="button is-outlined {% if current_user.account %}is-primary{% else %}is-warning{% endif %}"
-        href="{% if current_user.account %}/accounts/{{ account_id }}/operations{% else %}/login/{% endif %}">
-        <span class="icon"><i class="fa-solid fa-list"></i></span>
-        <span class="is-hidden-mobile">{{ 'account_page.operations_button'|trans }}</span>
-    </a>
+
+    <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+            <button class="button is-info is-outlined" type="button" aria-haspopup="true" aria-controls="account-alternative-viewers">
+                <span>Действия</span>
+                <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+            </button>
+        </div>
+        <div class="dropdown-menu" id="account-alternative-viewers" role="menu">
+            <div class="dropdown-content">
+                <a class="dropdown-item"
+                   href="{% if current_user.account %}/contacts/{{ account_id }}{% else %}/login/?return_to=/contacts/{{ account_id }}{% endif %}">
+                    <span class="icon"><i class="fa-regular fa-address-book"></i></span>
+                    <span>{% if is_contact %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}</span>
+                </a>
+                <a class="dropdown-item"
+                   href="{% if current_user.account %}/accounts/{{ account_id }}/operations{% else %}/login/{% endif %}">
+                    <span class="icon"><i class="fa-solid fa-list"></i></span>
+                    <span>{{ 'account_page.operations_button'|trans }}</span>
+                </a>
+                <a class="dropdown-item"
+                   href="/preferences?current_account={{ account_id|url_encode }}&ca_key={{ current_user.currentAccountSwitchKey|url_encode }}&return_to={{ server.REQUEST_URI|url_encode }}">
+                    <span class="icon"><i class="fa-solid fa-user"></i></span>
+                    <span>{{ 'account_page.set_current_account_button'|trans }}</span>
+                </a>
+{#                <hr class="dropdown-divider">#}
+            </div>
+        </div>
+    </div>
+
     <div class="dropdown is-hoverable">
         <div class="dropdown-trigger">
             <button class="button" type="button" aria-haspopup="true" aria-controls="account-alternative-viewers">

@@ -441,6 +441,7 @@ account_page:
     edit: Редактировать контакт
   edit_button: Редактировать теги для этого контакта
   operations_button: Операции аккаунта
+  set_current_account_button: Установить основным
   alternatives: Альтернативные обозреватели
   owner_account: Родительский аккаунт
   ownership_full_accounts: Дочерние аккаунты
