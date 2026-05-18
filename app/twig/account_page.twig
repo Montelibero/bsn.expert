@@ -18,49 +18,51 @@
         {% if username %}<span class="stellar_address is-family-monospace">{{ username }}*bsn.expert</span><br>{% endif %}
 </h1>
 
-<div class="buttons are-small">
-    <a class="button is-primary is-outlined" href="/accounts/{{ account_id }}/edit_tags">
-        <span class="icon"><i class="fa-solid fa-tags"></i></span>
-        <span class="is-hidden-mobile">{{ 'edit_tags.title'|trans }}</span>
-    </a>
+<div class="is-flex is-flex-wrap-wrap is-align-items-center">
+    <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-2">
+        <a class="button is-small is-primary is-outlined mr-2" href="/accounts/{{ account_id }}/edit_tags">
+            <span class="icon"><i class="fa-solid fa-tags"></i></span>
+            <span>{{ 'edit_tags.title'|trans }}</span>
+        </a>
 
-    <div class="dropdown is-hoverable">
-        <div class="dropdown-trigger">
-            <button class="button is-info is-outlined" type="button" aria-haspopup="true" aria-controls="account-alternative-viewers">
-                <span>Действия</span>
-                <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
-            </button>
-        </div>
-        <div class="dropdown-menu" id="account-alternative-viewers" role="menu">
-            <div class="dropdown-content">
-                <a class="dropdown-item"
-                   href="{% if current_user.account %}/contacts/{{ account_id }}{% else %}/login/?return_to=/contacts/{{ account_id }}{% endif %}">
-                    <span class="icon"><i class="fa-regular fa-address-book"></i></span>
-                    <span>{% if is_contact %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}</span>
-                </a>
-                <a class="dropdown-item"
-                   href="{% if current_user.account %}/accounts/{{ account_id }}/operations{% else %}/login/{% endif %}">
-                    <span class="icon"><i class="fa-solid fa-list"></i></span>
-                    <span>{{ 'account_page.operations_button'|trans }}</span>
-                </a>
-                <a class="dropdown-item"
-                   href="/preferences?current_account={{ account_id|url_encode }}&ca_key={{ current_user.currentAccountSwitchKey|url_encode }}&return_to={{ server.REQUEST_URI|url_encode }}">
-                    <span class="icon"><i class="fa-solid fa-user"></i></span>
-                    <span>{{ 'account_page.set_current_account_button'|trans }}</span>
-                </a>
-{#                <hr class="dropdown-divider">#}
+        <div class="dropdown is-hoverable mr-2">
+            <div class="dropdown-trigger">
+                <button class="button is-small is-info is-outlined" type="button" aria-haspopup="true" aria-controls="account-actions-menu">
+                    <span>Действия</span>
+                    <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+                </button>
+            </div>
+            <div class="dropdown-menu" id="account-actions-menu" role="menu">
+                <div class="dropdown-content">
+                    <a class="dropdown-item"
+                       href="{% if current_user.account %}/contacts/{{ account_id }}{% else %}/login/?return_to=/contacts/{{ account_id }}{% endif %}">
+                        <span class="icon"><i class="fa-regular fa-address-book"></i></span>
+                        <span>{% if is_contact %}{{ 'account_page.contact_button.edit'|trans }}{% else %}{{ 'account_page.contact_button.add'|trans }}{% endif %}</span>
+                    </a>
+                    <a class="dropdown-item"
+                       href="{% if current_user.account %}/accounts/{{ account_id }}/operations{% else %}/login/{% endif %}">
+                        <span class="icon"><i class="fa-solid fa-list"></i></span>
+                        <span>{{ 'account_page.operations_button'|trans }}</span>
+                    </a>
+                    <a class="dropdown-item"
+                       href="/preferences?current_account={{ account_id|url_encode }}&ca_key={{ current_user.currentAccountSwitchKey|url_encode }}&return_to={{ server.REQUEST_URI|url_encode }}">
+                        <span class="icon"><i class="fa-solid fa-user"></i></span>
+                        <span>{{ 'account_page.set_current_account_button'|trans }}</span>
+                    </a>
+{#                    <hr class="dropdown-divider">#}
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="dropdown is-hoverable">
+    <div class="dropdown is-hoverable ml-auto mb-2 is-hidden-mobile">
         <div class="dropdown-trigger">
-            <button class="button" type="button" aria-haspopup="true" aria-controls="account-alternative-viewers">
+            <button class="button is-small" type="button" aria-haspopup="true" aria-controls="account-alternative-viewers-desktop">
                 <span>{{ 'account_page.alternatives'|trans }}</span>
                 <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
             </button>
         </div>
-        <div class="dropdown-menu" id="account-alternative-viewers" role="menu">
+        <div class="dropdown-menu is-right" id="account-alternative-viewers-desktop" role="menu">
             <div class="dropdown-content">
                 <a class="dropdown-item" href="https://viewer.eurmtl.me/account/{{ account_id }}">Eurmtl.me</a>
                 <a class="dropdown-item" href="https://lore.mtlprog.xyz/accounts/{{ account_id }}">Lore</a>
@@ -69,6 +71,25 @@
                 <a class="dropdown-item" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
                 <a class="dropdown-item" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="dropdown is-hoverable is-hidden-tablet mb-4">
+    <div class="dropdown-trigger">
+        <button class="button is-small" type="button" aria-haspopup="true" aria-controls="account-alternative-viewers-mobile">
+            <span>{{ 'account_page.alternatives'|trans }}</span>
+            <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+        </button>
+    </div>
+    <div class="dropdown-menu" id="account-alternative-viewers-mobile" role="menu">
+        <div class="dropdown-content">
+            <a class="dropdown-item" href="https://viewer.eurmtl.me/account/{{ account_id }}">Eurmtl.me</a>
+            <a class="dropdown-item" href="https://lore.mtlprog.xyz/accounts/{{ account_id }}">Lore</a>
+            <a class="dropdown-item" href="https://bsn.brainbox.no/accounts/{{ account_id }}">BrainBox</a>
+            <hr class="dropdown-divider">
+            <a class="dropdown-item" href="https://stellar.expert/explorer/public/account/{{ account_id }}">Stellar.Expert</a>
+            <a class="dropdown-item" href="https://scopuly.com/account/{{ account_id }}">Scopuly</a>
         </div>
     </div>
 </div>
