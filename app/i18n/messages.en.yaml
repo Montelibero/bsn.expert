@@ -442,6 +442,7 @@ account_page:
     add: Add contact
     edit: Edit the contact
   edit_button: Edit tags for this account
+  actions_button: Actions
   operations_button: Account operations
   set_current_account_button: Set as current
   alternatives: Alternative viewers
