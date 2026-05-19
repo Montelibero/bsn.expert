@@ -12,6 +12,21 @@
     <span>{{ value|round(0, 'common')|number_format(0, '.', ' ') }}</span>
 {% endmacro %}
 
+{% macro rate(value) %}
+    {% if value is null %}
+        &mdash;
+    {% else %}
+        {% set numeric = value + 0 %}
+        {% if numeric >= 1 %}
+            {{ numeric|number_format(4, '.', ' ') }}
+        {% elseif numeric >= 0.01 %}
+            {{ numeric|number_format(6, '.', ' ') }}
+        {% else %}
+            {{ numeric|number_format(8, '.', ' ') }}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
 {% macro classification(name) %}
     {% set classes = {
         issuer: 'is-dark',
@@ -227,6 +242,65 @@
             </tbody>
         </table>
     </div>
+
+    <h3 class="title is-5">{{ 'eurmtl_report_page.market_maker.portfolio'|trans }}</h3>
+    <div class="box">
+        <div class="field is-grouped is-grouped-multiline">
+            {% for asset in snapshot.market_maker.portfolio.assets %}
+                {% if asset.total_amount >= 1 %}
+                    {% set title = asset.title
+                        ~ ' / ' ~ ('eurmtl_report_page.market_maker.direct'|trans) ~ ' ' ~ asset.direct_amount|round(0, 'common')|number_format(0, '.', ' ')
+                        ~ ' / ' ~ ('eurmtl_report_page.market_maker.pools'|trans) ~ ' ' ~ asset.pool_amount|round(0, 'common')|number_format(0, '.', ' ')
+                    %}
+                    <div class="control">
+                        {{ include('token_link.twig', {
+                            token: asset|merge({amount: asset.total_amount|round(0, 'common')|number_format(0, '.', ' '), title: title})
+                        }, with_context = false) }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <h3 class="title is-5">{{ 'eurmtl_report_page.market_maker.valuation'|trans }}</h3>
+    {% if snapshot.market_maker.valuation.rows %}
+        <div class="table-container block">
+            <table class="table is-fullwidth is-striped is-hoverable">
+                <thead>
+                <tr>
+                    <th>{{ 'eurmtl_report_page.market_maker.asset'|trans }}</th>
+                    <th class="has-text-right">{{ 'eurmtl_report_page.market_maker.rate_eur'|trans }}</th>
+                    <th class="has-text-right">{{ 'eurmtl_report_page.market_maker.value_eur'|trans }}</th>
+                    <th>{{ 'eurmtl_report_page.market_maker.source'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in snapshot.market_maker.valuation.rows %}
+                    <tr>
+                        <td>
+                            {{ include('token_link.twig', {
+                                token: row.asset|merge({amount: row.amount|round(0, 'common')|number_format(0, '.', ' ')})
+                            }, with_context = false) }}
+                        </td>
+                        <td class="has-text-right" data-text="{{ row.rate_eur ?? '' }}">{{ ui.rate(row.rate_eur) }}</td>
+                        <td class="has-text-right" data-text="{{ row.value_eur ?? '' }}">{{ row.value_eur is null ? '—' : ui.amount(row.value_eur) }}</td>
+                        <td><a href="{{ row.source_url }}" target="_blank" rel="noopener noreferrer">{{ row.source }}</a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+                <tfoot>
+                <tr>
+                    <th>{{ 'eurmtl_report_page.treasuries.total'|trans }}</th>
+                    <th></th>
+                    <th class="has-text-right">{{ ui.amount(snapshot.market_maker.valuation.total_eur) }}</th>
+                    <th></th>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+    {% else %}
+        <p class="block">{{ 'eurmtl_report_page.empty'|trans }}</p>
+    {% endif %}
 
     <h2 class="title is-4">{{ 'eurmtl_report_page.pools.title'|trans }}</h2>
     <div class="table-container block">

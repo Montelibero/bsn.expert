@@ -1487,6 +1487,14 @@ eurmtl_report_page:
   market_maker:
     title: Market Maker
     summary: Market maker summary
+    portfolio: Market maker assets
+    valuation: Market maker asset valuation
+    asset: Asset
+    rate_eur: EUR rate
+    value_eur: EUR value
+    source: Source
+    direct: on account
+    pools: in pools
     market_amount: Issued / cash
     pool_positions: Pool positions
     offers: Offers

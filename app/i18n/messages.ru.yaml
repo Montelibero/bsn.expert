@@ -1489,6 +1489,14 @@ eurmtl_report_page:
   market_maker:
     title: Маркетмейкер
     summary: Сводка маркетмейкера
+    portfolio: Активы маркетмейкера
+    valuation: Оценка активов маркетмейкера
+    asset: Актив
+    rate_eur: Курс EUR
+    value_eur: Итого EUR
+    source: Источник
+    direct: на счету
+    pools: в пулах
     market_amount: Выпущено / кеш
     pool_positions: Позиции в пулах
     offers: Ордера

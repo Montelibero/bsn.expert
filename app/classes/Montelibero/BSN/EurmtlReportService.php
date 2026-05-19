@@ -2,6 +2,8 @@
 
 namespace Montelibero\BSN;
 
+use Montelibero\BSN\Controllers\TokensController;
+use GuzzleHttp\Client;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\AssetTypeCreditAlphanum;
 use Soneso\StellarSDK\Exceptions\HorizonRequestException;
@@ -16,14 +18,16 @@ use Throwable;
 
 class EurmtlReportService
 {
-    private const CACHE_KEY_PREFIX = 'eurmtl_report_snapshot:v8';
+    private const CACHE_KEY_PREFIX = 'eurmtl_report_snapshot:v10';
     private const CACHE_TTL = 3600;
     private const FRESH_SNAPSHOT_SECONDS = 60;
     private const STALE_CACHE_SECONDS = 21600;
     private const SCALE = 7;
     private const RATIO_SCALE = 14;
+    private const RATE_SCALE = 14;
 
     private array $known_account_ids = [];
+    private ?Client $HttpClient = null;
 
     public function __construct(
         private readonly BSN $BSN,
@@ -31,6 +35,8 @@ class EurmtlReportService
         private readonly MongoCacheManager $CacheManager,
         private readonly CurrentUser $CurrentUser,
         private readonly EurmtlReportConfig $Config,
+        private readonly TokensController $TokensController,
+        private readonly StellarTomlImageManager $TomlImageManager,
     ) {
     }
 
@@ -116,6 +122,8 @@ class EurmtlReportService
         $claimable_eurmtl = $this->collectClaimableBalances($eurmtl_asset);
         $claimable_eurdebt = $this->collectClaimableBalances($eurdebt_asset);
         $market_maker = $this->buildMarketMakerBlock($accounts, $pools);
+        $market_maker['portfolio'] = $this->collectMarketMakerPortfolio(EurmtlReportConfig::MARKET_MAKER_ACCOUNTS, $pools);
+        $market_maker['valuation'] = $this->buildMarketMakerValuation($market_maker['portfolio']);
         $totals = $this->buildTotals($accounts, $pools, $claimable_eurmtl, $asset_stats, $market_maker);
 
         return [
@@ -414,6 +422,358 @@ class EurmtlReportService
         ];
     }
 
+    private function collectMarketMakerPortfolio(array $account_ids, array $eurmtl_pools): array
+    {
+        $assets = [];
+        $known_pools = [];
+        foreach ($eurmtl_pools as $pool) {
+            $known_pools[$pool['id']] = [
+                'id' => $pool['id'],
+                'total_shares' => $pool['total_shares'],
+                'reserves' => $pool['reserves'],
+            ];
+        }
+
+        foreach ($account_ids as $account_id) {
+            try {
+                $Account = $this->Stellar->requestAccount($account_id);
+            } catch (HorizonRequestException|Throwable) {
+                continue;
+            }
+
+            foreach ($Account->getBalances()->toArray() as $Balance) {
+                if (!$Balance instanceof AccountBalanceResponse) {
+                    continue;
+                }
+
+                $pool_id = $Balance->getLiquidityPoolId();
+                if ($pool_id) {
+                    $shares = $this->decimal($Balance->getBalance());
+                    if (bccomp($shares, '0', self::SCALE) <= 0) {
+                        continue;
+                    }
+
+                    $pool = $known_pools[$pool_id] ?? $this->fetchPortfolioPool($pool_id);
+                    if (!$pool) {
+                        continue;
+                    }
+                    $known_pools[$pool_id] = $pool;
+                    if (bccomp($pool['total_shares'], '0', self::SCALE) <= 0) {
+                        continue;
+                    }
+
+                    $ratio = bcdiv($shares, $pool['total_shares'], self::RATIO_SCALE);
+                    foreach ($pool['reserves'] as $reserve) {
+                        $this->addPortfolioAmount(
+                            $assets,
+                            $reserve['asset'],
+                            'pool_amount',
+                            bcmul($reserve['amount'], $ratio, self::SCALE)
+                        );
+                    }
+                    continue;
+                }
+
+                $asset = $this->balanceAssetData($Balance);
+                if ($asset === null) {
+                    continue;
+                }
+                $this->addPortfolioAmount($assets, $asset, 'direct_amount', $this->decimal($Balance->getBalance()));
+            }
+        }
+
+        foreach ($assets as &$asset) {
+            $asset['total_amount'] = bcadd($asset['direct_amount'], $asset['pool_amount'], self::SCALE);
+            $known_token = $asset['issuer']
+                ? $this->TokensController->getKnownToken($asset['code'] . '-' . $asset['issuer'])
+                : null;
+            $asset['is_known'] = $asset['code'] === 'XLM' || $known_token !== null;
+            $asset['title'] = $asset['issuer'] ? $asset['code'] . '-' . $asset['issuer'] : $asset['code'];
+        }
+        unset($asset);
+
+        $this->TomlImageManager->applyTokenImages($assets);
+
+        usort($assets, static function (array $a, array $b): int {
+            $known = (int) ($b['is_known'] ?? false) <=> (int) ($a['is_known'] ?? false);
+            if ($known !== 0) {
+                return $known;
+            }
+
+            $amount = bccomp($b['total_amount'], $a['total_amount'], self::SCALE);
+            if ($amount !== 0) {
+                return $amount;
+            }
+
+            return strcmp($a['code'], $b['code']);
+        });
+
+        return [
+            'assets' => $assets,
+        ];
+    }
+
+    private function fetchPortfolioPool(string $pool_id): ?array
+    {
+        try {
+            $Pool = $this->Stellar->liquidityPools()->forPoolId($pool_id);
+        } catch (HorizonRequestException|Throwable) {
+            return null;
+        }
+
+        return [
+            'id' => $Pool->getPoolId(),
+            'total_shares' => $this->decimal($Pool->getTotalShares()),
+            'reserves' => $this->poolReservesData($Pool),
+        ];
+    }
+
+    private function poolReservesData(LiquidityPoolResponse $Pool): array
+    {
+        $reserves = [];
+        foreach ($Pool->getReserves()->toArray() as $Reserve) {
+            $reserves[] = [
+                'asset' => $this->assetData($Reserve->getAsset()),
+                'amount' => $this->decimal($Reserve->getAmount()),
+            ];
+        }
+
+        return $reserves;
+    }
+
+    private function addPortfolioAmount(array &$assets, array $asset, string $field, string $amount): void
+    {
+        if (bccomp($amount, '0', self::SCALE) <= 0) {
+            return;
+        }
+
+        $key = $asset['key'];
+        if (!isset($assets[$key])) {
+            $assets[$key] = [
+                'code' => $asset['code'],
+                'issuer' => $asset['issuer'],
+                'key' => $key,
+                'direct_amount' => '0.0000000',
+                'pool_amount' => '0.0000000',
+                'total_amount' => '0.0000000',
+                'is_known' => false,
+            ];
+        }
+
+        $assets[$key][$field] = bcadd($assets[$key][$field], $amount, self::SCALE);
+    }
+
+    private function buildMarketMakerValuation(array $portfolio): array
+    {
+        $assets_by_code = $this->aggregatePortfolioAssetsByCode($portfolio['assets'] ?? []);
+        $external_rates = $this->fetchExternalEurRates();
+        $rows = [];
+        $total_eur = '0.0000000';
+
+        $configs = [
+            'SATSMTL' => ['method' => 'satoshi', 'source' => 'CoinGecko BTC/EUR', 'source_url' => 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur'],
+            'USDM' => ['method' => 'usd', 'source' => 'Frankfurter USD/EUR', 'source_url' => 'https://api.frankfurter.app/latest?from=USD&to=EUR'],
+            'USDC' => ['method' => 'usd', 'source' => 'Frankfurter USD/EUR', 'source_url' => 'https://api.frankfurter.app/latest?from=USD&to=EUR'],
+            'yUSDC' => ['method' => 'usd', 'source' => 'Frankfurter USD/EUR', 'source_url' => 'https://api.frankfurter.app/latest?from=USD&to=EUR'],
+            'MTL' => ['method' => 'strict_send', 'source' => 'Horizon strict-send', 'source_url' => 'https://horizon.stellar.org/paths/strict-send'],
+            'LABR' => ['method' => 'strict_send', 'source' => 'Horizon strict-send', 'source_url' => 'https://horizon.stellar.org/paths/strict-send'],
+            'XLM' => ['method' => 'coingecko_stellar', 'source' => 'CoinGecko XLM/EUR', 'source_url' => 'https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=eur'],
+            'AQUA' => ['method' => 'strict_receive', 'source' => 'Horizon strict-receive', 'source_url' => 'https://horizon.stellar.org/paths/strict-receive'],
+        ];
+
+        foreach ($configs as $code => $config) {
+            $asset = $assets_by_code[$code] ?? null;
+            if (!$asset || bccomp($asset['total_amount'], '1', self::SCALE) < 0) {
+                continue;
+            }
+
+            $rate = $this->portfolioRateEur($asset, $config, $external_rates);
+            $value_eur = $rate !== null
+                ? bcmul($asset['total_amount'], $rate, self::SCALE)
+                : null;
+            if ($value_eur !== null) {
+                $total_eur = bcadd($total_eur, $value_eur, self::SCALE);
+            }
+
+            $rows[] = [
+                'asset' => $asset,
+                'amount' => $asset['total_amount'],
+                'rate_eur' => $rate,
+                'value_eur' => $value_eur,
+                'source' => $config['source'],
+                'source_url' => $config['source_url'],
+            ];
+        }
+
+        return [
+            'rows' => $rows,
+            'total_eur' => $total_eur,
+            'fetched_at' => time(),
+        ];
+    }
+
+    private function aggregatePortfolioAssetsByCode(array $assets): array
+    {
+        $result = [];
+        foreach ($assets as $asset) {
+            $code = (string) ($asset['code'] ?? '');
+            if ($code === '') {
+                continue;
+            }
+
+            if (!isset($result[$code])) {
+                $result[$code] = $asset;
+                continue;
+            }
+
+            $result[$code]['direct_amount'] = bcadd($result[$code]['direct_amount'], $asset['direct_amount'], self::SCALE);
+            $result[$code]['pool_amount'] = bcadd($result[$code]['pool_amount'], $asset['pool_amount'], self::SCALE);
+            $result[$code]['total_amount'] = bcadd($result[$code]['total_amount'], $asset['total_amount'], self::SCALE);
+            $result[$code]['is_known'] = ($result[$code]['is_known'] ?? false) || ($asset['is_known'] ?? false);
+            $result[$code]['image_path'] ??= $asset['image_path'] ?? null;
+        }
+
+        return $result;
+    }
+
+    private function portfolioRateEur(array $asset, array $config, array $external_rates): ?string
+    {
+        return match ($config['method']) {
+            'satoshi' => isset($external_rates['bitcoin_eur'])
+                ? bcdiv($external_rates['bitcoin_eur'], '100000000', self::RATE_SCALE)
+                : null,
+            'usd' => $external_rates['usd_eur'] ?? null,
+            'coingecko_stellar' => $external_rates['stellar_eur'] ?? null,
+            'strict_send' => $this->fetchStrictSendEurmtlRate($asset),
+            'strict_receive' => $this->fetchStrictReceiveEurmtlRate($asset),
+            default => null,
+        };
+    }
+
+    private function fetchExternalEurRates(): array
+    {
+        $rates = [];
+
+        $coingecko = $this->fetchJson('https://api.coingecko.com/api/v3/simple/price', [
+            'ids' => 'bitcoin,stellar',
+            'vs_currencies' => 'eur',
+        ]);
+        if (isset($coingecko['bitcoin']['eur'])) {
+            $rates['bitcoin_eur'] = $this->decimalRate((string) $coingecko['bitcoin']['eur']);
+        }
+        if (isset($coingecko['stellar']['eur'])) {
+            $rates['stellar_eur'] = $this->decimalRate((string) $coingecko['stellar']['eur']);
+        }
+
+        $frankfurter = $this->fetchJson('https://api.frankfurter.app/latest', [
+            'from' => 'USD',
+            'to' => 'EUR',
+        ]);
+        if (isset($frankfurter['rates']['EUR'])) {
+            $rates['usd_eur'] = $this->decimalRate((string) $frankfurter['rates']['EUR']);
+        }
+
+        return $rates;
+    }
+
+    private function fetchStrictSendEurmtlRate(array $asset): ?string
+    {
+        if (!$asset['issuer']) {
+            return null;
+        }
+
+        $response = $this->fetchJson('https://horizon.stellar.org/paths/strict-send', [
+            'source_asset_type' => $this->horizonAssetType($asset['code']),
+            'source_asset_code' => $asset['code'],
+            'source_asset_issuer' => $asset['issuer'],
+            'source_amount' => '1',
+            'destination_assets' => EurmtlReportConfig::EURMTL_CODE . ':' . EurmtlReportConfig::ISSUER,
+        ]);
+
+        $best = null;
+        foreach (($response['_embedded']['records'] ?? []) as $record) {
+            $amount = $record['destination_amount'] ?? null;
+            if ($amount === null) {
+                continue;
+            }
+            $amount = $this->decimalRate((string) $amount);
+            if ($best === null || bccomp($amount, $best, self::RATE_SCALE) > 0) {
+                $best = $amount;
+            }
+        }
+
+        return $best;
+    }
+
+    private function fetchStrictReceiveEurmtlRate(array $asset): ?string
+    {
+        if (!$asset['issuer']) {
+            return null;
+        }
+
+        $response = $this->fetchJson('https://horizon.stellar.org/paths/strict-receive', [
+            'destination_asset_type' => $this->horizonAssetType(EurmtlReportConfig::EURMTL_CODE),
+            'destination_asset_code' => EurmtlReportConfig::EURMTL_CODE,
+            'destination_asset_issuer' => EurmtlReportConfig::ISSUER,
+            'destination_amount' => '1',
+            'source_assets' => $asset['code'] . ':' . $asset['issuer'],
+        ]);
+
+        $best_source = null;
+        foreach (($response['_embedded']['records'] ?? []) as $record) {
+            $amount = $record['source_amount'] ?? null;
+            if ($amount === null) {
+                continue;
+            }
+            $amount = $this->decimalRate((string) $amount);
+            if ($best_source === null || bccomp($amount, $best_source, self::RATE_SCALE) < 0) {
+                $best_source = $amount;
+            }
+        }
+
+        if ($best_source === null || bccomp($best_source, '0', self::RATE_SCALE) <= 0) {
+            return null;
+        }
+
+        return bcdiv('1', $best_source, self::RATE_SCALE);
+    }
+
+    private function fetchJson(string $url, array $query): ?array
+    {
+        try {
+            $Response = $this->httpClient()->get($url, ['query' => $query]);
+            if ($Response->getStatusCode() >= 400) {
+                return null;
+            }
+            $json = json_decode((string) $Response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return is_array($json) ? $json : null;
+    }
+
+    private function httpClient(): Client
+    {
+        if ($this->HttpClient === null) {
+            $this->HttpClient = new Client([
+                'timeout' => 6,
+                'connect_timeout' => 3,
+                'headers' => [
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'BSN-Viewer EURMTL report',
+                ],
+            ]);
+        }
+
+        return $this->HttpClient;
+    }
+
+    private function horizonAssetType(string $code): string
+    {
+        return strlen($code) <= 4 ? 'credit_alphanum4' : 'credit_alphanum12';
+    }
+
     private function buildTotals(array $accounts, array $pools, array $claimable_eurmtl, array $asset_stats, array $market_maker): array
     {
         $legacy_market = '0.0000000';
@@ -657,6 +1017,31 @@ class EurmtlReportService
         return '0.0000000';
     }
 
+    private function balanceAssetData(AccountBalanceResponse $Balance): ?array
+    {
+        if ($Balance->getAssetType() === Asset::TYPE_NATIVE) {
+            return [
+                'code' => 'XLM',
+                'issuer' => null,
+                'key' => 'XLM',
+                'label' => 'XLM',
+            ];
+        }
+
+        $code = $Balance->getAssetCode();
+        $issuer = $Balance->getAssetIssuer();
+        if (!$code || !$issuer) {
+            return null;
+        }
+
+        return [
+            'code' => $code,
+            'issuer' => $issuer,
+            'key' => $this->assetKey($code, $issuer),
+            'label' => $code,
+        ];
+    }
+
     private function extractPoolShares(AccountResponse $Account, string $pool_id): string
     {
         foreach ($Account->getBalances()->toArray() as $Balance) {
@@ -797,6 +1182,16 @@ class EurmtlReportService
         }
 
         return bcadd($value, '0', self::SCALE);
+    }
+
+    private function decimalRate(null|int|float|string $value): string
+    {
+        $value = trim((string) ($value ?? '0'));
+        if ($value === '') {
+            $value = '0';
+        }
+
+        return bcadd($value, '0', self::RATE_SCALE);
     }
 
     private function shortHash(string $value): string
