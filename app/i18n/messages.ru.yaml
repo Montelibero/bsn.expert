@@ -22,6 +22,7 @@ nav:
     asset_swap: Приватный обмен активами
     migration: Переезд
     close_trustlines: Удалить линии доверия
+    eurmtl_report: Отчет EURMTL
     timetoken: Таймтокен
     percent_pay: Выплата процентов
     xdr2lab: XDR to LAB
@@ -1428,3 +1429,82 @@ tools_close_trustlines:
     offers_not_loaded: Не удалось загрузить ордера аккаунта. Без них нельзя надежно подготовить удаление линий доверия.
     no_tokens_selected: Выберите хотя бы один токен для удаления линии доверия.
     token_not_zero: "Линию доверия %asset% нельзя удалить: актуальный баланс уже не нулевой или токен отсутствует."
+
+eurmtl_report_page:
+  title: Отчет EURMTL
+  header: Состояние сети EURMTL
+  description: Серверный снапшот по EURMTL/EURDEBT, казначеям, пулам ликвидности и неклассифицированным остаткам.
+  warning: Не удалось получить свежие данные, показан кеш.
+  empty: Нет данных.
+  classification:
+    issuer: Фонд
+    legacy_treasury: Казначей
+    market_maker: Маркетмейкер
+    other: Прочие
+    unclassified: Не классифицировано
+  summary:
+    preliminary: На рынке, предварительно
+    legacy: Выпущено казначеями
+    non_issuer_pool: Пулы не фонда
+    unknown: Не классифицировано
+  estimates:
+    title: Варианты оценки
+    legacy: Выпущено казначеями на рынок
+    direct_exposure: Direct exposure без пулов
+    market_maker: Выпущено маркетмейкером
+    non_issuer_pool: EURMTL в пулах не фонда
+    issuer_pool: EURMTL в пулах фонда
+    unknown: Неизвестная/требующая классификации доля
+    preliminary: Предварительная оценка EURMTL на рынке
+  assets:
+    title: Asset stats
+    asset: Актив
+    direct: Direct balances
+    pools: Liquidity pools
+    claimable: Claimable
+    contracts: Contracts
+  treasuries:
+    title: Казначеи
+    account: Аккаунт
+    type: Тип
+    eurmtl_direct: EURMTL на счету
+    eurmtl_pool: EURMTL в пулах
+    market_amount: Выпущено / кеш
+    total: Итого
+  pools:
+    title: Liquidity pools с EURMTL
+    pool: Pool
+    reserves: Reserves
+    issuer: Фонд
+    legacy: Казначеи
+    market_maker: ММ
+    other: Прочие
+    unclassified: Не классифицировано
+  pool_owners:
+    title: Владельцы LP-shares
+    pool: Pool
+    owner: Владелец
+    type: Тип
+    shares: Shares
+  market_maker:
+    title: Маркетмейкер
+    summary: Сводка маркетмейкера
+    market_amount: Выпущено / кеш
+    pool_positions: Позиции в пулах
+    offers: Ордера
+    offer: Ордер
+    selling: Продает
+    buying: Покупает
+    amount: Amount
+    price: Price
+  claimable:
+    title: Claimable balances
+    id: ID
+    amount: Amount
+    sponsor: Sponsor
+    claimants: Claimants
+  unknown:
+    title: Неклассифицированное
+    pool_unclassified: Пулы без классификации владельца
+    claimable: EURMTL в claimable balances
+    contracts: EURMTL в contracts

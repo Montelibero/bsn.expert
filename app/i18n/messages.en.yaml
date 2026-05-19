@@ -22,6 +22,7 @@ nav:
     asset_swap: Private Asset Swap
     migration: Migration
     close_trustlines: Close trustlines
+    eurmtl_report: EURMTL Report
     timetoken: Timetoken
     percent_pay: Bulk Percent Payment
     xdr2lab: XDR to LAB
@@ -1426,3 +1427,82 @@ tools_close_trustlines:
     offers_not_loaded: Failed to load account offers. Trustlines cannot be closed reliably without them.
     no_tokens_selected: Select at least one token to close its trustline.
     token_not_zero: "Trustline %asset% cannot be closed: its latest balance is no longer zero or the token is missing."
+
+eurmtl_report_page:
+  title: EURMTL Report
+  header: EURMTL Network State
+  description: Server-side snapshot for EURMTL/EURDEBT, treasuries, liquidity pools, and unclassified balances.
+  warning: Fresh data could not be fetched; cached data is shown.
+  empty: No data.
+  classification:
+    issuer: Fund
+    legacy_treasury: Treasury
+    market_maker: Market maker
+    other: Other
+    unclassified: Unclassified
+  summary:
+    preliminary: Preliminary market amount
+    legacy: Issued by treasuries
+    non_issuer_pool: Non-fund pools
+    unknown: Unclassified
+  estimates:
+    title: Estimate Levels
+    legacy: Issued to market by treasuries
+    direct_exposure: Direct exposure without pools
+    market_maker: Issued by market maker
+    non_issuer_pool: Non-fund pool EURMTL
+    issuer_pool: Fund-owned pool EURMTL
+    unknown: Unknown/unclassified amount
+    preliminary: Preliminary EURMTL market estimate
+  assets:
+    title: Asset Stats
+    asset: Asset
+    direct: Direct balances
+    pools: Liquidity pools
+    claimable: Claimable
+    contracts: Contracts
+  treasuries:
+    title: EURDEBT Treasuries
+    account: Account
+    type: Type
+    eurmtl_direct: EURMTL on account
+    eurmtl_pool: EURMTL in pools
+    market_amount: Issued / cash
+    total: Total
+  pools:
+    title: Liquidity pools with EURMTL
+    pool: Pool
+    reserves: Reserves
+    issuer: Fund
+    legacy: Treasuries
+    market_maker: MM
+    other: Other
+    unclassified: Unclassified
+  pool_owners:
+    title: LP-share Owners
+    pool: Pool
+    owner: Owner
+    type: Type
+    shares: Shares
+  market_maker:
+    title: Market Maker
+    summary: Market maker summary
+    market_amount: Issued / cash
+    pool_positions: Pool positions
+    offers: Offers
+    offer: Offer
+    selling: Selling
+    buying: Buying
+    amount: Amount
+    price: Price
+  claimable:
+    title: Claimable Balances
+    id: ID
+    amount: Amount
+    sponsor: Sponsor
+    claimants: Claimants
+  unknown:
+    title: Unclassified
+    pool_unclassified: Pools without owner classification
+    claimable: EURMTL in claimable balances
+    contracts: EURMTL in contracts

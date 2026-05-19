@@ -1,0 +1,394 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'eurmtl_report_page.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools/">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'eurmtl_report_page.title'|trans }}</a></li>
+{% endblock %}
+
+{% macro amount(value) %}
+    <span>{{ value|round(0, 'common')|number_format(0, '.', ' ') }}</span>
+{% endmacro %}
+
+{% macro classification(name) %}
+    {% set classes = {
+        issuer: 'is-dark',
+        legacy_treasury: 'is-info',
+        market_maker: 'is-link',
+        other: 'is-success',
+        unclassified: 'is-warning'
+    } %}
+    <span class="tag {{ classes[name] ?? 'is-warning' }}">
+        {{ ('eurmtl_report_page.classification.' ~ name)|trans }}
+    </span>
+{% endmacro %}
+
+{% macro pool_link(pool) %}
+    {% set label = pool.label ?? pool.pool_label ?? pool.short_id ?? pool.pool_short_id %}
+    {% set title_parts = [] %}
+    {% if pool.counter_asset.code is defined and pool.counter_asset.issuer %}
+        {% set title_parts = title_parts|merge([pool.counter_asset.code ~ ':' ~ pool.counter_asset.issuer]) %}
+    {% endif %}
+    {% set title_parts = title_parts|merge([pool.id ?? pool.pool_id]) %}
+    {% if pool.stellarx_url %}
+        <a href="{{ pool.stellarx_url }}" target="_blank" rel="noopener noreferrer" title="{{ title_parts|join(' / ') }}">{{ label }}</a>
+    {% else %}
+        <span title="{{ title_parts|join(' / ') }}">{{ label }}</span>
+    {% endif %}
+{% endmacro %}
+
+{% import _self as ui %}
+
+{% block content %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+
+    <h1 class="title">{{ 'eurmtl_report_page.header'|trans }}</h1>
+    <p class="block">{{ 'eurmtl_report_page.description'|trans }}</p>
+
+    {% if snapshot.warning %}
+        <div class="notification is-warning">
+            {{ 'eurmtl_report_page.warning'|trans }}<br>
+            <code>{{ snapshot.warning }}</code>
+        </div>
+    {% endif %}
+
+    {% set totals = snapshot.totals ?? {} %}
+    <div class="columns is-multiline">
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'eurmtl_report_page.summary.preliminary'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.preliminary_market_estimate ?? '0.0000000') }}</p>
+            </div>
+        </div>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'eurmtl_report_page.summary.legacy'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.legacy_treasury_market_amount ?? '0.0000000') }}</p>
+            </div>
+        </div>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'eurmtl_report_page.summary.non_issuer_pool'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.non_issuer_pool_eurmtl ?? '0.0000000') }}</p>
+            </div>
+        </div>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'eurmtl_report_page.summary.unknown'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.unknown_amount ?? '0.0000000') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report_page.estimates.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <tbody>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.legacy'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.legacy_treasury_market_amount ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.direct_exposure'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.direct_exposure ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.market_maker'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.market_maker_market_amount ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.non_issuer_pool'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.non_issuer_pool_eurmtl ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.issuer_pool'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.issuer_owned_pool_eurmtl ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.unknown'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.unknown_amount ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.preliminary'|trans }}</th>
+                <td class="has-text-right has-text-weight-semibold">{{ ui.amount(totals.preliminary_market_estimate ?? '0.0000000') }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report_page.assets.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+            <tr>
+                <th>{{ 'eurmtl_report_page.assets.asset'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.assets.direct'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.assets.pools'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.assets.claimable'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.assets.contracts'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for asset in snapshot.assets %}
+                <tr>
+                    <td>{{ include('token_link.twig', {token: {code: asset.code, issuer: asset.issuer, is_known: true}}, with_context = false) }}</td>
+                    <td class="has-text-right" data-text="{{ asset.direct_balances }}">{{ ui.amount(asset.direct_balances) }}</td>
+                    <td class="has-text-right" data-text="{{ asset.liquidity_pools_amount }}">{{ ui.amount(asset.liquidity_pools_amount) }}</td>
+                    <td class="has-text-right" data-text="{{ asset.claimable_balances_amount }}">{{ ui.amount(asset.claimable_balances_amount) }}</td>
+                    <td class="has-text-right" data-text="{{ asset.contracts_amount }}">{{ ui.amount(asset.contracts_amount) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report_page.treasuries.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable" data-sortlist="[[5,1]]">
+            <thead>
+            <tr>
+                <th>{{ 'eurmtl_report_page.treasuries.account'|trans }}</th>
+                <th>{{ 'eurmtl_report_page.treasuries.type'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">EURDEBT</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.treasuries.eurmtl_direct'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.treasuries.eurmtl_pool'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.treasuries.market_amount'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% set treasury_totals = {
+                eurdebt_direct: '0.0000000',
+                eurmtl_direct: '0.0000000',
+                eurmtl_pool: '0.0000000',
+                market_amount: '0.0000000'
+            } %}
+            {% for treasury in snapshot.treasuries %}
+                {% set treasury_totals = {
+                    eurdebt_direct: treasury_totals.eurdebt_direct + treasury.eurdebt_direct,
+                    eurmtl_direct: treasury_totals.eurmtl_direct + treasury.eurmtl_direct,
+                    eurmtl_pool: treasury_totals.eurmtl_pool + treasury.eurmtl_pool,
+                    market_amount: treasury_totals.market_amount + treasury.market_amount
+                } %}
+                <tr>
+                    <td>{{ include('account_link.twig', {data: treasury.account}, with_context = false) }}</td>
+                    <td>{{ ui.classification(treasury.classification) }}</td>
+                    <td class="has-text-right" data-text="{{ treasury.eurdebt_direct }}">{{ ui.amount(treasury.eurdebt_direct) }}</td>
+                    <td class="has-text-right" data-text="{{ treasury.eurmtl_direct }}">{{ ui.amount(treasury.eurmtl_direct) }}</td>
+                    <td class="has-text-right" data-text="{{ treasury.eurmtl_pool }}">{{ ui.amount(treasury.eurmtl_pool) }}</td>
+                    <td class="has-text-right" data-text="{{ treasury.market_amount }}">{{ ui.amount(treasury.market_amount) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+            <tr>
+                <th colspan="2">{{ 'eurmtl_report_page.treasuries.total'|trans }}</th>
+                <th class="has-text-right">{{ ui.amount(treasury_totals.eurdebt_direct) }}</th>
+                <th class="has-text-right">{{ ui.amount(treasury_totals.eurmtl_direct) }}</th>
+                <th class="has-text-right">{{ ui.amount(treasury_totals.eurmtl_pool) }}</th>
+                <th class="has-text-right">{{ ui.amount(treasury_totals.market_amount) }}</th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report_page.market_maker.summary'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+            <tr>
+                <th>{{ 'eurmtl_report_page.treasuries.account'|trans }}</th>
+                <th>{{ 'eurmtl_report_page.treasuries.type'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">EURDEBT</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.treasuries.eurmtl_direct'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.treasuries.eurmtl_pool'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.treasuries.market_amount'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% set market_maker = snapshot.market_maker.direct %}
+            <tr>
+                <td>
+                    {% for account in market_maker.accounts %}
+                        {{ include('account_link.twig', {data: account}, with_context = false) }}{% if not loop.last %}<br>{% endif %}
+                    {% endfor %}
+                </td>
+                <td>{{ ui.classification(market_maker.classification) }}</td>
+                <td class="has-text-right" data-text="{{ market_maker.eurdebt_direct }}">{{ ui.amount(market_maker.eurdebt_direct) }}</td>
+                <td class="has-text-right" data-text="{{ market_maker.eurmtl_direct }}">{{ ui.amount(market_maker.eurmtl_direct) }}</td>
+                <td class="has-text-right" data-text="{{ market_maker.eurmtl_pool }}">{{ ui.amount(market_maker.eurmtl_pool) }}</td>
+                <td class="has-text-right" data-text="{{ market_maker.market_amount }}">{{ ui.amount(market_maker.market_amount) }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report_page.pools.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+            <tr>
+                <th>{{ 'eurmtl_report_page.pools.pool'|trans }}</th>
+                <th>{{ 'eurmtl_report_page.pools.reserves'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.pools.issuer'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.pools.legacy'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.pools.market_maker'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.pools.other'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.pools.unclassified'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for pool in snapshot.pools %}
+                <tr>
+                    <td>{{ ui.pool_link(pool) }}</td>
+                    <td>
+                        {% for reserve in pool.reserves %}
+                            <span class="tags has-addons is-inline-flex mb-1">
+                                <span class="tag is-dark">{{ reserve.asset.code }}</span>
+                                <span class="tag">{{ ui.amount(reserve.amount) }}</span>
+                            </span>
+                        {% endfor %}
+                    </td>
+                    <td class="has-text-right" data-text="{{ pool.breakdown.issuer }}">{{ ui.amount(pool.breakdown.issuer) }}</td>
+                    <td class="has-text-right" data-text="{{ pool.breakdown.legacy_treasury }}">{{ ui.amount(pool.breakdown.legacy_treasury) }}</td>
+                    <td class="has-text-right" data-text="{{ pool.breakdown.market_maker }}">{{ ui.amount(pool.breakdown.market_maker) }}</td>
+                    <td class="has-text-right" data-text="{{ pool.breakdown.other }}">{{ ui.amount(pool.breakdown.other) }}</td>
+                    <td class="has-text-right" data-text="{{ pool.breakdown.unclassified }}">{{ ui.amount(pool.breakdown.unclassified) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="title is-5">{{ 'eurmtl_report_page.pool_owners.title'|trans }}</h3>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+            <tr>
+                <th>{{ 'eurmtl_report_page.pool_owners.pool'|trans }}</th>
+                <th>{{ 'eurmtl_report_page.pool_owners.owner'|trans }}</th>
+                <th>{{ 'eurmtl_report_page.pool_owners.type'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.pool_owners.shares'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">EURMTL</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for pool in snapshot.pools %}
+                {% for owner in pool.owners %}
+                    {% if owner.eurmtl_amount >= 1 %}
+                        <tr>
+                            <td>{{ ui.pool_link(pool) }}</td>
+                            <td>{{ include('account_link.twig', {data: owner.account}, with_context = false) }}</td>
+                            <td>{{ ui.classification(owner.classification) }}</td>
+                            <td class="has-text-right" data-text="{{ owner.shares }}">{{ ui.amount(owner.shares) }}</td>
+                            <td class="has-text-right" data-text="{{ owner.eurmtl_amount }}">{{ ui.amount(owner.eurmtl_amount) }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report_page.market_maker.title'|trans }}</h2>
+    <div class="box">
+        <p class="block">
+            {% for account in snapshot.market_maker.direct.accounts %}
+                {{ include('account_link.twig', {data: account}, with_context = false) }}{% if not loop.last %}<br>{% endif %}
+            {% endfor %}
+        </p>
+        <div class="tags">
+            <span class="tag is-dark">EURDEBT {{ ui.amount(snapshot.market_maker.direct.eurdebt_direct ?? '0.0000000') }}</span>
+            <span class="tag is-dark">EURMTL {{ ui.amount(snapshot.market_maker.direct.eurmtl_direct ?? '0.0000000') }}</span>
+            <span class="tag is-info">{{ 'eurmtl_report_page.market_maker.market_amount'|trans }} {{ ui.amount(snapshot.market_maker.direct.market_amount ?? '0.0000000') }}</span>
+        </div>
+    </div>
+
+    <h3 class="title is-5">{{ 'eurmtl_report_page.market_maker.pool_positions'|trans }}</h3>
+    {% if snapshot.market_maker.pool_positions %}
+        <div class="table-container block">
+            <table class="table is-fullwidth is-striped is-hoverable">
+                <thead>
+                <tr>
+                    <th>{{ 'eurmtl_report_page.pools.pool'|trans }}</th>
+                    <th class="has-text-right">{{ 'eurmtl_report_page.pool_owners.shares'|trans }}</th>
+                    <th class="has-text-right">EURMTL</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for position in snapshot.market_maker.pool_positions %}
+                    {% if position.eurmtl_amount >= 1 %}
+                        <tr>
+                            <td>{{ ui.pool_link(position) }}</td>
+                            <td class="has-text-right">{{ ui.amount(position.shares) }}</td>
+                            <td class="has-text-right">{{ ui.amount(position.eurmtl_amount) }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="block">{{ 'eurmtl_report_page.empty'|trans }}</p>
+    {% endif %}
+
+    <h3 class="title is-5">{{ 'eurmtl_report_page.market_maker.offers'|trans }}</h3>
+    {% if snapshot.market_maker.offers %}
+        <div class="table-container block">
+            <table class="table is-fullwidth is-striped is-hoverable">
+                <thead>
+                <tr>
+                    <th>{{ 'eurmtl_report_page.market_maker.offer'|trans }}</th>
+                    <th>{{ 'eurmtl_report_page.market_maker.selling'|trans }}</th>
+                    <th>{{ 'eurmtl_report_page.market_maker.buying'|trans }}</th>
+                    <th class="has-text-right">{{ 'eurmtl_report_page.market_maker.amount'|trans }}</th>
+                    <th class="has-text-right">{{ 'eurmtl_report_page.market_maker.price'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for offer in snapshot.market_maker.offers %}
+                    <tr>
+                        <td><code>{{ offer.id }}</code></td>
+                        <td>{{ offer.selling.code }}</td>
+                        <td>{{ offer.buying.code }}</td>
+                        <td class="has-text-right">{{ ui.amount(offer.amount) }}</td>
+                        <td class="has-text-right">{{ offer.price }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="block">{{ 'eurmtl_report_page.empty'|trans }}</p>
+    {% endif %}
+
+    <h2 class="title is-4">{{ 'eurmtl_report_page.unknown.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <tbody>
+            <tr>
+                <th>{{ 'eurmtl_report_page.unknown.pool_unclassified'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(snapshot.unknown.pool_unclassified_eurmtl ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.unknown.claimable'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(snapshot.unknown.claimable_eurmtl ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.unknown.contracts'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(snapshot.unknown.contracts_eurmtl ?? '0.0000000') }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'mtla_snapshot_box.twig' with {
+        snapshot: snapshot,
+        refresh: refresh
+    } only %}
+{% endblock %}

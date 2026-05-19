@@ -20,6 +20,7 @@ use Montelibero\BSN\Controllers\DocumentsController;
 use Montelibero\BSN\Controllers\Editor2Controller;
 use Montelibero\BSN\Controllers\EditorController;
 use Montelibero\BSN\Controllers\ErrorController;
+use Montelibero\BSN\Controllers\EurmtlReportController;
 use Montelibero\BSN\Controllers\FederationController;
 use Montelibero\BSN\Controllers\GraphController;
 use Montelibero\BSN\Controllers\HomeController;
@@ -41,6 +42,8 @@ use Montelibero\BSN\Controllers\WhoAreYouController;
 use Montelibero\BSN\CurrentAccountOptions;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
+use Montelibero\BSN\EurmtlReportConfig;
+use Montelibero\BSN\EurmtlReportService;
 use Montelibero\BSN\KnownTagsCatalog;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
@@ -220,6 +223,8 @@ $ContainerBuilder->addDefinitions([
     CurrentContacts::class => $CurrentContacts,
     AssetVersions::class => $AssetVersions,
     CurrentAccountOptions::class => autowire(),
+    EurmtlReportConfig::class => autowire(),
+    EurmtlReportService::class => autowire(),
     RequestSession::class => $RequestSession,
     RequestLocale::class => $RequestLocale,
     KnownTagsCatalog::class => $KnownTagsCatalog,
@@ -288,6 +293,7 @@ $ContainerBuilder->addDefinitions([
     TransactionsController::class => autowire(),
     AssetSwapController::class => autowire(),
     MigrationController::class => autowire(),
+    EurmtlReportController::class => autowire(),
     StellarAccountReserveCalculator::class => autowire(),
 ]);
 $Container = $ContainerBuilder->build();
