@@ -12,14 +12,58 @@
 <h1 class="title">{{ code }}, {{ include('account_link.twig', {data: issuer}, with_context = false) }}</h1>
 <h1 class="subtitle">
         <span class="stellar_address is-family-monospace">{{ code }}</span>-<span class="stellar_address is-family-monospace">{{ issuer.id }}</span><br>
-
-        {{ 'account_page.alternatives'|trans }}:
-        <a class="tag is-link" href="https://viewer.eurmtl.me/asset/{{ code }}-{{ issuer.id }}">Eurmtl.me</a>
-        <a class="tag is-dark" href="https://lore.mtlprog.xyz/tokens/{{ issuer.id }}/{{ code }}">Lore</a>
-        <a class="tag is-primary" href="https://stellar.expert/explorer/public/asset/{{ code }}-{{ issuer.id }}">Stellar.Expert</a>
-        <a class="tag is-info" href="https://scopuly.com/trade/{{ code }}-XLM/{{ issuer.id }}/native">Scopuly</a><br>
 </h1>
 
+<div class="is-flex is-flex-wrap-wrap is-align-items-center">
+    <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-2">
+        <a class="button is-small is-primary is-outlined mr-2" href="{{ open_trustline_url }}">
+            <span class="icon"><i class="fa-solid fa-link"></i></span>
+            <span>{{ 'token_page.add_trustline.header'|trans }}</span>
+        </a>
+    </div>
+
+    <div class="dropdown is-hoverable ml-auto mb-2 is-hidden-mobile">
+        <div class="dropdown-trigger">
+            <button class="button is-small" type="button" aria-haspopup="true" aria-controls="token-alternative-viewers-desktop">
+                <span>{{ 'account_page.alternatives'|trans }}</span>
+                <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+            </button>
+        </div>
+        <div class="dropdown-menu is-right" id="token-alternative-viewers-desktop" role="menu">
+            <div class="dropdown-content">
+                <a class="dropdown-item" href="https://viewer.eurmtl.me/asset/{{ code }}-{{ issuer.id }}">Eurmtl.me</a>
+                <a class="dropdown-item" href="https://lore.mtlprog.xyz/tokens/{{ issuer.id }}/{{ code }}">Lore</a>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="https://stellar.expert/explorer/public/asset/{{ code }}-{{ issuer.id }}">Stellar.Expert</a>
+                <a class="dropdown-item" href="https://scopuly.com/trade/{{ code }}-XLM/{{ issuer.id }}/native">Scopuly</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="dropdown is-hoverable is-hidden-tablet mb-4">
+    <div class="dropdown-trigger">
+        <button class="button is-small" type="button" aria-haspopup="true" aria-controls="token-alternative-viewers-mobile">
+            <span>{{ 'account_page.alternatives'|trans }}</span>
+            <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+        </button>
+    </div>
+    <div class="dropdown-menu" id="token-alternative-viewers-mobile" role="menu">
+        <div class="dropdown-content">
+            <a class="dropdown-item" href="https://viewer.eurmtl.me/asset/{{ code }}-{{ issuer.id }}">Eurmtl.me</a>
+            <a class="dropdown-item" href="https://lore.mtlprog.xyz/tokens/{{ issuer.id }}/{{ code }}">Lore</a>
+            <hr class="dropdown-divider">
+            <a class="dropdown-item" href="https://stellar.expert/explorer/public/asset/{{ code }}-{{ issuer.id }}">Stellar.Expert</a>
+            <a class="dropdown-item" href="https://scopuly.com/trade/{{ code }}-XLM/{{ issuer.id }}/native">Scopuly</a>
+        </div>
+    </div>
+</div>
+
+<style>
+        dd {
+                margin-left: 2rem;
+        }
+</style>
 <div class="columns">
     <div class="column">
         <dl class="box">
@@ -57,11 +101,13 @@
     {% endif %}
 </div>
 
-<div class="box">
-<h2 class="title">{{ 'token_page.add_trustline.header'|trans }}</h2>
-<p class="block">{{ 'token_page.add_trustline.description'|trans }}</p>
-{{ add_trustline_form|raw }}
-</div>
+{% if show_add_trustline_form %}
+    <div class="box">
+        <h2 class="title">{{ 'token_page.add_trustline.header'|trans }}</h2>
+        <p class="block">{{ 'token_page.add_trustline.description'|trans }}</p>
+        {{ add_trustline_form|raw }}
+    </div>
+{% endif %}
 
 {% if holders %}
     <script>

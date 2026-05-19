@@ -161,6 +161,7 @@ class TokensController
 
     public function Token(string $code): ?string
     {
+        $requested_token = $code;
         if (str_contains($code, "-")) {
             [$code, $issuer] = explode('-', $code);
         } else {
@@ -228,12 +229,16 @@ class TokensController
         $token_images = $this->TomlImageManager->fetchTokenImages($code, $issuer);
         $token_image = $token_images[0]['public_path'] ?? null;
 
-        $signing_form = $this->buildTokenTrustlineForm($code, $issuer);
+        $token_page_url = '/tokens/' . rawurlencode($requested_token);
+        $show_add_trustline_form = ($_GET['open_trustline'] ?? '') === 'yes';
+        $signing_form = $show_add_trustline_form ? $this->buildTokenTrustlineForm($code, $issuer) : null;
 
         $Template = $this->Twig->load('token.twig');
         return $Template->render([
             'code' => $code,
             'issuer' => $Issuer->jsonSerialize(),
+            'open_trustline_url' => $token_page_url . '?open_trustline=yes',
+            'show_add_trustline_form' => $show_add_trustline_form,
             'holders_count' => $holders_count,
             'issued' => $issued,
             'category' => $category,
