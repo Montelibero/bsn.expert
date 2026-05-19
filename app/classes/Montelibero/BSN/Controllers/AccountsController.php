@@ -9,6 +9,7 @@ use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
@@ -18,8 +19,14 @@ use Soneso\StellarSDK\Responses\Asset\AssetResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Twig\Environment;
 
-class AccountsController
+class AccountsController implements RefreshDataCodeInterface
 {
+    use RefreshDataCodeTrait;
+
+    private const ISSUED_TOKENS_CACHE_PREFIX = 'issued_tokens2_';
+    private const ISSUED_TOKENS_CACHE_TTL = 604800;
+    private const ISSUED_TOKENS_REFRESH_SCOPE_PREFIX = 'account_issued_tokens:';
+
     private BSN $BSN;
     private Environment $Twig;
     public static array $sort_tags_example = [
@@ -60,6 +67,7 @@ class AccountsController
     private CurrentUser $CurrentUser;
     private CurrentContacts $CurrentContacts;
     private StellarTomlImageManager $TomlImageManager;
+    private MongoCacheManager $CacheManager;
 
     public function __construct(
         BSN $BSN,
@@ -69,6 +77,7 @@ class AccountsController
         CurrentUser $CurrentUser,
         CurrentContacts $CurrentContacts,
         StellarTomlImageManager $TomlImageManager,
+        MongoCacheManager $CacheManager,
     ) {
         $this->BSN = $BSN;
 
@@ -80,6 +89,7 @@ class AccountsController
         $this->CurrentUser = $CurrentUser;
         $this->CurrentContacts = $CurrentContacts;
         $this->TomlImageManager = $TomlImageManager;
+        $this->CacheManager = $CacheManager;
     }
 
     /**
@@ -227,8 +237,22 @@ class AccountsController
 
         $TokensController = $this->Container->get(TokensController::class);
 
-        $issued_tokens = $this->fetchIssuedTokens($Account->getId(), $TokensController);
+        $issued_tokens_refresh_scope = self::ISSUED_TOKENS_REFRESH_SCOPE_PREFIX . $Account->getId();
+        $can_refresh_issued_tokens = $this->CurrentUser->isAuthorized();
+        $force_issued_tokens_refresh = $can_refresh_issued_tokens
+            && $this->isRefreshDataRequested($issued_tokens_refresh_scope);
+        $issued_tokens_snapshot = $this->fetchIssuedTokensSnapshot(
+            $Account->getId(),
+            $TokensController,
+            $force_issued_tokens_refresh
+        );
+        $issued_tokens = $issued_tokens_snapshot['items'];
         $this->TomlImageManager->applyTokenImages($issued_tokens);
+
+        if ($force_issued_tokens_refresh) {
+            SimpleRouter::response()->redirect($this->getRefreshDataRedirectUri(), 302);
+            return null;
+        }
 
         $base_assets = [
             "EURMTL-GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V",
@@ -381,6 +405,11 @@ class AccountsController
             'unknown_tags_count' => $unknown_tags_count,
             'signatures' => $signatures,
             'issued_tokens' => $issued_tokens,
+            'issued_tokens_cache' => $issued_tokens_snapshot,
+            'issued_tokens_refresh' => $this->buildRefreshDataContext(
+                $issued_tokens_refresh_scope,
+                $can_refresh_issued_tokens
+            ),
             'balances' => $balances,
             'display_balances' => $display_balances,
             'multisig' => $multisig,
@@ -642,9 +671,23 @@ class AccountsController
 
     public function fetchIssuedTokens(string $account_id, TokensController $TokensController): array
     {
-        $cache_key = 'issued_tokens2_' . $account_id;
-        if ($cached = apcu_fetch($cache_key)) {
-            return $cached;
+        return $this->fetchIssuedTokensSnapshot($account_id, $TokensController, false)['items'];
+    }
+
+    private function fetchIssuedTokensSnapshot(
+        string $account_id,
+        TokensController $TokensController,
+        bool $force_refresh
+    ): array
+    {
+        $cache_key = self::ISSUED_TOKENS_CACHE_PREFIX . $account_id;
+        $cached = $this->CacheManager->fetch($cache_key);
+        if (!$force_refresh && is_array($cached) && is_array($cached['data'] ?? null)) {
+            $snapshot = $cached['data'];
+            $snapshot['from_cache'] = true;
+            $snapshot['warning'] = null;
+            $snapshot['updated_at_ts'] = $cached['updated_at_ts'] ?? null;
+            return $this->finalizeIssuedTokensSnapshot($snapshot);
         }
 
         $issued_tokens = [];
@@ -676,12 +719,51 @@ class AccountsController
                 return strcmp($a['code'], $b['code']);
             });
 
-            apcu_store($cache_key, $issued_tokens, 60 * 60);
-        } catch (\Exception $E) {
-            apcu_store($cache_key, $issued_tokens, 60 * 5);
+            $snapshot = [
+                'items' => $issued_tokens,
+                'fetched_at' => time(),
+            ];
+            $this->CacheManager->store($cache_key, $snapshot, self::ISSUED_TOKENS_CACHE_TTL);
+
+            $snapshot['from_cache'] = false;
+            $snapshot['warning'] = null;
+            return $this->finalizeIssuedTokensSnapshot($snapshot);
+        } catch (\Throwable $E) {
+            if (is_array($cached) && is_array($cached['data'] ?? null)) {
+                $snapshot = $cached['data'];
+                $snapshot['from_cache'] = true;
+                $snapshot['warning'] = $E->getMessage();
+                $snapshot['updated_at_ts'] = $cached['updated_at_ts'] ?? null;
+                return $this->finalizeIssuedTokensSnapshot($snapshot);
+            }
+
+            return $this->finalizeIssuedTokensSnapshot([
+                'items' => $issued_tokens,
+                'fetched_at' => null,
+                'from_cache' => false,
+                'warning' => $E->getMessage(),
+            ]);
+        }
+    }
+
+    private function finalizeIssuedTokensSnapshot(array $snapshot): array
+    {
+        $items = $snapshot['items'] ?? [];
+        if (!is_array($items)) {
+            $items = [];
         }
 
-        return $issued_tokens;
+        $fetched_at = isset($snapshot['fetched_at']) ? (int) $snapshot['fetched_at'] : 0;
+        $age_seconds = $fetched_at > 0 ? max(0, time() - $fetched_at) : null;
+
+        return [
+            'items' => $items,
+            'fetched_at' => $fetched_at > 0 ? $fetched_at : null,
+            'age_seconds' => $age_seconds,
+            'from_cache' => (bool) ($snapshot['from_cache'] ?? false),
+            'warning' => $snapshot['warning'] ?? null,
+            'updated_at_ts' => $snapshot['updated_at_ts'] ?? null,
+        ];
     }
 
     private function refreshAccountData(

@@ -462,6 +462,8 @@ account_page:
     header: Documents
   issued_tokens:
     header: Issued tokens
+    cache_age: Cache age
+    refresh: Refresh issued tokens
   balances:
     header: Balances
   income_tags:

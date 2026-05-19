@@ -460,6 +460,8 @@ account_page:
     header: Документы
   issued_tokens:
     header: Выпущенные токены
+    cache_age: Возраст кеша
+    refresh: Обновить выпущенные токены
   balances:
     header: Балансы
   income_tags:

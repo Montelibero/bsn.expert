@@ -89,6 +89,12 @@
     padding: 0;
 }
 
+.account-title-tags {
+    display: inline-flex;
+    margin: 0 0 0 0.5rem;
+    vertical-align: middle;
+}
+
 /* Search Results */
 .search-highlight {
     background: rgba(72, 95, 199, 0.15);

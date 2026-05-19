@@ -253,7 +253,26 @@
 
 {% if issued_tokens %}
 <div class="box">
-        <h2 class="title">{{ 'account_page.issued_tokens.header'|trans }}</h2>
+        <h2 class="title">
+                {{ 'account_page.issued_tokens.header'|trans }}
+                {% if issued_tokens_cache %}
+                        <span class="tags has-addons are-small account-title-tags">
+                                {% if issued_tokens_refresh.can_refresh and issued_tokens_refresh.action and issued_tokens_refresh.code_param_name and issued_tokens_refresh.code %}
+                                        {% set refresh_url = issued_tokens_refresh.action ~ ('?' in issued_tokens_refresh.action ? '&' : '?') ~ issued_tokens_refresh.code_param_name ~ '=' ~ issued_tokens_refresh.code|url_encode %}
+                                        <a class="tag" href="{{ refresh_url }}" title="{{ 'account_page.issued_tokens.refresh'|trans }}">
+                                                <span class="icon is-small"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i></span>
+                                        </a>
+                                {% else %}
+                                        <span class="tag" title="{{ 'account_page.issued_tokens.cache_age'|trans }}">
+                                                <span class="icon is-small"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i></span>
+                                        </span>
+                                {% endif %}
+                                <span class="tag" {% if issued_tokens_cache.fetched_at %}title="{{ issued_tokens_cache.fetched_at|date('d.m.Y H:i', 'UTC') }} UTC"{% endif %}>
+                                        {{ issued_tokens_cache.fetched_at|period }}
+                                </span>
+                        </span>
+                {% endif %}
+        </h2>
         <div class="field is-grouped is-grouped-multiline">
         {% for token in issued_tokens %}
                 <div class="control">
