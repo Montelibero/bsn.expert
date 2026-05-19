@@ -57,6 +57,8 @@ Agent guidance:
   Known widespread tags and metadata in Russian.
 - GET /accounts/{account_id}?format=json
   Main public JSON representation for a specific account.
+- GET /tokens/?format=json
+  Known token issuers keyed by asset code. Also available with Accept: application/json.
 - GET /health
   Health check.
 

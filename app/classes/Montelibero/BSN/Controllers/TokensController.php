@@ -54,6 +54,10 @@ class TokensController
     {
         $this->ensureKnownTokensLoaded();
 
+        if ($this->isJsonRequest()) {
+            return $this->renderKnownTokensJson();
+        }
+
         $categories = [
             'membership',
             'mtl_shares',
@@ -109,6 +113,44 @@ class TokensController
         return $Template->render([
             'tokens' => $tokens,
         ]);
+    }
+
+    private function renderKnownTokensJson(): string
+    {
+        $tokens = [];
+        foreach ($this->known_tokens as $asset) {
+            $tokens[$asset['code']] = [
+                'issuer' => $asset['issuer'],
+            ];
+        }
+
+        ksort($tokens, SORT_NATURAL | SORT_FLAG_CASE);
+
+        header('Content-Type: application/json; charset=utf-8');
+        header('Vary: Accept');
+
+        return json_encode($tokens, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    private function isJsonRequest(): bool
+    {
+        if (($_GET['format'] ?? '') === 'json') {
+            return true;
+        }
+
+        return $this->acceptHeaderContainsJson($_SERVER['HTTP_ACCEPT'] ?? '');
+    }
+
+    private function acceptHeaderContainsJson(string $header): bool
+    {
+        foreach (explode(',', $header) as $accept_type) {
+            $accept_type = trim(strtolower(explode(';', $accept_type)[0] ?? ''));
+            if ($accept_type === 'application/json' || str_ends_with($accept_type, '+json')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function TokenXLM(): ?string
