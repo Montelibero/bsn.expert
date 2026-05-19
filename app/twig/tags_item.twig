@@ -16,6 +16,15 @@
         </script>
 <h1 class="title">{{ tag.name }}</h1>
 
+        {% if tag.is_editable and current_user.currentAccountId %}
+        <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-2">
+                <a class="button is-small is-primary is-outlined mr-2" href="/editor/{{ current_user.currentAccountId }}/?tag={{ tag.name|url_encode }}">
+                        <span class="icon"><i class="fa-solid fa-tags"></i></span>
+                        <span>{{ 'tag_page.edit_link'|trans }}</span>
+                </a>
+        </div>
+        {% endif %}
+
         {% macro pairing_marker (pair_name, has_pair, pair_strong) %}
                 {% if has_pair %}
                 <span title="{{ 'account_page.pair.green'|trans }}: {{ pair_name }}">🟢</span>
@@ -63,10 +72,6 @@
                 </p>
         {% else %}
         <p class="block"><span class="icon"><i class="fa-solid fa-file-circle-question"></i></span> {{ 'tag_page.unknown_to_system'|trans }}</p>
-        {% endif %}
-
-        {% if tag.is_editable and current_user.currentAccountId %}
-        <p class="block"><a href="/editor/{{ current_user.currentAccountId }}/?tag={{ tag.name }}">{{ 'tag_page.edit_link'|trans }} →</a></p>
         {% endif %}
 
         <table class="table" data-sortlist="{% if tag.pair %}[[0,0],[2,0]]{% else %}[[0,0],[1,0]]{% endif %}">

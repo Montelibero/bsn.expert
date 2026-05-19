@@ -589,7 +589,7 @@ tags_page:
   hide_unknown_tags: Hide unknown tags
 
 tag_page:
-  edit_link: Assign this tag to each of your contacts
+  edit_link: Assign this tag
   source: Source
   target: Target
   pair: Pairing

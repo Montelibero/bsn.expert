@@ -590,7 +590,7 @@ tags_page:
   hide_unknown_tags: Скрыть незнакомые теги
 
 tag_page:
-  edit_link: Проставить этот тег для ваших контактов
+  edit_link: Проставить этот тег
   source: Использует
   target: Получает
   pair: Парность

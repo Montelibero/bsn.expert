@@ -28,6 +28,19 @@
         <span class="is-family-monospace">{{ document.hash }}</span>
 </h1>
 
+{% if sign and not sign.show_form %}
+<div class="is-flex is-flex-wrap-wrap is-align-items-center mb-2">
+    <a class="button is-small is-primary is-outlined mr-2" href="{{ sign.link }}">
+        <span class="icon"><i class="fa-solid fa-file-signature"></i></span>
+        {% if document.text %}
+            <span>{{ 'document_sign.sign_preform.show_form_known_text'|trans }}</span>
+        {% else %}
+            <span>{{ 'document_sign.sign_preform.show_form'|trans }}</span>
+        {% endif %}
+    </a>
+</div>
+{% endif %}
+
 {% if document.is_obsolete or new_hash %}
 <article class="message is-warning">
     <div class="message-body">
@@ -80,19 +93,7 @@
 {% endif %}
 
 <div id="document-sign"></div>
-{% if sign %}
-    {% if not sign.show_form %}
-        <p class="block">
-            <a href="{{ sign.link }}">
-                <i class="fa-solid fa-file-signature"></i>
-                {% if document.text %}
-                    {{ 'document_sign.sign_preform.show_form_known_text'|trans }}
-                {% else %}
-                    {{ 'document_sign.sign_preform.show_form'|trans }}
-                {% endif %}
-            </a>
-        </p>
-    {% else %}
+{% if sign and sign.show_form %}
         <div class="box">
             <h1 class="title">
                 {{ 'document_sign.sign_preform.name'|trans }}
@@ -202,7 +203,6 @@
                 {{ sign.signing_form|raw }}
             {% endif %}
         </div>
-    {% endif %}
 {% endif %}
 
 
