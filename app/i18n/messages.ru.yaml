@@ -325,6 +325,7 @@ transactions:
     memo_value: Значение мемо
     memo_absent: Без мемо
     alternatives: Альтернативные обозреватели
+    get_xdr: Получить XDR
     operations: Операции
   operations:
     source: Для аккаунта

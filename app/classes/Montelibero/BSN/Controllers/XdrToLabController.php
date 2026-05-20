@@ -19,11 +19,13 @@ class XdrToLabController
 
     public function XdrToLab(): string
     {
-        $xdr = (string) ($_POST['xdr'] ?? '');
+        $request_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $xdr_input = $request_method === 'POST' ? ($_POST['xdr'] ?? '') : ($_GET['xdr'] ?? '');
+        $xdr = is_array($xdr_input) ? '' : (string) $xdr_input;
         $labUrl = null;
         $error = null;
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($request_method === 'POST') {
             if (trim($xdr) === '') {
                 $error = $this->Translator->trans('tools_xdr2lab.errors.empty_xdr');
             } else {

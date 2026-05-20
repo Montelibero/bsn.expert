@@ -11,13 +11,52 @@
 {% block content %}
     <h1 class="title">{{ 'transactions.show.header'|trans }} {{ include('account_link.twig', {data: transaction.source_account_data}, with_context = false) }}</h1>
     <p class="subtitle">
-        <span class="stellar_address is-family-monospace">{{ tx_hash }}</span><br>
-        {{ 'transactions.show.alternatives'|trans }}:
-        <a class="tag is-link" href="https://viewer.eurmtl.me/transaction/{{ tx_hash }}">Eurmtl.me</a>
-        <a class="tag is-dark" href="https://lore.mtlprog.xyz/transactions/{{ tx_hash }}">Lore</a>
-        <a class="tag is-primary" href="https://stellar.expert/explorer/public/tx/{{ tx_hash }}">Stellar.Expert</a>
-        <a class="tag is-info" href="https://scopuly.com/transaction/{{ tx_hash }}">Scopuly</a>
+        <span class="stellar_address is-family-monospace">{{ tx_hash }}</span>
     </p>
+    <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-4">
+        <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-2">
+            <a class="button is-small is-primary is-outlined mr-2" href="{{ xdr2lab_url }}">
+                <span class="icon"><i class="fa-solid fa-file-code"></i></span>
+                <span>{{ 'transactions.show.get_xdr'|trans }}</span>
+            </a>
+        </div>
+        <div class="dropdown is-hoverable ml-auto mb-2 is-hidden-mobile">
+            <div class="dropdown-trigger">
+                <button class="button is-small" type="button" aria-haspopup="true" aria-controls="transaction-alternative-viewers-desktop">
+                    <span>{{ 'transactions.show.alternatives'|trans }}</span>
+                    <span class="icon is-small">
+                        <i class="fa-solid fa-angle-down" aria-hidden="true"></i>
+                    </span>
+                </button>
+            </div>
+            <div class="dropdown-menu is-right" id="transaction-alternative-viewers-desktop" role="menu">
+                <div class="dropdown-content">
+                    <a class="dropdown-item" href="https://viewer.eurmtl.me/transaction/{{ tx_hash }}">Eurmtl.me</a>
+                    <a class="dropdown-item" href="https://lore.mtlprog.xyz/transactions/{{ tx_hash }}">Lore</a>
+                    <a class="dropdown-item" href="https://stellar.expert/explorer/public/tx/{{ tx_hash }}">Stellar.Expert</a>
+                    <a class="dropdown-item" href="https://scopuly.com/transaction/{{ tx_hash }}">Scopuly</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="dropdown is-hoverable mb-4 is-hidden-tablet">
+        <div class="dropdown-trigger">
+            <button class="button is-small" type="button" aria-haspopup="true" aria-controls="transaction-alternative-viewers-mobile">
+                <span>{{ 'transactions.show.alternatives'|trans }}</span>
+                <span class="icon is-small">
+                    <i class="fa-solid fa-angle-down" aria-hidden="true"></i>
+                </span>
+            </button>
+        </div>
+        <div class="dropdown-menu" id="transaction-alternative-viewers-mobile" role="menu">
+            <div class="dropdown-content">
+                <a class="dropdown-item" href="https://viewer.eurmtl.me/transaction/{{ tx_hash }}">Eurmtl.me</a>
+                <a class="dropdown-item" href="https://lore.mtlprog.xyz/transactions/{{ tx_hash }}">Lore</a>
+                <a class="dropdown-item" href="https://stellar.expert/explorer/public/tx/{{ tx_hash }}">Stellar.Expert</a>
+                <a class="dropdown-item" href="https://scopuly.com/transaction/{{ tx_hash }}">Scopuly</a>
+            </div>
+        </div>
+    </div>
 
     {% if not transaction.successful %}
         <section class="block hero is-danger">

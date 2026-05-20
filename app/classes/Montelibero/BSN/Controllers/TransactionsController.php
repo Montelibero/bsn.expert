@@ -91,6 +91,7 @@ class TransactionsController
         return $Template->render([
             'transaction' => $transaction,
             'tx_hash' => $transaction['hash'],
+            'xdr2lab_url' => '/tools/xdr2lab?' . http_build_query(['xdr' => $transaction['envelope_xdr']]),
         ]);
     }
 

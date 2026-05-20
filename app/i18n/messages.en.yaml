@@ -326,6 +326,7 @@ transactions:
     memo_value: Memo value
     memo_absent: No memo
     alternatives: Alternative viewers
+    get_xdr: Get XDR
     operations: Operations
   operations:
     source: For account
