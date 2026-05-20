@@ -11,4 +11,9 @@ trait HasLinks
     {
         $this->links[] = $Link;
     }
+
+    public function clearLinks(): void
+    {
+        $this->links = [];
+    }
 }

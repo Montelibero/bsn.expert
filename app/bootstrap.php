@@ -173,7 +173,7 @@ if (IS_CLI_CONTEXT) {
     );
 }
 
-$BSN->loadFromJson(json_decode(file_get_contents(JSON_DATA_FILE_PATH), JSON_OBJECT_AS_ARRAY));
+$BSN->loadFromJsonFile(JSON_DATA_FILE_PATH);
 
 $mtla_members = [];
 if (function_exists('apcu_exists') && function_exists('apcu_fetch')) {
@@ -367,4 +367,6 @@ return new ApplicationContext(
     $CurrentContacts,
     $SessionView,
     $ServerView,
+    $BSN,
+    JSON_DATA_FILE_PATH,
 );

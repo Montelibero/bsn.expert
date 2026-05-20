@@ -22,6 +22,8 @@ class ApplicationContext
         public readonly CurrentContacts $CurrentContacts,
         public readonly RequestArrayView $SessionView,
         public readonly RequestArrayView $ServerView,
+        public readonly BSN $BSN,
+        public readonly string $BsnJsonPath,
     ) {
     }
 
@@ -35,6 +37,7 @@ class ApplicationContext
         }
 
         try {
+            $this->BSN->refreshFromJsonFileIfChanged($this->BsnJsonPath);
             $this->syncRequestContext();
             $this->refreshRouterRequest();
             SimpleRouter::start();

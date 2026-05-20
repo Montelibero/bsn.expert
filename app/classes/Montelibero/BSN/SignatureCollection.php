@@ -38,6 +38,16 @@ class SignatureCollection
         $Account->addSignature($Signature);
     }
 
+    public function clearSignatures(): void
+    {
+        $this->signatures = [];
+        $this->account_contract_to_signatures = [];
+
+        foreach ($this->contract_to_signatures as $hash => $_) {
+            $this->contract_to_signatures[$hash] = [];
+        }
+    }
+
     public function makeContract(string $contract): Contract
     {
         if (!Contract::validate($contract)) {

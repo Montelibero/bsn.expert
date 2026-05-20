@@ -22,6 +22,10 @@ class BSN
     private array $tg_id_to_account = [];
 
     private SignatureCollection $Signatures;
+    private ?int $data_timestamp = null;
+    private ?int $data_loaded_at = null;
+    private ?int $data_file_mtime = null;
+    private array $mtla_members_json = [];
 
     public const IGNORE_MEMBER_TOKENS = 'GDGC46H4MQKRW3TZTNCWUU6R2C7IPXGN7HQLZBJTNQO6TW7ZOS6MSECR';
     private AccountsManager $AccountsManager;
@@ -34,8 +38,60 @@ class BSN
         $this->Signatures = new SignatureCollection($DocumentsManager);
     }
 
+    public function loadFromJsonFile(string $path): void
+    {
+        $json = $this->readJsonFile($path);
+        if ($json === null) {
+            throw new \RuntimeException("Unable to load BSN JSON data from $path");
+        }
+
+        $this->loadFromJson($json);
+        $this->data_file_mtime = $this->getFileMtime($path);
+    }
+
+    public function refreshFromJsonFileIfChanged(string $path): void
+    {
+        $mtime = $this->getFileMtime($path);
+        if ($mtime === null || $mtime === $this->data_file_mtime) {
+            return;
+        }
+
+        $json = $this->readJsonFile($path);
+        if ($json === null) {
+            error_log("Unable to refresh BSN JSON data from $path");
+            return;
+        }
+
+        $data_timestamp = self::extractDataTimestamp($json);
+        if ($data_timestamp !== null && $data_timestamp === $this->data_timestamp) {
+            $this->data_file_mtime = $mtime;
+            return;
+        }
+
+        try {
+            $this->loadFromJson($json);
+        } catch (\Throwable $Throwable) {
+            error_log(sprintf('Unable to apply refreshed BSN JSON data from %s: %s', $path, $Throwable->getMessage()));
+            return;
+        }
+
+        $this->data_file_mtime = $mtime;
+
+        error_log(sprintf(
+            'Reloaded BSN JSON data: data_timestamp=%s loaded_at=%d',
+            $this->data_timestamp ?? 'unknown',
+            $this->data_loaded_at ?? 0
+        ));
+    }
+
     public function loadFromJson(array $json): void
     {
+        if (!isset($json['accounts']) || !is_array($json['accounts'])) {
+            throw new \InvalidArgumentException('BSN JSON data must contain an accounts object.');
+        }
+
+        $this->clearLoadedData();
+
         foreach ($json['accounts'] as $account_id => $data) {
             $Account = $this->makeAccountById($account_id);
 
@@ -99,11 +155,33 @@ class BSN
         $this->findKnown();
 
         $this->loadUsernames();
+        $this->applyMtlaMembersJson();
+
+        $this->data_timestamp = self::extractDataTimestamp($json);
+        $this->data_loaded_at = time();
     }
 
     public function loadMtlaMembersFromJson(array $json): void
     {
-        foreach ($json as $item) {
+        $this->mtla_members_json = $json;
+        $this->applyMtlaMembersJson();
+    }
+
+    public function getDataTimestamp(): ?int
+    {
+        return $this->data_timestamp;
+    }
+
+    public function getDataLoadedAt(): ?int
+    {
+        return $this->data_loaded_at;
+    }
+
+    private function applyMtlaMembersJson(): void
+    {
+        $this->tg_id_to_account = [];
+
+        foreach ($this->mtla_members_json as $item) {
             if (!is_array($item)) {
                 continue;
             }
@@ -112,6 +190,64 @@ class BSN
             $Account->setTelegramUsername($item['tg_username']);
             $this->tg_id_to_account[$item['tg_id']] = $Account;
         }
+    }
+
+    private function clearLoadedData(): void
+    {
+        $this->accounts = [];
+        $this->tg_id_to_account = [];
+        $this->clearLinks();
+        $this->Signatures->clearSignatures();
+
+        foreach ($this->tags as $Tag) {
+            $Tag->clearLinks();
+        }
+    }
+
+    private function readJsonFile(string $path): ?array
+    {
+        $contents = @file_get_contents($path);
+        if ($contents === false) {
+            return null;
+        }
+
+        try {
+            $json = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $Exception) {
+            error_log(sprintf('Invalid BSN JSON data in %s: %s', $path, $Exception->getMessage()));
+            return null;
+        }
+
+        return is_array($json) ? $json : null;
+    }
+
+    private function getFileMtime(string $path): ?int
+    {
+        clearstatcache(false, $path);
+
+        $mtime = @filemtime($path);
+        return $mtime === false ? null : $mtime;
+    }
+
+    private static function extractDataTimestamp(array $json): ?int
+    {
+        foreach (['data_timestamp', 'timestamp', 'updated_at', 'updatedAt', 'generated_at', 'generatedAt', 'created_at', 'createdAt', 'time'] as $key) {
+            $value = $json[$key] ?? null;
+            if (is_int($value)) {
+                return $value;
+            }
+            if (is_string($value) && ctype_digit($value)) {
+                return (int) $value;
+            }
+            if (is_string($value)) {
+                $timestamp = strtotime($value);
+                if ($timestamp !== false) {
+                    return $timestamp;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function findInherited(): void
