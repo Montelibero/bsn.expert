@@ -43,7 +43,23 @@
 {% import _self as ui %}
 
 {% block content %}
-    <h1 class="title">{{ 'crowd_page.header'|trans }}</h1>
+    <div class="level">
+        <div class="level-left">
+            <div class="level-item">
+                <h1 class="title">{{ 'crowd_page.header'|trans }}</h1>
+            </div>
+        </div>
+        {% if can_create %}
+            <div class="level-right">
+                <div class="level-item">
+                    <a class="button is-link" href="/crowd/create">
+                        <span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+                        <span>{{ 'crowd_create.action'|trans }}</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
 
     {% if snapshot.warning %}
         <div class="notification is-warning">

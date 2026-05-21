@@ -14,6 +14,10 @@ class CrowdRouter
             return $Container->get(CrowdController::class)->Index();
         })->name('crowd');
 
+        SimpleRouter::match(['get', 'post'], '/create', function () use ($Container) {
+            return $Container->get(CrowdController::class)->Create();
+        })->name('crowd_create');
+
         SimpleRouter::get('/{code}', function ($code) use ($Container) {
             return $Container->get(CrowdController::class)->Project($code);
         })->where(['code' => '[A-Za-z0-9]+'])->name('crowd_project');

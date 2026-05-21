@@ -18,6 +18,7 @@ class CrowdController implements RefreshDataCodeInterface
         private readonly Environment $Twig,
         private readonly CrowdProjectService $ProjectService,
         private readonly CurrentUser $CurrentUser,
+        private readonly SignController $SignController,
     ) {
     }
 
@@ -40,6 +41,44 @@ class CrowdController implements RefreshDataCodeInterface
         return $this->Twig->render('crowd_index.twig', [
             'snapshot' => $snapshot,
             'refresh' => $refresh,
+            'can_create' => $this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId()),
+            'is_wide_page' => true,
+        ]);
+    }
+
+    public function Create(): ?string
+    {
+        if (!$this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId())) {
+            SimpleRouter::response()->httpCode(403);
+            return $this->Twig->render('404.twig');
+        }
+
+        $result = [
+            'values' => $this->ProjectService->defaultCreateValues(),
+            'errors' => [],
+            'signing_xdr' => null,
+            'signing_description' => null,
+            'upload' => null,
+        ];
+        $signing_form = null;
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+            $result = $this->ProjectService->prepareCreateProject($_POST);
+            if ($result['signing_xdr']) {
+                $signing_form = $this->SignController->SignTransaction(
+                    $result['signing_xdr'],
+                    null,
+                    $result['signing_description']
+                );
+            }
+        }
+
+        return $this->Twig->render('crowd_create.twig', [
+            'values' => $result['values'],
+            'errors' => $result['errors'],
+            'upload' => $result['upload'],
+            'signing_form' => $signing_form,
+            'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'is_wide_page' => true,
         ]);
     }

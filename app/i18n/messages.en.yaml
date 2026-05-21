@@ -2,6 +2,7 @@ common:
   short_name: BSN
   full_name: Blockchain Social Network
   close: Close
+  cancel: Cancel
   refresh: Refresh
   not_available: n/a
   find_and_insert: find and insert
@@ -1560,6 +1561,39 @@ crowd_page:
     supporter: Account
     amount: Amount
     no_supporters: No supporters yet.
+
+crowd_create:
+  title: Create campaign
+  action: Create campaign
+  transaction_ready: The transaction is ready. Review the data below, sign it, and submit it to Stellar.
+  ipfs_cid: IPFS CID
+  ipfs_from_cache: from cache
+  ipfs_duplicate: duplicate
+  form:
+    code: Code
+    code_help: Up to 11 Latin letters or digits. Stellar assets P{CODE} and C{CODE} will be created.
+    target_amount: Target
+    deadline: Deadline
+    name: Name
+    description: Short description
+    full_description: Full description
+    full_description_help: Markdown, same as documents.
+    project_account_id: Project account
+    contact_account_id: Contact account
+    contact_account_help: If set, the transaction adds a 0.0000001 XLM micropayment from this account.
+    submit: Build transaction
+  errors:
+    code_required: Enter a project code.
+    code_invalid: Code may contain only Latin letters and digits, up to 11 characters.
+    code_taken: This project code is already used.
+    name_required: Enter a project name.
+    description_required: Enter a short description.
+    target_invalid: Target must be greater than zero, with up to 7 decimal places.
+    deadline_invalid: Deadline must be a valid date.
+    deadline_past: Deadline cannot be in the past.
+    project_account_invalid: Enter a valid project account.
+    contact_account_invalid: Enter a valid contact account or leave the field empty.
+    prepare_failed: "Could not build transaction: %message%"
 
 crowd_snapshot_box:
   collected_at: Collected

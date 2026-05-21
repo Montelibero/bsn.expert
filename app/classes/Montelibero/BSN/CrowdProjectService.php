@@ -3,9 +3,19 @@
 namespace Montelibero\BSN;
 
 use Soneso\StellarSDK\Asset;
+use Soneso\StellarSDK\BeginSponsoringFutureReservesOperationBuilder;
+use Soneso\StellarSDK\ChangeTrustOperationBuilder;
+use Soneso\StellarSDK\Claimant;
+use Soneso\StellarSDK\CreateClaimableBalanceOperationBuilder;
+use Soneso\StellarSDK\EndSponsoringFutureReservesOperationBuilder;
+use Soneso\StellarSDK\ManageDataOperationBuilder;
+use Soneso\StellarSDK\ManageSellOfferOperationBuilder;
+use Soneso\StellarSDK\Memo;
+use Soneso\StellarSDK\PaymentOperationBuilder;
 use Soneso\StellarSDK\Responses\ClaimableBalances\ClaimableBalanceResponse;
 use Soneso\StellarSDK\Responses\ClaimableBalances\ClaimantResponse;
 use Soneso\StellarSDK\StellarSDK;
+use Soneso\StellarSDK\TransactionBuilder;
 use Throwable;
 
 class CrowdProjectService
@@ -64,6 +74,194 @@ class CrowdProjectService
         }
 
         return null;
+    }
+
+    public function canCreateProjects(?string $current_account_id): bool
+    {
+        $issuer = $this->Config->issuer();
+        return $issuer !== null && $current_account_id === $issuer;
+    }
+
+    public function defaultCreateValues(): array
+    {
+        return [
+            'code' => '',
+            'name' => '',
+            'description' => '',
+            'full_description' => '',
+            'target_amount' => '',
+            'deadline' => '',
+            'project_account_id' => '',
+            'contact_account_id' => '',
+        ];
+    }
+
+    public function prepareCreateProject(array $input): array
+    {
+        $values = $this->normalizeCreateValues($input);
+        $errors = $this->validateCreateValues($values);
+        if ($errors) {
+            return $this->createPreparationResult($values, $errors);
+        }
+
+        try {
+            $issuer = $this->Config->issuer();
+            if (!$issuer) {
+                throw new \RuntimeException('CROWD_STELLAR_ACCOUNT_ID is not configured');
+            }
+
+            $IssuerAccount = $this->Stellar->requestAccount($issuer);
+            if ($IssuerAccount->getData()->get('ipfshash-P' . $values['code']) !== null) {
+                $errors[] = ['key' => 'crowd_create.errors.code_taken', 'params' => []];
+            }
+
+            $this->Stellar->requestAccount($values['project_account_id']);
+            if ($values['contact_account_id'] !== '') {
+                $this->Stellar->requestAccount($values['contact_account_id']);
+            }
+
+            if ($errors) {
+                return $this->createPreparationResult($values, $errors);
+            }
+
+            $metadata = $this->buildCreateMetadata($values);
+            $upload = $this->IpfsClient->uploadProjectJson($metadata, $values['code']);
+            $Transaction = $this->buildCreateTransaction($IssuerAccount, $values, $upload['cid']);
+
+            return [
+                'values' => $values,
+                'errors' => [],
+                'signing_xdr' => $Transaction->build()->toEnvelopeXdrBase64(),
+                'signing_description' => 'Crowd project ' . $values['code'],
+                'upload' => $upload,
+            ];
+        } catch (Throwable $Exception) {
+            return $this->createPreparationResult($values, [[
+                'key' => 'crowd_create.errors.prepare_failed',
+                'params' => ['%message%' => $Exception->getMessage()],
+            ]]);
+        }
+    }
+
+    private function createPreparationResult(array $values, array $errors): array
+    {
+        return [
+            'values' => $values,
+            'errors' => $errors,
+            'signing_xdr' => null,
+            'signing_description' => null,
+            'upload' => null,
+        ];
+    }
+
+    private function normalizeCreateValues(array $input): array
+    {
+        $values = $this->defaultCreateValues();
+        foreach ($values as $key => $value) {
+            $values[$key] = trim((string) ($input[$key] ?? ''));
+        }
+
+        $values['code'] = strtoupper($values['code']);
+        $values['target_amount'] = str_replace(',', '.', $values['target_amount']);
+        $values['project_account_id'] = strtoupper($values['project_account_id']);
+        $values['contact_account_id'] = strtoupper($values['contact_account_id']);
+
+        return $values;
+    }
+
+    private function validateCreateValues(array $values): array
+    {
+        $errors = [];
+        if ($values['code'] === '') {
+            $errors[] = ['key' => 'crowd_create.errors.code_required', 'params' => []];
+        } elseif (!preg_match('/\A[A-Z0-9]{1,11}\z/', $values['code'])) {
+            $errors[] = ['key' => 'crowd_create.errors.code_invalid', 'params' => []];
+        }
+
+        if ($values['name'] === '') {
+            $errors[] = ['key' => 'crowd_create.errors.name_required', 'params' => []];
+        }
+        if ($values['description'] === '') {
+            $errors[] = ['key' => 'crowd_create.errors.description_required', 'params' => []];
+        }
+        if (!preg_match('/\A\d+(\.\d{1,7})?\z/', $values['target_amount']) || bccomp($values['target_amount'], '0', self::SCALE) <= 0) {
+            $errors[] = ['key' => 'crowd_create.errors.target_invalid', 'params' => []];
+        }
+        if (!BSN::validateStellarAccountIdFormat($values['project_account_id'])) {
+            $errors[] = ['key' => 'crowd_create.errors.project_account_invalid', 'params' => []];
+        }
+        if ($values['contact_account_id'] !== '' && !BSN::validateStellarAccountIdFormat($values['contact_account_id'])) {
+            $errors[] = ['key' => 'crowd_create.errors.contact_account_invalid', 'params' => []];
+        }
+        if ($values['deadline'] !== '') {
+            $Deadline = \DateTimeImmutable::createFromFormat('!Y-m-d', $values['deadline']);
+            $date_errors = \DateTimeImmutable::getLastErrors();
+            if (!$Deadline || ($date_errors !== false && ($date_errors['warning_count'] > 0 || $date_errors['error_count'] > 0))) {
+                $errors[] = ['key' => 'crowd_create.errors.deadline_invalid', 'params' => []];
+            } elseif ($Deadline < new \DateTimeImmutable('today')) {
+                $errors[] = ['key' => 'crowd_create.errors.deadline_past', 'params' => []];
+            }
+        }
+
+        return $errors;
+    }
+
+    private function buildCreateMetadata(array $values): array
+    {
+        return [
+            'name' => $values['name'],
+            'code' => $values['code'],
+            'description' => $values['description'],
+            'fulldescription' => base64_encode($values['full_description']),
+            'contact_account_id' => $values['contact_account_id'],
+            'project_account_id' => $values['project_account_id'],
+            'target_amount' => $this->decimal($values['target_amount']),
+            'deadline' => $values['deadline'],
+        ];
+    }
+
+    private function buildCreateTransaction($IssuerAccount, array $values, string $cid): TransactionBuilder
+    {
+        $issuer = $IssuerAccount->getAccountId();
+        $Transaction = new TransactionBuilder($IssuerAccount);
+        $Transaction->setMaxOperationFee(10000);
+        $Transaction->addMemo(Memo::text('Create funding ' . $values['code']));
+
+        $project_token = Asset::createNonNativeAsset('P' . $values['code'], $issuer);
+        $funding_token = Asset::createNonNativeAsset('C' . $values['code'], $issuer);
+        $mtlcrowd = Asset::createNonNativeAsset(CrowdConfig::MTLCROWD_CODE, CrowdConfig::MTLCROWD_ISSUER);
+        $native = Asset::native();
+        $predicate = Claimant::predicateUnconditional();
+
+        $Transaction->addOperations([
+            (new BeginSponsoringFutureReservesOperationBuilder($issuer))
+                ->setSourceAccount($values['project_account_id'])
+                ->build(),
+            (new ManageDataOperationBuilder('ipfshash-P' . $values['code'], $cid))
+                ->build(),
+            (new CreateClaimableBalanceOperationBuilder([
+                new Claimant($issuer, $predicate),
+                new Claimant($values['project_account_id'], $predicate),
+            ], $project_token, '0.0000001'))
+                ->build(),
+            (new ManageSellOfferOperationBuilder($funding_token, $mtlcrowd, $this->decimal($values['target_amount']), '1'))
+                ->build(),
+            (new EndSponsoringFutureReservesOperationBuilder())
+                ->build(),
+            (new ChangeTrustOperationBuilder($mtlcrowd))
+                ->setSourceAccount($values['project_account_id'])
+                ->build(),
+        ]);
+
+        if ($values['contact_account_id'] !== '') {
+            $Transaction->addOperation(
+                (new PaymentOperationBuilder($issuer, $native, '0.0000001'))
+                    ->setSourceAccount($values['contact_account_id'])
+                    ->build()
+            );
+        }
+
+        return $Transaction;
     }
 
     private function buildSnapshot(string $issuer): array

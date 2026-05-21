@@ -1,0 +1,150 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'crowd_create.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
+    <li class="is-active"><a href="/crowd/create" aria-current="page">{{ 'crowd_create.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'crowd_create.title'|trans }}</h1>
+
+    {% if errors %}
+        <div class="notification is-danger">
+            <ul>
+                {% for error in errors %}
+                    <li>{{ error.key|trans(error.params|default({})) }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if signing_form %}
+        <div class="notification is-success">
+            {{ 'crowd_create.transaction_ready'|trans }}
+            {% if upload.cid|default(null) %}
+                <br>{{ 'crowd_create.ipfs_cid'|trans }}:
+                <a href="https://ipfs.io/ipfs/{{ upload.cid|url_encode }}" target="_blank" rel="noopener noreferrer">{{ upload.cid|hash_short }}</a>
+                {% if upload.from_cache %}
+                    <span class="tag is-info">{{ 'crowd_create.ipfs_from_cache'|trans }}</span>
+                {% elseif upload.is_duplicate %}
+                    <span class="tag is-info">{{ 'crowd_create.ipfs_duplicate'|trans }}</span>
+                {% endif %}
+            {% endif %}
+        </div>
+        {{ signing_form|raw }}
+    {% endif %}
+
+    <form method="post" action="/crowd/create" class="block">
+        {% if current_account_param %}
+            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+        {% endif %}
+        <div class="columns is-multiline">
+            <div class="column is-12-tablet is-4-desktop">
+                <div class="field">
+                    <label class="label" for="crowd_code">{{ 'crowd_create.form.code'|trans }}</label>
+                    <div class="control">
+                        <input class="input" id="crowd_code" name="code" value="{{ values.code }}" maxlength="11" pattern="[A-Za-z0-9]{1,11}" required>
+                    </div>
+                    <p class="help">{{ 'crowd_create.form.code_help'|trans }}</p>
+                </div>
+            </div>
+            <div class="column is-12-tablet is-4-desktop">
+                <div class="field">
+                    <label class="label" for="crowd_target_amount">{{ 'crowd_create.form.target_amount'|trans }}</label>
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input class="input" id="crowd_target_amount" name="target_amount" value="{{ values.target_amount }}" inputmode="decimal" required>
+                        </div>
+                        <div class="control">
+                            <span class="button is-static">MTLCrowd</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-12-tablet is-4-desktop">
+                <div class="field">
+                    <label class="label" for="crowd_deadline">{{ 'crowd_create.form.deadline'|trans }}</label>
+                    <div class="control">
+                        <input class="input" id="crowd_deadline" type="date" name="deadline" value="{{ values.deadline }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-12">
+                <div class="field">
+                    <label class="label" for="crowd_name">{{ 'crowd_create.form.name'|trans }}</label>
+                    <div class="control">
+                        <input class="input" id="crowd_name" name="name" value="{{ values.name }}" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-12">
+                <div class="field">
+                    <label class="label" for="crowd_description">{{ 'crowd_create.form.description'|trans }}</label>
+                    <div class="control">
+                        <textarea class="textarea" id="crowd_description" name="description" rows="2" required>{{ values.description }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-12">
+                <div class="field">
+                    <label class="label" for="crowd_full_description">{{ 'crowd_create.form.full_description'|trans }}</label>
+                    <div class="control">
+                        <textarea class="textarea" id="crowd_full_description" name="full_description" rows="10">{{ values.full_description }}</textarea>
+                    </div>
+                    <p class="help">{{ 'crowd_create.form.full_description_help'|trans }}</p>
+                </div>
+            </div>
+
+            <div class="column is-12-tablet is-6-desktop">
+                <div class="field">
+                    <label class="label" for="crowd_project_account_id">{{ 'crowd_create.form.project_account_id'|trans }}</label>
+                    <div class="control">
+                        <input
+                            class="input is-family-monospace"
+                            id="crowd_project_account_id"
+                            name="project_account_id"
+                            value="{{ values.project_account_id }}"
+                            placeholder="G..."
+                            data-account-autocomplete-input
+                            required
+                        >
+                    </div>
+                </div>
+            </div>
+            <div class="column is-12-tablet is-6-desktop">
+                <div class="field">
+                    <label class="label" for="crowd_contact_account_id">{{ 'crowd_create.form.contact_account_id'|trans }}</label>
+                    <div class="control">
+                        <input
+                            class="input is-family-monospace"
+                            id="crowd_contact_account_id"
+                            name="contact_account_id"
+                            value="{{ values.contact_account_id }}"
+                            placeholder="G..."
+                            data-account-autocomplete-input
+                        >
+                    </div>
+                    <p class="help">{{ 'crowd_create.form.contact_account_help'|trans }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="field is-grouped">
+            <div class="control">
+                <button type="submit" name="action" value="prepare" class="button is-link">
+                    <span class="icon"><i class="fa-solid fa-file-signature" aria-hidden="true"></i></span>
+                    <span>{{ 'crowd_create.form.submit'|trans }}</span>
+                </button>
+            </div>
+            <div class="control">
+                <a class="button is-text" href="/crowd/">{{ 'common.cancel'|trans }}</a>
+            </div>
+        </div>
+    </form>
+{% endblock %}
