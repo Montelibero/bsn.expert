@@ -1450,14 +1450,14 @@ eurmtl_report_page:
   summary:
     preliminary: Preliminary market amount
     legacy: Issued by treasuries
-    non_issuer_pool: Non-fund pools
+    non_issuer_pool: Other-owned pools
     unknown: Unclassified
   estimates:
     title: Estimate Levels
     legacy: Issued to market by treasuries
     direct_exposure: Direct exposure without pools
     market_maker: Issued by market maker
-    non_issuer_pool: Non-fund pool EURMTL
+    non_issuer_pool: Other-owned pool EURMTL
     issuer_pool: Fund-owned pool EURMTL
     unknown: Unknown/unclassified amount
     preliminary: Preliminary EURMTL market estimate

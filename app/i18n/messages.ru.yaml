@@ -1452,14 +1452,14 @@ eurmtl_report_page:
   summary:
     preliminary: На рынке, предварительно
     legacy: Выпущено казначеями
-    non_issuer_pool: Пулы не фонда
+    non_issuer_pool: Пулы прочих
     unknown: Не классифицировано
   estimates:
     title: Варианты оценки
     legacy: Выпущено казначеями на рынок
     direct_exposure: Direct exposure без пулов
     market_maker: Выпущено маркетмейкером
-    non_issuer_pool: EURMTL в пулах не фонда
+    non_issuer_pool: EURMTL в пулах прочих
     issuer_pool: EURMTL в пулах фонда
     unknown: Неизвестная/требующая классификации доля
     preliminary: Предварительная оценка EURMTL на рынке

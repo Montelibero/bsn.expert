@@ -18,7 +18,7 @@ use Throwable;
 
 class EurmtlReportService
 {
-    private const CACHE_KEY_PREFIX = 'eurmtl_report_snapshot:v11';
+    private const CACHE_KEY_PREFIX = 'eurmtl_report_snapshot:v12';
     private const CACHE_TTL = 3600;
     private const FRESH_SNAPSHOT_SECONDS = 60;
     private const STALE_CACHE_SECONDS = 21600;
@@ -793,11 +793,7 @@ class EurmtlReportService
             }
         }
 
-        $non_issuer_pool = bcadd(
-            bcadd($pool_breakdown['legacy_treasury'], $pool_breakdown['market_maker'], self::SCALE),
-            bcadd($pool_breakdown['other'], $pool_breakdown['unclassified'], self::SCALE),
-            self::SCALE
-        );
+        $non_issuer_pool = bcadd($pool_breakdown['other'], $pool_breakdown['unclassified'], self::SCALE);
         $contracts_eurmtl = $asset_stats[EurmtlReportConfig::EURMTL_CODE]['contracts_amount'] ?? '0.0000000';
         $unknown = bcadd(
             bcadd($pool_breakdown['unclassified'], $claimable_eurmtl['total'], self::SCALE),
