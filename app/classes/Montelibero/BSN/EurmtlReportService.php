@@ -18,7 +18,7 @@ use Throwable;
 
 class EurmtlReportService
 {
-    private const CACHE_KEY_PREFIX = 'eurmtl_report_snapshot:v10';
+    private const CACHE_KEY_PREFIX = 'eurmtl_report_snapshot:v11';
     private const CACHE_TTL = 3600;
     private const FRESH_SNAPSHOT_SECONDS = 60;
     private const STALE_CACHE_SECONDS = 21600;
