@@ -1,15 +1,15 @@
 {% extends "page.twig" %}
 
-{% block title %}{{ 'crowd_create.title'|trans }}{% endblock %}
+{% block title %}{{ (edit_project ? 'crowd_create.edit_title' : 'crowd_create.title')|trans }}{% endblock %}
 
 {% block breadcrumbs %}
     <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
     <li><a href="/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
-    <li class="is-active"><a href="/crowd/create" aria-current="page">{{ 'crowd_create.title'|trans }}</a></li>
+    <li class="is-active"><a href="/crowd/create" aria-current="page">{{ (edit_project ? 'crowd_create.edit_title' : 'crowd_create.title')|trans }}</a></li>
 {% endblock %}
 
 {% block content %}
-    <h1 class="title">{{ 'crowd_create.title'|trans }}</h1>
+    <h1 class="title">{{ (edit_project ? 'crowd_create.edit_title' : 'crowd_create.title')|trans }}</h1>
 
     {% if errors %}
         <div class="notification is-danger">
@@ -37,7 +37,7 @@
         {{ signing_form|raw }}
     {% endif %}
 
-    <form method="post" action="/crowd/create" class="block">
+    <form method="post" action="/crowd/create{% if edit_project %}?code={{ values.code|url_encode }}{% endif %}" class="block">
         {% if current_account_param %}
             <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
         {% endif %}
@@ -46,7 +46,7 @@
                 <div class="field">
                     <label class="label" for="crowd_code">{{ 'crowd_create.form.code'|trans }}</label>
                     <div class="control">
-                        <input class="input" id="crowd_code" name="code" value="{{ values.code }}" maxlength="11" pattern="[A-Za-z0-9]{1,11}" required>
+                        <input class="input" id="crowd_code" name="code" value="{{ values.code }}" maxlength="11" pattern="[A-Za-z0-9]{1,11}" {% if edit_project %}readonly{% endif %} required>
                     </div>
                     <p class="help">{{ 'crowd_create.form.code_help'|trans }}</p>
                 </div>
@@ -59,7 +59,7 @@
                             <input class="input" id="crowd_target_amount" name="target_amount" value="{{ values.target_amount }}" inputmode="decimal" required>
                         </div>
                         <div class="control">
-                            <span class="button is-static">MTLCrowd</span>
+                            <span class="button is-static">{{ crowd_token.code }}</span>
                         </div>
                     </div>
                 </div>
@@ -139,7 +139,7 @@
             <div class="control">
                 <button type="submit" name="action" value="prepare" class="button is-link">
                     <span class="icon"><i class="fa-solid fa-file-signature" aria-hidden="true"></i></span>
-                    <span>{{ 'crowd_create.form.submit'|trans }}</span>
+                    <span>{{ (edit_project ? 'crowd_create.form.update_submit' : 'crowd_create.form.submit')|trans }}</span>
                 </button>
             </div>
             <div class="control">

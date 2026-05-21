@@ -54,6 +54,36 @@
         </div>
     </div>
 
+    {% if can_manage %}
+        <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-4">
+            {% if admin_actions.primary %}
+                <a class="button is-small {{ admin_actions.primary.class }} mr-2 mb-2" href="{{ admin_actions.primary.url }}">
+                    <span class="icon"><i class="fa-solid {{ admin_actions.primary.icon }}" aria-hidden="true"></i></span>
+                    <span>{{ admin_actions.primary.label|trans }}</span>
+                </a>
+            {% endif %}
+
+            <div class="dropdown is-hoverable mr-2 mb-2">
+                <div class="dropdown-trigger">
+                    <button class="button is-small is-info is-outlined" type="button" aria-haspopup="true" aria-controls="crowd-project-actions-menu">
+                        <span>{{ 'crowd_page.admin.actions'|trans }}</span>
+                        <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+                    </button>
+                </div>
+                <div class="dropdown-menu" id="crowd-project-actions-menu" role="menu">
+                    <div class="dropdown-content">
+                        {% for item in admin_actions.menu %}
+                            <a class="dropdown-item" href="{{ item.url }}">
+                                <span class="icon"><i class="fa-solid {{ item.icon }}" aria-hidden="true"></i></span>
+                                <span>{{ item.label|trans }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     {% if project.warning %}
         <div class="notification is-warning">
             {{ project.warning }}
@@ -69,7 +99,11 @@
             </progress>
             <div class="is-flex is-justify-content-space-between is-flex-wrap-wrap block" style="gap: .5rem;">
                 <span>
-                    {{ ui.integer(project.funded_amount) }} / {{ ui.integer(project.target_amount) }}
+                    {% if project.target_amount + 0 > 0 and project.funded_amount + 0 >= project.target_amount + 0 %}
+                        {{ ui.integer(project.funded_amount) }}
+                    {% else %}
+                        {{ ui.integer(project.funded_amount) }} / {{ ui.integer(project.target_amount) }}
+                    {% endif %}
                     {{ include('token_link.twig', {token: project.mtlcrowd_token}, with_context = false) }}
                 </span>
                 <span class="has-text-grey">{{ project.progress_percent|round(0, 'common') }}%</span>

@@ -1563,9 +1563,16 @@ crowd_page:
     supporter: Аккаунт
     amount: Сумма
     no_supporters: Участников пока нет.
+  admin:
+    actions: Действия
+    complete: Завершить сбор
+    cancel: Прекратить сбор
+    edit: Редактировать
+    delete: Удалить
 
 crowd_create:
   title: Создать сбор
+  edit_title: Редактировать сбор
   action: Создать сбор
   transaction_ready: Транзакция собрана. Проверьте данные ниже, подпишите и отправьте ее в Stellar.
   ipfs_cid: IPFS CID
@@ -1584,6 +1591,7 @@ crowd_create:
     contact_account_id: Аккаунт контакта
     contact_account_help: Если указан, транзакция добавит микроплатеж 0.0000001 XLM от этого аккаунта.
     submit: Собрать транзакцию
+    update_submit: Собрать транзакцию обновления
   errors:
     code_required: Укажите код проекта.
     code_invalid: Код может содержать только латинские буквы и цифры, не больше 11 символов.
@@ -1596,6 +1604,14 @@ crowd_create:
     project_account_invalid: Укажите корректный аккаунт проекта.
     contact_account_invalid: Укажите корректный аккаунт контакта или оставьте поле пустым.
     prepare_failed: "Не удалось собрать транзакцию: %message%"
+
+crowd_action:
+  title:
+    complete: Завершить сбор
+    cancel: Прекратить сбор
+    delete: Удалить сбор
+  final_metadata: Финальное описание загружено в IPFS
+  signing_notice: Транзакция собрана. Проверьте операции, подпишите и отправьте ее в Stellar.
 
 crowd_snapshot_box:
   collected_at: Данные собраны

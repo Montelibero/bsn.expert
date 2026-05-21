@@ -1561,9 +1561,16 @@ crowd_page:
     supporter: Account
     amount: Amount
     no_supporters: No supporters yet.
+  admin:
+    actions: Actions
+    complete: Complete campaign
+    cancel: Stop campaign
+    edit: Edit
+    delete: Delete
 
 crowd_create:
   title: Create campaign
+  edit_title: Edit campaign
   action: Create campaign
   transaction_ready: The transaction is ready. Review the data below, sign it, and submit it to Stellar.
   ipfs_cid: IPFS CID
@@ -1582,6 +1589,7 @@ crowd_create:
     contact_account_id: Contact account
     contact_account_help: If set, the transaction adds a 0.0000001 XLM micropayment from this account.
     submit: Build transaction
+    update_submit: Build update transaction
   errors:
     code_required: Enter a project code.
     code_invalid: Code may contain only Latin letters and digits, up to 11 characters.
@@ -1594,6 +1602,14 @@ crowd_create:
     project_account_invalid: Enter a valid project account.
     contact_account_invalid: Enter a valid contact account or leave the field empty.
     prepare_failed: "Could not build transaction: %message%"
+
+crowd_action:
+  title:
+    complete: Complete campaign
+    cancel: Stop campaign
+    delete: Delete campaign
+  final_metadata: Final description was uploaded to IPFS
+  signing_notice: The transaction is ready. Review the operations, sign it, and submit it to Stellar.
 
 crowd_snapshot_box:
   collected_at: Collected

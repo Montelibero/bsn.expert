@@ -1,0 +1,37 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ ('crowd_action.title.' ~ action)|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
+    {% if project %}
+        <li><a href="/crowd/{{ project.code }}">{{ project.code }}</a></li>
+    {% endif %}
+    <li class="is-active"><a href="#" aria-current="page">{{ ('crowd_action.title.' ~ action)|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ ('crowd_action.title.' ~ action)|trans }}</h1>
+
+    {% if error|default(null) %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endif %}
+
+    {% if upload.cid|default(null) %}
+        <div class="notification is-success">
+            {{ 'crowd_action.final_metadata'|trans }}:
+            <a href="https://ipfs.io/ipfs/{{ upload.cid|url_encode }}" target="_blank" rel="noopener noreferrer">{{ upload.cid|hash_short }}</a>
+            {% if upload.from_cache %}
+                <span class="tag is-info">{{ 'crowd_create.ipfs_from_cache'|trans }}</span>
+            {% elseif upload.is_duplicate %}
+                <span class="tag is-info">{{ 'crowd_create.ipfs_duplicate'|trans }}</span>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if signing_form|default(null) %}
+        <div class="notification is-info">{{ 'crowd_action.signing_notice'|trans }}</div>
+        {{ signing_form|raw }}
+    {% endif %}
+{% endblock %}

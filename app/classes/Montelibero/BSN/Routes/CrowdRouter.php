@@ -18,6 +18,10 @@ class CrowdRouter
             return $Container->get(CrowdController::class)->Create();
         })->name('crowd_create');
 
+        SimpleRouter::get('/{code}/action/{action}', function ($code, $action) use ($Container) {
+            return $Container->get(CrowdController::class)->Action($code, $action);
+        })->where(['code' => '[A-Za-z0-9]+', 'action' => '[a-z]+'])->name('crowd_project_action');
+
         SimpleRouter::get('/{code}', function ($code) use ($Container) {
             return $Container->get(CrowdController::class)->Project($code);
         })->where(['code' => '[A-Za-z0-9]+'])->name('crowd_project');

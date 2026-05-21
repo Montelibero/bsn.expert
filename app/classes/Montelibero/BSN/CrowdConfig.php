@@ -4,8 +4,8 @@ namespace Montelibero\BSN;
 
 class CrowdConfig
 {
-    public const MTLCROWD_CODE = 'MTLCrowd';
-    public const MTLCROWD_ISSUER = 'GDRXBG5GVIUJWTAJDQE536JC5MDT5AH3MMCZIJCEGVAT2GEM2TMCROWD';
+    private const DEFAULT_CROWD_TOKEN_CODE = 'MTLCrowd';
+    private const DEFAULT_CROWD_TOKEN_ISSUER = 'GDRXBG5GVIUJWTAJDQE536JC5MDT5AH3MMCZIJCEGVAT2GEM2TMCROWD';
 
     public function issuer(): ?string
     {
@@ -40,8 +40,20 @@ class CrowdConfig
     public function mtlCrowdToken(): array
     {
         return [
-            'code' => self::MTLCROWD_CODE,
-            'issuer' => self::MTLCROWD_ISSUER,
+            'code' => $this->crowdTokenCode(),
+            'issuer' => $this->crowdTokenIssuer(),
         ];
+    }
+
+    public function crowdTokenCode(): string
+    {
+        $code = trim((string) ($_ENV['CROWD_TOKEN_CODE'] ?? ''));
+        return $code !== '' ? $code : self::DEFAULT_CROWD_TOKEN_CODE;
+    }
+
+    public function crowdTokenIssuer(): string
+    {
+        $issuer = trim((string) ($_ENV['CROWD_TOKEN_ISSUER'] ?? ''));
+        return $issuer !== '' ? $issuer : self::DEFAULT_CROWD_TOKEN_ISSUER;
     }
 }

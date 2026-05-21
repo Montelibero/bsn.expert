@@ -3,17 +3,24 @@
 namespace Montelibero\BSN;
 
 use Soneso\StellarSDK\Asset;
+use Soneso\StellarSDK\AssetTypeCreditAlphanum;
 use Soneso\StellarSDK\BeginSponsoringFutureReservesOperationBuilder;
 use Soneso\StellarSDK\ChangeTrustOperationBuilder;
 use Soneso\StellarSDK\Claimant;
+use Soneso\StellarSDK\ClaimClaimableBalanceOperationBuilder;
+use Soneso\StellarSDK\ClawbackOperationBuilder;
 use Soneso\StellarSDK\CreateClaimableBalanceOperationBuilder;
 use Soneso\StellarSDK\EndSponsoringFutureReservesOperationBuilder;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\ManageSellOfferOperationBuilder;
 use Soneso\StellarSDK\Memo;
+use Soneso\StellarSDK\MuxedAccount;
 use Soneso\StellarSDK\PaymentOperationBuilder;
+use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
+use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\Responses\ClaimableBalances\ClaimableBalanceResponse;
 use Soneso\StellarSDK\Responses\ClaimableBalances\ClaimantResponse;
+use Soneso\StellarSDK\Responses\Offers\OfferResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
 use Throwable;
@@ -96,6 +103,89 @@ class CrowdProjectService
         ];
     }
 
+    public function createValuesFromProject(array $project): array
+    {
+        return [
+            'code' => (string) ($project['code'] ?? ''),
+            'name' => (string) ($project['name'] ?? ''),
+            'description' => (string) ($project['description'] ?? ''),
+            'full_description' => (string) ($project['full_description'] ?? ''),
+            'target_amount' => (string) ($project['target_amount'] ?? ''),
+            'deadline' => (string) ($project['deadline'] ?? ''),
+            'project_account_id' => (string) ($project['project_account']['id'] ?? ''),
+            'contact_account_id' => (string) ($project['contact_account']['id'] ?? ''),
+        ];
+    }
+
+    public function crowdToken(): array
+    {
+        return $this->Config->mtlCrowdToken();
+    }
+
+    public function projectAdminActions(array $project, ?string $current_account_id = null): array
+    {
+        $is_active = !($project['is_closed'] ?? false);
+        $is_funded = bccomp($project['funded_amount'] ?? '0', $project['target_amount'] ?? '0', self::SCALE) >= 0
+            && bccomp($project['target_amount'] ?? '0', '0', self::SCALE) > 0;
+        $deadline_reached = $this->isDeadlineReached((string) ($project['deadline'] ?? ''));
+        $code = rawurlencode((string) ($project['code'] ?? ''));
+        $primary = null;
+        $menu = [];
+
+        if ($is_active && $is_funded) {
+            $primary = [
+                'action' => 'complete',
+                'url' => $this->withCurrentAccountParam("/crowd/$code/action/complete", $current_account_id),
+                'label' => 'crowd_page.admin.complete',
+                'icon' => 'fa-check',
+                'class' => 'is-primary',
+            ];
+        } elseif ($is_active && $deadline_reached) {
+            $primary = [
+                'action' => 'cancel',
+                'url' => $this->withCurrentAccountParam("/crowd/$code/action/cancel", $current_account_id),
+                'label' => 'crowd_page.admin.cancel',
+                'icon' => 'fa-xmark',
+                'class' => 'is-warning',
+            ];
+        }
+
+        if ($is_active) {
+            $menu[] = [
+                'url' => $this->withCurrentAccountParam('/crowd/create?code=' . $code, $current_account_id),
+                'label' => 'crowd_page.admin.edit',
+                'icon' => 'fa-file-pen',
+            ];
+            if (!$deadline_reached && !$is_funded) {
+                $menu[] = [
+                    'url' => $this->withCurrentAccountParam("/crowd/$code/action/cancel", $current_account_id),
+                    'label' => 'crowd_page.admin.cancel',
+                    'icon' => 'fa-xmark',
+                ];
+            }
+        }
+
+        $menu[] = [
+            'url' => $this->withCurrentAccountParam("/crowd/$code/action/delete", $current_account_id),
+            'label' => 'crowd_page.admin.delete',
+            'icon' => 'fa-xmark',
+        ];
+
+        return [
+            'primary' => $primary,
+            'menu' => $menu,
+        ];
+    }
+
+    private function withCurrentAccountParam(string $url, ?string $current_account_id): string
+    {
+        if ($current_account_id === null || $current_account_id === '') {
+            return $url;
+        }
+
+        return $url . (str_contains($url, '?') ? '&' : '?') . 'current_account=' . rawurlencode($current_account_id);
+    }
+
     public function prepareCreateProject(array $input): array
     {
         $values = $this->normalizeCreateValues($input);
@@ -143,6 +233,120 @@ class CrowdProjectService
         }
     }
 
+    public function prepareEditProject(array $project, array $input): array
+    {
+        $values = $this->normalizeCreateValues($input + ['code' => $project['code'] ?? '']);
+        $values['code'] = (string) ($project['code'] ?? $values['code']);
+        $errors = $this->validateCreateValues($values, true);
+        if ($errors) {
+            return $this->createPreparationResult($values, $errors);
+        }
+
+        try {
+            $issuer = $this->Config->issuer();
+            if (!$issuer) {
+                throw new \RuntimeException('CROWD_STELLAR_ACCOUNT_ID is not configured');
+            }
+
+            $IssuerAccount = $this->Stellar->requestAccount($issuer);
+            $metadata = $this->buildCreateMetadata($values);
+            $upload = $this->IpfsClient->uploadProjectJson($metadata, $values['code']);
+            $Transaction = new TransactionBuilder($IssuerAccount);
+            $Transaction->setMaxOperationFee(10000);
+            $Transaction->addMemo(Memo::text('Edit funding ' . $values['code']));
+            $Transaction->addOperation(
+                (new ManageDataOperationBuilder('ipfshash-P' . $values['code'], $upload['cid']))->build()
+            );
+
+            return [
+                'values' => $values,
+                'errors' => [],
+                'signing_xdr' => $Transaction->build()->toEnvelopeXdrBase64(),
+                'signing_description' => 'Edit crowd project ' . $values['code'],
+                'upload' => $upload,
+            ];
+        } catch (Throwable $Exception) {
+            return $this->createPreparationResult($values, [[
+                'key' => 'crowd_create.errors.prepare_failed',
+                'params' => ['%message%' => $Exception->getMessage()],
+            ]]);
+        }
+    }
+
+    public function prepareProjectAction(string $code, string $action): array
+    {
+        $project = $this->findProject($code);
+        if (!$project) {
+            throw new \RuntimeException('Project not found');
+        }
+
+        $action = strtolower(trim($action));
+        if (!in_array($action, ['complete', 'cancel', 'delete'], true)) {
+            throw new \RuntimeException('Unknown project action');
+        }
+
+        $issuer = $this->Config->issuer();
+        if (!$issuer) {
+            throw new \RuntimeException('CROWD_STELLAR_ACCOUNT_ID is not configured');
+        }
+
+        $is_active = !($project['is_closed'] ?? false);
+        $is_funded = bccomp($project['funded_amount'] ?? '0', $project['target_amount'] ?? '0', self::SCALE) >= 0
+            && bccomp($project['target_amount'] ?? '0', '0', self::SCALE) > 0;
+        if ($action === 'complete' && (!$is_active || !$is_funded)) {
+            throw new \RuntimeException('Project is not ready to complete');
+        }
+        if ($action === 'cancel' && !$is_active) {
+            throw new \RuntimeException('Only active projects can be canceled');
+        }
+
+        $IssuerAccount = $this->Stellar->requestAccount($issuer);
+        $Transaction = new TransactionBuilder($IssuerAccount);
+        $Transaction->setMaxOperationFee(10000);
+        $memo = match ($action) {
+            'complete' => 'Complete funding ',
+            'cancel' => 'Cancel funding ',
+            default => 'Delete funding ',
+        };
+        $Transaction->addMemo(Memo::text($memo . $project['code']));
+
+        if ($action === 'complete') {
+            foreach ($this->buildFinishFundingOperations($project, false) as $Operation) {
+                $Transaction->addOperation($Operation);
+            }
+            $upload = $this->uploadFinalProjectMetadata($project, 'completed');
+            $Transaction->addOperation(
+                (new ManageDataOperationBuilder('ipfshash-P' . $project['code'], $upload['cid']))->build()
+            );
+        } elseif ($action === 'cancel') {
+            foreach ($this->buildFinishFundingOperations($project, true) as $Operation) {
+                $Transaction->addOperation($Operation);
+            }
+            $upload = $this->uploadFinalProjectMetadata($project, 'canceled');
+            $Transaction->addOperation(
+                (new ManageDataOperationBuilder('ipfshash-P' . $project['code'], $upload['cid']))->build()
+            );
+        } else {
+            if ($is_active) {
+                foreach ($this->buildFinishFundingOperations($project, true) as $Operation) {
+                    $Transaction->addOperation($Operation);
+                }
+            }
+            foreach ($this->buildDeleteProjectOperations($project, $is_active) as $Operation) {
+                $Transaction->addOperation($Operation);
+            }
+            $upload = null;
+        }
+
+        return [
+            'project' => $project,
+            'action' => $action,
+            'signing_xdr' => $Transaction->build()->toEnvelopeXdrBase64(),
+            'signing_description' => ucfirst($action) . ' crowd project ' . $project['code'],
+            'upload' => $upload ?? null,
+        ];
+    }
+
     private function createPreparationResult(array $values, array $errors): array
     {
         return [
@@ -169,7 +373,7 @@ class CrowdProjectService
         return $values;
     }
 
-    private function validateCreateValues(array $values): array
+    private function validateCreateValues(array $values, bool $is_edit = false): array
     {
         $errors = [];
         if ($values['code'] === '') {
@@ -193,13 +397,19 @@ class CrowdProjectService
         if ($values['contact_account_id'] !== '' && !BSN::validateStellarAccountIdFormat($values['contact_account_id'])) {
             $errors[] = ['key' => 'crowd_create.errors.contact_account_invalid', 'params' => []];
         }
-        if ($values['deadline'] !== '') {
+        if (!$is_edit && $values['deadline'] !== '') {
             $Deadline = \DateTimeImmutable::createFromFormat('!Y-m-d', $values['deadline']);
             $date_errors = \DateTimeImmutable::getLastErrors();
             if (!$Deadline || ($date_errors !== false && ($date_errors['warning_count'] > 0 || $date_errors['error_count'] > 0))) {
                 $errors[] = ['key' => 'crowd_create.errors.deadline_invalid', 'params' => []];
             } elseif ($Deadline < new \DateTimeImmutable('today')) {
                 $errors[] = ['key' => 'crowd_create.errors.deadline_past', 'params' => []];
+            }
+        } elseif ($is_edit && $values['deadline'] !== '') {
+            $Deadline = \DateTimeImmutable::createFromFormat('!Y-m-d', $values['deadline']);
+            $date_errors = \DateTimeImmutable::getLastErrors();
+            if (!$Deadline || ($date_errors !== false && ($date_errors['warning_count'] > 0 || $date_errors['error_count'] > 0))) {
+                $errors[] = ['key' => 'crowd_create.errors.deadline_invalid', 'params' => []];
             }
         }
 
@@ -229,7 +439,7 @@ class CrowdProjectService
 
         $project_token = Asset::createNonNativeAsset('P' . $values['code'], $issuer);
         $funding_token = Asset::createNonNativeAsset('C' . $values['code'], $issuer);
-        $mtlcrowd = Asset::createNonNativeAsset(CrowdConfig::MTLCROWD_CODE, CrowdConfig::MTLCROWD_ISSUER);
+        $mtlcrowd = $this->mtlCrowdAsset();
         $native = Asset::native();
         $predicate = Claimant::predicateUnconditional();
 
@@ -262,6 +472,259 @@ class CrowdProjectService
         }
 
         return $Transaction;
+    }
+
+    private function uploadFinalProjectMetadata(array $project, string $status): array
+    {
+        $supporters = array_map(static fn(array $supporter): array => [
+            'account_id' => (string) ($supporter['account']['id'] ?? ''),
+            'amount' => (string) ($supporter['amount'] ?? '0'),
+        ], $project['supporters'] ?? []);
+
+        $metadata = [
+            'name' => (string) ($project['name'] ?? ''),
+            'code' => (string) ($project['code'] ?? ''),
+            'description' => (string) ($project['description'] ?? ''),
+            'fulldescription' => base64_encode((string) ($project['full_description'] ?? '')),
+            'contact_account_id' => (string) ($project['contact_account']['id'] ?? ''),
+            'project_account_id' => (string) ($project['project_account']['id'] ?? ''),
+            'target_amount' => (string) ($project['target_amount'] ?? '0.0000000'),
+            'deadline' => (string) ($project['deadline'] ?? ''),
+            'funding_status' => $status,
+            'funded_amount' => (string) ($project['funded_amount'] ?? '0.0000000'),
+            'remaining_amount' => (string) ($project['remaining_amount'] ?? '0.0000000'),
+            'supporters_count' => count($supporters),
+            'supporters' => $supporters,
+        ];
+
+        return $this->IpfsClient->uploadProjectJson($metadata, (string) ($project['code'] ?? ''));
+    }
+
+    private function buildFinishFundingOperations(array $project, bool $refund): array
+    {
+        $issuer = (string) $this->Config->issuer();
+        $code = (string) ($project['code'] ?? '');
+        $asset = Asset::createNonNativeAsset('C' . $code, $issuer);
+        $claimable_balances = $this->claimableBalancesForAsset($asset, $issuer);
+        $holders = $this->tokenHolders($asset, $issuer);
+        $operations = [];
+
+        foreach ($claimable_balances as $ClaimableBalance) {
+            $operations[] = (new ClaimClaimableBalanceOperationBuilder($ClaimableBalance->getBalanceId()))->build();
+        }
+
+        foreach ($holders as $holder) {
+            $operations[] = (new ClawbackOperationBuilder($asset, MuxedAccount::fromAccountId($holder['account_id']), $holder['amount']))->build();
+        }
+
+        if ($refund) {
+            foreach ($this->refundAmounts($claimable_balances, $holders) as $account_id => $amount) {
+                if (bccomp($amount, '0', self::SCALE) > 0) {
+                    $operations[] = (new PaymentOperationBuilder($account_id, $this->mtlCrowdAsset(), $amount))->build();
+                }
+            }
+        } else {
+            $total = '0.0000000';
+            foreach ($claimable_balances as $ClaimableBalance) {
+                $total = bcadd($total, $this->decimal($ClaimableBalance->getAmount()), self::SCALE);
+            }
+            foreach ($holders as $holder) {
+                $total = bcadd($total, $holder['amount'], self::SCALE);
+            }
+
+            $project_account_id = (string) ($project['project_account']['id'] ?? '');
+            if ($project_account_id !== '' && bccomp($total, '0', self::SCALE) > 0) {
+                if ($this->accountHasTrustline($project_account_id, $this->mtlCrowdAsset())) {
+                    $operations[] = (new PaymentOperationBuilder($project_account_id, $this->mtlCrowdAsset(), $total))->build();
+                } else {
+                    $operations[] = (new CreateClaimableBalanceOperationBuilder([
+                        new Claimant($project_account_id, Claimant::predicateUnconditional()),
+                    ], $this->mtlCrowdAsset(), $total))->build();
+                }
+            }
+        }
+
+        foreach ($this->activeOffersForSellingAsset($asset, $issuer) as $Offer) {
+            $operations[] = (new ManageSellOfferOperationBuilder(
+                $Offer->getSelling(),
+                $Offer->getBuying(),
+                '0',
+                $Offer->getPrice()
+            ))
+                ->setOfferId((int) $Offer->getOfferId())
+                ->build();
+        }
+
+        return $operations;
+    }
+
+    private function buildDeleteProjectOperations(array $project, bool $funding_already_cleaned): array
+    {
+        $issuer = (string) $this->Config->issuer();
+        $code = (string) ($project['code'] ?? '');
+        $operations = [
+            (new ManageDataOperationBuilder('ipfshash-P' . $code, null))->build(),
+        ];
+
+        $project_asset = Asset::createNonNativeAsset('P' . $code, $issuer);
+        foreach ($this->claimableBalancesForAsset($project_asset, $issuer) as $ClaimableBalance) {
+            $operations[] = (new ClaimClaimableBalanceOperationBuilder($ClaimableBalance->getBalanceId()))->build();
+        }
+        foreach ($this->tokenHolders($project_asset, $issuer) as $holder) {
+            $operations[] = (new ClawbackOperationBuilder($project_asset, MuxedAccount::fromAccountId($holder['account_id']), $holder['amount']))->build();
+        }
+
+        if (!$funding_already_cleaned) {
+            $funding_asset = Asset::createNonNativeAsset('C' . $code, $issuer);
+            foreach ($this->claimableBalancesForAsset($funding_asset, $issuer) as $ClaimableBalance) {
+                $operations[] = (new ClaimClaimableBalanceOperationBuilder($ClaimableBalance->getBalanceId()))->build();
+            }
+            foreach ($this->tokenHolders($funding_asset, $issuer) as $holder) {
+                $operations[] = (new ClawbackOperationBuilder($funding_asset, MuxedAccount::fromAccountId($holder['account_id']), $holder['amount']))->build();
+            }
+            foreach ($this->activeOffersForSellingAsset($funding_asset, $issuer) as $Offer) {
+                $operations[] = (new ManageSellOfferOperationBuilder(
+                    $Offer->getSelling(),
+                    $Offer->getBuying(),
+                    '0',
+                    $Offer->getPrice()
+                ))
+                    ->setOfferId((int) $Offer->getOfferId())
+                    ->build();
+            }
+        }
+
+        return $operations;
+    }
+
+    private function claimableBalancesForAsset(AssetTypeCreditAlphanum $asset, string $issuer): array
+    {
+        $balances = [];
+        $Page = $this->Stellar->claimableBalances()->forAsset($asset)->limit(200)->execute();
+        while ($Page && $Page->getClaimableBalances()->count()) {
+            foreach ($Page->getClaimableBalances()->toArray() as $ClaimableBalance) {
+                if (!$ClaimableBalance instanceof ClaimableBalanceResponse) {
+                    continue;
+                }
+
+                $claimants = array_map(
+                    static fn(ClaimantResponse $Claimant): string => $Claimant->getDestination(),
+                    $ClaimableBalance->getClaimants()->toArray()
+                );
+                if (in_array($issuer, $claimants, true)) {
+                    $balances[] = $ClaimableBalance;
+                }
+            }
+
+            $Page = $Page->getNextPage();
+        }
+
+        return $balances;
+    }
+
+    private function tokenHolders(AssetTypeCreditAlphanum $asset, string $issuer): array
+    {
+        $holders = [];
+        $Page = $this->Stellar->accounts()->forAsset($asset)->limit(200)->execute();
+        while ($Page && $Page->getAccounts()->count()) {
+            foreach ($Page->getAccounts()->toArray() as $Account) {
+                if (!$Account instanceof AccountResponse || $Account->getAccountId() === $issuer) {
+                    continue;
+                }
+                foreach ($Account->getBalances()->toArray() as $Balance) {
+                    if (!$Balance instanceof AccountBalanceResponse) {
+                        continue;
+                    }
+                    if (
+                        $Balance->getAssetCode() === $asset->getCode()
+                        && $Balance->getAssetIssuer() === $asset->getIssuer()
+                        && bccomp($Balance->getBalance(), '0', self::SCALE) > 0
+                    ) {
+                        $holders[] = [
+                            'account_id' => $Account->getAccountId(),
+                            'amount' => $this->decimal($Balance->getBalance()),
+                        ];
+                    }
+                }
+            }
+
+            $Page = $Page->getNextPage();
+        }
+
+        return $holders;
+    }
+
+    private function activeOffersForSellingAsset(AssetTypeCreditAlphanum $asset, string $issuer): array
+    {
+        $offers = [];
+        $Page = $this->Stellar->offers()->forAccount($issuer)->forSellingAsset($asset)->limit(200)->execute();
+        while ($Page && $Page->getOffers()->count()) {
+            foreach ($Page->getOffers()->toArray() as $Offer) {
+                if ($Offer instanceof OfferResponse) {
+                    $offers[] = $Offer;
+                }
+            }
+
+            $Page = $Page->getNextPage();
+        }
+
+        return $offers;
+    }
+
+    private function refundAmounts(array $claimable_balances, array $holders): array
+    {
+        $refunds = [];
+        foreach ($claimable_balances as $ClaimableBalance) {
+            if (!$ClaimableBalance instanceof ClaimableBalanceResponse) {
+                continue;
+            }
+            $sponsor = $ClaimableBalance->getSponsor();
+            if (!$sponsor) {
+                continue;
+            }
+
+            $refunds[$sponsor] = bcadd(
+                $refunds[$sponsor] ?? '0.0000000',
+                $this->decimal($ClaimableBalance->getAmount()),
+                self::SCALE
+            );
+        }
+
+        foreach ($holders as $holder) {
+            $account_id = (string) ($holder['account_id'] ?? '');
+            if ($account_id === '') {
+                continue;
+            }
+            $refunds[$account_id] = bcadd($refunds[$account_id] ?? '0.0000000', $holder['amount'], self::SCALE);
+        }
+
+        return $refunds;
+    }
+
+    private function accountHasTrustline(string $account_id, AssetTypeCreditAlphanum $asset): bool
+    {
+        $Account = $this->Stellar->requestAccount($account_id);
+        foreach ($Account->getBalances()->toArray() as $Balance) {
+            if (
+                $Balance instanceof AccountBalanceResponse
+                && $Balance->getAssetCode() === $asset->getCode()
+                && $Balance->getAssetIssuer() === $asset->getIssuer()
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function mtlCrowdAsset(): AssetTypeCreditAlphanum
+    {
+        return Asset::createNonNativeAsset($this->Config->crowdTokenCode(), $this->Config->crowdTokenIssuer());
+    }
+
+    private function isDeadlineReached(string $deadline): bool
+    {
+        return $deadline !== '' && strtotime($deadline . ' 23:59:59') !== false && time() > strtotime($deadline . ' 23:59:59');
     }
 
     private function buildSnapshot(string $issuer): array

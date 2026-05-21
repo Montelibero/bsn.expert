@@ -42,6 +42,7 @@ class CrowdController implements RefreshDataCodeInterface
             'snapshot' => $snapshot,
             'refresh' => $refresh,
             'can_create' => $this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId()),
+            'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'is_wide_page' => true,
         ]);
     }
@@ -53,8 +54,20 @@ class CrowdController implements RefreshDataCodeInterface
             return $this->Twig->render('404.twig');
         }
 
+        $edit_project = null;
+        $edit_code = strtoupper(trim((string) ($_GET['code'] ?? '')));
+        if ($edit_code !== '') {
+            $edit_project = $this->ProjectService->findProject($edit_code);
+            if (!$edit_project) {
+                SimpleRouter::response()->httpCode(404);
+                return $this->Twig->render('404.twig');
+            }
+        }
+
         $result = [
-            'values' => $this->ProjectService->defaultCreateValues(),
+            'values' => $edit_project
+                ? $this->ProjectService->createValuesFromProject($edit_project)
+                : $this->ProjectService->defaultCreateValues(),
             'errors' => [],
             'signing_xdr' => null,
             'signing_description' => null,
@@ -63,7 +76,9 @@ class CrowdController implements RefreshDataCodeInterface
         $signing_form = null;
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            $result = $this->ProjectService->prepareCreateProject($_POST);
+            $result = $edit_project
+                ? $this->ProjectService->prepareEditProject($edit_project, $_POST)
+                : $this->ProjectService->prepareCreateProject($_POST);
             if ($result['signing_xdr']) {
                 $signing_form = $this->SignController->SignTransaction(
                     $result['signing_xdr'],
@@ -79,8 +94,43 @@ class CrowdController implements RefreshDataCodeInterface
             'upload' => $result['upload'],
             'signing_form' => $signing_form,
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
+            'edit_project' => $edit_project,
+            'crowd_token' => $this->ProjectService->crowdToken(),
             'is_wide_page' => true,
         ]);
+    }
+
+    public function Action(string $code, string $action): ?string
+    {
+        if (!$this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId())) {
+            SimpleRouter::response()->httpCode(403);
+            return $this->Twig->render('404.twig');
+        }
+
+        try {
+            $result = $this->ProjectService->prepareProjectAction($code, $action);
+            $signing_form = $this->SignController->SignTransaction(
+                $result['signing_xdr'],
+                null,
+                $result['signing_description']
+            );
+
+            return $this->Twig->render('crowd_action.twig', [
+                'project' => $result['project'],
+                'action' => $result['action'],
+                'upload' => $result['upload'],
+                'signing_form' => $signing_form,
+                'is_wide_page' => true,
+            ]);
+        } catch (\Throwable $Exception) {
+            SimpleRouter::response()->httpCode(400);
+            return $this->Twig->render('crowd_action.twig', [
+                'project' => $this->ProjectService->findProject($code),
+                'action' => $action,
+                'error' => $Exception->getMessage(),
+                'is_wide_page' => true,
+            ]);
+        }
     }
 
     public function Project(string $code): ?string
@@ -108,6 +158,8 @@ class CrowdController implements RefreshDataCodeInterface
             'project' => $project,
             'snapshot' => $this->ProjectService->fetchSnapshot(),
             'refresh' => $refresh,
+            'can_manage' => $this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId()),
+            'admin_actions' => $this->ProjectService->projectAdminActions($project, $this->CurrentUser->getCurrentAccountRequestParam()),
             'is_wide_page' => true,
         ]);
     }

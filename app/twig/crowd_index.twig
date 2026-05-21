@@ -52,7 +52,7 @@
         {% if can_create %}
             <div class="level-right">
                 <div class="level-item">
-                    <a class="button is-link" href="/crowd/create">
+                    <a class="button is-link" href="/crowd/create{% if current_account_param %}?current_account={{ current_account_param|url_encode }}{% endif %}">
                         <span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
                         <span>{{ 'crowd_create.action'|trans }}</span>
                     </a>
@@ -135,9 +135,9 @@
                                     <div class="level-item">
                                         <span>
                                             {% if project.target_amount + 0 > 0 and project.funded_amount + 0 >= project.target_amount + 0 %}
-                                                {{ ui.integer(project.funded_amount) }} MTLCrowd
+                                                {{ ui.integer(project.funded_amount) }} {{ project.mtlcrowd_token.code }}
                                             {% else %}
-                                                {{ ui.integer(project.funded_amount) }} / {{ ui.integer(project.target_amount) }} MTLCrowd
+                                                {{ ui.integer(project.funded_amount) }} / {{ ui.integer(project.target_amount) }} {{ project.mtlcrowd_token.code }}
                                             {% endif %}
                                         </span>
                                     </div>
