@@ -1451,11 +1451,15 @@ eurmtl_report_page:
     unclassified: Не классифицировано
   summary:
     preliminary: На рынке, предварительно
-    legacy: Выпущено казначеями
+    market_holders: Рыночные держатели
     non_issuer_pool: Пулы прочих
-    unknown: Не классифицировано
+    off_account: Вне аккаунтов
   estimates:
     title: Варианты оценки
+    market_holders: Рыночные держатели (счета + пулы)
+    claimable: EURMTL в claimable balances
+    contracts: EURMTL в contracts
+    debt_gap: Контрольная оценка по debt-gap
     legacy: Выпущено казначеями на рынок
     direct_exposure: Direct exposure без пулов
     market_maker: Выпущено маркетмейкером
@@ -1478,6 +1482,13 @@ eurmtl_report_page:
     eurmtl_pool: EURMTL в пулах
     market_amount: Выпущено / кеш
     total: Итого
+  market_holders:
+    title: Рыночные держатели EURMTL
+    holder: Держатель
+    direct: EURMTL на счету
+    pools: EURMTL в пулах
+    total: Всего EURMTL
+    other_group: Прочие
   pools:
     title: Liquidity pools с EURMTL
     pool: Pool
@@ -1563,6 +1574,10 @@ crowd_page:
     supporter: Аккаунт
     amount: Сумма
     no_supporters: Участников пока нет.
+  support:
+    title: Поддержать
+    custom_amount: Эта сумма
+    notice: "Сбор будет пополнен на выбранную сумму %code%."
   admin:
     actions: Действия
     complete: Завершить сбор

@@ -18,10 +18,11 @@ use Throwable;
 
 class EurmtlReportService
 {
-    private const CACHE_KEY_PREFIX = 'eurmtl_report_snapshot:v12';
+    private const CACHE_KEY_PREFIX = 'eurmtl_report_snapshot:v15';
     private const CACHE_TTL = 3600;
     private const FRESH_SNAPSHOT_SECONDS = 60;
     private const STALE_CACHE_SECONDS = 21600;
+    private const MARKET_HOLDER_MIN_DISPLAY = '10.0000000';
     private const SCALE = 7;
     private const RATIO_SCALE = 14;
     private const RATE_SCALE = 14;
@@ -72,6 +73,7 @@ class EurmtlReportService
                 'assets' => [],
                 'accounts' => [],
                 'treasuries' => [],
+                'market_holders' => $this->emptyMarketHolders(),
                 'pools' => [],
                 'market_maker' => [],
                 'claimable_balances' => [],
@@ -100,19 +102,29 @@ class EurmtlReportService
         ];
 
         $eurdebt_holders = $this->collectAssetHolders($eurdebt_asset);
-        $tracked_account_ids = array_values(array_unique(array_merge(
-            array_keys($eurdebt_holders),
-            EurmtlReportConfig::MARKET_MAKER_ACCOUNTS,
-            [EurmtlReportConfig::ISSUER]
-        )));
-        $eurmtl_holders = $this->collectBalancesForAccounts($tracked_account_ids, $eurmtl_asset);
         $treasury_ids = array_fill_keys(
             array_diff(array_keys($eurdebt_holders), EurmtlReportConfig::MARKET_MAKER_ACCOUNTS),
             true
         );
         $pools = $this->collectPools($treasury_ids);
         $pool_eurmtl_by_account = $this->collectPoolEurmtlByAccount($pools);
+        $tracked_account_ids = array_values(array_unique(array_merge(
+            array_keys($eurdebt_holders),
+            EurmtlReportConfig::MARKET_MAKER_ACCOUNTS,
+            [EurmtlReportConfig::ISSUER],
+            array_keys($pool_eurmtl_by_account)
+        )));
+        $eurmtl_holders = array_replace(
+            $this->collectTopAssetHolders(EurmtlReportConfig::EURMTL_CODE, self::MARKET_HOLDER_MIN_DISPLAY),
+            $this->collectBalancesForAccounts($tracked_account_ids, $eurmtl_asset)
+        );
         $accounts = $this->buildAccounts($eurmtl_holders, $eurdebt_holders, $treasury_ids, $pool_eurmtl_by_account);
+        $market_holders = $this->buildMarketHolders(
+            $eurmtl_holders,
+            $pool_eurmtl_by_account,
+            $treasury_ids,
+            $asset_stats[EurmtlReportConfig::EURMTL_CODE]['direct_balances']
+        );
         $treasuries = array_values(array_filter(
             $accounts,
             static fn(array $account): bool => ($account['classification'] ?? null) === 'legacy_treasury'
@@ -124,7 +136,7 @@ class EurmtlReportService
         $market_maker = $this->buildMarketMakerBlock($accounts, $pools);
         $market_maker['portfolio'] = $this->collectMarketMakerPortfolio(EurmtlReportConfig::MARKET_MAKER_ACCOUNTS, $pools);
         $market_maker['valuation'] = $this->buildMarketMakerValuation($market_maker['portfolio']);
-        $totals = $this->buildTotals($accounts, $pools, $claimable_eurmtl, $asset_stats, $market_maker);
+        $totals = $this->buildTotals($accounts, $pools, $claimable_eurmtl, $asset_stats, $market_maker, $market_holders);
 
         return [
             'fetched_at' => time(),
@@ -133,6 +145,7 @@ class EurmtlReportService
             'assets' => $asset_stats,
             'accounts' => array_values($accounts),
             'treasuries' => $treasuries,
+            'market_holders' => $market_holders,
             'pools' => $pools,
             'market_maker' => $market_maker,
             'claimable_balances' => [
@@ -212,6 +225,102 @@ class EurmtlReportService
         }
 
         return $amounts;
+    }
+
+    private function buildMarketHolders(array $eurmtl_holders, array $pool_eurmtl_by_account, array $treasury_ids, string $total_direct_eurmtl): array
+    {
+        $account_ids = array_values(array_unique(array_merge(
+            array_keys($eurmtl_holders),
+            array_keys($pool_eurmtl_by_account)
+        )));
+        $rows = [];
+        $totals = [
+            'eurmtl_direct' => '0.0000000',
+            'eurmtl_pool' => '0.0000000',
+            'eurmtl_total' => '0.0000000',
+        ];
+        $small = [
+            'account' => null,
+            'classification' => 'other',
+            'eurmtl_direct' => '0.0000000',
+            'eurmtl_pool' => '0.0000000',
+            'eurmtl_total' => '0.0000000',
+            'is_group' => true,
+        ];
+        $internal_direct = '0.0000000';
+        $market_candidate_direct = '0.0000000';
+
+        foreach ($account_ids as $account_id) {
+            $classification = $this->classifyAccount($account_id, $treasury_ids);
+            if (in_array($classification, ['issuer', 'legacy_treasury', 'market_maker'], true)) {
+                $internal_direct = bcadd($internal_direct, $eurmtl_holders[$account_id] ?? '0.0000000', self::SCALE);
+                continue;
+            }
+
+            $direct = $eurmtl_holders[$account_id] ?? '0.0000000';
+            $pool = $pool_eurmtl_by_account[$account_id] ?? '0.0000000';
+            $total = bcadd($direct, $pool, self::SCALE);
+            if (bccomp($total, '0', self::SCALE) <= 0) {
+                continue;
+            }
+
+            $row = [
+                'account' => $this->accountData($account_id),
+                'classification' => $classification,
+                'eurmtl_direct' => $direct,
+                'eurmtl_pool' => $pool,
+                'eurmtl_total' => $total,
+                'is_group' => false,
+            ];
+            $market_candidate_direct = bcadd($market_candidate_direct, $direct, self::SCALE);
+
+            if (bccomp($total, self::MARKET_HOLDER_MIN_DISPLAY, self::SCALE) < 0) {
+                $small['eurmtl_direct'] = bcadd($small['eurmtl_direct'], $direct, self::SCALE);
+                $small['eurmtl_pool'] = bcadd($small['eurmtl_pool'], $pool, self::SCALE);
+                $small['eurmtl_total'] = bcadd($small['eurmtl_total'], $total, self::SCALE);
+                continue;
+            }
+
+            $rows[] = $row;
+        }
+
+        $market_direct_total = bcsub($total_direct_eurmtl, $internal_direct, self::SCALE);
+        $small_direct_residual = bccomp($market_direct_total, $market_candidate_direct, self::SCALE) > 0
+            ? bcsub($market_direct_total, $market_candidate_direct, self::SCALE)
+            : '0.0000000';
+        $small['eurmtl_direct'] = bcadd($small['eurmtl_direct'], $small_direct_residual, self::SCALE);
+        $small['eurmtl_total'] = bcadd($small['eurmtl_total'], $small_direct_residual, self::SCALE);
+
+        usort($rows, static fn(array $a, array $b): int => bccomp($b['eurmtl_total'], $a['eurmtl_total'], self::SCALE));
+
+        if (bccomp($small['eurmtl_total'], '0', self::SCALE) > 0) {
+            $rows[] = $small;
+        }
+
+        foreach ($rows as $row) {
+            $totals['eurmtl_direct'] = bcadd($totals['eurmtl_direct'], $row['eurmtl_direct'], self::SCALE);
+            $totals['eurmtl_pool'] = bcadd($totals['eurmtl_pool'], $row['eurmtl_pool'], self::SCALE);
+            $totals['eurmtl_total'] = bcadd($totals['eurmtl_total'], $row['eurmtl_total'], self::SCALE);
+        }
+
+        return [
+            'min_display_amount' => self::MARKET_HOLDER_MIN_DISPLAY,
+            'rows' => $rows,
+            'totals' => $totals,
+        ];
+    }
+
+    private function emptyMarketHolders(): array
+    {
+        return [
+            'min_display_amount' => self::MARKET_HOLDER_MIN_DISPLAY,
+            'rows' => [],
+            'totals' => [
+                'eurmtl_direct' => '0.0000000',
+                'eurmtl_pool' => '0.0000000',
+                'eurmtl_total' => '0.0000000',
+            ],
+        ];
     }
 
     private function collectPools(array $treasury_ids): array
@@ -753,6 +862,21 @@ class EurmtlReportService
         return is_array($json) ? $json : null;
     }
 
+    private function fetchJsonUrl(string $url): ?array
+    {
+        try {
+            $Response = $this->httpClient()->get($url);
+            if ($Response->getStatusCode() >= 400) {
+                return null;
+            }
+            $json = json_decode((string) $Response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return is_array($json) ? $json : null;
+    }
+
     private function httpClient(): Client
     {
         if ($this->HttpClient === null) {
@@ -774,7 +898,7 @@ class EurmtlReportService
         return strlen($code) <= 4 ? 'credit_alphanum4' : 'credit_alphanum12';
     }
 
-    private function buildTotals(array $accounts, array $pools, array $claimable_eurmtl, array $asset_stats, array $market_maker): array
+    private function buildTotals(array $accounts, array $pools, array $claimable_eurmtl, array $asset_stats, array $market_maker, array $market_holders): array
     {
         $legacy_market = '0.0000000';
         $direct_exposure = '0.0000000';
@@ -785,6 +909,7 @@ class EurmtlReportService
             }
         }
         $market_maker_market = $market_maker['direct']['market_amount'] ?? '0.0000000';
+        $debt_gap_market = bcadd($legacy_market, $market_maker_market, self::SCALE);
 
         $pool_breakdown = $this->emptyBreakdown();
         foreach ($pools as $pool) {
@@ -794,21 +919,25 @@ class EurmtlReportService
         }
 
         $non_issuer_pool = bcadd($pool_breakdown['other'], $pool_breakdown['unclassified'], self::SCALE);
+        $market_holders_amount = $market_holders['totals']['eurmtl_total'] ?? '0.0000000';
+        $claimable_amount = $claimable_eurmtl['total'] ?? '0.0000000';
         $contracts_eurmtl = $asset_stats[EurmtlReportConfig::EURMTL_CODE]['contracts_amount'] ?? '0.0000000';
+        $off_account_eurmtl = bcadd($claimable_amount, $contracts_eurmtl, self::SCALE);
         $unknown = bcadd(
-            bcadd($pool_breakdown['unclassified'], $claimable_eurmtl['total'], self::SCALE),
+            bcadd($pool_breakdown['unclassified'], $claimable_amount, self::SCALE),
             $contracts_eurmtl,
             self::SCALE
         );
-        $preliminary = bcadd(
-            bcadd(bcadd($legacy_market, $market_maker_market, self::SCALE), $non_issuer_pool, self::SCALE),
-            bcadd($claimable_eurmtl['total'], $contracts_eurmtl, self::SCALE),
-            self::SCALE
-        );
+        $preliminary = bcadd($market_holders_amount, $off_account_eurmtl, self::SCALE);
 
         return [
             'legacy_treasury_market_amount' => $legacy_market,
             'market_maker_market_amount' => $market_maker_market,
+            'debt_gap_market_amount' => $debt_gap_market,
+            'market_holders_amount' => $market_holders_amount,
+            'claimable_eurmtl' => $claimable_amount,
+            'contracts_eurmtl' => $contracts_eurmtl,
+            'off_account_eurmtl' => $off_account_eurmtl,
             'direct_exposure' => $direct_exposure,
             'pool_breakdown' => $pool_breakdown,
             'non_issuer_pool_eurmtl' => $non_issuer_pool,
@@ -842,6 +971,47 @@ class EurmtlReportService
             }
 
             $Page = $Page->getNextPage();
+        }
+
+        return $holders;
+    }
+
+    private function collectTopAssetHolders(string $code, string $min_balance): array
+    {
+        $holders = [];
+        $asset_id = rawurlencode($code . '-' . EurmtlReportConfig::ISSUER);
+        $url = 'https://api.stellar.expert/explorer/public/asset/' . $asset_id . '/holders?order=desc&limit=200';
+
+        while ($url) {
+            $response = $this->fetchJsonUrl($url);
+            if (!$response) {
+                break;
+            }
+
+            $records = $response['_embedded']['records'] ?? [];
+            if (!$records) {
+                break;
+            }
+
+            $should_stop = false;
+            foreach ($records as $record) {
+                $account_id = (string) ($record['account'] ?? $record['address'] ?? '');
+                $balance = $this->decimalStroops($record['balance'] ?? '0');
+                if (bccomp($balance, $min_balance, self::SCALE) < 0) {
+                    $should_stop = true;
+                    break;
+                }
+                if (BSN::validateStellarAccountIdFormat($account_id)) {
+                    $holders[$account_id] = $balance;
+                }
+            }
+
+            if ($should_stop) {
+                break;
+            }
+
+            $next = (string) ($response['_links']['next']['href'] ?? '');
+            $url = $next ? 'https://api.stellar.expert' . $next : null;
         }
 
         return $holders;
@@ -1188,6 +1358,16 @@ class EurmtlReportService
         }
 
         return bcadd($value, '0', self::RATE_SCALE);
+    }
+
+    private function decimalStroops(null|int|float|string $value): string
+    {
+        $value = trim((string) ($value ?? '0'));
+        if ($value === '') {
+            $value = '0';
+        }
+
+        return bcdiv($value, '10000000', self::SCALE);
     }
 
     private function shortHash(string $value): string

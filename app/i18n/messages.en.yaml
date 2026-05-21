@@ -1449,11 +1449,15 @@ eurmtl_report_page:
     unclassified: Unclassified
   summary:
     preliminary: Preliminary market amount
-    legacy: Issued by treasuries
+    market_holders: Market holders
     non_issuer_pool: Other-owned pools
-    unknown: Unclassified
+    off_account: Off-account
   estimates:
     title: Estimate Levels
+    market_holders: Market holders (accounts + pools)
+    claimable: EURMTL in claimable balances
+    contracts: EURMTL in contracts
+    debt_gap: Debt-gap control estimate
     legacy: Issued to market by treasuries
     direct_exposure: Direct exposure without pools
     market_maker: Issued by market maker
@@ -1476,6 +1480,13 @@ eurmtl_report_page:
     eurmtl_pool: EURMTL in pools
     market_amount: Issued / cash
     total: Total
+  market_holders:
+    title: Market EURMTL holders
+    holder: Holder
+    direct: EURMTL on account
+    pools: EURMTL in pools
+    total: Total EURMTL
+    other_group: Other
   pools:
     title: Liquidity pools with EURMTL
     pool: Pool
@@ -1561,6 +1572,10 @@ crowd_page:
     supporter: Account
     amount: Amount
     no_supporters: No supporters yet.
+  support:
+    title: Support
+    custom_amount: This amount
+    notice: "The campaign will be funded with the selected amount of %code%."
   admin:
     actions: Actions
     complete: Complete campaign

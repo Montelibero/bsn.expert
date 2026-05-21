@@ -83,8 +83,8 @@
         </div>
         <div class="column is-12-mobile is-6-tablet is-3-desktop">
             <div class="box">
-                <p class="heading">{{ 'eurmtl_report_page.summary.legacy'|trans }}</p>
-                <p class="title is-4">{{ ui.amount(totals.legacy_treasury_market_amount ?? '0.0000000') }}</p>
+                <p class="heading">{{ 'eurmtl_report_page.summary.market_holders'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.market_holders_amount ?? '0.0000000') }}</p>
             </div>
         </div>
         <div class="column is-12-mobile is-6-tablet is-3-desktop">
@@ -95,8 +95,8 @@
         </div>
         <div class="column is-12-mobile is-6-tablet is-3-desktop">
             <div class="box">
-                <p class="heading">{{ 'eurmtl_report_page.summary.unknown'|trans }}</p>
-                <p class="title is-4">{{ ui.amount(totals.unknown_amount ?? '0.0000000') }}</p>
+                <p class="heading">{{ 'eurmtl_report_page.summary.off_account'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.off_account_eurmtl ?? '0.0000000') }}</p>
             </div>
         </div>
     </div>
@@ -106,12 +106,24 @@
         <table class="table is-fullwidth is-striped is-hoverable">
             <tbody>
             <tr>
-                <th>{{ 'eurmtl_report_page.estimates.legacy'|trans }}</th>
-                <td class="has-text-right">{{ ui.amount(totals.legacy_treasury_market_amount ?? '0.0000000') }}</td>
+                <th>{{ 'eurmtl_report_page.estimates.market_holders'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.market_holders_amount ?? '0.0000000') }}</td>
             </tr>
             <tr>
-                <th>{{ 'eurmtl_report_page.estimates.direct_exposure'|trans }}</th>
-                <td class="has-text-right">{{ ui.amount(totals.direct_exposure ?? '0.0000000') }}</td>
+                <th>{{ 'eurmtl_report_page.estimates.claimable'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.claimable_eurmtl ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.contracts'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.contracts_eurmtl ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.debt_gap'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.debt_gap_market_amount ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.legacy'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.legacy_treasury_market_amount ?? '0.0000000') }}</td>
             </tr>
             <tr>
                 <th>{{ 'eurmtl_report_page.estimates.market_maker'|trans }}</th>
@@ -120,6 +132,10 @@
             <tr>
                 <th>{{ 'eurmtl_report_page.estimates.non_issuer_pool'|trans }}</th>
                 <td class="has-text-right">{{ ui.amount(totals.non_issuer_pool_eurmtl ?? '0.0000000') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report_page.estimates.direct_exposure'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(totals.direct_exposure ?? '0.0000000') }}</td>
             </tr>
             <tr>
                 <th>{{ 'eurmtl_report_page.estimates.issuer_pool'|trans }}</th>
@@ -458,6 +474,44 @@
                 <td class="has-text-right">{{ ui.amount(snapshot.unknown.contracts_eurmtl ?? '0.0000000') }}</td>
             </tr>
             </tbody>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report_page.market_holders.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable" data-sortlist="[[3,1]]">
+            <thead>
+            <tr>
+                <th>{{ 'eurmtl_report_page.market_holders.holder'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.market_holders.direct'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.market_holders.pools'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report_page.market_holders.total'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for holder in snapshot.market_holders.rows %}
+                <tr>
+                    <td>
+                        {% if holder.is_group %}
+                            {{ 'eurmtl_report_page.market_holders.other_group'|trans }}
+                        {% else %}
+                            {{ include('account_link.twig', {data: holder.account}, with_context = false) }}
+                        {% endif %}
+                    </td>
+                    <td class="has-text-right" data-text="{{ holder.eurmtl_direct }}">{{ ui.amount(holder.eurmtl_direct) }}</td>
+                    <td class="has-text-right" data-text="{{ holder.eurmtl_pool }}">{{ ui.amount(holder.eurmtl_pool) }}</td>
+                    <td class="has-text-right" data-text="{{ holder.eurmtl_total }}">{{ ui.amount(holder.eurmtl_total) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+            <tr>
+                <th>{{ 'eurmtl_report_page.treasuries.total'|trans }}</th>
+                <th class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_direct ?? '0.0000000') }}</th>
+                <th class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_pool ?? '0.0000000') }}</th>
+                <th class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_total ?? '0.0000000') }}</th>
+            </tr>
+            </tfoot>
         </table>
     </div>
 
