@@ -74,6 +74,9 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/contacts'], function () use ($Container) {
             ContactsRouter::register($Container);
         });
+        SimpleRouter::group(['prefix' => '/crowd'], function () use ($Container) {
+            CrowdRouter::register($Container);
+        });
         SimpleRouter::group(['prefix' => '/editor'], function () use ($Container) {
             Editor2Router::register($Container);
         });

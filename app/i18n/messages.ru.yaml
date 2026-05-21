@@ -2,6 +2,8 @@ common:
   short_name: БСН
   full_name: Социальная сеть на блокчейне
   close: Закрыть
+  refresh: Обновить
+  not_available: н/д
   find_and_insert: найти и вставить
 
 nav:
@@ -32,6 +34,7 @@ nav:
   council: Совет
   programs: Программы
   participants: Участники
+  crowd: Сборы
   contacts: Контакты
   preferences: Настройки
   login: Войти
@@ -1519,3 +1522,52 @@ eurmtl_report_page:
     pool_unclassified: Пулы без классификации владельца
     claimable: EURMTL в claimable balances
     contracts: EURMTL в contracts
+
+crowd_page:
+  title: Сборы
+  header: Сборы проектов
+  warning: Данные загружены не полностью.
+  empty: Проекты не найдены.
+  supporters: "Участников: %cnt%"
+  summary:
+    successful_projects: Успешных проектов
+    supporters: Участников
+    collected: Всего собрали
+  groups:
+    current: Актуальные сборы
+    completed: Завершенные проекты
+    canceled: Отмененные проекты
+    no_current: Пока нет ни одного активного сбора.
+  card:
+    code: Код
+    supporters: Участников
+    deadline: Дедлайн
+  status:
+    active: Активен
+    funded: Цель достигнута
+    expired: Истек
+    completed: Завершен
+    canceled: Отменен
+    closed: Закрыт
+    error: Ошибка
+  project:
+    details: Детали
+    deadline: Дедлайн
+    target: Цель
+    remaining: Осталось
+    fully_funded: Собранна вся сумма
+    project_account: Проект
+    contact_account: Контакт
+    supporters: Участники
+    supporter: Аккаунт
+    amount: Сумма
+    no_supporters: Участников пока нет.
+
+crowd_snapshot_box:
+  collected_at: Данные собраны
+  source_cache: Показан кеш
+  source_live: Свежая выборка
+  warning: Не удалось получить свежие данные сборов
+  refresh:
+    button: Обновить данные
+    fallback: Не удалось получить свежие данные, показан сохраненный кеш.

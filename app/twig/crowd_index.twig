@@ -1,0 +1,163 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'crowd_page.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="/crowd/" aria-current="page">{{ 'crowd_page.title'|trans }}</a></li>
+{% endblock %}
+
+{% macro amount(value) %}
+    {{ include('amount.twig', {value: value}, with_context = false) }}
+{% endmacro %}
+
+{% macro integer(value) %}
+    {{ value|round(0, 'common')|number_format(0, '.', ' ') }}
+{% endmacro %}
+
+{% macro status(status) %}
+    {% set classes = {
+        completed: 'is-success',
+        funded: 'is-success',
+        active: 'is-info',
+        expired: 'is-warning',
+        canceled: 'is-dark',
+        error: 'is-danger',
+        closed: 'is-dark'
+    } %}
+    {% set icons = {
+        completed: 'fa-check',
+        funded: 'fa-check',
+        active: 'fa-hand-holding-dollar',
+        expired: 'fa-triangle-exclamation',
+        canceled: 'fa-xmark',
+        error: 'fa-triangle-exclamation',
+        closed: 'fa-check'
+    } %}
+    <span class="tag {{ classes[status] ?? 'is-dark' }}">
+        <span class="icon is-small"><i class="fa-solid {{ icons[status] ?? 'fa-circle-info' }}" aria-hidden="true"></i></span>
+        <span>{{ ('crowd_page.status.' ~ status)|trans }}</span>
+    </span>
+{% endmacro %}
+
+{% import _self as ui %}
+
+{% block content %}
+    <h1 class="title">{{ 'crowd_page.header'|trans }}</h1>
+
+    {% if snapshot.warning %}
+        <div class="notification is-warning">
+            {{ 'crowd_page.warning'|trans }}<br>
+            <code>{{ snapshot.warning|nl2br }}</code>
+        </div>
+    {% endif %}
+
+    {% set totals = snapshot.totals %}
+    <div class="columns is-multiline">
+        <div class="column is-12-mobile is-4-tablet">
+            <div class="box">
+                <p class="heading">{{ 'crowd_page.summary.successful_projects'|trans }}</p>
+                <p class="title is-4">{{ totals.successful_projects }}</p>
+            </div>
+        </div>
+        <div class="column is-12-mobile is-4-tablet">
+            <div class="box">
+                <p class="heading">{{ 'crowd_page.summary.supporters'|trans }}</p>
+                <p class="title is-4">{{ totals.supporters_count }}</p>
+            </div>
+        </div>
+        <div class="column is-12-mobile is-4-tablet">
+            <div class="box">
+                <p class="heading">{{ 'crowd_page.summary.collected'|trans }}</p>
+                <p class="title is-4">{{ ui.integer(totals.collected_amount) }}</p>
+            </div>
+        </div>
+    </div>
+
+    {% set group_titles = {
+        current: 'crowd_page.groups.current',
+        completed: 'crowd_page.groups.completed',
+        canceled: 'crowd_page.groups.canceled'
+    } %}
+
+    {% for group_name, projects in snapshot.groups %}
+        {% if group_name == 'current' and projects is empty %}
+            <h2 class="title is-4">{{ group_titles[group_name]|trans }}</h2>
+            <p class="block has-text-grey">{{ 'crowd_page.groups.no_current'|trans }}</p>
+        {% elseif projects %}
+            <h2 class="title is-4">{{ group_titles[group_name]|trans }}</h2>
+            <div class="columns is-multiline">
+                {% for project in projects %}
+                    <div class="column is-12-tablet is-6-desktop is-4-widescreen">
+                        <div class="box">
+                            <div class="field is-grouped mb-3">
+                                <div class="control" title="{{ 'crowd_page.card.code'|trans }}">
+                                    <span class="tag is-info">{{ project.code }}</span>
+                                </div>
+                                {% if project.deadline %}
+                                    <div class="control" title="{{ 'crowd_page.card.deadline'|trans }}">
+                                        <div class="tags has-addons mb-0">
+                                            <span class="tag">
+                                                <span class="icon is-small"><i class="fa-solid fa-calendar" aria-hidden="true"></i></span>
+                                            </span>
+                                            <span class="tag">{{ project.deadline }}</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <div class="control" title="{{ 'crowd_page.card.supporters'|trans }}">
+                                    <div class="tags has-addons mb-0">
+                                        <span class="tag">
+                                            <span class="icon is-small"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+                                        </span>
+                                        <span class="tag">{{ project.supporters_count }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="level is-mobile mb-1">
+                                <div class="level-left">
+                                    <div class="level-item">
+                                        <span>
+                                            {% if project.target_amount + 0 > 0 and project.funded_amount + 0 >= project.target_amount + 0 %}
+                                                {{ ui.integer(project.funded_amount) }} MTLCrowd
+                                            {% else %}
+                                                {{ ui.integer(project.funded_amount) }} / {{ ui.integer(project.target_amount) }} MTLCrowd
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="level-right">
+                                    <div class="level-item">
+                                        <span class="has-text-grey">{{ project.progress_percent|round(0, 'common') }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <progress class="progress {{ project.status != 'canceled' ? 'is-primary' : '' }} mb-3" value="{{ project.progress_percent }}" max="100">
+                                {{ project.progress_percent|round(0, 'common') }}%
+                            </progress>
+
+                            <h3 class="title is-5 mb-2">
+                                <a href="/crowd/{{ project.code }}">{{ project.name }}</a>
+                            </h3>
+                            <p class="subtitle is-6">{{ project.description }}</p>
+                            <div class="has-text-right">
+                                {{ ui.status(project.status) }}
+                            </div>
+
+                            {% if project.warning %}
+                                <p class="has-text-danger is-size-7">{{ project.warning }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="notification is-warning">{{ 'crowd_page.empty'|trans }}</div>
+    {% endfor %}
+
+    {% include 'crowd_snapshot_box.twig' with {
+        snapshot: snapshot,
+        refresh: refresh
+    } only %}
+{% endblock %}

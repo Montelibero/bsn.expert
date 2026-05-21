@@ -1,0 +1,172 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
+    <li class="is-active"><a href="/crowd/{{ project.code }}" aria-current="page">{{ project.code }}</a></li>
+{% endblock %}
+
+{% macro amount(value) %}
+    {{ include('amount.twig', {value: value}, with_context = false) }}
+{% endmacro %}
+
+{% macro integer(value) %}
+    {{ value|round(0, 'common')|number_format(0, '.', ' ') }}
+{% endmacro %}
+
+{% macro status(status) %}
+    {% set classes = {
+        completed: 'is-success',
+        funded: 'is-success',
+        active: 'is-info',
+        expired: 'is-warning',
+        canceled: 'is-dark',
+        error: 'is-danger',
+        closed: 'is-dark'
+    } %}
+    {% set icons = {
+        completed: 'fa-check',
+        funded: 'fa-check',
+        active: 'fa-hand-holding-dollar',
+        expired: 'fa-triangle-exclamation',
+        canceled: 'fa-xmark',
+        error: 'fa-triangle-exclamation',
+        closed: 'fa-check'
+    } %}
+    <span class="tag {{ classes[status] ?? 'is-dark' }}">
+        <span class="icon is-small"><i class="fa-solid {{ icons[status] ?? 'fa-circle-info' }}" aria-hidden="true"></i></span>
+        <span>{{ ('crowd_page.status.' ~ status)|trans }}</span>
+    </span>
+{% endmacro %}
+
+{% import _self as ui %}
+
+{% block content %}
+    <div class="is-flex is-justify-content-space-between is-align-items-flex-start mb-4" style="gap: 1rem;">
+        <div>
+            <h1 class="title mb-2">{{ project.name }}</h1>
+            <div class="tags">
+                {{ ui.status(project.status) }}
+                <span class="tag is-info">{{ project.code }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if project.warning %}
+        <div class="notification is-warning">
+            {{ project.warning }}
+        </div>
+    {% endif %}
+
+    <div class="columns is-multiline">
+        <div class="column is-12-desktop is-8-widescreen">
+            <p class="subtitle">{{ project.description }}</p>
+
+            <progress class="progress {{ project.status != 'canceled' ? 'is-primary' : '' }} mb-2" value="{{ project.progress_percent }}" max="100">
+                {{ project.progress_percent|round(0, 'common') }}%
+            </progress>
+            <div class="is-flex is-justify-content-space-between is-flex-wrap-wrap block" style="gap: .5rem;">
+                <span>
+                    {{ ui.integer(project.funded_amount) }} / {{ ui.integer(project.target_amount) }}
+                    {{ include('token_link.twig', {token: project.mtlcrowd_token}, with_context = false) }}
+                </span>
+                <span class="has-text-grey">{{ project.progress_percent|round(0, 'common') }}%</span>
+            </div>
+
+            {% if project.full_description_html %}
+                <div class="content">
+                    {{ project.full_description_html|raw }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="column is-12-desktop is-4-widescreen">
+            <div class="box">
+                <h2 class="title is-5">{{ 'crowd_page.project.details'|trans }}</h2>
+                <table class="table is-fullwidth">
+                    <tbody>
+                    <tr>
+                        <th>{{ 'crowd_page.project.deadline'|trans }}</th>
+                        <td>{{ project.deadline ?: 'common.not_available'|trans }}</td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'crowd_page.project.target'|trans }}</th>
+                        <td>
+                            {{ ui.integer(project.target_amount) }}
+                            {{ include('token_link.twig', {token: project.mtlcrowd_token}, with_context = false) }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'crowd_page.project.remaining'|trans }}</th>
+                        <td>
+                            {% if project.remaining_amount + 0 <= 0 %}
+                                {{ 'crowd_page.project.fully_funded'|trans }}
+                            {% else %}
+                                {{ ui.integer(project.remaining_amount) }}
+                                {{ include('token_link.twig', {token: project.mtlcrowd_token}, with_context = false) }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'crowd_page.project.project_account'|trans }}</th>
+                        <td>
+                            {% if project.project_account %}
+                                {{ include('account_link.twig', {data: project.project_account}, with_context = false) }}
+                            {% else %}
+                                {{ 'common.not_available'|trans }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'crowd_page.project.contact_account'|trans }}</th>
+                        <td>
+                            {% if project.contact_account %}
+                                {{ include('account_link.twig', {data: project.contact_account}, with_context = false) }}
+                            {% else %}
+                                {{ 'common.not_available'|trans }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CID</th>
+                        <td><a href="{{ project.ipfs_url }}" target="_blank" rel="noopener noreferrer">{{ project.cid|hash_short }}</a></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="title is-4">{{ 'crowd_page.project.supporters'|trans }}</h2>
+    <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+            <tr>
+                <th>{{ 'crowd_page.project.supporter'|trans }}</th>
+                <th class="has-text-right">{{ 'crowd_page.project.amount'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for supporter in project.supporters %}
+                <tr>
+                    <td>{{ include('account_link.twig', {data: supporter.account}, with_context = false) }}</td>
+                    <td class="has-text-right">{{ ui.integer(supporter.amount) }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="2" class="has-text-grey">{{ 'crowd_page.project.no_supporters'|trans }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not project.is_closed %}
+        {% include 'crowd_snapshot_box.twig' with {
+            snapshot: snapshot,
+            refresh: refresh
+        } only %}
+    {% endif %}
+{% endblock %}

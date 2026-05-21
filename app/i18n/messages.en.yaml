@@ -2,6 +2,8 @@ common:
   short_name: BSN
   full_name: Blockchain Social Network
   close: Close
+  refresh: Refresh
+  not_available: n/a
   find_and_insert: find and insert
 
 nav:
@@ -32,6 +34,7 @@ nav:
   council: Council
   programs: Programs
   participants: Participants
+  crowd: Crowd
   contacts: Contacts
   preferences: Preferences
   login: Login
@@ -1517,3 +1520,52 @@ eurmtl_report_page:
     pool_unclassified: Pools without owner classification
     claimable: EURMTL in claimable balances
     contracts: EURMTL in contracts
+
+crowd_page:
+  title: Crowd
+  header: Project Crowdfunding
+  warning: Data was loaded partially.
+  empty: No projects found.
+  supporters: "Supporters: %cnt%"
+  summary:
+    successful_projects: Successful projects
+    supporters: Supporters
+    collected: Total collected
+  groups:
+    current: Current campaigns
+    completed: Completed projects
+    canceled: Canceled projects
+    no_current: There are no active campaigns yet.
+  card:
+    code: Code
+    supporters: Supporters
+    deadline: Deadline
+  status:
+    active: Active
+    funded: Funded
+    expired: Expired
+    completed: Completed
+    canceled: Canceled
+    closed: Closed
+    error: Error
+  project:
+    details: Details
+    deadline: Deadline
+    target: Target
+    remaining: Remaining
+    fully_funded: Fully funded
+    project_account: Project
+    contact_account: Contact
+    supporters: Supporters
+    supporter: Account
+    amount: Amount
+    no_supporters: No supporters yet.
+
+crowd_snapshot_box:
+  collected_at: Collected
+  source_cache: Cached data
+  source_live: Fresh data
+  warning: Failed to fetch fresh crowd data
+  refresh:
+    button: Refresh data
+    fallback: Could not fetch fresh data; the cached snapshot is shown.

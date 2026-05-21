@@ -23,6 +23,9 @@
 		@mj12bot header User-Agent *http://mj12bot.com/*
 		respond @mj12bot 403
 
+		@crowdHost host crowd.mtla.me
+		redir @crowdHost https://bsn.expert/crowd{uri} 301
+
 		@subdomain header_regexp subdomain Host ^(.+)\.bsn\.expert(?::\d+)?$
 		redir @subdomain https://bsn.expert/@{re.subdomain.1} 301
 
