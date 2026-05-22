@@ -153,6 +153,25 @@ class CrowdController implements RefreshDataCodeInterface
         $refresh = $this->buildRefreshDataContext(self::REFRESH_SCOPE, $can_refresh);
         $refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
         $project['full_description_html'] = $this->renderMarkdown($project['full_description'] ?? '');
+        $donation = null;
+        $donation_signing_form = null;
+        $donation_amount = trim((string) ($_GET['amount'] ?? ''));
+        if ($donation_amount !== '') {
+            $current_account_id = $this->CurrentUser->getCurrentAccountId();
+            if ($current_account_id === null) {
+                SimpleRouter::response()->redirect('/who_are_you?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/crowd/' . rawurlencode($project['code'])), 302);
+                return null;
+            }
+
+            $donation = $this->ProjectService->prepareDonation($project['code'], $current_account_id, $donation_amount);
+            if ($donation['signing_xdr']) {
+                $donation_signing_form = $this->SignController->SignTransaction(
+                    $donation['signing_xdr'],
+                    null,
+                    $donation['signing_description']
+                );
+            }
+        }
 
         return $this->Twig->render('crowd_project.twig', [
             'project' => $project,
@@ -160,6 +179,9 @@ class CrowdController implements RefreshDataCodeInterface
             'refresh' => $refresh,
             'can_manage' => $this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId()),
             'admin_actions' => $this->ProjectService->projectAdminActions($project, $this->CurrentUser->getCurrentAccountRequestParam()),
+            'donation' => $donation,
+            'donation_signing_form' => $donation_signing_form,
+            'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'is_wide_page' => true,
         ]);
     }

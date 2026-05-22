@@ -6,6 +6,7 @@ class CrowdConfig
 {
     private const DEFAULT_CROWD_TOKEN_CODE = 'MTLCrowd';
     private const DEFAULT_CROWD_TOKEN_ISSUER = 'GDRXBG5GVIUJWTAJDQE536JC5MDT5AH3MMCZIJCEGVAT2GEM2TMCROWD';
+    private const DEFAULT_PAYMENT_CURRENCIES = ['EURMTL', 'USDM', 'USDC', 'XLM'];
 
     public function issuer(): ?string
     {
@@ -55,5 +56,18 @@ class CrowdConfig
     {
         $issuer = trim((string) ($_ENV['CROWD_TOKEN_ISSUER'] ?? ''));
         return $issuer !== '' ? $issuer : self::DEFAULT_CROWD_TOKEN_ISSUER;
+    }
+
+    public function paymentCurrencies(): array
+    {
+        $value = trim((string) ($_ENV['CROWD_PAYMENT_CURRENCIES'] ?? ''));
+        if ($value === '') {
+            return self::DEFAULT_PAYMENT_CURRENCIES;
+        }
+
+        return array_values(array_filter(array_map(
+            static fn(string $item): string => trim($item),
+            preg_split('/[,\s]+/', $value) ?: []
+        )));
     }
 }

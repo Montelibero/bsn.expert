@@ -1576,6 +1576,17 @@ crowd_page:
     title: Support
     custom_amount: This amount
     notice: "The campaign will be funded with the selected amount of %code%."
+    payment_direct: Will spend
+    payment_path: Will spend up to
+    errors:
+      project_not_found: Campaign not found.
+      closed: This campaign is already closed.
+      account_invalid: Could not determine a valid payment account.
+      amount_invalid: Enter an amount greater than zero, with up to 7 decimal places.
+      amount_too_high: "The amount exceeds the remaining campaign amount: %amount%."
+      no_payment_asset: Unfortunately, you do not have any assets available for donation :-(
+      reserve_missing: The account does not have enough free XLM reserve for the support operations.
+      prepare_failed: "Could not build transaction: %message%"
   admin:
     actions: Actions
     complete: Complete campaign
@@ -1612,6 +1623,7 @@ crowd_create:
     name_required: Enter a project name.
     description_required: Enter a short description.
     target_invalid: Target must be greater than zero, with up to 7 decimal places.
+    target_below_funded: "The new target cannot be lower than the amount already funded: %amount%."
     deadline_invalid: Deadline must be a valid date.
     deadline_past: Deadline cannot be in the past.
     project_account_invalid: Enter a valid project account.
