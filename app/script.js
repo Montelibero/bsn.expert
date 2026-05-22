@@ -73,39 +73,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    document.querySelectorAll('.js-signing-toggle').forEach(function (button) {
-        button.addEventListener('click', function (event) {
-            const form = button.closest('form');
-            const targetName = button.dataset.signingToggle;
-            const target = form ? form.querySelector('[data-signing-panel="' + targetName + '"]') : null;
-            const details = form ? form.querySelector('[data-signing-details]') : null;
-            const defaultInstruction = details ? details.querySelector('[data-signing-default]') : null;
-
-            if (!target) {
-                return;
-            }
-
-            event.preventDefault();
-
-            const shouldShow = target.classList.contains('is-hidden');
-
-            form.querySelectorAll('[data-signing-panel]').forEach(function (panel) {
-                panel.classList.add('is-hidden');
-            });
-            form.querySelectorAll('.js-signing-toggle').forEach(function (toggle) {
-                toggle.setAttribute('aria-expanded', 'false');
-            });
-
-            if (shouldShow) {
-                target.classList.remove('is-hidden');
-                button.setAttribute('aria-expanded', 'true');
-            }
-
-            if (defaultInstruction) {
-                defaultInstruction.classList.toggle('is-hidden', shouldShow);
-            }
-        });
-    });
 });
 
 /* Rich Copy */

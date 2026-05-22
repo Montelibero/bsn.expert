@@ -48,12 +48,7 @@ class SignController
         }
 
         $action = $_POST['action'] ?? '';
-        if (!in_array($action, ['mmwb', 'eurmtl', 'qr', 'xdr'], true)) {
-            SimpleRouter::response()->httpCode(400);
-            return null;
-        }
-
-        if ($action === 'xdr' && !$xdr) {
+        if (!in_array($action, ['mmwb', 'eurmtl', 'qr'], true)) {
             SimpleRouter::response()->httpCode(400);
             return null;
         }
@@ -70,7 +65,7 @@ class SignController
             return null;
         }
 
-        if ($action === 'qr' || $action === 'xdr') {
+        if ($action === 'qr') {
             $Template = $this->Twig->load('signing_page.twig');
             return $Template->render($this->buildSigningTemplateData($xdr, $uri, $description) + [
                 'signing_view' => $action,
