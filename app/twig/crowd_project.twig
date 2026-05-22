@@ -121,7 +121,7 @@
     <div class="columns is-multiline is-flex-direction-row-reverse">
         <div class="column is-5-tablet is-4-widescreen">
             {% set preset_amounts = [5, 10, 50, 100] %}
-            {% set support_input_amount = project.remaining_amount + 0 < 500 ? project.remaining_amount : 500 %}
+            {% set support_input_amount = project.remaining_amount + 0 < 500 ? project.remaining_amount + 0 : 500 %}
             {% set support_query_prefix = current_account_param ? '?current_account=' ~ current_account_param|url_encode ~ '&amount=' : '?amount=' %}
             <div class="box">
                 {% if show_support %}
