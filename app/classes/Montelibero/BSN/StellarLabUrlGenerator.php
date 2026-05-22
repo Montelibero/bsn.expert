@@ -16,9 +16,11 @@ use Soneso\StellarSDK\BeginSponsoringFutureReservesOperation;
 use Soneso\StellarSDK\BumpSequenceOperation;
 use Soneso\StellarSDK\ChangeTrustOperation;
 use Soneso\StellarSDK\ClaimClaimableBalanceOperation;
+use Soneso\StellarSDK\Claimant;
 use Soneso\StellarSDK\ClawbackClaimableBalanceOperation;
 use Soneso\StellarSDK\ClawbackOperation;
 use Soneso\StellarSDK\CreateAccountOperation;
+use Soneso\StellarSDK\CreateClaimableBalanceOperation;
 use Soneso\StellarSDK\CreatePassiveSellOfferOperation;
 use Soneso\StellarSDK\EndSponsoringFutureReservesOperation;
 use Soneso\StellarSDK\FeeBumpTransaction;
@@ -34,6 +36,8 @@ use Soneso\StellarSDK\PathPaymentStrictSendOperation;
 use Soneso\StellarSDK\PaymentOperation;
 use Soneso\StellarSDK\Price;
 use Soneso\StellarSDK\Transaction;
+use Soneso\StellarSDK\Xdr\XdrClaimPredicate;
+use Soneso\StellarSDK\Xdr\XdrClaimPredicateType;
 
 final class StellarLabUrlGenerator
 {
@@ -235,6 +239,17 @@ final class StellarLabUrlGenerator
                     'bump_to' => $operation->getBumpTo()->toString(),
                 ],
             ],
+            $operation instanceof CreateClaimableBalanceOperation => [
+                'operation_type' => 'create_claimable_balance',
+                'params' => [
+                    'asset' => $this->assetToLab($operation->getAsset()),
+                    'amount' => $operation->getAmount(),
+                    'claimants' => array_map(
+                        fn (Claimant $claimant): array => $this->claimantToLab($claimant),
+                        $operation->getClaimants()
+                    ),
+                ],
+            ],
             $operation instanceof ClaimClaimableBalanceOperation => [
                 'operation_type' => 'claim_claimable_balance',
                 'params' => [
@@ -294,6 +309,62 @@ final class StellarLabUrlGenerator
             : '';
 
         return $normalized;
+    }
+
+    private function claimantToLab(Claimant $claimant): array
+    {
+        return [
+            'destination' => $claimant->getDestination(),
+            'predicate' => $this->claimPredicateToLab($claimant->getPredicate()),
+        ];
+    }
+
+    private function claimPredicateToLab(XdrClaimPredicate $predicate): array
+    {
+        return match ($predicate->getType()->getValue()) {
+            XdrClaimPredicateType::UNCONDITIONAL => [
+                'unconditional' => [],
+            ],
+            XdrClaimPredicateType::AND => [
+                'conditional' => [
+                    'and' => array_map(
+                        fn (XdrClaimPredicate $child): array => $this->claimPredicateToLab($child),
+                        $predicate->getAndPredicates() ?? []
+                    ),
+                ],
+            ],
+            XdrClaimPredicateType::OR => [
+                'conditional' => [
+                    'or' => array_map(
+                        fn (XdrClaimPredicate $child): array => $this->claimPredicateToLab($child),
+                        $predicate->getOrPredicates() ?? []
+                    ),
+                ],
+            ],
+            XdrClaimPredicateType::NOT => [
+                'conditional' => [
+                    'not' => $this->claimPredicateToLab(
+                        $predicate->getNotPredicate()
+                            ?? throw new InvalidArgumentException('Claim predicate NOT is missing child predicate.')
+                    ),
+                ],
+            ],
+            XdrClaimPredicateType::BEFORE_ABSOLUTE_TIME => [
+                'conditional' => [
+                    'time' => [
+                        'absolute' => (string) $predicate->getAbsBefore(),
+                    ],
+                ],
+            ],
+            XdrClaimPredicateType::BEFORE_RELATIVE_TIME => [
+                'conditional' => [
+                    'time' => [
+                        'relative' => (string) $predicate->getRelBefore(),
+                    ],
+                ],
+            ],
+            default => throw new InvalidArgumentException('Unsupported claim predicate type.'),
+        };
     }
 
     private function assetToLab(Asset $asset): array
