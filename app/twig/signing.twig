@@ -1,63 +1,66 @@
-<form method="post" action="/sign" target="_blank" class="block mb-6">
+<form method="post" action="/sign" target="_blank" class="container is-max-tablet block ml-0">
     <input type="hidden" name="xdr" value="{{ xdr }}">
     <input type="hidden" name="uri" value="{{ uri }}">
     <input type="hidden" name="description" value="{{ description }}">
     <input type="hidden" name="sign" value="{{ sign }}">
-    <p class="block">{{ 'editor.sign.default_instruction'|trans }}</p>
-
-    <div class="columns is-multiline is-variable is-2">
-        <div class="column is-full-mobile is-half-tablet is-one-third-desktop">
-            <a href="{{ uri }}" class="button is-fullwidth is-justify-content-flex-start is-primary">
-                <span class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-                <span>{{ 'editor.sign.sep_07_button_name'|trans }}</span>
-            </a>
+    <article class="message is-primary">
+        <div class="message-header">
+            <p>{{ signing_title|default('editor.sign.default_title'|trans) }}</p>
         </div>
+        <div class="message-body">
+            <p class="block">{{ 'editor.sign.default_instruction'|trans }}</p>
 
-        <div class="column is-full-mobile is-half-tablet is-one-third-desktop">
-            <button type="submit" name="action" value="mmwb" class="button is-fullwidth is-justify-content-flex-start is-link">
-                <span class="icon"><i class="fa-brands fa-telegram"></i></span>
-                <span>@MyMTLWalletBot</span>
-            </button>
-        </div>
+            <div class="buttons">
+                <a href="{{ uri }}" class="button is-warning">
+                    <span class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <span>{{ 'editor.sign.sep_07_button_name'|trans }}</span>
+                </a>
 
-        <div class="column is-full-mobile is-half-tablet is-one-third-desktop">
-            <button type="submit" name="action" value="qr" formtarget="_self" class="button is-info is-fullwidth is-justify-content-flex-start">
-                <span class="icon"><i class="fa-solid fa-qrcode"></i></span>
-                <span>QR</span>
-            </button>
-        </div>
+                <button type="submit" name="action" value="mmwb" class="button is-link">
+                    <span class="icon"><i class="fa-brands fa-telegram"></i></span>
+                    <span>@MyMTLWalletBot</span>
+                </button>
 
-        {% if xdr %}
-        <div class="column is-full-mobile is-half-tablet is-one-third-desktop">
-            <button
-                type="submit"
-                name="action"
-                value="eurmtl"
-                class="button is-fullwidth is-justify-content-flex-start is-warning"
-                {% if not can_collect_multisig %}disabled title="{{ 'editor.sign.collect_multisig_disabled_title'|trans }}"{% endif %}
-            >
-                <span class="icon"><i class="fa-solid fa-signature"></i></span>
-                <span>{{ 'editor.sign.collect_multisig_button_name'|trans }}</span>
-            </button>
-        </div>
-        {% endif %}
+                <div class="dropdown is-hoverable">
+                    <div class="dropdown-trigger">
+                        <button class="button" type="button" aria-haspopup="true" aria-controls="signing-more-menu">
+                            <span>{{ 'editor.sign.more_button_name'|trans }}</span>
+                            <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+                        </button>
+                    </div>
+                    <div class="dropdown-menu" id="signing-more-menu" role="menu">
+                        <div class="dropdown-content">
+                            <button type="submit" name="action" value="qr" formtarget="_self" class="dropdown-item">
+                                <span class="icon"><i class="fa-solid fa-qrcode"></i></span>
+                                <span>QR</span>
+                            </button>
 
-        {% if xdr %}
-        <div class="column is-full-mobile is-half-tablet is-one-third-desktop">
-            <a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}" target="_blank" class="button is-fullwidth is-justify-content-flex-start">
-                <span class="icon"><i class="fa-solid fa-key"></i></span>
-                <span>{{ 'editor.sign.secret_key_button_name'|trans }}</span>
-            </a>
-        </div>
-        {% endif %}
+                            {% if xdr %}
+                                <button
+                                    type="submit"
+                                    name="action"
+                                    value="eurmtl"
+                                    class="dropdown-item"
+                                    {% if not can_collect_multisig %}disabled title="{{ 'editor.sign.collect_multisig_disabled_title'|trans }}"{% endif %}
+                                >
+                                    <span class="icon"><i class="fa-solid fa-signature"></i></span>
+                                    <span>{{ 'editor.sign.collect_multisig_button_name'|trans }}</span>
+                                </button>
 
-        {% if xdr %}
-        <div class="column is-full-mobile is-half-tablet is-one-third-desktop">
-            <button type="submit" formaction="/tools/xdr2lab" formtarget="_self" class="button is-fullwidth is-justify-content-flex-start">
-                <span class="icon"><i class="fa-solid fa-file-code"></i></span>
-                <span>XDR</span>
-            </button>
+                                <a href="https://eurmtl.me/uri?xdr={{ xdr|url_encode }}" target="_blank" class="dropdown-item">
+                                    <span class="icon"><i class="fa-solid fa-key"></i></span>
+                                    <span>{{ 'editor.sign.secret_key_button_name'|trans }}</span>
+                                </a>
+
+                                <button type="submit" formaction="/tools/xdr2lab" formtarget="_self" class="dropdown-item">
+                                    <span class="icon"><i class="fa-solid fa-file-code"></i></span>
+                                    <span>XDR</span>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        {% endif %}
-    </div>
+    </article>
 </form>

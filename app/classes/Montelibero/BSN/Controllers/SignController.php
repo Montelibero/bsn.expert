@@ -103,7 +103,12 @@ class SignController
         return null;
     }
 
-    public function SignTransaction(?string $xdr = null, ?string $uri = null, ?string $description = null, ): ?string
+    public function SignTransaction(
+        ?string $xdr = null,
+        ?string $uri = null,
+        ?string $description = null,
+        ?string $signing_title = null,
+    ): ?string
     {
         /*
          * Есть либо транзакция, которую нужно подписать и отправить в блокчейн
@@ -112,7 +117,9 @@ class SignController
          *  Тогда не отображаем TX, но показываем кнопы подписать и QR
          */
 
-        return $this->renderSigningTemplateData($this->buildSigningTemplateData($xdr, $uri, $description));
+        return $this->renderSigningTemplateData($this->buildSigningTemplateData($xdr, $uri, $description) + [
+            'signing_title' => $signing_title,
+        ]);
     }
 
     public function renderSigningTemplateData(array $data): string

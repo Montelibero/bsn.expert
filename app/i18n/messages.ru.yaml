@@ -970,10 +970,12 @@ editor:
   transaction_label: Ваша транзакция (XDR)
   sign:
     header: Подписать транзакцию
+    default_title: Подписать и отправить в блокчейн
     default_instruction: >
       Мы приготовили вам транзакцию! Чтобы применить изменения, нужно подписать её в вашем любимом приложении
       (чаще всего это так называемый кошелёк), и отправить в блокчейн.
-    sep_07_button_name: Sunce, Lobstr и подобные
+    sep_07_button_name: Sunce (SEP-07)
+    more_button_name: Ещё
     secret_key_button_name: Подписать секретным ключом
     link_text: Специальная Стеллар-ссылка, которую умеет открыть, например, Sunce Wallet.
     qr_text: Волшебный QR для мобильного
