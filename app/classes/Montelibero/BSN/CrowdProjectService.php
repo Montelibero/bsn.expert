@@ -1167,10 +1167,14 @@ class CrowdProjectService
     private function activeOffersForSellingAsset(AssetTypeCreditAlphanum $asset, string $issuer): array
     {
         $offers = [];
-        $Page = $this->Stellar->offers()->forAccount($issuer)->forSellingAsset($asset)->limit(200)->execute();
+        $Page = $this->Stellar->offers()->forSeller($issuer)->forSellingAsset($asset)->limit(200)->execute();
         while ($Page && $Page->getOffers()->count()) {
             foreach ($Page->getOffers()->toArray() as $Offer) {
-                if ($Offer instanceof OfferResponse) {
+                if (
+                    $Offer instanceof OfferResponse
+                    && $Offer->getSeller() === $issuer
+                    && $this->assetEquals($Offer->getSelling(), $asset)
+                ) {
                     $offers[] = $Offer;
                 }
             }
