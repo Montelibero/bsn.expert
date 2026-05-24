@@ -76,7 +76,9 @@
                 const price = row.querySelector('[data-order-price]');
                 const reversePrice = row.querySelector('[data-order-reverse-price]');
                 const total = row.querySelector('[data-order-total]');
-                const sync = function () {
+                total.readOnly = false;
+
+                const syncCalculated = function (updateTotal) {
                     [amount, price].forEach(function (input) {
                         const normalized = normalizeDecimal(input.value);
                         const scaled = normalized === null ? null : decimalToScaled(input.value);
@@ -91,6 +93,9 @@
                     const amountScaled = decimalToScaled(amount.value);
                     const priceScaled = decimalToScaled(price.value);
                     renderReversePrice(reversePrice, priceScaled);
+                    if (!updateTotal) {
+                        return;
+                    }
                     if (amountScaled === null || priceScaled === null || priceScaled <= 0n) {
                         total.value = '—';
                         return;
@@ -98,9 +103,27 @@
                     renderTotal(total, formatScaled((amountScaled * priceScaled) / scale));
                 };
 
-                amount.addEventListener('input', sync);
-                price.addEventListener('input', sync);
-                sync();
+                const syncFromPrice = function () {
+                    syncCalculated(true);
+                };
+
+                const syncFromTotal = function () {
+                    const amountScaled = decimalToScaled(amount.value);
+                    const totalScaled = decimalToScaled(total.value);
+                    if (amountScaled === null || amountScaled <= 0n || totalScaled === null || totalScaled < 0n) {
+                        price.value = '';
+                        syncCalculated(false);
+                        return;
+                    }
+                    price.value = shortDecimal(formatScaled((totalScaled * scale) / amountScaled));
+                    syncCalculated(false);
+                };
+
+                amount.addEventListener('input', syncFromPrice);
+                price.addEventListener('input', syncFromPrice);
+                total.addEventListener('input', syncFromTotal);
+                total.addEventListener('blur', syncFromPrice);
+                syncFromPrice();
             });
         });
     </script>
