@@ -53,6 +53,10 @@ class ToolsRouter
             return $Container->get(OrdersController::class)->Orders();
         })->name('tool_orders');
 
+        SimpleRouter::match(['get', 'post'], '/orders/new', function () use ($Container) {
+            return $Container->get(OrdersController::class)->NewOrder();
+        })->name('tool_orders_new');
+
         SimpleRouter::get('/eurmtl_report', function () use ($Container) {
             return $Container->get(EurmtlReportController::class)->EurmtlReport();
         })->name('tool_eurmtl_report');

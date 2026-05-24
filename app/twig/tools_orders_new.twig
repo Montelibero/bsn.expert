@@ -1,0 +1,299 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_orders_new.title'|trans }} — {{ 'tools_orders.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li><a href="/tools/orders" aria-current="page">{{ 'tools_orders.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_orders_new.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_orders_new.title'|trans }}</h1>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const scale = 10000000n;
+
+            function normalizeDecimal(value) {
+                const normalized = String(value || '').trim().replace(',', '.');
+                if (!/^\d+(?:\.\d{0,7})?$/.test(normalized)) {
+                    return null;
+                }
+                const parts = normalized.split('.');
+                return parts[0] + '.' + ((parts[1] || '').slice(0, 7)).padEnd(7, '0');
+            }
+
+            function decimalToScaled(value) {
+                const normalized = normalizeDecimal(value);
+                if (normalized === null) {
+                    return null;
+                }
+                const parts = normalized.split('.');
+                return BigInt(parts[0]) * scale + BigInt(parts[1]);
+            }
+
+            function formatScaled(value) {
+                const integer = value / scale;
+                const fraction = String(value % scale).padStart(7, '0');
+                return integer + '.' + fraction;
+            }
+
+            function shortDecimal(value) {
+                const normalized = normalizeDecimal(value);
+                if (normalized === null) {
+                    return null;
+                }
+                const parts = normalized.split('.');
+                const trimmed = parts[1].replace(/0+$/, '');
+                return trimmed === '' ? parts[0] : parts[0] + '.' + trimmed;
+            }
+
+            function reverseScaled(value) {
+                if (value === null || value <= 0n) {
+                    return null;
+                }
+                return ((scale * scale) + (value / 2n)) / value;
+            }
+
+            document.querySelectorAll('[data-js-only]').forEach(function (element) {
+                element.classList.remove('is-hidden');
+            });
+
+            const form = document.querySelector('[data-new-order-form]');
+            if (!form) {
+                return;
+            }
+
+            const selling = form.querySelector('[data-new-order-selling]');
+            const buying = form.querySelector('[data-new-order-buying]');
+            const amount = form.querySelector('[data-new-order-amount]');
+            const price = form.querySelector('[data-new-order-price]');
+            const reverse = form.querySelector('[data-new-order-reverse]');
+            const total = form.querySelector('[data-new-order-total]');
+            const maxValue = form.querySelector('[data-new-order-max-value]');
+            const submit = form.querySelector('[data-new-order-submit]');
+            submit.disabled = true;
+
+            function selectedSellingOption() {
+                return selling.selectedOptions.length > 0 ? selling.selectedOptions[0] : null;
+            }
+
+            function sellingAvailableScaled() {
+                const option = selectedSellingOption();
+                return option ? decimalToScaled(option.dataset.available || '') : null;
+            }
+
+            function sellingAvailableIsUnlimited() {
+                const option = selectedSellingOption();
+                return option ? option.dataset.unlimited === '1' : false;
+            }
+
+            function updateMaxHelp() {
+                const option = selectedSellingOption();
+                if (!option || !maxValue) {
+                    return;
+                }
+                maxValue.textContent = option.dataset.availableLabel || option.dataset.available || '';
+            }
+
+            function syncCalculated(updateReverse, updateTotal) {
+                const amountScaled = decimalToScaled(amount.value);
+                const priceScaled = decimalToScaled(price.value);
+                const availableScaled = sellingAvailableScaled();
+                const availableUnlimited = sellingAvailableIsUnlimited();
+                const amountFilled = amount.value.trim() !== '';
+                const priceFilled = price.value.trim() !== '';
+                const amountValid = amountScaled !== null && amountScaled > 0n && (availableUnlimited || (availableScaled !== null && amountScaled <= availableScaled));
+                const priceValid = priceScaled !== null && priceScaled > 0n;
+                const sameAssets = selling.value !== '' && selling.value === buying.value;
+
+                price.classList.toggle('is-danger', priceFilled && !priceValid);
+                amount.classList.toggle('is-danger', amountFilled && !amountValid);
+                submit.disabled = !(selling.value !== '' && buying.value !== '' && !sameAssets && amountValid && priceValid);
+
+                if (updateReverse) {
+                    const reversePrice = reverseScaled(priceScaled);
+                    reverse.value = reversePrice === null ? '—' : shortDecimal(formatScaled(reversePrice));
+                }
+
+                if (updateTotal) {
+                    if (amountScaled === null || amountScaled <= 0n || priceScaled === null || priceScaled <= 0n) {
+                        total.value = '—';
+                        return;
+                    }
+                    total.value = shortDecimal(formatScaled((amountScaled * priceScaled) / scale)) || '—';
+                }
+            }
+
+            function syncFromPrice() {
+                syncCalculated(true, true);
+            }
+
+            function syncFromReverse() {
+                const reversePriceScaled = decimalToScaled(reverse.value);
+                const priceScaled = reverseScaled(reversePriceScaled);
+                if (priceScaled === null) {
+                    price.value = '';
+                    syncCalculated(false, true);
+                    return;
+                }
+                price.value = shortDecimal(formatScaled(priceScaled));
+                syncCalculated(false, true);
+            }
+
+            function syncFromTotal() {
+                const amountScaled = decimalToScaled(amount.value);
+                const totalScaled = decimalToScaled(total.value);
+                if (amountScaled === null || amountScaled <= 0n || totalScaled === null || totalScaled < 0n) {
+                    price.value = '';
+                    syncCalculated(true, false);
+                    return;
+                }
+                price.value = shortDecimal(formatScaled((totalScaled * scale) / amountScaled));
+                syncCalculated(true, false);
+            }
+
+            amount.addEventListener('input', syncFromPrice);
+            price.addEventListener('input', syncFromPrice);
+            selling.addEventListener('change', function () {
+                updateMaxHelp();
+                syncFromPrice();
+            });
+            buying.addEventListener('change', syncFromPrice);
+            reverse.addEventListener('input', syncFromReverse);
+            reverse.addEventListener('blur', syncFromPrice);
+            total.addEventListener('input', syncFromTotal);
+            total.addEventListener('blur', syncFromPrice);
+            if (maxValue) {
+                maxValue.addEventListener('click', function () {
+                    const option = selectedSellingOption();
+                    if (!option || option.dataset.unlimited === '1') {
+                        return;
+                    }
+                    amount.value = option ? (option.dataset.availableLabel || option.dataset.available || '') : '';
+                    syncFromPrice();
+                });
+                maxValue.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        maxValue.click();
+                    }
+                });
+            }
+            updateMaxHelp();
+            syncFromPrice();
+        });
+    </script>
+
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    {% if preview %}
+        <p class="block">
+            {{ 'tools_orders_new.preview.create'|trans }}
+            {{ include('token_link.twig', {token: preview.selling}, with_context = false) }}
+            {{ 'tools_orders_new.preview.for'|trans }}
+            {{ include('token_link.twig', {token: preview.buying}, with_context = false) }}
+            ({{ 'tools_orders_new.preview.price'|trans({
+                '%price%': preview.price,
+                '%reverse%': preview.reverse_price,
+            }) }})
+        </p>
+    {% endif %}
+
+    {% if signing_form %}
+        {{ signing_form|raw }}
+    {% endif %}
+
+    <p class="block">{{ 'tools_orders_new.instruction'|trans }}</p>
+
+    <form method="post" action="/tools/orders/new" data-new-order-form>
+        {% if current_account_param %}
+            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+        {% endif %}
+
+        <div class="field">
+            <label class="label" for="new_order_selling">{{ 'tools_orders_new.form.selling'|trans }}</label>
+            <div class="control">
+                <div class="select">
+                    <select id="new_order_selling" name="selling" required data-new-order-selling>
+                        {% for token in tokens %}
+                            <option
+                                value="{{ token.key|e('html_attr') }}"
+                                data-available="{{ token.available|e('html_attr') }}"
+                                data-available-label="{{ token.available_label|e('html_attr') }}"
+                                data-unlimited="{% if token.available_unlimited|default(false) %}1{% else %}0{% endif %}"
+                                {% if token.key == values.selling %}selected{% endif %}
+                                {% if token.selling_disabled %}disabled{% endif %}
+                            >
+                                {{ token.option_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <p class="help">{{ 'tools_orders_new.form.selling_help'|trans }}</p>
+        </div>
+
+        <div class="field">
+            <label class="label" for="new_order_amount">{{ 'tools_orders_new.form.amount'|trans }}</label>
+            <div class="control">
+                <input class="input" id="new_order_amount" type="text" name="amount" value="{{ values.amount|e('html_attr') }}" size="13" required data-new-order-amount>
+            </div>
+            <p class="help">{{ 'tools_orders_new.form.amount_help'|trans }}</p>
+            <p class="help is-hidden" data-js-only>{{ 'tools_orders_new.form.amount_max'|trans }} <span class="pseudo-link" role="button" tabindex="0" data-new-order-max-value></span></p>
+        </div>
+
+        <div class="field">
+            <label class="label" for="new_order_buying">{{ 'tools_orders_new.form.buying'|trans }}</label>
+            <div class="control">
+                <div class="select">
+                    <select id="new_order_buying" name="buying" required data-new-order-buying>
+                        {% for token in tokens %}
+                            <option value="{{ token.key|e('html_attr') }}" {% if token.key == values.buying %}selected{% endif %}>
+                                {{ token.code|default(token.label) }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <p class="help">{{ 'tools_orders_new.form.buying_help'|trans }}</p>
+        </div>
+
+        <div class="field">
+            <label class="label" for="new_order_price">{{ 'tools_orders_new.form.price'|trans }}</label>
+            <div class="control">
+                <input class="input" id="new_order_price" type="text" name="price" value="{{ values.price|e('html_attr') }}" size="13" required data-new-order-price>
+            </div>
+            <p class="help">{{ 'tools_orders_new.form.price_help'|trans }}</p>
+        </div>
+
+        <div class="field is-hidden" data-js-only>
+            <label class="label" for="new_order_reverse">{{ 'tools_orders_new.form.reverse_price'|trans }}</label>
+            <div class="control">
+                <input class="input" id="new_order_reverse" type="text" size="13" data-new-order-reverse>
+            </div>
+            <p class="help">{{ 'tools_orders_new.form.reverse_price_help'|trans }}</p>
+        </div>
+
+        <div class="field is-hidden" data-js-only>
+            <label class="label" for="new_order_total">{{ 'tools_orders_new.form.total'|trans }}</label>
+            <div class="control">
+                <input class="input" id="new_order_total" type="text" size="13" data-new-order-total>
+            </div>
+            <p class="help">{{ 'tools_orders_new.form.total_help'|trans }}</p>
+        </div>
+
+        <div class="field">
+            <div class="control">
+                <button type="submit" name="action" value="save" class="button is-link" data-new-order-submit>
+                    <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                    <span>{{ 'tools_orders_new.form.save'|trans }}</span>
+                </button>
+            </div>
+        </div>
+    </form>
+{% endblock %}

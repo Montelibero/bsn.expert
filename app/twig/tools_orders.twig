@@ -11,6 +11,13 @@
 {% block content %}
     <h1 class="title">{{ 'tools_orders.title'|trans }}</h1>
 
+    <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-2">
+        <a class="button is-small is-primary is-outlined mr-2" href="/tools/orders/new{% if current_account_param %}?current_account={{ current_account_param|url_encode }}{% endif %}">
+            <span class="icon"><i class="fa-solid fa-plus"></i></span>
+            <span>{{ 'tools_orders.actions.new'|trans }}</span>
+        </a>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const scale = 10000000n;
