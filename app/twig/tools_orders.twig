@@ -1,0 +1,228 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_orders.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_orders.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_orders.title'|trans }}</h1>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const scale = 10000000n;
+
+            function normalizeDecimal(value) {
+                const normalized = String(value || '').trim().replace(',', '.');
+                if (!/^\d+(?:\.\d{0,7})?$/.test(normalized)) {
+                    return null;
+                }
+                const parts = normalized.split('.');
+                return parts[0] + '.' + ((parts[1] || '').slice(0, 7)).padEnd(7, '0');
+            }
+
+            function decimalToScaled(value) {
+                const normalized = normalizeDecimal(value);
+                if (normalized === null) {
+                    return null;
+                }
+                const parts = normalized.split('.');
+                return BigInt(parts[0]) * scale + BigInt(parts[1]);
+            }
+
+            function formatScaled(value) {
+                const integer = value / scale;
+                const fraction = String(value % scale).padStart(7, '0');
+                return integer + '.' + fraction;
+            }
+
+            function shortDecimal(value) {
+                const normalized = normalizeDecimal(value);
+                if (normalized === null) {
+                    return null;
+                }
+
+                const parts = normalized.split('.');
+                const trimmed = parts[1].replace(/0+$/, '');
+                return trimmed === '' ? parts[0] : parts[0] + '.' + trimmed;
+            }
+
+            function renderTotal(input, value) {
+                input.value = shortDecimal(value) || '—';
+            }
+
+            document.querySelectorAll('[data-order-row]').forEach(function (row) {
+                const amount = row.querySelector('[data-order-amount]');
+                const price = row.querySelector('[data-order-price]');
+                const total = row.querySelector('[data-order-total]');
+                const sync = function () {
+                    [amount, price].forEach(function (input) {
+                        const normalized = normalizeDecimal(input.value);
+                        const scaled = normalized === null ? null : decimalToScaled(input.value);
+                        const changed = normalized !== null && normalized !== input.dataset.originValue;
+                        input.classList.toggle('is-warning', changed);
+                        input.classList.toggle(
+                            'is-danger',
+                            normalized === null || (input === price && scaled <= 0n)
+                        );
+                    });
+
+                    const amountScaled = decimalToScaled(amount.value);
+                    const priceScaled = decimalToScaled(price.value);
+                    if (amountScaled === null || priceScaled === null || priceScaled <= 0n) {
+                        total.value = '—';
+                        return;
+                    }
+                    renderTotal(total, formatScaled((amountScaled * priceScaled) / scale));
+                };
+
+                amount.addEventListener('input', sync);
+                price.addEventListener('input', sync);
+                sync();
+            });
+        });
+    </script>
+
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    {% if changes %}
+        <div class="block">
+            <p class="has-text-weight-semibold mb-2">{{ 'tools_orders.changes.title'|trans }}</p>
+            {% for change in changes %}
+                <p class="block">
+                    {{ 'tools_orders.changes.order'|trans }}
+                    {{ include('token_link.twig', {token: change.selling}, with_context = false) }}
+                    →
+                    {{ include('token_link.twig', {token: change.buying}, with_context = false) }}
+                    {% if change.type == 'delete' %}
+                        {{ 'tools_orders.changes.deleted'|trans }}
+                    {% else %}
+                        {% if change.amount_changed and change.price_changed %}
+                            {{ 'tools_orders.changes.amount_and_price'|trans({
+                                '%old_amount%': change.old_amount,
+                                '%new_amount%': change.new_amount,
+                                '%old_price%': change.old_price,
+                                '%new_price%': change.new_price,
+                            }) }}
+                        {% elseif change.amount_changed %}
+                            {{ 'tools_orders.changes.amount'|trans({
+                                '%old_amount%': change.old_amount,
+                                '%new_amount%': change.new_amount,
+                            }) }}
+                        {% elseif change.price_changed %}
+                            {{ 'tools_orders.changes.price'|trans({
+                                '%old_price%': change.old_price,
+                                '%new_price%': change.new_price,
+                            }) }}
+                        {% endif %}
+                        {{ 'tools_orders.changes.expected_total'|trans({
+                            '%amount%': change.new_buying_amount,
+                            '%asset%': change.buying_code,
+                        }) }}
+                    {% endif %}
+                </p>
+            {% endfor %}
+        </div>
+    {% elseif no_changes %}
+        <article class="message is-success">
+            <div class="message-body">{{ 'tools_orders.no_changes'|trans }}</div>
+        </article>
+    {% endif %}
+
+    {% if signing_form %}
+        <article class="message is-info">
+            <div class="message-body">{{ 'tools_orders.signing.notice'|trans }}</div>
+        </article>
+        {{ signing_form|raw }}
+    {% endif %}
+
+    <form method="post" action="/tools/orders">
+        {% if current_account_param %}
+            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+        {% endif %}
+
+        {% if order_groups %}
+            <div class="field is-grouped my-5">
+                <div class="control">
+                    <button type="submit" name="action" value="save" class="button is-link">
+                        <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                        <span>{{ 'tools_orders.form.save'|trans }}</span>
+                    </button>
+                </div>
+            </div>
+
+            {% for group in order_groups %}
+                <div class="box">
+                    {% for direction in group.directions %}
+                        <h3 class="title is-5">
+                            {{ include('token_link.twig', {token: direction.selling}, with_context = false) }}
+                            →
+                            {{ include('token_link.twig', {token: direction.buying}, with_context = false) }}
+                        </h3>
+
+                        {% for order in direction.orders %}
+                            <div class="block" data-order_id="{{ order.id|e('html_attr') }}" data-order-row>
+                                <div class="field is-grouped is-grouped-multiline is-align-items-flex-end">
+                                    <div class="control">
+                                        <label class="label" for="order_{{ order.id }}_amount">{{ 'tools_orders.order.amount'|trans }}</label>
+                                        <input
+                                            class="input has-text-right{% if order.amount_changed %} is-warning{% endif %}"
+                                            id="order_{{ order.id }}_amount"
+                                            type="text"
+                                            size="12"
+                                            name="orders[{{ order.id }}][amount]"
+                                            value="{{ order.form_amount|e('html_attr') }}"
+                                            data-order-amount
+                                            data-origin-value="{{ order.amount|e('html_attr') }}"
+                                        >
+                                    </div>
+                                    <div class="control">
+                                        <label class="label" for="order_{{ order.id }}_price">{{ 'tools_orders.order.price'|trans }}</label>
+                                        <input
+                                            class="input has-text-right{% if order.price_changed %} is-warning{% endif %}"
+                                            id="order_{{ order.id }}_price"
+                                            type="text"
+                                            size="12"
+                                            name="orders[{{ order.id }}][price]"
+                                            value="{{ order.form_price|e('html_attr') }}"
+                                            data-order-price
+                                            data-origin-value="{{ order.price|e('html_attr') }}"
+                                        >
+                                    </div>
+                                    <div class="control">
+                                        <label class="label" for="order_{{ order.id }}_total">{{ 'tools_orders.order.buying_amount'|trans }}</label>
+                                        <input
+                                            class="input has-text-right"
+                                            id="order_{{ order.id }}_total"
+                                            type="text"
+                                            size="12"
+                                            value="{{ order.form_buying_amount|e('html_attr') }}"
+                                            data-order-total
+                                            readonly
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            {% endfor %}
+
+            <div class="field is-grouped my-5">
+                <div class="control">
+                    <button type="submit" name="action" value="save" class="button is-link">
+                        <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                        <span>{{ 'tools_orders.form.save'|trans }}</span>
+                    </button>
+                </div>
+            </div>
+        {% elseif not errors %}
+            <p class="block">{{ 'tools_orders.empty'|trans }}</p>
+        {% endif %}
+    </form>
+{% endblock %}

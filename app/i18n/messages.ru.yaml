@@ -25,6 +25,7 @@ nav:
     asset_swap: Приватный обмен активами
     migration: Переезд
     close_trustlines: Удалить линии доверия
+    orders: Ордера
     eurmtl_report: Отчет EURMTL
     timetoken: Таймтокен
     percent_pay: Выплата процентов
@@ -1438,6 +1439,34 @@ tools_close_trustlines:
     offers_not_loaded: Не удалось загрузить ордера аккаунта. Без них нельзя надежно подготовить удаление линий доверия.
     no_tokens_selected: Выберите хотя бы один токен для удаления линии доверия.
     token_not_zero: "Линию доверия %asset% нельзя удалить: актуальный баланс уже не нулевой или токен отсутствует."
+
+tools_orders:
+  title: Ордера
+  empty: У аккаунта нет активных ордеров.
+  no_changes: Изменений нет.
+  order:
+    amount: Количество
+    buying_amount: В итоге
+    price: Цена
+  form:
+    save: Сохранить (подготовить транзакцию)
+  changes:
+    title: Планируемые изменения
+    order: Ордер
+    deleted: удаляется
+    amount: "меняется количество с %old_amount% на %new_amount%,"
+    price: "меняется цена с %old_price% на %new_price%,"
+    amount_and_price: "меняется количество с %old_amount% на %new_amount% и цена с %old_price% на %new_price%,"
+    expected_total: "ожидая итого %amount% %asset%"
+  signing:
+    title: Подписание изменений ордеров
+    description: "Изменение ордеров аккаунта %account%"
+    notice: Проверьте план изменений перед подписанием транзакции.
+  errors:
+    account_not_found: Аккаунт не найден в Horizon.
+    offers_not_loaded: Не удалось загрузить ордера аккаунта из Horizon.
+    invalid_amount: "Для ордера #%offer% указано некорректное количество."
+    invalid_price: "Для ордера #%offer% указана некорректная цена."
 
 eurmtl_report_page:
   title: Отчет EURMTL

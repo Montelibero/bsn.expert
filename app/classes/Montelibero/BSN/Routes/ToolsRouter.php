@@ -9,6 +9,7 @@ use Montelibero\BSN\Controllers\EurmtlReportController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MigrationController;
 use Montelibero\BSN\Controllers\MtlaRpExclusionController;
+use Montelibero\BSN\Controllers\OrdersController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\DecisionTransactionsController;
@@ -47,6 +48,10 @@ class ToolsRouter
         SimpleRouter::match(['get', 'post'], '/close_trustlines', function () use ($Container) {
             return $Container->get(CloseTrustlinesController::class)->CloseTrustlines();
         })->name('tool_close_trustlines');
+
+        SimpleRouter::match(['get', 'post'], '/orders', function () use ($Container) {
+            return $Container->get(OrdersController::class)->Orders();
+        })->name('tool_orders');
 
         SimpleRouter::get('/eurmtl_report', function () use ($Container) {
             return $Container->get(EurmtlReportController::class)->EurmtlReport();

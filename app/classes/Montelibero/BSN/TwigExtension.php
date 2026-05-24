@@ -50,12 +50,16 @@ class TwigExtension extends AbstractExtension
         return substr($hash, 0, 6) . '…' . substr($hash, -6);
     }
 
-    public function splitAmount($value): array
+    public function splitAmount($value, ?int $scale = null): array
     {
         $value = (string) $value;
         $parts = explode('.', $value, 2);
         $int = $parts[0] === '' ? '0' : $parts[0];
         $frac = $parts[1] ?? '';
+        if ($scale !== null) {
+            $scale = max(0, $scale);
+            $frac = str_pad(substr($frac, 0, $scale), $scale, '0');
+        }
 
         if ($frac === '') {
             return [

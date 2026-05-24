@@ -25,6 +25,7 @@ nav:
     asset_swap: Private Asset Swap
     migration: Migration
     close_trustlines: Close trustlines
+    orders: Orders
     eurmtl_report: EURMTL Report
     timetoken: Timetoken
     percent_pay: Bulk Percent Payment
@@ -1436,6 +1437,34 @@ tools_close_trustlines:
     offers_not_loaded: Failed to load account offers. Trustlines cannot be closed reliably without them.
     no_tokens_selected: Select at least one token to close its trustline.
     token_not_zero: "Trustline %asset% cannot be closed: its latest balance is no longer zero or the token is missing."
+
+tools_orders:
+  title: Orders
+  empty: This account has no active orders.
+  no_changes: No changes.
+  order:
+    amount: Amount
+    buying_amount: Total
+    price: Price
+  form:
+    save: Save (prepare transaction)
+  changes:
+    title: Planned changes
+    order: Order
+    deleted: will be deleted
+    amount: "changes amount from %old_amount% to %new_amount%,"
+    price: "changes price from %old_price% to %new_price%,"
+    amount_and_price: "changes amount from %old_amount% to %new_amount% and price from %old_price% to %new_price%,"
+    expected_total: "expecting total %amount% %asset%"
+  signing:
+    title: Sign order changes
+    description: "Order changes for %account%"
+    notice: Check the planned changes before signing the transaction.
+  errors:
+    account_not_found: Account was not found in Horizon.
+    offers_not_loaded: Failed to load account orders from Horizon.
+    invalid_amount: "Invalid amount for order #%offer%."
+    invalid_price: "Invalid price for order #%offer%."
 
 eurmtl_report_page:
   title: EURMTL Report

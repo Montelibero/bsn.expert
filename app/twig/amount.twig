@@ -1,4 +1,5 @@
-{% set parts = value|split_amount -%}
+{% set amount_scale = scale|default(null) -%}
+{% set parts = value|split_amount(amount_scale) -%}
 <span class="amount_container">
     <span class="amount_int">{{ parts.int }}</span>
     {%- if parts.has_fraction -%}
@@ -6,7 +7,7 @@
             <span class="has-text-grey">.{{ parts.frac_trailing }}</span>
         {%- else -%}
             <span>.{{ parts.frac_main }}</span>
-            {%- if parts.frac_trailing -%}
+            {%- if parts.frac_trailing is not same as('') -%}
             <span class="has-text-grey">{{ parts.frac_trailing }}</span>
             {%- endif -%}
         {%- endif -%}
