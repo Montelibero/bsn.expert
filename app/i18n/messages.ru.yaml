@@ -1443,11 +1443,13 @@ tools_close_trustlines:
 tools_orders:
   title: Ордера
   empty: У аккаунта нет активных ордеров.
+  instruction: Здесь можно проверить и отредактировать все ваши обменные ордера на встроенной бирже Stellar. Чтобы удалить ордер, установите «Количество» в ноль.
   no_changes: Изменений нет.
   order:
     amount: Количество
     buying_amount: В итоге
     price: Цена
+    reverse_price: Обратная
   form:
     save: Сохранить (подготовить транзакцию)
   changes:

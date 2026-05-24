@@ -160,6 +160,7 @@ final class OrdersController
             'buying_amount' => $buying_amount,
             'form_amount' => $this->shortDecimal($amount),
             'form_price' => $this->shortDecimal($normalized_price),
+            'form_reverse_price' => $this->reversePrice($normalized_price),
             'form_buying_amount' => $this->shortDecimal($buying_amount),
             'amount_changed' => false,
             'price_changed' => false,
@@ -196,6 +197,7 @@ final class OrdersController
 
             $order['form_amount'] = $this->shortDecimal($amount);
             $order['form_price'] = $this->shortDecimal($price);
+            $order['form_reverse_price'] = $this->reversePrice($price);
             $order['form_buying_amount'] = $this->shortDecimal($this->stellarDecimal(bcmul($amount, $price, 7)));
             $order['amount_changed'] = $amount !== $order['amount'];
             $order['price_changed'] = $price !== $order['price'];
@@ -297,6 +299,15 @@ final class OrdersController
     {
         $amount = rtrim(rtrim($amount, '0'), '.');
         return $amount === '' ? '0' : $amount;
+    }
+
+    private function reversePrice(string $price): string
+    {
+        if (bccomp($price, '0', 7) <= 0) {
+            return '—';
+        }
+
+        return $this->shortDecimal(number_format(round(1 / (float) $price, 7), 7, '.', ''));
     }
 
     private function stellarDecimal(string $amount): string

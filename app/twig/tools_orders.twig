@@ -14,6 +14,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const scale = 10000000n;
+            const reversePriceLabel = '{{ 'tools_orders.order.reverse_price'|trans|e('js') }}';
 
             function normalizeDecimal(value) {
                 const normalized = String(value || '').trim().replace(',', '.');
@@ -54,9 +55,19 @@
                 input.value = shortDecimal(value) || '—';
             }
 
+            function renderReversePrice(container, priceScaled) {
+                if (priceScaled === null || priceScaled <= 0n) {
+                    container.textContent = reversePriceLabel + ': ≈ —';
+                    return;
+                }
+
+                container.textContent = reversePriceLabel + ': ≈ ' + shortDecimal(formatScaled(((scale * scale) + (priceScaled / 2n)) / priceScaled));
+            }
+
             document.querySelectorAll('[data-order-row]').forEach(function (row) {
                 const amount = row.querySelector('[data-order-amount]');
                 const price = row.querySelector('[data-order-price]');
+                const reversePrice = row.querySelector('[data-order-reverse-price]');
                 const total = row.querySelector('[data-order-total]');
                 const sync = function () {
                     [amount, price].forEach(function (input) {
@@ -72,6 +83,7 @@
 
                     const amountScaled = decimalToScaled(amount.value);
                     const priceScaled = decimalToScaled(price.value);
+                    renderReversePrice(reversePrice, priceScaled);
                     if (amountScaled === null || priceScaled === null || priceScaled <= 0n) {
                         total.value = '—';
                         return;
@@ -147,6 +159,8 @@
         {% endif %}
 
         {% if order_groups %}
+            <p class="block">{{ 'tools_orders.instruction'|trans }}</p>
+
             <div class="field is-grouped my-5">
                 <div class="control">
                     <button type="submit" name="action" value="save" class="button is-link">
@@ -174,12 +188,13 @@
                                             class="input has-text-right{% if order.amount_changed %} is-warning{% endif %}"
                                             id="order_{{ order.id }}_amount"
                                             type="text"
-                                            size="12"
+                                            size="13"
                                             name="orders[{{ order.id }}][amount]"
                                             value="{{ order.form_amount|e('html_attr') }}"
                                             data-order-amount
                                             data-origin-value="{{ order.amount|e('html_attr') }}"
                                         >
+                                        <p class="help has-text-right">{{ order.selling.code|default(order.selling.label) }}</p>
                                     </div>
                                     <div class="control">
                                         <label class="label" for="order_{{ order.id }}_price">{{ 'tools_orders.order.price'|trans }}</label>
@@ -187,12 +202,13 @@
                                             class="input has-text-right{% if order.price_changed %} is-warning{% endif %}"
                                             id="order_{{ order.id }}_price"
                                             type="text"
-                                            size="12"
+                                            size="13"
                                             name="orders[{{ order.id }}][price]"
                                             value="{{ order.form_price|e('html_attr') }}"
                                             data-order-price
                                             data-origin-value="{{ order.price|e('html_attr') }}"
                                         >
+                                        <p class="help has-text-right" data-order-reverse-price>{{ 'tools_orders.order.reverse_price'|trans }}: ≈ {{ order.form_reverse_price }}</p>
                                     </div>
                                     <div class="control">
                                         <label class="label" for="order_{{ order.id }}_total">{{ 'tools_orders.order.buying_amount'|trans }}</label>
@@ -200,11 +216,12 @@
                                             class="input has-text-right"
                                             id="order_{{ order.id }}_total"
                                             type="text"
-                                            size="12"
+                                            size="13"
                                             value="{{ order.form_buying_amount|e('html_attr') }}"
                                             data-order-total
                                             readonly
                                         >
+                                        <p class="help has-text-right">{{ order.buying.code|default(order.buying.label) }}</p>
                                     </div>
                                 </div>
                             </div>

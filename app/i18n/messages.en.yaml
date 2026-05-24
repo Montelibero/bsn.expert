@@ -1441,11 +1441,13 @@ tools_close_trustlines:
 tools_orders:
   title: Orders
   empty: This account has no active orders.
+  instruction: Here you can review and edit all your exchange orders on Stellar's built-in exchange. To delete an order, set Amount to zero.
   no_changes: No changes.
   order:
     amount: Amount
     buying_amount: Total
     price: Price
+    reverse_price: Reverse
   form:
     save: Save (prepare transaction)
   changes:
