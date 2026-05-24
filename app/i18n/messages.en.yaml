@@ -1484,7 +1484,8 @@ tools_orders_new:
     price: Price
     price_help: Amount of received tokens per one sold token.
     reverse_price: Reverse price
-    reverse_price_help: Calculated reverse rate, approximate.
+    reverse_price_help: Amount of sold tokens per one received token.
+    reverse_price_help_extra: This is a calculated approximate value; the created order will use the main price.
     total: Total
     total_help: How many tokens you can receive in total.
     save: Create transaction
