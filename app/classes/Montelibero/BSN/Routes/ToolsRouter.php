@@ -6,6 +6,7 @@ use DI\Container;
 use Montelibero\BSN\Controllers\AssetSwapController;
 use Montelibero\BSN\Controllers\CloseTrustlinesController;
 use Montelibero\BSN\Controllers\EurmtlReportController;
+use Montelibero\BSN\Controllers\EurmtlReport2Controller;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MigrationController;
 use Montelibero\BSN\Controllers\MtlaRpExclusionController;
@@ -60,6 +61,10 @@ class ToolsRouter
         SimpleRouter::get('/eurmtl_report', function () use ($Container) {
             return $Container->get(EurmtlReportController::class)->EurmtlReport();
         })->name('tool_eurmtl_report');
+
+        SimpleRouter::get('/eurmtl_report2', function () use ($Container) {
+            return $Container->get(EurmtlReport2Controller::class)->EurmtlReport2();
+        })->name('tool_eurmtl_report2');
 
         SimpleRouter::match(['get', 'post'], '/mtla/membership_distribution', function () use ($Container) {
             return $Container->get(MembershipDistributionController::class)->MtlaMembershipDistribution();

@@ -27,6 +27,7 @@ nav:
     close_trustlines: Удалить линии доверия
     orders: Ордера
     eurmtl_report: Отчет EURMTL
+    eurmtl_report2: EURMTL ясно
     timetoken: Таймтокен
     percent_pay: Выплата процентов
     xdr2lab: XDR to LAB
@@ -1604,6 +1605,49 @@ eurmtl_report_page:
     pool_unclassified: Пулы без классификации владельца
     claimable: EURMTL в claimable balances
     contracts: EURMTL в contracts
+
+eurmtl_report2_page:
+  title: EURMTL ясно
+  header: "EURMTL: где деньги"
+  description: Короткий серверный снапшот рынка EURMTL, источников выпуска и покрытия.
+  warning: Не удалось получить свежие данные, показан кеш.
+  issued: Выпущено
+  coverage: Покрытие
+  asset: Актив
+  amount: Количество
+  account: Аккаунт
+  total: Итого
+  eurmtl_direct: EURMTL на счету
+  eurmtl_pool: EURMTL в пулах
+  cash: Кеш
+  market_maker: Маркетмейкер
+  fund: Фонд
+  coverage_sources: Источники выпуска и покрытия
+  headline:
+    market: EURMTL на рынке
+    cash: Кеш у казначеев
+    mm: ММ выпустил / покрытие
+    fund: Баланс фонда
+  where_money:
+    title: Где рыночные EURMTL
+    market_holders: На счетах рыночных держателей
+    market_pools: В пулах рыночных держателей
+    off_account: Claimable balances и contracts
+    total: На рынке всего
+  treasuries:
+    title: Классические казначеи
+  aggregates:
+    title: Контрольные агрегаты
+    debt_gap: Debt-gap источников
+    claimable: EURMTL в claimable balances
+    contracts: EURMTL в contracts
+    fund_pools: EURMTL в пулах фонда
+    unclassified_pools: EURMTL в пулах без классификации владельца
+    coverage: Оцененное покрытие всего
+  holders:
+    title: Рыночные держатели EURMTL
+    holder: Держатель
+    other: Вне счетов
 
 crowd_page:
   title: Сборы

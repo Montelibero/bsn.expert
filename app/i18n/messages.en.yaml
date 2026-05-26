@@ -27,6 +27,7 @@ nav:
     close_trustlines: Close trustlines
     orders: Orders
     eurmtl_report: EURMTL Report
+    eurmtl_report2: EURMTL Clear
     timetoken: Timetoken
     percent_pay: Bulk Percent Payment
     xdr2lab: XDR to LAB
@@ -1602,6 +1603,49 @@ eurmtl_report_page:
     pool_unclassified: Pools without owner classification
     claimable: EURMTL in claimable balances
     contracts: EURMTL in contracts
+
+eurmtl_report2_page:
+  title: EURMTL Clear
+  header: "EURMTL: where the money is"
+  description: Compact server-side snapshot of EURMTL market supply, issuance sources, and coverage.
+  warning: Fresh data could not be fetched; cached data is shown.
+  issued: Issued
+  coverage: Coverage
+  asset: Asset
+  amount: Amount
+  account: Account
+  total: Total
+  eurmtl_direct: EURMTL on account
+  eurmtl_pool: EURMTL in pools
+  cash: Cash
+  market_maker: Market maker
+  fund: Fund
+  coverage_sources: Issuance and coverage sources
+  headline:
+    market: EURMTL on market
+    cash: Treasury cash
+    mm: MM issued / coverage
+    fund: Fund balance
+  where_money:
+    title: Where market EURMTL is
+    market_holders: On market-holder accounts
+    market_pools: In market-holder pools
+    off_account: Claimable balances and contracts
+    total: Total on market
+  treasuries:
+    title: Classic treasuries
+  aggregates:
+    title: Control aggregates
+    debt_gap: Source debt-gap
+    claimable: EURMTL in claimable balances
+    contracts: EURMTL in contracts
+    fund_pools: EURMTL in fund-owned pools
+    unclassified_pools: EURMTL in pools without owner classification
+    coverage: Total estimated coverage
+  holders:
+    title: Market EURMTL holders
+    holder: Holder
+    other: Off-account
 
 crowd_page:
   title: Crowd

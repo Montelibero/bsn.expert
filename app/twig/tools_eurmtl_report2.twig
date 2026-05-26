@@ -1,0 +1,273 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'eurmtl_report2_page.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools/">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'eurmtl_report2_page.title'|trans }}</a></li>
+{% endblock %}
+
+{% macro amount(value) %}
+    <span>{{ value|round(0, 'common')|number_format(0, '.', ' ') }}</span>
+{% endmacro %}
+
+{% macro signed_amount(value) %}
+    {% set numeric = value + 0 %}
+    <span>{{ numeric > 0 ? '+' : '' }}{{ numeric|round(0, 'common')|number_format(0, '.', ' ') }}</span>
+{% endmacro %}
+
+{% macro rate(value) %}
+    {% if value is null %}
+        &mdash;
+    {% else %}
+        {% set numeric = value + 0 %}
+        {% if numeric >= 1 %}
+            {{ numeric|number_format(4, '.', ' ') }}
+        {% elseif numeric >= 0.01 %}
+            {{ numeric|number_format(6, '.', ' ') }}
+        {% else %}
+            {{ numeric|number_format(8, '.', ' ') }}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+{% macro account_list(accounts) %}
+    {% for account in accounts %}
+        {{ include('account_link.twig', {data: account}, with_context = false) }}{% if not loop.last %}<br>{% endif %}
+    {% endfor %}
+{% endmacro %}
+
+{% macro pool_link(pool) %}
+    {% set label = pool.label ?? pool.pool_label ?? pool.short_id ?? pool.pool_short_id %}
+    {% if pool.stellarx_url %}
+        <a href="{{ pool.stellarx_url }}" target="_blank" rel="noopener noreferrer">{{ label }}</a>
+    {% else %}
+        <span>{{ label }}</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro source_block(title, group) %}
+    <div class="box">
+        <h3 class="title is-5">{{ title }}</h3>
+        <p class="block">
+            {% for account in group['direct']['accounts'] %}
+                {{ include('account_link.twig', {data: account}, with_context = false) }}{% if not loop.last %}<br>{% endif %}
+            {% endfor %}
+        </p>
+        <div class="columns is-mobile is-multiline">
+            <div class="column is-6">
+                <p class="heading">EURDEBT</p>
+                <p class="title is-6">{{ group['direct']['eurdebt_direct']|round(0, 'common')|number_format(0, '.', ' ') }}</p>
+            </div>
+            <div class="column is-6">
+                <p class="heading">EURMTL</p>
+                <p class="title is-6">{{ (group['direct']['eurmtl_direct'] + group['direct']['eurmtl_pool'])|round(0, 'common')|number_format(0, '.', ' ') }}</p>
+            </div>
+            <div class="column is-6">
+                <p class="heading">{{ 'eurmtl_report2_page.issued'|trans }}</p>
+                <p class="title is-6">{{ group['direct']['market_amount']|round(0, 'common')|number_format(0, '.', ' ') }}</p>
+            </div>
+            <div class="column is-6">
+                <p class="heading">{{ 'eurmtl_report2_page.coverage'|trans }}</p>
+                <p class="title is-6">{{ (group['valuation']['total_eur'] ?? '0')|round(0, 'common')|number_format(0, '.', ' ') }}</p>
+            </div>
+        </div>
+        {% if group['valuation']['rows'] %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>{{ 'eurmtl_report2_page.asset'|trans }}</th>
+                        <th class="has-text-right">{{ 'eurmtl_report2_page.amount'|trans }}</th>
+                        <th class="has-text-right">EUR</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in group['valuation']['rows'] %}
+                        <tr>
+                            <td>{{ include('token_link.twig', {token: row.asset|merge({amount: row.amount|round(0, 'common')|number_format(0, '.', ' ')})}, with_context = false) }}</td>
+                            <td class="has-text-right">{{ row['amount']|round(0, 'common')|number_format(0, '.', ' ') }}</td>
+                            <td class="has-text-right">{{ row['value_eur'] is null ? '—' : row['value_eur']|round(0, 'common')|number_format(0, '.', ' ') }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% import _self as ui %}
+
+{% block content %}
+    <script>
+        $(function () {
+            $(".table").tablesorter();
+        });
+    </script>
+
+    <h1 class="title">{{ 'eurmtl_report2_page.header'|trans }}</h1>
+    <p class="block">{{ 'eurmtl_report2_page.description'|trans }}</p>
+
+    {% if snapshot.warning %}
+        <div class="notification is-warning">
+            {{ 'eurmtl_report2_page.warning'|trans }}<br>
+            <code>{{ snapshot.warning }}</code>
+        </div>
+    {% endif %}
+
+    {% set totals = snapshot.totals ?? {} %}
+    <div class="columns is-multiline">
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'eurmtl_report2_page.headline.market'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.preliminary_market_estimate ?? '0') }}</p>
+            </div>
+        </div>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'eurmtl_report2_page.headline.cash'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.legacy_treasury_market_amount ?? '0') }}</p>
+            </div>
+        </div>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'eurmtl_report2_page.headline.mm'|trans }}</p>
+                <p class="title is-4">{{ ui.amount(totals.market_maker_market_amount ?? '0') }} / {{ ui.amount(snapshot.market_maker.valuation.total_eur ?? '0') }}</p>
+            </div>
+        </div>
+        <div class="column is-12-mobile is-6-tablet is-3-desktop">
+            <div class="box">
+                <p class="heading">{{ 'eurmtl_report2_page.headline.fund'|trans }}</p>
+                <p class="title is-4">{{ ui.signed_amount(totals.fund_balance_eur ?? '0') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report2_page.where_money.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <tbody>
+            <tr>
+                <th>{{ 'eurmtl_report2_page.where_money.market_holders'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_direct ?? '0') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report2_page.where_money.market_pools'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_pool ?? '0') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report2_page.where_money.off_account'|trans }}</th>
+                <td class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_other ?? '0') }}</td>
+            </tr>
+            <tr>
+                <th>{{ 'eurmtl_report2_page.where_money.total'|trans }}</th>
+                <td class="has-text-right has-text-weight-semibold">{{ ui.amount(totals.preliminary_market_estimate ?? '0') }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report2_page.coverage_sources'|trans }}</h2>
+    <div class="columns is-multiline">
+        <div class="column is-12-tablet is-4-desktop">{{ ui.source_block('eurmtl_report2_page.market_maker'|trans, snapshot.market_maker) }}</div>
+        <div class="column is-12-tablet is-4-desktop">{{ ui.source_block('BTPOOL', snapshot.btpool) }}</div>
+        <div class="column is-12-tablet is-4-desktop">{{ ui.source_block('eurmtl_report2_page.fund'|trans, snapshot.fund) }}</div>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report2_page.treasuries.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable" data-sortlist="[[4,1]]">
+            <thead>
+            <tr>
+                <th>{{ 'eurmtl_report2_page.account'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">EURDEBT</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report2_page.eurmtl_direct'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report2_page.eurmtl_pool'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report2_page.cash'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for treasury in snapshot.treasuries %}
+                <tr>
+                    <td>{{ include('account_link.twig', {data: treasury.account}, with_context = false) }}</td>
+                    <td class="has-text-right" data-text="{{ treasury.eurdebt_direct }}">{{ ui.amount(treasury.eurdebt_direct) }}</td>
+                    <td class="has-text-right" data-text="{{ treasury.eurmtl_direct }}">{{ ui.amount(treasury.eurmtl_direct) }}</td>
+                    <td class="has-text-right" data-text="{{ treasury.eurmtl_pool }}">{{ ui.amount(treasury.eurmtl_pool) }}</td>
+                    <td class="has-text-right" data-text="{{ treasury.market_amount }}">{{ ui.amount(treasury.market_amount) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+            <tr>
+                <th>{{ 'eurmtl_report2_page.total'|trans }}</th>
+                <th class="has-text-right">{{ ui.amount(totals.treasury_eurdebt ?? '0') }}</th>
+                <th class="has-text-right">{{ ui.amount(totals.treasury_eurmtl_direct ?? '0') }}</th>
+                <th class="has-text-right">{{ ui.amount(totals.treasury_eurmtl_pool ?? '0') }}</th>
+                <th class="has-text-right">{{ ui.amount(totals.legacy_treasury_market_amount ?? '0') }}</th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report2_page.aggregates.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <tbody>
+            <tr><th>{{ 'eurmtl_report2_page.aggregates.debt_gap'|trans }}</th><td class="has-text-right">{{ ui.amount(totals.debt_gap_market_amount ?? '0') }}</td></tr>
+            <tr><th>{{ 'eurmtl_report2_page.aggregates.claimable'|trans }}</th><td class="has-text-right">{{ ui.amount(totals.claimable_eurmtl ?? '0') }}</td></tr>
+            <tr><th>{{ 'eurmtl_report2_page.aggregates.contracts'|trans }}</th><td class="has-text-right">{{ ui.amount(totals.contracts_eurmtl ?? '0') }}</td></tr>
+            <tr><th>{{ 'eurmtl_report2_page.aggregates.fund_pools'|trans }}</th><td class="has-text-right">{{ ui.amount(totals.issuer_owned_pool_eurmtl ?? '0') }}</td></tr>
+            <tr><th>{{ 'eurmtl_report2_page.aggregates.unclassified_pools'|trans }}</th><td class="has-text-right">{{ ui.amount(totals.pool_unclassified_eurmtl ?? '0') }}</td></tr>
+            <tr><th>{{ 'eurmtl_report2_page.aggregates.coverage'|trans }}</th><td class="has-text-right">{{ ui.amount(totals.coverage_eur ?? '0') }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="title is-4">{{ 'eurmtl_report2_page.holders.title'|trans }}</h2>
+    <div class="table-container block">
+        <table class="table is-fullwidth is-striped is-hoverable" data-sortlist="[[4,1]]">
+            <thead>
+            <tr>
+                <th>{{ 'eurmtl_report2_page.holders.holder'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report2_page.eurmtl_direct'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report2_page.eurmtl_pool'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report2_page.holders.other'|trans }}</th>
+                <th data-sorter="digit" class="has-text-right">{{ 'eurmtl_report2_page.total'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for holder in snapshot.market_holders.rows %}
+                <tr>
+                    <td>
+                        {% if holder.account %}
+                            {{ include('account_link.twig', {data: holder.account}, with_context = false) }}
+                        {% else %}
+                            {{ holder.label }}
+                        {% endif %}
+                    </td>
+                    <td class="has-text-right" data-text="{{ holder.eurmtl_direct }}">{{ ui.amount(holder.eurmtl_direct) }}</td>
+                    <td class="has-text-right" data-text="{{ holder.eurmtl_pool }}">{{ ui.amount(holder.eurmtl_pool) }}</td>
+                    <td class="has-text-right" data-text="{{ holder.eurmtl_other }}">{{ ui.amount(holder.eurmtl_other) }}</td>
+                    <td class="has-text-right" data-text="{{ holder.eurmtl_total }}">{{ ui.amount(holder.eurmtl_total) }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+            <tr>
+                <th>{{ 'eurmtl_report2_page.total'|trans }}</th>
+                <th class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_direct ?? '0') }}</th>
+                <th class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_pool ?? '0') }}</th>
+                <th class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_other ?? '0') }}</th>
+                <th class="has-text-right">{{ ui.amount(snapshot.market_holders.totals.eurmtl_total ?? '0') }}</th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    {% include 'mtla_snapshot_box.twig' with {
+        snapshot: snapshot,
+        refresh: refresh
+    } only %}
+{% endblock %}
