@@ -23,6 +23,7 @@ nav:
     title: Tools
     multisig: Multisig Editor
     asset_swap: Private Asset Swap
+    swap: Token Swap
     migration: Migration
     close_trustlines: Close trustlines
     orders: Orders
@@ -1318,6 +1319,45 @@ tools_asset_swap:
     receiver_limit: "%side% cannot receive %asset%: trustline limit is too low."
     reserve_not_checked: "Failed to check XLM reserve: %side%."
     reserve_missing: "%side% does not have enough free XLM to open the trustline: %required% XLM required, %available% XLM available."
+
+tools_swap:
+  title: Token Swap
+  account: "Account:"
+  form:
+    send_asset: Tokens to send
+    destination: Send to
+    destination_help: By default, send to yourself. You can enter another Stellar account.
+    receive_asset: Tokens to receive
+    receive_asset_help: The list is built from the recipient trustlines.
+    fix: Which side is fixed, sent or received?
+    amount: Amount
+    slippage: Slippage, percent
+    slippage_help: Allowed deviation of the changing payment side compared with the quote.
+    apply: Apply
+  preview:
+    strict_send_prefix: Swap
+    strict_send_middle: approximately for
+    strict_send_suffix: "(at least %min_amount%)"
+    strict_receive_prefix: Swap approximately
+    strict_receive_middle: "(at most %max_amount%) for"
+    to: for
+  signing:
+    title: Sign token swap
+    description: Token swap
+  errors:
+    source_not_found: Sender account was not found in Horizon.
+    destination_invalid: Provide a valid recipient Stellar account.
+    destination_not_found: Recipient account was not found in Horizon.
+    invalid_send_asset: Choose the token you are sending.
+    invalid_receive_asset: Choose the token you want to receive.
+    same_assets: You cannot swap a token for itself.
+    invalid_amount: Enter a valid amount greater than zero.
+    invalid_slippage: Enter a valid slippage from 0 to 100 percent.
+    paths_failed: Failed to request swap paths from Horizon.
+    no_path: No swap path was found for the selected tokens.
+    amount_exceeds_available: "You cannot send more than %available% %asset%: this is the currently available amount."
+    receive_limit: "Recipient cannot receive %asset%: trustline limit is too low."
+    transaction_failed: Failed to prepare the swap transaction.
 
 tools_migration:
   title: Migration

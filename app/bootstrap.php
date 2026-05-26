@@ -35,6 +35,7 @@ use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\ProfileEditorController;
 use Montelibero\BSN\Controllers\SearchController;
 use Montelibero\BSN\Controllers\SingleAccountEditTagsController;
+use Montelibero\BSN\Controllers\SwapController;
 use Montelibero\BSN\Controllers\TokensController;
 use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\TagsController;
@@ -300,6 +301,7 @@ $ContainerBuilder->addDefinitions([
     ErrorController::class => autowire(),
     TransactionsController::class => autowire(),
     AssetSwapController::class => autowire(),
+    SwapController::class => autowire(),
     MigrationController::class => autowire(),
     EurmtlReportController::class => autowire(),
     StellarAccountReserveCalculator::class => autowire(),

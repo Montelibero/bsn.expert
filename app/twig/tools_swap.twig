@@ -1,0 +1,153 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_swap.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_swap.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_swap.title'|trans }}</h1>
+
+    <p class="block">
+        {{ 'tools_swap.account'|trans }}
+        {{ include('account_link.twig', {data: account}, with_context = false) }}
+    </p>
+
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    {% if preview %}
+        <p class="block">
+            {% if preview.mode == 'send' %}
+                {{ 'tools_swap.preview.strict_send_prefix'|trans }}
+                {{ include('token_link.twig', {token: preview.send, amount: preview.source_amount}, with_context = false) }}
+                {{ 'tools_swap.preview.strict_send_middle'|trans }}
+                {{ include('token_link.twig', {token: preview.receive, amount: preview.destination_amount}, with_context = false) }}
+                {{ 'tools_swap.preview.strict_send_suffix'|trans({'%min_amount%': preview.dest_min}) }}
+            {% else %}
+                {{ 'tools_swap.preview.strict_receive_prefix'|trans }}
+                {{ include('token_link.twig', {token: preview.send, amount: preview.source_amount}, with_context = false) }}
+                {{ 'tools_swap.preview.strict_receive_middle'|trans({'%max_amount%': preview.send_max}) }}
+                {{ include('token_link.twig', {token: preview.receive, amount: preview.destination_amount}, with_context = false) }}
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {% if signing_form %}
+        {{ signing_form|raw }}
+    {% endif %}
+
+    <form method="get" action="/tools/swap" data-swap-form>
+        {% if current_account_param %}
+            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+        {% endif %}
+
+        <div class="field">
+            <label class="label" for="swap_send_asset">{{ 'tools_swap.form.send_asset'|trans }}</label>
+            <div class="control">
+                <div class="select">
+                    <select id="swap_send_asset" name="send_asset" required data-swap-submit-on-change>
+                        {% for token in source_tokens %}
+                            <option
+                                value="{{ token.key|e('html_attr') }}"
+                                {% if token.key == values.send_asset %}selected{% endif %}
+                                {% if token.disabled %}disabled{% endif %}
+                            >
+                                {{ token.option_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="swap_destination">{{ 'tools_swap.form.destination'|trans }}</label>
+            <div class="control">
+                <input
+                    class="input is-family-monospace"
+                    id="swap_destination"
+                    name="destination"
+                    value="{{ values.destination|e('html_attr') }}"
+                    placeholder="{{ source_account_id }}"
+                    data-account-autocomplete-input
+                >
+            </div>
+            <p class="help">{{ 'tools_swap.form.destination_help'|trans }}</p>
+        </div>
+
+        <div class="field">
+            <label class="label" for="swap_receive_asset">{{ 'tools_swap.form.receive_asset'|trans }}</label>
+            <div class="control">
+                <div class="select">
+                    <select id="swap_receive_asset" name="receive_asset" required data-swap-submit-on-change>
+                        {% for token in destination_tokens %}
+                            <option value="{{ token.key|e('html_attr') }}" {% if token.key == values.receive_asset %}selected{% endif %}>
+                                {{ token.option_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <p class="help">{{ 'tools_swap.form.receive_asset_help'|trans }}</p>
+        </div>
+
+        {% if selected_send and selected_receive %}
+            <div class="field">
+                <label class="label">{{ 'tools_swap.form.fix'|trans }}</label>
+                <div class="control">
+                    <label class="radio">
+                        <input type="radio" name="fix" value="send" {% if values.fix == 'send' %}checked{% endif %}>
+                        {{ include('token_link.twig', {token: selected_send}, with_context = false) }}
+                    </label>
+                    <label class="radio">
+                        <input type="radio" name="fix" value="receive" {% if values.fix == 'receive' %}checked{% endif %}>
+                        {{ include('token_link.twig', {token: selected_receive}, with_context = false) }}
+                    </label>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="swap_amount">{{ 'tools_swap.form.amount'|trans }}</label>
+                <div class="control">
+                    <input class="input" id="swap_amount" name="amount" value="{{ values.amount|e('html_attr') }}" inputmode="decimal">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="swap_slippage">{{ 'tools_swap.form.slippage'|trans }}</label>
+                <div class="control">
+                    <input class="input" id="swap_slippage" name="slippage" value="{{ values.slippage|e('html_attr') }}" inputmode="decimal">
+                </div>
+                <p class="help">{{ 'tools_swap.form.slippage_help'|trans }}</p>
+            </div>
+        {% endif %}
+
+        <div class="field">
+            <div class="control">
+                <button type="submit" name="action" value="apply" class="button is-link">
+                    <span class="icon"><i class="fa-solid fa-check"></i></span>
+                    <span>{{ 'tools_swap.form.apply'|trans }}</span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('[data-swap-form]');
+            if (!form) {
+                return;
+            }
+            form.querySelectorAll('[data-swap-submit-on-change]').forEach(function (control) {
+                control.addEventListener('change', function () {
+                    form.requestSubmit();
+                });
+            });
+        });
+    </script>
+{% endblock %}

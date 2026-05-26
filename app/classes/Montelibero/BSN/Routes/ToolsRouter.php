@@ -16,6 +16,7 @@ use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\DecisionTransactionsController;
 use Montelibero\BSN\Controllers\RecommendVerificationController;
 use Montelibero\BSN\Controllers\SendTimeTokensController;
+use Montelibero\BSN\Controllers\SwapController;
 use Montelibero\BSN\Controllers\TimeTokenController;
 use Montelibero\BSN\Controllers\VotesController;
 use Montelibero\BSN\Controllers\XdrToLabController;
@@ -41,6 +42,10 @@ class ToolsRouter
         SimpleRouter::get('/asset_swap', function () use ($Container) {
             return $Container->get(AssetSwapController::class)->AssetSwap();
         })->name('tool_asset_swap');
+
+        SimpleRouter::get('/swap', function () use ($Container) {
+            return $Container->get(SwapController::class)->Swap();
+        })->name('tool_swap');
 
         SimpleRouter::match(['get', 'post'], '/migration', function () use ($Container) {
             return $Container->get(MigrationController::class)->Migration();

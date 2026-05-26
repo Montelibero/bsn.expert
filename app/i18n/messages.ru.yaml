@@ -23,6 +23,7 @@ nav:
     title: Инструменты
     multisig: Редактор мультиподписи
     asset_swap: Приватный обмен активами
+    swap: Обмен токенов
     migration: Переезд
     close_trustlines: Удалить линии доверия
     orders: Ордера
@@ -1320,6 +1321,45 @@ tools_asset_swap:
     receiver_limit: "%side% не сможет принять %asset%: не хватает лимита линии доверия."
     reserve_not_checked: "Не удалось проверить резерв XLM: %side%."
     reserve_missing: "%side% не хватает свободных XLM для открытия линии доверия: нужно %required% XLM, доступно %available% XLM."
+
+tools_swap:
+  title: Обмен токенов
+  account: "Аккаунт:"
+  form:
+    send_asset: Какие токены отправлять
+    destination: Кому отправить
+    destination_help: По умолчанию отправляем самому себе. Можно указать другой Stellar-аккаунт.
+    receive_asset: Какие токены прислать
+    receive_asset_help: Список строится по линиям доверия получателя.
+    fix: Что фиксируем, отправляемое или получаемое?
+    amount: Сколько
+    slippage: Проскальзывание, в процентах
+    slippage_help: Допустимое отклонение изменяемой части платежа по сравнению с расчётной.
+    apply: Применить
+  preview:
+    strict_send_prefix: Обменять
+    strict_send_middle: примерно на
+    strict_send_suffix: "(не меньше %min_amount%)"
+    strict_receive_prefix: Обменять примерно
+    strict_receive_middle: "(не больше %max_amount%) на"
+    to: на
+  signing:
+    title: Подписание обмена токенов
+    description: Обмен токенов
+  errors:
+    source_not_found: Аккаунт отправителя не найден в Horizon.
+    destination_invalid: Укажите корректный Stellar-аккаунт получателя.
+    destination_not_found: Аккаунт получателя не найден в Horizon.
+    invalid_send_asset: Выберите токен, который отправляете.
+    invalid_receive_asset: Выберите токен, который хотите получить.
+    same_assets: Нельзя обменять токен на самого себя.
+    invalid_amount: Укажите корректное количество больше нуля.
+    invalid_slippage: Укажите корректное проскальзывание от 0 до 100 процентов.
+    paths_failed: Не удалось запросить варианты обмена в Horizon.
+    no_path: Не найден путь обмена для выбранных токенов.
+    amount_exceeds_available: "Нельзя отправить больше %available% %asset%: это доступный сейчас остаток."
+    receive_limit: "Получатель не сможет принять %asset%: не хватает лимита линии доверия."
+    transaction_failed: Не удалось подготовить транзакцию обмена.
 
 tools_migration:
   title: Переезд
