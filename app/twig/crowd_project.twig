@@ -141,7 +141,7 @@
                                     <input type="hidden" name="current_account" value="{{ current_account_param }}">
                                 {% endif %}
                                 <div class="control">
-                                    <input class="input" name="amount" type="number" min="0.0000001" max="{{ project.remaining_amount }}" step="0.0000001" value="{{ support_input_amount }}">
+                                    <input class="input" name="amount" type="number" min="0" max="{{ project.remaining_amount }}" step="1" value="{{ support_input_amount }}">
                                 </div>
                                 <div class="control">
                                     <button class="button is-primary" type="submit">{{ 'crowd_page.support.custom_amount'|trans }}</button>
