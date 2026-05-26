@@ -4,9 +4,10 @@
 
 {% block breadcrumbs %}
     <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
-    <li><a href="/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
+    <li><a href="/mtla/" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li><a href="/mtla/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
     {% if project %}
-        <li><a href="/crowd/{{ project.code }}">{{ project.code }}</a></li>
+        <li><a href="/mtla/crowd/{{ project.code }}">{{ project.code }}</a></li>
     {% endif %}
     <li class="is-active"><a href="#" aria-current="page">{{ ('crowd_action.title.' ~ action)|trans }}</a></li>
 {% endblock %}

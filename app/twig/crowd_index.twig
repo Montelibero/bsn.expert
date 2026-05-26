@@ -4,7 +4,8 @@
 
 {% block breadcrumbs %}
     <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
-    <li class="is-active"><a href="/crowd/" aria-current="page">{{ 'crowd_page.title'|trans }}</a></li>
+    <li><a href="/mtla/" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li class="is-active"><a href="/mtla/crowd/" aria-current="page">{{ 'crowd_page.title'|trans }}</a></li>
 {% endblock %}
 
 {% macro amount(value) %}
@@ -52,7 +53,7 @@
         {% if can_create %}
             <div class="level-right">
                 <div class="level-item">
-                    <a class="button is-link" href="/crowd/create{% if current_account_param %}?current_account={{ current_account_param|url_encode }}{% endif %}">
+                    <a class="button is-link" href="/mtla/crowd/create{% if current_account_param %}?current_account={{ current_account_param|url_encode }}{% endif %}">
                         <span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
                         <span>{{ 'crowd_create.action'|trans }}</span>
                     </a>
@@ -153,7 +154,7 @@
                             </progress>
 
                             <h3 class="title is-5 mb-2">
-                                <a href="/crowd/{{ project.code }}">{{ project.name }}</a>
+                                <a href="/mtla/crowd/{{ project.code }}">{{ project.name }}</a>
                             </h3>
                             <p class="subtitle is-6">{{ project.description }}</p>
                             <div class="has-text-right">

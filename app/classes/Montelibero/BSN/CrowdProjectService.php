@@ -31,6 +31,7 @@ use Throwable;
 
 class CrowdProjectService
 {
+    public const BASE_PATH = '/mtla/crowd';
     private const CACHE_PREFIX = 'crowd_snapshot:v3:';
     private const CACHE_TTL = 1800;
     private const FRESH_SNAPSHOT_SECONDS = 60;
@@ -144,7 +145,7 @@ class CrowdProjectService
         if ($is_active && $is_funded) {
             $primary = [
                 'action' => 'complete',
-                'url' => $this->withCurrentAccountParam("/crowd/$code/action/complete", $current_account_id),
+                'url' => $this->withCurrentAccountParam(self::BASE_PATH . "/$code/action/complete", $current_account_id),
                 'label' => 'crowd_page.admin.complete',
                 'icon' => 'fa-check',
                 'class' => 'is-primary',
@@ -152,7 +153,7 @@ class CrowdProjectService
         } elseif ($is_active && $deadline_reached) {
             $primary = [
                 'action' => 'cancel',
-                'url' => $this->withCurrentAccountParam("/crowd/$code/action/cancel", $current_account_id),
+                'url' => $this->withCurrentAccountParam(self::BASE_PATH . "/$code/action/cancel", $current_account_id),
                 'label' => 'crowd_page.admin.cancel',
                 'icon' => 'fa-xmark',
                 'class' => 'is-warning',
@@ -161,13 +162,13 @@ class CrowdProjectService
 
         if ($is_active) {
             $menu[] = [
-                'url' => $this->withCurrentAccountParam('/crowd/create?code=' . $code, $current_account_id),
+                'url' => $this->withCurrentAccountParam(self::BASE_PATH . '/create?code=' . $code, $current_account_id),
                 'label' => 'crowd_page.admin.edit',
                 'icon' => 'fa-file-pen',
             ];
             if (!$deadline_reached && !$is_funded) {
                 $menu[] = [
-                    'url' => $this->withCurrentAccountParam("/crowd/$code/action/cancel", $current_account_id),
+                    'url' => $this->withCurrentAccountParam(self::BASE_PATH . "/$code/action/cancel", $current_account_id),
                     'label' => 'crowd_page.admin.cancel',
                     'icon' => 'fa-xmark',
                 ];
@@ -175,7 +176,7 @@ class CrowdProjectService
         }
 
         $menu[] = [
-            'url' => $this->withCurrentAccountParam("/crowd/$code/action/delete", $current_account_id),
+            'url' => $this->withCurrentAccountParam(self::BASE_PATH . "/$code/action/delete", $current_account_id),
             'label' => 'crowd_page.admin.delete',
             'icon' => 'fa-xmark',
         ];

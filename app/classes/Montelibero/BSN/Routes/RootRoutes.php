@@ -74,9 +74,7 @@ class RootRoutes
         SimpleRouter::group(['prefix' => '/contacts'], function () use ($Container) {
             ContactsRouter::register($Container);
         });
-        SimpleRouter::group(['prefix' => '/crowd'], function () use ($Container) {
-            CrowdRouter::register($Container);
-        });
+        SimpleRouter::match(['get', 'post'], '/crowd/{path?}', self::getRedirectCallbackTo('/mtla/crowd'))->where(['path' => '.*']);
         SimpleRouter::group(['prefix' => '/editor'], function () use ($Container) {
             Editor2Router::register($Container);
         });

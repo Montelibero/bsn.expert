@@ -159,7 +159,7 @@ class CrowdController implements RefreshDataCodeInterface
         if ($donation_amount !== '') {
             $current_account_id = $this->CurrentUser->getCurrentAccountId();
             if ($current_account_id === null) {
-                SimpleRouter::response()->redirect('/who_are_you?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/crowd/' . rawurlencode($project['code'])), 302);
+                SimpleRouter::response()->redirect('/who_are_you?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? CrowdProjectService::BASE_PATH . '/' . rawurlencode($project['code'])), 302);
                 return null;
             }
 

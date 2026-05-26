@@ -4,8 +4,9 @@
 
 {% block breadcrumbs %}
     <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
-    <li><a href="/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
-    <li class="is-active"><a href="/crowd/create" aria-current="page">{{ (edit_project ? 'crowd_create.edit_title' : 'crowd_create.title')|trans }}</a></li>
+    <li><a href="/mtla/" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li><a href="/mtla/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
+    <li class="is-active"><a href="/mtla/crowd/create" aria-current="page">{{ (edit_project ? 'crowd_create.edit_title' : 'crowd_create.title')|trans }}</a></li>
 {% endblock %}
 
 {% block content %}
@@ -37,7 +38,7 @@
         {{ signing_form|raw }}
     {% endif %}
 
-    <form method="post" action="/crowd/create{% if edit_project %}?code={{ values.code|url_encode }}{% endif %}" class="block">
+    <form method="post" action="/mtla/crowd/create{% if edit_project %}?code={{ values.code|url_encode }}{% endif %}" class="block">
         {% if current_account_param %}
             <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
         {% endif %}
@@ -143,7 +144,7 @@
                 </button>
             </div>
             <div class="control">
-                <a class="button is-text" href="/crowd/">{{ 'common.cancel'|trans }}</a>
+                <a class="button is-text" href="/mtla/crowd/">{{ 'common.cancel'|trans }}</a>
             </div>
         </div>
     </form>

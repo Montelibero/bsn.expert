@@ -109,10 +109,6 @@
                     <a class="navbar-item" href="/graph">
                         {{ 'nav.graph'|trans }}
                     </a>
-                    <a class="navbar-item" href="/crowd/">
-                        <i class="fa-solid fa-hand-holding-dollar"></i>
-                        {{ 'nav.crowd'|trans }} [beta]
-                    </a>
                     <hr class="navbar-divider">
                     <a class="navbar-item" href="/tools/multisig">
                         {{ 'nav.tools.multisig'|trans }}
@@ -165,6 +161,11 @@
                     {{ 'nav.mtla'|trans }}
                 </a>
                 <div class="navbar-dropdown">
+                    <a class="navbar-item" href="/mtla/crowd/">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                        {{ 'nav.crowd'|trans }}
+                    </a>
+                    <hr class="navbar-divider">
                     <a class="navbar-item" href="/mtla/council">
                         {{ 'nav.council'|trans }}
                     </a>
@@ -185,10 +186,6 @@
                     {% endif %}
                 </div>
             </div>
-{#            <a class="navbar-item" href="/crowd/">#}
-{#                <i class="fa-solid fa-hand-holding-dollar"></i>#}
-{#                {{ 'nav.crowd'|trans }}#}
-{#            </a>#}
         </div>
         <div class="navbar-end">
             {% include 'navbar_search_dropdown.twig' with { navbar_search_item_classes: 'is-hidden-touch is-hidden-fullhd' } %}

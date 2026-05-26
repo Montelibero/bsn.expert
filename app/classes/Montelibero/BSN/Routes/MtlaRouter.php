@@ -38,6 +38,10 @@ class MtlaRouter
             return $Container->get(MtlaDmReportController::class)->MtlaDmReport();
         });
 
+        SimpleRouter::group(['prefix' => '/crowd'], function () use ($Container) {
+            CrowdRouter::register($Container);
+        });
+
         SimpleRouter::get('/rp_report', function () {
             SimpleRouter::response()->redirect('/mtla/dm_report', 301);
         });

@@ -4,8 +4,9 @@
 
 {% block breadcrumbs %}
     <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
-    <li><a href="/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
-    <li class="is-active"><a href="/crowd/{{ project.code }}" aria-current="page">{{ project.code }}</a></li>
+    <li><a href="/mtla/" aria-current="page">{{ 'nav.mtla'|trans }}</a></li>
+    <li><a href="/mtla/crowd/">{{ 'crowd_page.title'|trans }}</a></li>
+    <li class="is-active"><a href="/mtla/crowd/{{ project.code }}" aria-current="page">{{ project.code }}</a></li>
 {% endblock %}
 
 {% macro amount(value) %}
@@ -130,12 +131,12 @@
                         {% for amount in preset_amounts %}
                             {% if amount <= project.remaining_amount + 0 %}
                                 <div class="control">
-                                    <a class="button is-primary" href="/crowd/{{ project.code }}{{ support_query_prefix }}{{ amount }}">{{ amount }}</a>
+                                    <a class="button is-primary" href="/mtla/crowd/{{ project.code }}{{ support_query_prefix }}{{ amount }}">{{ amount }}</a>
                                 </div>
                             {% endif %}
                         {% endfor %}
                         <div class="control">
-                            <form class="field has-addons" action="/crowd/{{ project.code }}" method="get">
+                            <form class="field has-addons" action="/mtla/crowd/{{ project.code }}" method="get">
                                 {% if current_account_param %}
                                     <input type="hidden" name="current_account" value="{{ current_account_param }}">
                                 {% endif %}
