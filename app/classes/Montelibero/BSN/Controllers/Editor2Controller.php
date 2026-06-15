@@ -688,6 +688,7 @@ class Editor2Controller
     ): array {
         $counterparty_set = array_fill_keys($counterparty_ids, true);
         $keys_to_remove = [];
+        $reserved_data_keys = [];
         $tags_to_remove = [];
         $tags_to_add = [];
         $operations = [];
@@ -781,8 +782,8 @@ class Editor2Controller
 
             $entries = $data_entries[$tag_name] ?? [];
             foreach ($account_ids as $account_id) {
-                $key_name = $this->findFirstFreeTagDataKey($tag_name, $entries, $keys_to_remove);
-                $keys_to_remove[$key_name] = true;
+                $key_name = $this->findFirstFreeTagDataKey($tag_name, $entries, $keys_to_remove, $reserved_data_keys);
+                $reserved_data_keys[$key_name] = true;
                 $operations[] = (new ManageDataOperationBuilder($key_name, $account_id))->build();
             }
         }
@@ -904,11 +905,16 @@ class Editor2Controller
         return null;
     }
 
-    private function findFirstFreeTagDataKey(string $tag_name, array $entries, array $keys_to_skip): string
+    private function findFirstFreeTagDataKey(
+        string $tag_name,
+        array $entries,
+        array $keys_to_remove,
+        array $reserved_data_keys,
+    ): string
     {
         $occupied = [];
         foreach ($entries as $entry) {
-            if (isset($keys_to_skip[$entry['key']])) {
+            if (isset($keys_to_remove[$entry['key']])) {
                 continue;
             }
             if ($entry['suffix'] !== null && $entry['suffix'] > 0) {
@@ -917,8 +923,9 @@ class Editor2Controller
         }
 
         for ($suffix = 1; ; $suffix++) {
-            if (!isset($occupied[$suffix])) {
-                return $tag_name . $suffix;
+            $key_name = $tag_name . $suffix;
+            if (!isset($occupied[$suffix]) && !isset($reserved_data_keys[$key_name])) {
+                return $key_name;
             }
         }
     }
