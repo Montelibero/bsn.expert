@@ -35,14 +35,29 @@ use Soneso\StellarSDK\PathPaymentStrictReceiveOperation;
 use Soneso\StellarSDK\PathPaymentStrictSendOperation;
 use Soneso\StellarSDK\PaymentOperation;
 use Soneso\StellarSDK\Price;
+use Soneso\StellarSDK\Crypto\StrKey;
+use Soneso\StellarSDK\SetOptionsOperation;
 use Soneso\StellarSDK\Transaction;
 use Soneso\StellarSDK\Xdr\XdrClaimPredicate;
 use Soneso\StellarSDK\Xdr\XdrClaimPredicateType;
+use Soneso\StellarSDK\Xdr\XdrSignerKey;
+use Soneso\StellarSDK\Xdr\XdrSignerKeyType;
 
 final class StellarLabUrlGenerator
 {
     private const LAB_BASE_URL = 'https://lab.stellar.org';
     private const MAX_TRUSTLINE_LIMIT = '922337203685.4775807';
+    private const SET_OPTIONS_SET_FLAGS = [
+        1 => 'set-auth-required',
+        2 => 'set-auth-revocable',
+        4 => 'set-auth-immutable',
+        8 => 'set-auth-clawback',
+    ];
+    private const SET_OPTIONS_CLEAR_FLAGS = [
+        1 => 'clear-auth-required',
+        2 => 'clear-auth-revocable',
+        8 => 'clear-auth-clawback',
+    ];
     private const MAINNET = [
         'id' => 'mainnet',
         'label' => 'Mainnet',
@@ -200,6 +215,10 @@ final class StellarLabUrlGenerator
                     'amount' => $operation->getAmount(),
                     'price' => $this->priceToDecimalString($operation->getPrice()),
                 ],
+            ],
+            $operation instanceof SetOptionsOperation => [
+                'operation_type' => 'set_options',
+                'params' => $this->setOptionsToLab($operation),
             ],
             $operation instanceof ChangeTrustOperation => [
                 'operation_type' => 'change_trust',
@@ -417,6 +436,92 @@ final class StellarLabUrlGenerator
         $decimal = bcdiv((string) $price->getN(), (string) $price->getD(), 18);
         $decimal = rtrim(rtrim($decimal, '0'), '.');
         return $decimal !== '' ? $decimal : '0';
+    }
+
+    private function setOptionsToLab(SetOptionsOperation $operation): array
+    {
+        $params = [];
+
+        if ($operation->getInflationDestination() !== null) {
+            $params['inflation_dest'] = $operation->getInflationDestination();
+        }
+        if ($operation->getSetFlags() !== null) {
+            $params['set_flags'] = $this->flagsToIds(
+                $operation->getSetFlags(),
+                self::SET_OPTIONS_SET_FLAGS
+            );
+        }
+        if ($operation->getClearFlags() !== null) {
+            $params['clear_flags'] = $this->flagsToIds(
+                $operation->getClearFlags(),
+                self::SET_OPTIONS_CLEAR_FLAGS
+            );
+        }
+        if ($operation->getMasterKeyWeight() !== null) {
+            $params['master_weight'] = (string) $operation->getMasterKeyWeight();
+        }
+        if ($operation->getLowThreshold() !== null) {
+            $params['low_threshold'] = (string) $operation->getLowThreshold();
+        }
+        if ($operation->getMediumThreshold() !== null) {
+            $params['med_threshold'] = (string) $operation->getMediumThreshold();
+        }
+        if ($operation->getHighThreshold() !== null) {
+            $params['high_threshold'] = (string) $operation->getHighThreshold();
+        }
+        if ($operation->getSignerKey() !== null) {
+            $params['signer'] = $this->signerToLab(
+                $operation->getSignerKey(),
+                $operation->getSignerWeight()
+            );
+        }
+        if ($operation->getHomeDomain() !== null) {
+            $params['home_domain'] = $operation->getHomeDomain();
+        }
+
+        return $params;
+    }
+
+    /**
+     * @param array<int, string> $mapping
+     * @return string[]
+     */
+    private function flagsToIds(int $flags, array $mapping): array
+    {
+        $result = [];
+        foreach ($mapping as $value => $id) {
+            if (($flags & $value) === $value) {
+                $result[] = $id;
+            }
+        }
+
+        return $result;
+    }
+
+    private function signerToLab(XdrSignerKey $signerKey, ?int $weight): array
+    {
+        $type = $signerKey->getType()->getValue();
+
+        return match ($type) {
+            XdrSignerKeyType::ED25519 => [
+                'type' => 'ed25519PublicKey',
+                'key' => StrKey::encodeAccountId($signerKey->getEd25519() ?? ''),
+                'weight' => (string) ($weight ?? 0),
+            ],
+            XdrSignerKeyType::HASH_X => [
+                'type' => 'sha256Hash',
+                'key' => bin2hex($signerKey->getHashX() ?? ''),
+                'weight' => (string) ($weight ?? 0),
+            ],
+            XdrSignerKeyType::PRE_AUTH_TX => [
+                'type' => 'preAuthTx',
+                'key' => bin2hex($signerKey->getPreAuthTx() ?? ''),
+                'weight' => (string) ($weight ?? 0),
+            ],
+            default => throw new InvalidArgumentException(
+                sprintf('Unsupported signer key type in set_options: %d.', $type)
+            ),
+        };
     }
 
     private function claimableBalanceIdToString(string $balanceId): string
