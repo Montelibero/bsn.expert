@@ -996,6 +996,10 @@ contacts:
 
 tools_multisig:
   name: Multisig Editor
+  account: Account
+  current_state:
+    title: Current state
+    no_multisig: Multisig is not configured yet; the account is controlled only by its own master key.
   signer: Signer
   buttons:
     calculate: Create transaction

@@ -262,6 +262,7 @@ class MultisigController
             'account' => $this->CurrentContacts->serialize($this->BSN->makeAccountById($account_id)),
             'account_id' => $account_id,
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
+            'current_multisig' => $this->buildMultisigSummaryFromHorizon($Account),
             'low_threshold' => $_POST['low_threshold'] ?? $Account?->getThresholds()?->getLowThreshold(),
             'med_threshold' => $_POST['med_threshold'] ?? $Account?->getThresholds()?->getMedThreshold(),
             'high_threshold' => $_POST['high_threshold'] ?? $Account?->getThresholds()?->getHighThreshold(),
@@ -292,5 +293,58 @@ class MultisigController
         }
 
         return $url;
+    }
+
+    private function buildMultisigSummaryFromHorizon($StellarAccount): ?array
+    {
+        $signers = [];
+        $master_key = 0;
+        $med_threshold = (int) $StellarAccount->getThresholds()->getMedThreshold();
+
+        /** @var AccountSignerResponse $Signer */
+        foreach ($StellarAccount->getSigners() as $Signer) {
+            if ($Signer->getType() !== 'ed25519_public_key') {
+                continue;
+            }
+
+            $weight = (int) $Signer->getWeight();
+            if ($Signer->getKey() === $StellarAccount->getAccountId()) {
+                $master_key = $weight;
+                continue;
+            }
+
+            if ($weight <= 0 || !BSN::validateStellarAccountIdFormat($Signer->getKey())) {
+                continue;
+            }
+
+            $signers[] = $this->CurrentContacts->serialize($this->BSN->makeAccountById($Signer->getKey())) + [
+                'weight' => $weight,
+                'can_sign_alone' => $weight >= $med_threshold,
+            ];
+        }
+
+        if (!$signers) {
+            return null;
+        }
+
+        usort($signers, function (array $a, array $b): int {
+            $weight_comparison = ((int) ($b['weight'] ?? 0)) <=> ((int) ($a['weight'] ?? 0));
+            if ($weight_comparison !== 0) {
+                return $weight_comparison;
+            }
+
+            return strcmp((string) ($a['id'] ?? ''), (string) ($b['id'] ?? ''));
+        });
+
+        return [
+            'thresholds' => [
+                'low' => (int) $StellarAccount->getThresholds()->getLowThreshold(),
+                'med' => $med_threshold,
+                'high' => (int) $StellarAccount->getThresholds()->getHighThreshold(),
+            ],
+            'master_key' => $master_key,
+            'master_key_can_sign_alone' => $master_key >= $med_threshold,
+            'signers' => $signers,
+        ];
     }
 }

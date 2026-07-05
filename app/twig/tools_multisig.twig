@@ -11,9 +11,15 @@
 {% block content %}
     <h1 class="title">Мультиподпись</h1>
     <p class="block">
-        Аккаунт:
+        {{ 'tools_multisig.account'|trans }}:
         {{ include('account_link.twig', {data: account}, with_context = false) }}
     </p>
+
+    {{ include('account_multisig_summary.twig', {
+        multisig: current_multisig,
+        title: 'tools_multisig.current_state.title'|trans,
+        empty_message: 'tools_multisig.current_state.no_multisig'|trans
+    }, with_context = false) }}
 
     {% if errors %}
         <div class="notification is-danger">

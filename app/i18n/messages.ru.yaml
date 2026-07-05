@@ -997,6 +997,10 @@ contacts:
 
 tools_multisig:
   name: Мультиподпись
+  account: Аккаунт
+  current_state:
+    title: Ситуация сейчас
+    no_multisig: Мультиподпись пока не настроена, аккаунт управляется только своим мастер ключом.
   signer: Участник
   buttons:
     calculate: Создать транзакцию

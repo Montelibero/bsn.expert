@@ -190,45 +190,7 @@
 </div>
 
 {% if multisig %}
-<div class="box">
-        <h2 class="title">{{ 'account_page.multisig.header'|trans }}</h2>
-
-        <div class="field is-grouped is-grouped-multiline">
-                {{ 'account_page.multisig.limit'|trans }}:
-                <div class="control">
-                        <div class="tags has-addons">
-                                <span class="tag is-info">low</span>
-                                <span class="tag">{{ multisig.thresholds.low }}</span>
-                        </div>
-                </div>
-                <div class="control">
-                        <div class="tags has-addons">
-                                <span class="tag is-info">med</span>
-                                <span class="tag">{{ multisig.thresholds.med }}</span>
-                        </div>
-                </div>
-                <div class="control">
-                        <div class="tags has-addons">
-                                <span class="tag is-info">high</span>
-                                <span class="tag">{{ multisig.thresholds.high }}</span>
-                        </div>
-                </div>
-        </div>
-        <ul class="block">
-        {% if multisig.master_key %}
-                <li>
-                        {{ 'account_page.multisig.master_key'|trans }}:
-                        <span class="tag{% if multisig.master_key_can_sign_alone %} is-success{% endif %}">{{ multisig.master_key }}</span>
-                </li>
-        {% endif %}
-        {% for signer in multisig.signers %}
-                <li>
-                        {{ include('account_link.twig', {data: signer}, with_context = false) }}
-                        <span class="tag{% if signer.can_sign_alone %} is-success{% endif %}">{{ signer.weight }}</span>
-                </li>
-        {% endfor %}
-        </ul>
-</div>
+{{ include('account_multisig_summary.twig', {multisig: multisig, title: 'account_page.multisig.header'|trans, empty_message: ''}, with_context = false) }}
 {% endif %}
 
 {% if mtla_program_page_url %}
