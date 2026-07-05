@@ -276,7 +276,7 @@ class WebApp
 
     private function isCurrentAccountReturnTo(string $return_to): bool
     {
-        return preg_match('~^/(?:editor(?:[/?#]|$)|accounts/[A-Z0-9]+/edit_tags(?:[/?#]|$)|tools/(?:close_trustlines|orders|swap)(?:[/?#]|$)|(?:mtla/)?crowd(?:[/?#]|$))~', $return_to) === 1;
+        return preg_match('~^/(?:editor(?:[/?#]|$)|accounts/[A-Z0-9]+/edit_tags(?:[/?#]|$)|tools/(?:close_trustlines|multisig|orders|swap)(?:[/?#]|$)|(?:mtla/)?crowd(?:[/?#]|$))~', $return_to) === 1;
     }
 
     private function handleShowUnknownTagsPreference(string $value): void

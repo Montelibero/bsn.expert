@@ -10,6 +10,11 @@
 
 {% block content %}
     <h1 class="title">Мультиподпись</h1>
+    <p class="block">
+        Аккаунт:
+        {{ include('account_link.twig', {data: account}, with_context = false) }}
+    </p>
+
     {% if errors %}
         <div class="notification is-danger">
             <h2 class="title is-4">Найдены ошибки</h2>
@@ -33,33 +38,9 @@
     {% endif %}
 
     <form action="/tools/multisig" method="post">
-        <h2 class="title is-4">Основное</h2>
-        <div class="field">
-            <label class="label" for="account">Аккаунт</label>
-            <div class="field has-addons">
-                <div class="control is-expanded has-icons-left">
-                    <input
-                            id="account"
-                            class="input"
-                            type="text"
-                            name="account"
-                            placeholder="G..."
-                            value="{{ account }}"
-                            maxlength="56"
-                            data-account-autocomplete-input
-                    />
-                    <span class="icon is-left">
-                        <i class="fa-solid fa-user"></i>
-                    </span>
-                </div>
-                <div class="control">
-                    <button name="action" value="load" class="button is-primary">
-                        Load data
-                    </button>
-                </div>
-            </div>
-            <p class="help">Стеллар аккаунт, для которого редактируется мультиподпись</p>
-        </div>
+        {% if current_account_param %}
+            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+        {% endif %}
 
         <h2 class="title is-4">Лимиты</h2>
         <p class="block">
@@ -146,7 +127,7 @@
                             type="text"
                             name="account_{{ i }}"
                             placeholder="G..."
-                            value="{% if i %}{{ multisig[i].account|default('') }}{% else %}{{ account }}{% endif %}"
+                            value="{% if i %}{{ multisig[i].account|default('') }}{% else %}{{ account_id }}{% endif %}"
                             maxlength="56"
                             data-account-autocomplete-input
                             {% if not i %}disabled{% endif %}

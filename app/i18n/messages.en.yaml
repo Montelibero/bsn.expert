@@ -1000,8 +1000,6 @@ tools_multisig:
   buttons:
     calculate: Create transaction
   errors:
-    missing_account: No main account
-    wrong_account: The main account is not a valid Stellar address
     wrong_low_threshold: The low threshold must be a normal number from 0 to 255
     low_threshold_more_than_med_threshold: The low threshold cannot be greater than the medium threshold
     wrong_med_threshold: The medium threshold must be a normal number from 0 to 255

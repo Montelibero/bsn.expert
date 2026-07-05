@@ -4,6 +4,8 @@ namespace Montelibero\BSN\Controllers;
 
 use DI\Container;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\CurrentContacts;
+use Montelibero\BSN\CurrentUser;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\Responses\Account\AccountSignerResponse;
@@ -17,13 +19,26 @@ use Twig\Environment;
 
 class MultisigController
 {
+    private BSN $BSN;
+    private CurrentUser $CurrentUser;
+    private CurrentContacts $CurrentContacts;
     private Environment $Twig;
     private StellarSDK $Stellar;
     private Translator $Translator;
     private Container $Container;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar, Translator $Translator, Container $Container)
-    {
+    public function __construct(
+        BSN $BSN,
+        CurrentUser $CurrentUser,
+        CurrentContacts $CurrentContacts,
+        Environment $Twig,
+        StellarSDK $Stellar,
+        Translator $Translator,
+        Container $Container
+    ) {
+        $this->BSN = $BSN;
+        $this->CurrentUser = $CurrentUser;
+        $this->CurrentContacts = $CurrentContacts;
         $this->Twig = $Twig;
         $this->Stellar = $Stellar;
         $this->Translator = $Translator;
@@ -32,21 +47,40 @@ class MultisigController
 
     public function Multisig(): ?string
     {
-        if (!empty($_POST['account']) && !empty($_POST['action']) && $_POST['action'] === 'load') {
+        if (isset($_GET['account']) && !isset($_GET['current_account'])) {
+            $legacy_account_id = strtoupper(trim((string) $_GET['account']));
+            if (BSN::validateStellarAccountIdFormat($legacy_account_id)) {
+                SimpleRouter::response()->redirect($this->buildLegacyAccountRedirectUrl($legacy_account_id), 302);
+                return null;
+            }
+        }
+
+        $account_id = $this->CurrentUser->getCurrentAccountId();
+        if (!$account_id) {
             SimpleRouter::response()->redirect(
-                SimpleRouter::router()->getUrl('multisig') . "?account=" . urlencode($_POST['account']),
+                '/who_are_you?return_to=' . urlencode($_SERVER['REQUEST_URI'] ?? '/tools/multisig'),
                 302
             );
             return null;
         }
 
-        $Account = null;
-        if (!empty($_GET['account']) && BSN::validateStellarAccountIdFormat($_GET['account'])) {
-            $Account = $this->Stellar->requestAccount($_GET['account']);
+        if ($cleanup_url = $this->CurrentUser->getCurrentAccountCleanupUrl()) {
+            SimpleRouter::response()->redirect($cleanup_url, 302);
+            return null;
         }
 
+        $Account = $this->Stellar->requestAccount($account_id);
+
         $multisig = [];
-        if ($Account) {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['weight_0'])) {
+            $multisig[0] = ['account' => $account_id, 'weight' => $_POST['weight_0']];
+            for ($i = 1; $i <= 20; $i++) {
+                $multisig[$i] = [
+                    'account' => $_POST['account_' . $i],
+                    'weight' => $_POST['weight_' . $i],
+                ];
+            }
+        } elseif ($Account) {
             $i = 1;
             /** @var AccountSignerResponse $Signer */
             foreach ($Account->getSigners() as $Signer) {
@@ -62,18 +96,7 @@ class MultisigController
 
                 $multisig[$current_i] = [
                     'account' => $Signer->getKey(),
-                    'weight' => $Signer->getWeight() || 0,
-                ];
-            }
-        } elseif (isset($_POST['account'])) {
-            $multisig[0] = [
-                'account' => $_POST['account'],
-                'weight' => $_POST['weight_0'],
-            ];
-            for ($i = 1; $i <= 20; $i++) {
-                $multisig[$i] = [
-                    'account' => $_POST['account_' . $i],
-                    'weight' => $_POST['weight_' . $i],
+                    'weight' => $Signer->getWeight() ?: 0,
                 ];
             }
         }
@@ -86,12 +109,6 @@ class MultisigController
         if (!empty($_POST['action']) && $_POST['action'] === $this->Translator->trans(
                 'tools_multisig.buttons.calculate'
             )) {
-            // Account
-            if (empty($_POST['account'])) {
-                $errors[] = $this->Translator->trans('tools_multisig.errors.missing_account');
-            } elseif (!BSN::validateStellarAccountIdFormat($_POST['account'])) {
-                $errors[] = $this->Translator->trans('tools_multisig.errors.wrong_account');
-            }
             // Thresholds
             $validate_threshold = function ($value): bool {
                 return isset($value)
@@ -175,7 +192,7 @@ class MultisigController
 
             // Transaction
             if (!$errors) {
-                $StellarAccount = $this->Stellar->requestAccount($_POST['account']);
+                $StellarAccount = $this->Stellar->requestAccount($account_id);
                 $Transaction = new TransactionBuilder($StellarAccount);
                 $Transaction->setMaxOperationFee(10000);
                 $operations = [];
@@ -242,7 +259,9 @@ class MultisigController
         }
 
         return $this->Twig->render('tools_multisig.twig', [
-            'account' => $_POST['account'] ?? $Account?->getAccountId(),
+            'account' => $this->CurrentContacts->serialize($this->BSN->makeAccountById($account_id)),
+            'account_id' => $account_id,
+            'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'low_threshold' => $_POST['low_threshold'] ?? $Account?->getThresholds()?->getLowThreshold(),
             'med_threshold' => $_POST['med_threshold'] ?? $Account?->getThresholds()?->getMedThreshold(),
             'high_threshold' => $_POST['high_threshold'] ?? $Account?->getThresholds()?->getHighThreshold(),
@@ -251,5 +270,27 @@ class MultisigController
             'signing_form' => $signing_form ?? null,
             'save' => $save,
         ]);
+    }
+
+    private function buildLegacyAccountRedirectUrl(string $account_id): string
+    {
+        $parts = parse_url($_SERVER['REQUEST_URI'] ?? '/tools/multisig');
+        if ($parts === false) {
+            return SimpleRouter::router()->getUrl('multisig') . '?current_account=' . rawurlencode($account_id);
+        }
+
+        parse_str($parts['query'] ?? '', $query);
+        unset($query['account']);
+        $query['current_account'] = $account_id;
+
+        $url = $parts['path'] ?? SimpleRouter::router()->getUrl('multisig');
+        if ($query) {
+            $url .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        }
+        if (isset($parts['fragment']) && $parts['fragment'] !== '') {
+            $url .= '#' . $parts['fragment'];
+        }
+
+        return $url;
     }
 }
