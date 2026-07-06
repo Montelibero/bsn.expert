@@ -75,6 +75,87 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
+/* Multisig editor */
+document.addEventListener('DOMContentLoaded', function () {
+    const list = document.querySelector('[data-multisig-signers-list]');
+    const addButton = document.querySelector('[data-multisig-add-signer]');
+
+    if (!list || !addButton) {
+        return;
+    }
+
+    const rows = Array.from(list.querySelectorAll('[data-multisig-signer-row]')).sort(function (a, b) {
+        return Number(a.dataset.multisigSignerRow || 0) - Number(b.dataset.multisigSignerRow || 0);
+    });
+
+    if (!rows.length) {
+        return;
+    }
+
+    function rowHasValue(row) {
+        const account = row.querySelector('input[name^="account_"]');
+        const weight = row.querySelector('input[name^="weight_"]');
+
+        return Boolean(
+            (account && account.value.trim() !== '')
+            || (weight && weight.value.trim() !== '')
+        );
+    }
+
+    function visibleRowsCount() {
+        return rows.filter(function (row) {
+            return !row.hidden;
+        }).length;
+    }
+
+    function syncAddButton() {
+        addButton.classList.toggle('is-hidden', visibleRowsCount() >= rows.length);
+    }
+
+    function revealRow(row) {
+        row.hidden = false;
+    }
+
+    function revealInitialRows() {
+        let lastFilledIndex = -1;
+
+        rows.forEach(function (row, index) {
+            if (rowHasValue(row)) {
+                lastFilledIndex = index;
+            }
+        });
+
+        const visibleCount = Math.min(rows.length, Math.max(1, lastFilledIndex + 2));
+
+        rows.forEach(function (row, index) {
+            row.hidden = index >= visibleCount;
+        });
+
+        syncAddButton();
+    }
+
+    addButton.addEventListener('click', function () {
+        const nextRow = rows.find(function (row) {
+            return row.hidden;
+        });
+
+        if (!nextRow) {
+            syncAddButton();
+            return;
+        }
+
+        revealRow(nextRow);
+        syncAddButton();
+
+        const account = nextRow.querySelector('input[name^="account_"]');
+        if (account) {
+            account.focus();
+        }
+    });
+
+    revealInitialRows();
+});
+
 /* Rich Copy */
 document.addEventListener('DOMContentLoaded', function () {
     function setRichCopyState(button, state) {

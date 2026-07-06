@@ -120,9 +120,9 @@
         <p class="block">
             {{ 'tools_multisig.signers.description'|trans({'%reserve_xlm%': signer_reserve_xlm}) }}
         </p>
-        <div class="block">
+        <div class="block" data-multisig-signers-list>
         {% for i in 0..20 %}
-        <div class="field">
+        <div class="field"{% if i %} data-multisig-signer-row="{{ i }}"{% endif %}>
             <label class="label" for="account_{{ i }}">
                 {% if i %}
                     {{ 'tools_multisig.signers.item_label'|trans({'%number%': i}) }}
@@ -174,6 +174,13 @@
         </div>
         {% endfor %}
         </div>
+
+        <p class="block">
+            <button type="button" class="pseudo-link is-hidden" data-multisig-add-signer>
+                <span class="icon is-small"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+                <span>{{ 'tools_multisig.signers.add'|trans }}</span>
+            </button>
+        </p>
 
         <div class="field is-grouped">
             <div class="control">
