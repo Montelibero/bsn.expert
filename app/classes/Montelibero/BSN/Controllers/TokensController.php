@@ -26,6 +26,7 @@ class TokensController
         'AssetOfferHash%s',
         'TokenOffer:%s',
         '%sTokenOffer',
+        '%s token offer',
         '%sOffer',
         'Offer for token %s',
         'AssetOfferHash:%s',
