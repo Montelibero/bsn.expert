@@ -4,6 +4,7 @@
 
 {% block breadcrumbs %}
     <li><a href="/" aria-current="page">BSN</a></li>
+    <li><a href="/editor/" aria-current="page">{{ 'nav.editor'|trans }}</a></li>
     <li class="is-active"><a href="#" aria-current="page">{{ 'tools_timetoken.name'|trans }}</a></li>
 {% endblock %}
 
@@ -13,6 +14,10 @@
 
     <p class="block">
         {{ 'tools_timetoken.description'|trans }}
+    </p>
+    <p class="block">
+        {{ 'tools_timetoken.account'|trans }}:
+        {{ include('account_link.twig', {data: account}, with_context = false) }}
     </p>
 
     {% if errors %}
@@ -37,35 +42,11 @@
         {% endif %}
     {% endif %}
 
-    <form action="/tools/timetoken" method="post">
-        <div class="field">
-            <label class="label" for="account">{{ 'tools_timetoken.account'|trans }}</label>
-            <div class="field has-addons">
-                <div class="control is-expanded has-icons-left">
-                    <input
-                            id="account"
-                            class="input"
-                            type="text"
-                            name="account"
-                            placeholder="G..."
-                            value="{{ account }}"
-                            maxlength="56"
-                            data-account-autocomplete-input
-                    />
-                    <span class="icon is-left">
-                        <i class="fa-solid fa-user"></i>
-                    </span>
-                </div>
-                <div class="control">
-                    <button name="action" value="load" class="button is-primary">
-                        {{ 'tools_timetoken.load'|trans }}
-                    </button>
-                </div>
-            </div>
-            <p class="help">{{ 'tools_timetoken.account_help'|trans }}</p>
-        </div>
+    <form action="/editor/timetoken" method="post">
+        {% if current_account_param %}
+            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+        {% endif %}
 
-            {% if account %}
         <p class="block">
             {{ 'tools_timetoken.code_description'|trans }}
         </p>
@@ -88,7 +69,7 @@
             </div>
             <p class="help">
                 {{ 'tools_timetoken.tt_code_help'|trans }}{% for variant in variants %},
-                <a href="{{ self_url }}?account={{ account }}&tt_code={{ variant }}">{{ variant }}</a>{% endfor %}
+                <a href="{{ self_url }}?{% if current_account_param %}current_account={{ current_account_param|url_encode }}&{% endif %}tt_code={{ variant|url_encode }}">{{ variant }}</a>{% endfor %}
             </p>
         </div>
 
@@ -136,6 +117,5 @@
                 <input type="submit" name="action" class="button is-link" value="{{ 'tools_timetoken.buttons.save'|trans }}">
             </div>
         </div>
-        {% endif %}
     </form>
 {% endblock %}

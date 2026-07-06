@@ -17,7 +17,6 @@ use Montelibero\BSN\Controllers\DecisionTransactionsController;
 use Montelibero\BSN\Controllers\RecommendVerificationController;
 use Montelibero\BSN\Controllers\SendTimeTokensController;
 use Montelibero\BSN\Controllers\SwapController;
-use Montelibero\BSN\Controllers\TimeTokenController;
 use Montelibero\BSN\Controllers\VotesController;
 use Montelibero\BSN\Controllers\XdrToLabController;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -99,12 +98,24 @@ class ToolsRouter
             SimpleRouter::response()->redirect('/mtla/dm_report', 301);
         });
 
-        SimpleRouter::match(['get', 'post'], '/timetoken', function () use ($Container) {
-            return $Container->get(TimeTokenController::class)->TimeToken();
-        })->name('tool_timetoken');
+        SimpleRouter::match(['get', 'post'], '/timetoken', function () {
+            self::redirectToEditorTimetoken();
+            return null;
+        });
 
         SimpleRouter::match(['get', 'post'], '/xdr2lab', function () use ($Container) {
             return $Container->get(XdrToLabController::class)->XdrToLab();
         });
+    }
+
+    private static function redirectToEditorTimetoken(): void
+    {
+        $url = '/editor/timetoken';
+        $query_string = $_SERVER['QUERY_STRING'] ?? '';
+        if ($query_string !== '') {
+            $url .= '?' . $query_string;
+        }
+
+        SimpleRouter::response()->redirect($url, 301);
     }
 } 
