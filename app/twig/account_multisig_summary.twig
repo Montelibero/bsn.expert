@@ -1,43 +1,37 @@
-<div class="box">
-        <h2 class="title">{{ title }}</h2>
-
-        {% if multisig %}
-        <div class="field is-grouped is-grouped-multiline">
-                {{ 'account_page.multisig.limit'|trans }}:
-                <div class="control">
-                        <div class="tags has-addons">
-                                <span class="tag is-info">low</span>
-                                <span class="tag">{{ multisig.thresholds.low }}</span>
-                        </div>
-                </div>
-                <div class="control">
-                        <div class="tags has-addons">
-                                <span class="tag is-info">med</span>
-                                <span class="tag">{{ multisig.thresholds.med }}</span>
-                        </div>
-                </div>
-                <div class="control">
-                        <div class="tags has-addons">
-                                <span class="tag is-info">high</span>
-                                <span class="tag">{{ multisig.thresholds.high }}</span>
-                        </div>
-                </div>
+{% if multisig %}
+<div class="field is-grouped is-grouped-multiline">
+    {{ 'account_page.multisig.limit'|trans }}:
+    <div class="control">
+        <div class="tags has-addons">
+            <span class="tag is-info">{{ 'account_page.multisig.thresholds.low'|trans }}</span>
+            <span class="tag">{{ multisig.thresholds.low }}</span>
         </div>
-        <ul class="block">
-        {% if multisig.master_key %}
-                <li>
-                        {{ 'account_page.multisig.master_key'|trans }}:
-                        <span class="tag{% if multisig.master_key_can_sign_alone %} is-success{% endif %}">{{ multisig.master_key }}</span>
-                </li>
-        {% endif %}
-        {% for signer in multisig.signers %}
-                <li>
-                        {{ include('account_link.twig', {data: signer}, with_context = false) }}
-                        <span class="tag{% if signer.can_sign_alone %} is-success{% endif %}">{{ signer.weight }}</span>
-                </li>
-        {% endfor %}
-        </ul>
-        {% else %}
-        <p class="block">{{ empty_message }}</p>
-        {% endif %}
+    </div>
+    <div class="control">
+        <div class="tags has-addons">
+            <span class="tag is-info">{{ 'account_page.multisig.thresholds.med'|trans }}</span>
+            <span class="tag">{{ multisig.thresholds.med }}</span>
+        </div>
+    </div>
+    <div class="control">
+        <div class="tags has-addons">
+            <span class="tag is-info">{{ 'account_page.multisig.thresholds.high'|trans }}</span>
+            <span class="tag">{{ multisig.thresholds.high }}</span>
+        </div>
+    </div>
 </div>
+<ul class="block">
+{% if multisig.master_key %}
+    <li>
+        {{ 'account_page.multisig.master_key'|trans }}:
+        <span class="tag{% if multisig.master_key_can_sign_alone %} is-success{% endif %}">{{ multisig.master_key }}</span>
+    </li>
+{% endif %}
+{% for signer in multisig.signers %}
+    <li>
+        {{ include('account_link.twig', {data: signer}, with_context = false) }}
+        <span class="tag{% if signer.can_sign_alone %} is-success{% endif %}">{{ signer.weight }}</span>
+    </li>
+{% endfor %}
+</ul>
+{% endif %}

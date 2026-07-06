@@ -1,29 +1,33 @@
 {% extends "page.twig" %}
 
-{% block title %}Multisig{% endblock %}
+{% block title %}{{ 'nav.tools.multisig'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="/" aria-current="page">BSN</a></li>
-    <li class="is-active"><a href="#" aria-current="page">Multisig</a></li>
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'nav.tools.multisig'|trans }}</a></li>
 {% endblock %}
 
 
 {% block content %}
-    <h1 class="title">Мультиподпись</h1>
+    <h1 class="title">{{ 'nav.tools.multisig'|trans }}</h1>
+    <p class="block">{{ 'tools_multisig.intro.paragraph_1'|trans }}</p>
+    <p class="block">{{ 'tools_multisig.intro.paragraph_2'|trans }}</p>
+
+    <h2 class="title is-4">{{ 'tools_multisig.current_state.title'|trans }}</h2>
     <p class="block">
         {{ 'tools_multisig.account'|trans }}:
         {{ include('account_link.twig', {data: account}, with_context = false) }}
     </p>
-
-    {{ include('account_multisig_summary.twig', {
-        multisig: current_multisig,
-        title: 'tools_multisig.current_state.title'|trans,
-        empty_message: 'tools_multisig.current_state.no_multisig'|trans
-    }, with_context = false) }}
+    {% if current_multisig %}
+    {{ include('account_multisig_summary.twig', {multisig: current_multisig}, with_context = false) }}
+    {% else %}
+        <p class="block">{{ 'tools_multisig.current_state.no_multisig'|trans }}</p>
+    {% endif %}
 
     {% if errors %}
         <div class="notification is-danger">
-            <h2 class="title is-4">Найдены ошибки</h2>
+            <h2 class="title is-4">{{ 'tools_multisig.errors.title'|trans }}</h2>
             {% for error in errors %}
                 <li>{{ error }}</li>
             {% endfor %}
@@ -31,12 +35,7 @@
     {% endif %}
 
     {% if save %}
-        <div class="notification is-info">
-            <h2 class="title is-4">Готовая транзакция</h2>
-            {% if not signing_form %}
-            <p class="block">У вас тут в итоге нечего менять</p>
-            {% endif %}
-        </div>
+        <h2 class="title is-4">{{ 'tools_multisig.transaction_ready'|trans }}</h2>
 
         {% if signing_form %}
         {{ signing_form|raw }}
@@ -48,21 +47,18 @@
             <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
         {% endif %}
 
-        <h2 class="title is-4">Лимиты</h2>
-        <p class="block">
-            Для того чтобы транзакция была успешно принята блокчейном, нужно чтобы она собрала подписями
-            необходимый лимит. Каждый участник мультиподписи обладает своим весом голоса, они суммируются.
-        </p>
+        <h2 class="title is-4">{{ 'tools_multisig.thresholds.title'|trans }}</h2>
+        <p class="block">{{ 'tools_multisig.thresholds.description'|trans }}</p>
 
-        <div class="box">
+        <div class="block">
         <div class="field">
-            <label class="label" for="account">Лимит для простых операций</label>
+            <label class="label" for="low_threshold">{{ 'tools_multisig.thresholds.low.label'|trans }}</label>
             <div class="control has-icons-left">
                 <input
                         id="low_threshold"
                         class="input"
                         type="number"
-                        min="1"
+                        min="0"
                         max="255"
                         step="1"
                         name="low_threshold"
@@ -74,16 +70,16 @@
                     <i class="fa-solid fa-weight-hanging"></i>
                 </span>
             </div>
-            <p class="help">1-255. Лимит для безопасных операций: Bump sequence, Set trustline flags, Claim claimable balance</p>
+            <p class="help">{{ 'tools_multisig.thresholds.low.help'|trans }}</p>
         </div>
         <div class="field">
-            <label class="label" for="medium_threshold">Лимит основных операций</label>
+            <label class="label" for="med_threshold">{{ 'tools_multisig.thresholds.med.label'|trans }}</label>
             <div class="control has-icons-left">
                 <input
                         id="med_threshold"
                         class="input"
                         type="number"
-                        min="1"
+                        min="0"
                         max="255"
                         step="1"
                         name="med_threshold"
@@ -95,16 +91,16 @@
                     <i class="fa-solid fa-weight-hanging"></i>
                 </span>
             </div>
-            <p class="help">1-255. Лимит основного блока операций, вроде исходящих платежей</p>
+            <p class="help">{{ 'tools_multisig.thresholds.med.help'|trans }}</p>
         </div>
         <div class="field">
-            <label class="label" for="high_threshold">Лимит для серьёзных операций</label>
+            <label class="label" for="high_threshold">{{ 'tools_multisig.thresholds.high.label'|trans }}</label>
             <div class="control has-icons-left">
                 <input
                         id="high_threshold"
                         class="input"
                         type="number"
-                        min="1"
+                        min="0"
                         max="255"
                         step="1"
                         name="high_threshold"
@@ -116,20 +112,29 @@
                     <i class="fa-solid fa-weight-hanging"></i>
                 </span>
             </div>
-            <p class="help">1-255. Лимит для двух опасных транзакций: обновление мультиподписи и слияния аккаунта в другой</p>
+            <p class="help">{{ 'tools_multisig.thresholds.high.help'|trans }}</p>
         </div>
         </div>
 
-        <h2 class="title is-4">Участники мультиподписи</h2>
-        <div class="box">
+        <h2 class="title is-4">{{ 'tools_multisig.signers.title'|trans }}</h2>
+        <p class="block">
+            {{ 'tools_multisig.signers.description'|trans({'%reserve_xlm%': signer_reserve_xlm}) }}
+        </p>
+        <div class="block">
         {% for i in 0..20 %}
         <div class="field">
-            <label class="label" for="account_{{ i }}">{% if i %}Участник {{ i }}{% else %}Мастер ключ{% endif %}</label>
+            <label class="label" for="account_{{ i }}">
+                {% if i %}
+                    {{ 'tools_multisig.signers.item_label'|trans({'%number%': i}) }}
+                {% else %}
+                    {{ 'tools_multisig.signers.master_key'|trans }}
+                {% endif %}
+            </label>
             <div class="field has-addons">
                 <div class="control is-expanded has-icons-left">
                     <input
                             id="account_{{ i }}"
-                            class="input"
+                            class="input is-family-monospace"
                             type="text"
                             name="account_{{ i }}"
                             placeholder="G..."
@@ -147,7 +152,7 @@
                             id="weight_{{ i }}"
                             class="input"
                             type="number"
-                            min="{% if i %}1{% else %}0{% endif %}"
+                            min="0"
                             max="255"
                             step="1"
                             name="weight_{{ i }}"
@@ -159,14 +164,20 @@
                     </span>
                 </div>
             </div>
-            <p class="help">{% if i %}Стеллар аккаунт и вес его подписи (1-255){% else %}Вес той подписи, что образуется оригинальным ключем этого аккаунта. Для организаций обычно устанавливают 0, то есть отключает.{% endif %}</p>
+            <p class="help">
+                {% if i %}
+                    {{ 'tools_multisig.signers.signer_help'|trans }}
+                {% else %}
+                    {{ 'tools_multisig.signers.master_key_help'|trans }}
+                {% endif %}
+            </p>
         </div>
         {% endfor %}
         </div>
 
         <div class="field is-grouped">
             <div class="control">
-                <input type="reset" class="button is-light" value="Reset">
+                <input type="reset" class="button is-light" value="{{ 'tools_multisig.buttons.reset'|trans }}">
             </div>
             <div class="control">
                 <input type="submit" name="action" class="button is-link" value="{{ 'tools_multisig.buttons.calculate'|trans }}">

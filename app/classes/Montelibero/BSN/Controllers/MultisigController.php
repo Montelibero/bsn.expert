@@ -6,6 +6,7 @@ use DI\Container;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\StellarAccountReserveCalculator;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\Responses\Account\AccountSignerResponse;
@@ -24,6 +25,7 @@ class MultisigController
     private CurrentContacts $CurrentContacts;
     private Environment $Twig;
     private StellarSDK $Stellar;
+    private StellarAccountReserveCalculator $ReserveCalculator;
     private Translator $Translator;
     private Container $Container;
 
@@ -33,6 +35,7 @@ class MultisigController
         CurrentContacts $CurrentContacts,
         Environment $Twig,
         StellarSDK $Stellar,
+        StellarAccountReserveCalculator $ReserveCalculator,
         Translator $Translator,
         Container $Container
     ) {
@@ -41,6 +44,7 @@ class MultisigController
         $this->CurrentContacts = $CurrentContacts;
         $this->Twig = $Twig;
         $this->Stellar = $Stellar;
+        $this->ReserveCalculator = $ReserveCalculator;
         $this->Translator = $Translator;
         $this->Container = $Container;
     }
@@ -239,7 +243,7 @@ class MultisigController
                 };
                 // Removes
                 foreach ($current_signers as $account_id => $weight) {
-                    if (!array_key_exists($account_id, $signers) || !(int) $signers[$account_id]) {
+                    if (!array_key_exists($account_id, $signers)) {
                         $operations[] = $make_signer_operation($account_id, 0)->build();
                     }
                 }
@@ -253,8 +257,13 @@ class MultisigController
                     $Transaction->addOperations($operations);
                     $xdr = $Transaction->build()->toEnvelopeXdrBase64();
                     $signing_form = $this->Container->get(SignController::class)->SignTransaction($xdr);
+                    $save = true;
+                } else {
+                    $errors[] = $this->Translator->trans(
+                        'tools_multisig.errors.no_changes_to_save'
+                    );
+
                 }
-                $save = true;
             }
         }
 
@@ -263,6 +272,7 @@ class MultisigController
             'account_id' => $account_id,
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'current_multisig' => $this->buildMultisigSummaryFromHorizon($Account),
+            'signer_reserve_xlm' => $this->baseReserveHint(),
             'low_threshold' => $_POST['low_threshold'] ?? $Account?->getThresholds()?->getLowThreshold(),
             'med_threshold' => $_POST['med_threshold'] ?? $Account?->getThresholds()?->getMedThreshold(),
             'high_threshold' => $_POST['high_threshold'] ?? $Account?->getThresholds()?->getHighThreshold(),
@@ -293,6 +303,17 @@ class MultisigController
         }
 
         return $url;
+    }
+
+    private function baseReserveHint(): string
+    {
+        try {
+            $base_reserve = $this->ReserveCalculator->fetchBaseReserveXlm();
+        } catch (\Throwable) {
+            $base_reserve = '0.5000000';
+        }
+
+        return rtrim(rtrim($base_reserve, '0'), '.');
     }
 
     private function buildMultisigSummaryFromHorizon($StellarAccount): ?array

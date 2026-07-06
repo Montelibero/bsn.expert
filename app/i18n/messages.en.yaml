@@ -464,6 +464,10 @@ account_page:
   multisig:
     header: Multisig
     limit: Thresholds
+    thresholds:
+      low: low
+      med: med
+      high: high
     master_key: Master key
     participates_in: Participates in multisig
   signatures:
@@ -997,13 +1001,37 @@ contacts:
 tools_multisig:
   name: Multisig Editor
   account: Account
+  intro:
+    paragraph_1: Multisig is one of the strongest features of the Stellar blockchain. It is flexible to configure and can be changed at any time. At the same time, by breaking multisig, you can permanently lose access to managing the account. Therefore, you need to be very careful.
+    paragraph_2: This page helps configure multisig for any account and checks for the main mistakes to avoid losing access. Still, you can accidentally make your life harder, so be careful.
   current_state:
     title: Current state
     no_multisig: Multisig is not configured yet; the account is controlled only by its own master key.
+  signers:
+    title: Multisig participants
+    description: In multisig, there can be up to 20 participants, each with an individual signature weight. The account locks %reserve_xlm% XLM for each one.
+    item_label: Signer %number%
+    master_key: Master key
+    signer_help: Stellar account and its signature weight (1-255)
+    master_key_help: The weight of the signature created by this account's original key. Organizations usually set it to 0, disabling it.
+  thresholds:
+    title: Thresholds
+    description: For a transaction to be accepted by the blockchain, it must collect the required threshold with signatures. Each multisig participant has their own signature weight; the weights are summed.
+    low:
+      label: Threshold for simple operations
+      help: "0-255. Threshold for safe operations: Bump sequence, Set trustline flags, Claim claimable balance"
+    med:
+      label: Threshold for main operations
+      help: "0-255. Threshold for the main block of operations, such as outgoing payments"
+    high:
+      label: Threshold for serious operations
+      help: "0-255. Threshold for two dangerous transactions: updating multisig and merging the account into another"
   signer: Signer
   buttons:
+    reset: Reset
     calculate: Create transaction
   errors:
+    title: Errors found
     wrong_low_threshold: The low threshold must be a normal number from 0 to 255
     low_threshold_more_than_med_threshold: The low threshold cannot be greater than the medium threshold
     wrong_med_threshold: The medium threshold must be a normal number from 0 to 255
@@ -1015,6 +1043,7 @@ tools_multisig:
     wrong_signer_weight: The signer weight must be a normal number from 0 (removed) to 255
     doubled_signer_account: The signer account is duplicated
     impossible_to_collect_signers: The sum of the weights of all signers is not enough to overcome the high threshold
+    no_changes_to_save: No changes to save
 
 tools_timetoken:
   name: Timetoken

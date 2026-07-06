@@ -190,7 +190,10 @@
 </div>
 
 {% if multisig %}
-{{ include('account_multisig_summary.twig', {multisig: multisig, title: 'account_page.multisig.header'|trans, empty_message: ''}, with_context = false) }}
+<div class="box">
+    <h2 class="title">{{ 'account_page.multisig.header'|trans }}</h2>
+    {{ include('account_multisig_summary.twig', {multisig: multisig}, with_context = false) }}
+</div>
 {% endif %}
 
 {% if mtla_program_page_url %}
