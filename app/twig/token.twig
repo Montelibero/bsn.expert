@@ -73,6 +73,12 @@
                     <a href="/tokens/#category_{{ category }}">{{ category_name }}</a>
                 </dd>
             {% endif %}
+            {% if offer_document %}
+                <dt class="title is-4">{{ 'token_page.offer_document'|trans }}</dt>
+                <dd class="subtitle is-4">
+                    <a href="/documents/{{ offer_document.hash }}/" class="is-family-monospace">{{ offer_document.hash_short }}</a>
+                </dd>
+            {% endif %}
             {% if offer_link %}
                 <dt class="title is-4">{{ 'token_page.offer_link'|trans }}</dt>
                 <dd class="subtitle is-4">

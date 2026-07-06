@@ -584,6 +584,7 @@ token_page:
   issued: Issued
   holders_count: Holders count
   category: Category
+  offer_document: Offer
   offer_link: Link
   add_trustline:
     header: Add trustline

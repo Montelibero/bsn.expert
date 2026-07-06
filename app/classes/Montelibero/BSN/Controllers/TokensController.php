@@ -2,6 +2,7 @@
 namespace Montelibero\BSN\Controllers;
 
 use DI\Container;
+use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Relations\Person;
 use Montelibero\BSN\Relations\Member;
@@ -21,6 +22,7 @@ use Twig\Environment;
 
 class TokensController
 {
+    private const ASSET_OFFER_SIGNATURE_NAME_PREFIX = 'AssetOfferHash';
     private const KNOWN_TOKENS_REFRESH_INTERVAL = 60;
     private const TOKEN_TRUSTLINE_FORM_CACHE_TTL = 604800; // week
 
@@ -204,6 +206,8 @@ class TokensController
             return null;
         }
 
+        $offer_document = $this->findAssetOfferDocument($Issuer, $code);
+
         $issued = null;
         $holders_count = null;
         if ($asset_data = $this->fetchAssetData($code, $issuer)) {
@@ -244,10 +248,31 @@ class TokensController
             'category' => $category,
             'category_name' => $category_name,
             'offer_link' => $offer_link,
+            'offer_document' => $offer_document,
             'token_image' => $token_image,
             'add_trustline_form' => $signing_form,
             'holders' => $holders,
         ]);
+    }
+
+    private function findAssetOfferDocument(Account $Issuer, string $code): ?array
+    {
+        $expected_name = self::ASSET_OFFER_SIGNATURE_NAME_PREFIX . $code;
+
+        foreach ($Issuer->getSignatures() as $Signature) {
+            if ($Signature->getName() !== $expected_name) {
+                continue;
+            }
+
+            $Contract = $Signature->getContract();
+
+            return [
+                'hash' => $Contract->hash,
+                'hash_short' => $Contract->hash_short,
+            ];
+        }
+
+        return null;
     }
 
     private function buildTokenTrustlineForm(string $code, string $issuer): string
