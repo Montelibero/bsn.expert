@@ -1007,6 +1007,7 @@ tools_multisig:
   current_state:
     title: Current state
     no_multisig: Multisig is not configured yet; the account is controlled only by its own master key.
+  transaction_ready: Transaction ready
   signers:
     title: Multisig participants
     description: In multisig, there can be up to 20 participants, each with an individual signature weight. The account locks %reserve_xlm% XLM for each one.
