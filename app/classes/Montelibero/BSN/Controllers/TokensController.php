@@ -8,6 +8,7 @@ use Montelibero\BSN\Relations\Person;
 use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\WebApp;
+use Parsedown;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Asset;
@@ -279,11 +280,22 @@ class TokensController
             }
 
             $Contract = $Signature->getContract();
-
-            return [
+            $data = [
                 'hash' => $Contract->hash,
                 'hash_short' => $Contract->hash_short,
             ];
+
+            $document_text = $Contract->getText();
+            if ($document_text !== null && hash_equals($Contract->hash, hash('sha256', $document_text))) {
+                $data['text'] = $document_text;
+
+                if (DocumentsController::looksLikeMarkdown($document_text)) {
+                    $Parsedown = new Parsedown();
+                    $data['text_html'] = $Parsedown->text($document_text);
+                }
+            }
+
+            return $data;
         }
 
         return null;

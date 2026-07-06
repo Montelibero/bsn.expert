@@ -586,6 +586,10 @@ token_page:
   category: Category
   offer_document: Offer
   offer_link: Link
+  offer_text:
+    header: Token offer
+    expand: Show full
+    open_full: Open full offer
   add_trustline:
     header: Add trustline
     description: To be able to have these tokens on your account, you need to give permission.

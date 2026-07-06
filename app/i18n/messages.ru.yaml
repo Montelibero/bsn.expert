@@ -587,6 +587,10 @@ token_page:
   category: Категория
   offer_document: Оферта
   offer_link: Ссылка
+  offer_text:
+    header: Оферта токена
+    expand: Отобразить целиком
+    open_full: Открыть оферту целиком
   add_trustline:
     header: Открыть линию доверия
     description: Чтобы на вашем аккаунте могли быть эти токены, нужно дать разрешение

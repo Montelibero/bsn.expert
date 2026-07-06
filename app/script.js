@@ -75,6 +75,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
+/* Token offer preview */
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-token-offer]').forEach(function (root) {
+        const frame = root.querySelector('[data-token-offer-frame]');
+        const expandControl = root.querySelector('[data-token-offer-expand-control]');
+        const expandButton = root.querySelector('[data-token-offer-expand]');
+
+        if (!frame || !expandControl || !expandButton) {
+            return;
+        }
+
+        function isOverflowing() {
+            return frame.scrollHeight > frame.clientHeight + 1;
+        }
+
+        function sync() {
+            if (frame.classList.contains('is-expanded')) {
+                return;
+            }
+
+            const overflowing = isOverflowing();
+            frame.classList.toggle('is-overflowing', overflowing);
+            expandControl.classList.toggle('is-hidden', !overflowing);
+        }
+
+        expandButton.addEventListener('click', function () {
+            frame.classList.add('is-expanded');
+            frame.classList.remove('is-overflowing');
+            expandControl.classList.add('is-hidden');
+        });
+
+        sync();
+        window.addEventListener('load', sync);
+        window.addEventListener('resize', sync);
+    });
+});
+
 /* Multisig editor */
 document.addEventListener('DOMContentLoaded', function () {
     const list = document.querySelector('[data-multisig-signers-list]');

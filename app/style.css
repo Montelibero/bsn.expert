@@ -95,6 +95,59 @@
     vertical-align: middle;
 }
 
+.token-offer-text-frame {
+    line-height: 1.5;
+    max-height: 15em;
+    overflow: hidden;
+    position: relative;
+}
+
+.token-offer-text-frame.is-expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+.token-offer-text-frame.is-overflowing::after {
+    background: linear-gradient(to bottom, transparent, var(--bulma-message-background-color, var(--bulma-scheme-main)));
+    bottom: 0;
+    content: "";
+    height: 4.5em;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+}
+
+.token-offer-original-text {
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+
+.token-offer-open-full-link,
+.token-offer-expand-control {
+    margin-top: 0.75rem;
+}
+
+.has-js .token-offer-open-full-link {
+    display: none;
+}
+
+.token-offer-expand-button {
+    appearance: none;
+    background: none;
+    border: 0;
+    color: var(--bulma-link);
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+}
+
+.token-offer-expand-button:hover,
+.token-offer-expand-button:focus {
+    color: var(--bulma-link-hover);
+    text-decoration: underline;
+}
+
 /* Search Results */
 .search-highlight {
     background: rgba(72, 95, 199, 0.15);
