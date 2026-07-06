@@ -97,7 +97,7 @@
 
 .token-offer-text-frame {
     line-height: 1.5;
-    max-height: 15em;
+    max-height: 20em;
     overflow: hidden;
     position: relative;
 }
@@ -108,10 +108,10 @@
 }
 
 .token-offer-text-frame.is-overflowing::after {
-    background: linear-gradient(to bottom, transparent, var(--bulma-message-background-color, var(--bulma-scheme-main)));
+    background: linear-gradient(to bottom, transparent, hsl(var(--bulma-message-h), var(--bulma-message-s), var(--bulma-message-background-l)));
     bottom: 0;
     content: "";
-    height: 4.5em;
+    height: 7.5em;
     left: 0;
     pointer-events: none;
     position: absolute;
@@ -130,22 +130,6 @@
 
 .has-js .token-offer-open-full-link {
     display: none;
-}
-
-.token-offer-expand-button {
-    appearance: none;
-    background: none;
-    border: 0;
-    color: var(--bulma-link);
-    cursor: pointer;
-    font: inherit;
-    padding: 0;
-}
-
-.token-offer-expand-button:hover,
-.token-offer-expand-button:focus {
-    color: var(--bulma-link-hover);
-    text-decoration: underline;
 }
 
 /* Search Results */
