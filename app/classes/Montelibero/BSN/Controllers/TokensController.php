@@ -22,7 +22,15 @@ use Twig\Environment;
 
 class TokensController
 {
-    private const ASSET_OFFER_SIGNATURE_NAME_PREFIX = 'AssetOfferHash';
+    private const ASSET_OFFER_SIGNATURE_NAME_PATTERNS = [
+        'AssetOfferHash%s',
+        'TokenOffer:%s',
+        '%sTokenOffer',
+        '%sOffer',
+        'Offer for token %s',
+        'AssetOfferHash:%s',
+        'TokensOffer%s',
+    ];
     private const KNOWN_TOKENS_REFRESH_INTERVAL = 60;
     private const TOKEN_TRUSTLINE_FORM_CACHE_TTL = 604800; // week
 
@@ -257,10 +265,15 @@ class TokensController
 
     private function findAssetOfferDocument(Account $Issuer, string $code): ?array
     {
-        $expected_name = self::ASSET_OFFER_SIGNATURE_NAME_PREFIX . $code;
+        $signatures_by_name = [];
 
         foreach ($Issuer->getSignatures() as $Signature) {
-            if ($Signature->getName() !== $expected_name) {
+            $signatures_by_name[$Signature->getName()] ??= $Signature;
+        }
+
+        foreach ($this->buildAssetOfferSignatureNames($code) as $expected_name) {
+            $Signature = $signatures_by_name[$expected_name] ?? null;
+            if (!$Signature) {
                 continue;
             }
 
@@ -273,6 +286,17 @@ class TokensController
         }
 
         return null;
+    }
+
+    private function buildAssetOfferSignatureNames(string $code): array
+    {
+        $names = [];
+
+        foreach (self::ASSET_OFFER_SIGNATURE_NAME_PATTERNS as $pattern) {
+            $names[] = sprintf($pattern, $code);
+        }
+
+        return array_values(array_unique($names));
     }
 
     private function buildTokenTrustlineForm(string $code, string $issuer): string
