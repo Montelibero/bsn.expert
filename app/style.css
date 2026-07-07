@@ -81,7 +81,7 @@
     vertical-align: middle;
 }
 
-.tag.token_has_offer_text {
+.token_has_offer_text .tag {
     border-bottom: solid 4px #00a209;
 }
 
