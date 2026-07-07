@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 use DI\Container;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\Contract;
 use Montelibero\BSN\Relations\Person;
 use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\StellarTomlImageManager;
@@ -48,6 +49,9 @@ class TokensController
     private array $known_tokens = [];
     private array $known_tokens_by_code = [];
     private int $known_tokens_checked_at = 0;
+    private array $asset_offer_signatures_by_account_id = [];
+    private array $displayable_asset_offer_by_token = [];
+    private ?int $asset_offer_cache_data_loaded_at = null;
 
     public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container, StellarTomlImageManager $TomlImageManager)
     {
@@ -103,6 +107,10 @@ class TokensController
                     'tokens' => [],
                 ];
             }
+            $asset['has_offer_text'] = $this->hasDisplayableAssetOfferDocument(
+                $this->BSN->makeAccountById($asset['issuer']),
+                $asset['code']
+            );
             $tokens[$asset['category']]['tokens'][$asset['code']] = $asset;
         }
         foreach ($tokens as &$category) {
@@ -267,38 +275,97 @@ class TokensController
 
     private function findAssetOfferDocument(Account $Issuer, string $code): ?array
     {
-        $signatures_by_name = [];
-
-        foreach ($Issuer->getSignatures() as $Signature) {
-            $signatures_by_name[$Signature->getName()] ??= $Signature;
+        $Contract = $this->findAssetOfferContract($Issuer, $code);
+        if (!$Contract) {
+            return null;
         }
+
+        $data = [
+            'hash' => $Contract->hash,
+            'hash_short' => $Contract->hash_short,
+        ];
+
+        $document_text = $Contract->getText();
+        if ($this->isDisplayableOfferContract($Contract)) {
+            $data['text'] = $document_text;
+
+            if (DocumentsController::looksLikeMarkdown($document_text)) {
+                $Parsedown = new Parsedown();
+                $data['text_html'] = $Parsedown->text($document_text);
+            }
+        }
+
+        return $data;
+    }
+
+    private function hasDisplayableAssetOfferDocument(Account $Issuer, string $code): bool
+    {
+        $this->ensureAssetOfferCacheFresh();
+
+        $cache_key = $Issuer->getId() . ':' . $code;
+        if (array_key_exists($cache_key, $this->displayable_asset_offer_by_token)) {
+            return $this->displayable_asset_offer_by_token[$cache_key];
+        }
+
+        $Contract = $this->findAssetOfferContract($Issuer, $code);
+
+        return $this->displayable_asset_offer_by_token[$cache_key] = $this->isDisplayableOfferContract($Contract);
+    }
+
+    private function findAssetOfferContract(Account $Issuer, string $code): ?Contract
+    {
+        $this->ensureAssetOfferCacheFresh();
+
+        $signatures_by_name = $this->getSignaturesByName($Issuer);
 
         foreach ($this->buildAssetOfferSignatureNames($code) as $expected_name) {
             $Signature = $signatures_by_name[$expected_name] ?? null;
-            if (!$Signature) {
-                continue;
+            if ($Signature) {
+                return $Signature->getContract();
             }
-
-            $Contract = $Signature->getContract();
-            $data = [
-                'hash' => $Contract->hash,
-                'hash_short' => $Contract->hash_short,
-            ];
-
-            $document_text = $Contract->getText();
-            if ($document_text !== null && hash_equals($Contract->hash, hash('sha256', $document_text))) {
-                $data['text'] = $document_text;
-
-                if (DocumentsController::looksLikeMarkdown($document_text)) {
-                    $Parsedown = new Parsedown();
-                    $data['text_html'] = $Parsedown->text($document_text);
-                }
-            }
-
-            return $data;
         }
 
         return null;
+    }
+
+    private function getSignaturesByName(Account $Account): array
+    {
+        $this->ensureAssetOfferCacheFresh();
+
+        $account_id = $Account->getId();
+        if (array_key_exists($account_id, $this->asset_offer_signatures_by_account_id)) {
+            return $this->asset_offer_signatures_by_account_id[$account_id];
+        }
+
+        $signatures_by_name = [];
+        foreach ($Account->getSignatures() as $Signature) {
+            $signatures_by_name[$Signature->getName()] ??= $Signature;
+        }
+
+        return $this->asset_offer_signatures_by_account_id[$account_id] = $signatures_by_name;
+    }
+
+    private function ensureAssetOfferCacheFresh(): void
+    {
+        $data_loaded_at = $this->BSN->getDataLoadedAt();
+        if ($this->asset_offer_cache_data_loaded_at === $data_loaded_at) {
+            return;
+        }
+
+        $this->asset_offer_signatures_by_account_id = [];
+        $this->displayable_asset_offer_by_token = [];
+        $this->asset_offer_cache_data_loaded_at = $data_loaded_at;
+    }
+
+    private function isDisplayableOfferContract(?Contract $Contract): bool
+    {
+        if (!$Contract) {
+            return false;
+        }
+
+        $document_text = $Contract->getText();
+
+        return $document_text !== null && hash_equals($Contract->hash, hash('sha256', $document_text));
     }
 
     private function buildAssetOfferSignatureNames(string $code): array

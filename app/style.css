@@ -81,6 +81,10 @@
     vertical-align: middle;
 }
 
+.tag.token_has_offer_text {
+    border-bottom: solid 4px #00a209;
+}
+
 .token-tag-logo {
     aspect-ratio: 1 / 1;
     background-position: center;

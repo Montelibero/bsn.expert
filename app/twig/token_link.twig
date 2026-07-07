@@ -9,6 +9,9 @@
 {% set title = title ?? item.title ?? (issuer ? code ~ '-' ~ issuer : label) %}
 {% set link_class = link_class ?? 'tags has-addons token-link is-inline-flex mb-0' %}
 {% set code_tag_class = code_tag_class ?? ('tag is-hoverable ' ~ (is_known ? 'is-info' : 'is-dark')) %}
+{% if item.has_offer_text ?? false %}
+    {% set code_tag_class = code_tag_class ~ ' token_has_offer_text' %}
+{% endif %}
 {% set amount_tag_class = amount_tag_class ?? 'tag is-hoverable' %}
 {% set has_amount = amount is not null and amount is not same as('') %}
 
