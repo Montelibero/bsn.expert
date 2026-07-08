@@ -25,8 +25,8 @@ use Twig\Environment;
 class TokensController
 {
     private const ASSET_OFFER_SIGNATURE_NAME_PATTERNS = [
-        'AssetOfferHash%s',
         'TokenOffer:%s',
+        'AssetOfferHash%s',
         '%sTokenOffer',
         '%s token offer',
         '%sOffer',
