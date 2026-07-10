@@ -593,6 +593,9 @@ token_page:
   add_trustline:
     header: Add trustline
     description: To be able to have these tokens on your account, you need to give permission.
+    account: Account
+    already_open: A trustline to this token is already open. If you need to close it, you can do so %here%.
+    here: here
   holders:
     header: Holders
     account: Account

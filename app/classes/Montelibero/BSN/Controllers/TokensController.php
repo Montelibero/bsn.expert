@@ -5,6 +5,7 @@ use DI\Container;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Contract;
+use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\Relations\Person;
 use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\StellarTomlImageManager;
@@ -16,6 +17,7 @@ use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\ChangeTrustOperationBuilder;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\Network;
+use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\SEP\URIScheme\URIScheme;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
@@ -46,6 +48,8 @@ class TokensController
 
     private StellarTomlImageManager $TomlImageManager;
 
+    private CurrentUser $CurrentUser;
+
     private array $known_tokens = [];
     private array $known_tokens_by_code = [];
     private int $known_tokens_checked_at = 0;
@@ -53,7 +57,14 @@ class TokensController
     private array $displayable_asset_offer_by_token = [];
     private ?int $asset_offer_cache_data_loaded_at = null;
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container, StellarTomlImageManager $TomlImageManager)
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        StellarSDK $Stellar,
+        Container $Container,
+        StellarTomlImageManager $TomlImageManager,
+        CurrentUser $CurrentUser,
+    )
     {
         $this->BSN = $BSN;
 
@@ -64,6 +75,8 @@ class TokensController
         $this->Container = $Container;
 
         $this->TomlImageManager = $TomlImageManager;
+
+        $this->CurrentUser = $CurrentUser;
     }
 
     public function Tokens(): ?string
@@ -253,13 +266,41 @@ class TokensController
 
         $token_page_url = '/tokens/' . rawurlencode($requested_token);
         $show_add_trustline_form = ($_GET['open_trustline'] ?? '') === 'yes';
-        $signing_form = $show_add_trustline_form ? $this->buildTokenTrustlineForm($code, $issuer) : null;
+        $open_trustline_query = ['open_trustline' => 'yes'];
+        if ($current_account_param = $this->CurrentUser->getCurrentAccountRequestParam()) {
+            $open_trustline_query['current_account'] = $current_account_param;
+        }
+
+        $current_account = null;
+        $trustline_already_open = false;
+        $signing_form = null;
+        if ($show_add_trustline_form) {
+            if ($current_account_id = $this->CurrentUser->getCurrentAccountId()) {
+                $CurrentStellarAccount = $this->Stellar->requestAccount($current_account_id);
+                $current_account = $this->BSN->makeAccountById($current_account_id)->jsonSerialize();
+                $trustline_already_open = $this->hasTokenTrustline($CurrentStellarAccount, $code, $issuer);
+                if (!$trustline_already_open) {
+                    $signing_form = $this->buildCurrentAccountTokenTrustlineForm(
+                        $CurrentStellarAccount,
+                        $code,
+                        $issuer
+                    );
+                }
+            } else {
+                $signing_form = $this->buildTokenTrustlineForm($code, $issuer);
+            }
+        }
 
         $Template = $this->Twig->load('token.twig');
         return $Template->render([
             'code' => $code,
             'issuer' => $Issuer->jsonSerialize(),
-            'open_trustline_url' => $token_page_url . '?open_trustline=yes',
+            'open_trustline_url' => $token_page_url . '?' . http_build_query(
+                $open_trustline_query,
+                '',
+                '&',
+                PHP_QUERY_RFC3986
+            ),
             'show_add_trustline_form' => $show_add_trustline_form,
             'holders_count' => $holders_count,
             'issued' => $issued,
@@ -268,6 +309,8 @@ class TokensController
             'offer_link' => $offer_link,
             'offer_document' => $offer_document,
             'token_image' => $token_image,
+            'current_account' => $current_account,
+            'trustline_already_open' => $trustline_already_open,
             'add_trustline_form' => $signing_form,
             'holders' => $holders,
         ]);
@@ -412,6 +455,33 @@ class TokensController
         apcu_store($cache_key, $signing_data, self::TOKEN_TRUSTLINE_FORM_CACHE_TTL);
 
         return $SignController->renderSigningTemplateData($signing_data);
+    }
+
+    private function buildCurrentAccountTokenTrustlineForm(
+        AccountResponse $Account,
+        string $code,
+        string $issuer
+    ): string {
+        $Transaction = new TransactionBuilder($Account);
+        $Operation = new ChangeTrustOperationBuilder(Asset::createNonNativeAsset($code, $issuer));
+        $Transaction->addOperation($Operation->build());
+        $tx = $Transaction->build()->toEnvelopeXdrBase64();
+
+        $SignController = $this->Container->get(SignController::class);
+        $signing_data = $SignController->buildSigningTemplateData($tx, null, null);
+
+        return $SignController->renderSigningTemplateData($signing_data);
+    }
+
+    private function hasTokenTrustline(AccountResponse $Account, string $code, string $issuer): bool
+    {
+        foreach ($Account->getBalances() as $Balance) {
+            if ($Balance->getAssetCode() === $code && $Balance->getAssetIssuer() === $issuer) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function reloadKnownTokens(): void
