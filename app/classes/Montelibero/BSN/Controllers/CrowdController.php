@@ -4,7 +4,7 @@ namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\CrowdProjectService;
-use Parsedown;
+use Montelibero\BSN\MarkdownRenderer;
 use Pecee\SimpleRouter\SimpleRouter;
 use Twig\Environment;
 
@@ -19,6 +19,7 @@ class CrowdController implements RefreshDataCodeInterface
         private readonly CrowdProjectService $ProjectService,
         private readonly CurrentUser $CurrentUser,
         private readonly SignController $SignController,
+        private readonly MarkdownRenderer $MarkdownRenderer,
     ) {
     }
 
@@ -192,7 +193,6 @@ class CrowdController implements RefreshDataCodeInterface
             return '';
         }
 
-        $Parsedown = new Parsedown();
-        return $Parsedown->text($text);
+        return $this->MarkdownRenderer->render($text);
     }
 }

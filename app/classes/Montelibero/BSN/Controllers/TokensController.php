@@ -6,11 +6,11 @@ use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Contract;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\MarkdownRenderer;
 use Montelibero\BSN\Relations\Person;
 use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\WebApp;
-use Parsedown;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Asset;
@@ -50,6 +50,8 @@ class TokensController
 
     private CurrentUser $CurrentUser;
 
+    private MarkdownRenderer $MarkdownRenderer;
+
     private array $known_tokens = [];
     private array $known_tokens_by_code = [];
     private int $known_tokens_checked_at = 0;
@@ -64,6 +66,7 @@ class TokensController
         Container $Container,
         StellarTomlImageManager $TomlImageManager,
         CurrentUser $CurrentUser,
+        MarkdownRenderer $MarkdownRenderer,
     )
     {
         $this->BSN = $BSN;
@@ -77,6 +80,8 @@ class TokensController
         $this->TomlImageManager = $TomlImageManager;
 
         $this->CurrentUser = $CurrentUser;
+
+        $this->MarkdownRenderer = $MarkdownRenderer;
     }
 
     public function Tokens(): ?string
@@ -333,8 +338,7 @@ class TokensController
             $data['text'] = $document_text;
 
             if (DocumentsController::looksLikeMarkdown($document_text)) {
-                $Parsedown = new Parsedown();
-                $data['text_html'] = $Parsedown->text($document_text);
+                $data['text_html'] = $this->MarkdownRenderer->render($document_text);
             }
         }
 

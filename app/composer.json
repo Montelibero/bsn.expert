@@ -23,7 +23,7 @@
     "php-di/php-di": "^7.0",
     "endroid/qr-code": "^6.0",
     "chillerlan/php-qrcode": "^5.0",
-    "erusev/parsedown": "^1.7"
+    "erusev/parsedown": "^1.8"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest"
@@ -34,11 +34,18 @@
     }
   },
   "scripts": {
+    "test": [
+      "@test:auth",
+      "@test:markdown"
+    ],
     "test:auth": [
       "php tests/LoginControllerFailClosedTest.php",
       "php tests/LoginControllerSignatureWeightsTest.php",
       "php tests/LoginControllerSessionBindingTest.php",
       "php tests/LoginControllerChallengeValidationTest.php"
+    ],
+    "test:markdown": [
+      "php tests/MarkdownRendererTest.php"
     ]
   },
   "extra": {

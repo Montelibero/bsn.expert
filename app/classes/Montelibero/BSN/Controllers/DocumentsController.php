@@ -7,7 +7,7 @@ use Montelibero\BSN\BSN;
 use Montelibero\BSN\Contract;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
-use Parsedown;
+use Montelibero\BSN\MarkdownRenderer;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\Memo;
@@ -29,6 +29,7 @@ class DocumentsController
     private Translator $Translator;
     private Container $Container;
     private CurrentUser $CurrentUser;
+    private MarkdownRenderer $MarkdownRenderer;
 
     public function __construct(
         BSN $BSN,
@@ -37,7 +38,8 @@ class DocumentsController
         DocumentsManager $DocumentsManager,
         Translator $Translator,
         Container $Container,
-        CurrentUser $CurrentUser
+        CurrentUser $CurrentUser,
+        MarkdownRenderer $MarkdownRenderer,
     )
     {
         $this->BSN = $BSN;
@@ -49,6 +51,7 @@ class DocumentsController
         $this->Translator = $Translator;
         $this->Container = $Container;
         $this->CurrentUser = $CurrentUser;
+        $this->MarkdownRenderer = $MarkdownRenderer;
 
     }
 
@@ -144,8 +147,7 @@ class DocumentsController
         $document_text = $Hash->getText();
         $data['text_like_markdown'] = self::looksLikeMarkdown($document_text);
         if ($data['text_like_markdown']) {
-            $Parsedown = new Parsedown();
-            $data['text_html'] = $Parsedown->text($document_text);
+            $data['text_html'] = $this->MarkdownRenderer->render($document_text);
         }
         $data['show_original'] = isset($_GET['show']) && $_GET['show'] === 'original';
         if ($document_text) {

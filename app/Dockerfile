@@ -61,7 +61,7 @@ COPY --link --from=fa-assets /build/app/fontawesome ./fontawesome
 COPY --link --from=fa-assets /build/app/twig/fontawesome_link.twig twig/fontawesome_link.twig
 COPY --link app/ .
 
-RUN composer test:auth
+RUN composer test
 
 RUN find /var/www/html -type f \( \
         -name '*.css' -o \
