@@ -170,8 +170,9 @@ login_manual:
   errors:
     invalid_account_id: Here you expect your Stellar address, which usually starts with G, and consists of 56 characters
     invalid_signed_xdr: Error in the field of the signed transaction. There should be some kind of abracadabra, usually starting with AAAA...=
+    invalid_challenge: The signed transaction does not match the login challenge that was issued
+    expired_challenge: The login challenge has expired. Get a new transaction and sign it again
     wrong_account_id: The account in the transaction does not match the specified account
-    wrong_seq_number: The transaction has expired, because a new transaction has been sent from this account
     bad_signature: Problem with the signature. Maybe there are not enough votes, or the wrong key was signed.
     stellar_node_unavailable: The Stellar network is temporarily unavailable. Please try again in a few seconds.
 

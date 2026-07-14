@@ -1,10 +1,13 @@
 <?php
 declare(strict_types=1);
 
+use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\LoginController;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Account;
+use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
+use Soneso\StellarSDK\Network;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TimeBounds;
@@ -85,23 +88,41 @@ function assertSameValue(mixed $expected, mixed $actual, string $message): void
     }
 }
 
-$nonce = 'auth-test-nonce';
-$Keypair = Soneso\StellarSDK\Crypto\KeyPair::random();
-$Account = new Account($Keypair->getAccountId(), new BigInteger(0));
+$nonce = bin2hex(random_bytes(16));
+$ServerKeypair = KeyPair::random();
+$_ENV['SERVER_STELLAR_SECRET_KEY'] = $ServerKeypair->getSecretSeed();
+$TimeBounds = new TimeBounds(new DateTime('-1 minute'), new DateTime('+5 minutes'));
+
+$ServerAccount = new Account($ServerKeypair->getAccountId(), new BigInteger(0));
+$ChallengeBuilder = new TransactionBuilder($ServerAccount);
+$ChallengeBuilder->addOperation(
+    (new ManageDataOperationBuilder('bsn.expert', $nonce))->build()
+);
+$ChallengeBuilder->addOperation(
+    (new ManageDataOperationBuilder('web_auth_domain', 'bsn.expert'))->build()
+);
+$ChallengeBuilder->setTimeBounds($TimeBounds);
+$ChallengeTransaction = $ChallengeBuilder->build();
+$ChallengeTransaction->sign($ServerKeypair, Network::public());
+
+$Keypair = KeyPair::random();
+$Account = new Account($Keypair->getAccountId(), new BigInteger(100));
 $TransactionBuilder = new TransactionBuilder($Account);
 $TransactionBuilder->addOperation(
     (new ManageDataOperationBuilder('bsn.expert', $nonce))->build()
 );
-$TransactionBuilder->setTimeBounds(new TimeBounds(
-    new DateTime('-1 minute'),
-    new DateTime('+5 minutes')
-));
+$TransactionBuilder->addOperation(
+    (new ManageDataOperationBuilder('web_auth_domain', 'bsn.expert'))->build()
+);
+$TransactionBuilder->setTimeBounds($TimeBounds);
 $xdr = $TransactionBuilder->build()->toEnvelopeXdrBase64();
 
 $challenge = [
     'status' => 'created',
     'timestamp' => time(),
     'return_to' => '/',
+    'challenge_xdr' => $ChallengeTransaction->toEnvelopeXdrBase64(),
+    'challenge_mode' => 'sep07',
 ];
 $Memcached = new InMemoryMemcached(['login_nonce_' . $nonce => $challenge]);
 $Stellar = new UnavailableStellarSDK();
@@ -114,6 +135,9 @@ foreach (['Memcached' => $Memcached, 'Stellar' => $Stellar] as $property_name =>
     $Property = $ControllerReflection->getProperty($property_name);
     $Property->setValue($Controller, $value);
 }
+$BsnReflection = new ReflectionClass(BSN::class);
+$BsnProperty = $ControllerReflection->getProperty('BSN');
+$BsnProperty->setValue($Controller, $BsnReflection->newInstanceWithoutConstructor());
 
 $_POST = ['xdr' => $xdr];
 http_response_code(200);

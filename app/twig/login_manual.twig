@@ -54,10 +54,11 @@
             </div>
         </div>
         {% if xdr %}
+            <input type="hidden" name="nonce" value="{{ nonce }}">
             <h2 class="title is-4">{{ 'login_manual.step_two.header'|trans }}</h2>
             <div class="field">
                 <label class="label" for="xdr">{{ 'login_manual.step_two.xdr'|trans }}</label>
-                <textarea class="textarea" name="xdr" id="xdr" rows="3" readonly>{{ xdr }}</textarea>
+                <textarea class="textarea" id="xdr" rows="3" readonly>{{ xdr }}</textarea>
                 <p class="help">{{ 'login_manual.step_two.xdr_hint'|trans }}</p>
             </div>
             <div class="field">

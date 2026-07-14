@@ -14,12 +14,10 @@ use Montelibero\BSN\ReturnTo;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Account;
-use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\ManageDataOperation;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\Network;
-use Soneso\StellarSDK\PaymentOperationBuilder;
 use Soneso\StellarSDK\SEP\URIScheme\URIScheme;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TimeBounds;
@@ -32,6 +30,14 @@ use Twig\Environment;
 class LoginController
 {
     private const BROWSER_SESSION_HASH_KEY = 'browser_session_hash';
+    private const CHALLENGE_XDR_KEY = 'challenge_xdr';
+    private const CHALLENGE_MODE_KEY = 'challenge_mode';
+    private const EXPECTED_ACCOUNT_ID_KEY = 'expected_account_id';
+    private const CHALLENGE_DATA_KEY = 'bsn.expert';
+    private const WEB_AUTH_DOMAIN = 'bsn.expert';
+    private const MODE_SEP07 = 'sep07';
+    private const MODE_MANUAL = 'manual';
+    private const CHALLENGE_TTL = 300;
 
     private BSN $BSN;
     private Environment $Twig;
@@ -80,23 +86,10 @@ class LoginController
         $error = null;
 
         if (!$nonce) {
+            $Challenge = $this->buildLoginChallenge($return_to);
+            $nonce = $Challenge['nonce'];
+            $tx = $Challenge['xdr'];
             $ServerKeypair = Keypair::fromSeed($_ENV['SERVER_STELLAR_SECRET_KEY']);
-            $StellarAccount = new Account($ServerKeypair->getAccountId(), new BigInteger(0));
-            $Transaction = new TransactionBuilder($StellarAccount);
-            $nonce = substr(md5(random_bytes(10)), -16);
-            $Operation = new ManageDataOperationBuilder('bsn.expert', $nonce);
-            $Transaction->addOperation($Operation->build());
-            $Operation = new ManageDataOperationBuilder('web_auth_domain', 'bsn.expert');
-            $Transaction->addOperation($Operation->build());
-            $Transaction->setTimeBounds(
-                new TimeBounds(
-                    new DateTime(),
-                    (new DateTime())->add((new DateInterval('PT5M')))
-                )
-            );
-            $Transaction = $Transaction->build();
-            $Transaction->sign($ServerKeypair, Network::public());
-            $tx = $Transaction->toEnvelopeXdrBase64();
             $UriScheme = new URIScheme();
             $uri = $UriScheme->generateSignTransactionURI(
                 $tx,
@@ -108,15 +101,10 @@ class LoginController
             );
             $uri_signed = SignController::signSep07Uri($uri, $ServerKeypair);
 
-            $data = [
-                'uri' => $uri_signed,
-                'status' => 'created',
-                'timestamp' => time(),
-                'return_to' => $return_to,
-                self::BROWSER_SESSION_HASH_KEY => $this->currentBrowserSessionHash(),
-            ];
+            $data = $Challenge['data'];
+            $data['uri'] = $uri_signed;
 
-            $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
+            $this->storeLoginChallenge($nonce, $data);
         } else {
             $data = $this->Memcached->get("login_nonce_" . $nonce) ?: null;
             if ($data && !$this->challengeBelongsToCurrentBrowser($data)) {
@@ -180,73 +168,237 @@ class LoginController
 
     public function Callback(): string
     {
-//        $_POST['xdr'] = 'AAAAAgAAAADoxXsJz7Iv6EBlTrodaCzbJY/2LZ3+w3PRHEt/t7H49gAe02oCZexSAAAEJgAAAAEAAAAAAAAAAAAAAABn4d1BAAAAAAAAAAIAAAAAAAAACgAAAApic24uZXhwZXJ0AAAAAAABAAAAEDg4OGY0MWRmM2QzMjFiMzgAAAAAAAAACgAAAA93ZWJfYXV0aF9kb21haW4AAAAAAQAAAApic24uZXhwZXJ0AAAAAAAAAAAAARWoBiEAAABADCqqBVq6EGNZg99WC1KS25LUJpB9jNo7VVKykg/asV0fMYxE3zF45UxDjfo+MJfcjFe2mYQy3VI2Lt1w3IZ7Bw==';
         if (!isset($_POST['xdr'])) {
             SimpleRouter::response()->httpCode(400);
             return 'missing xdr';
         }
-        try {
-            /** @var Transaction $Transaction */
-            $Transaction = Transaction::fromEnvelopeBase64XdrString($_POST["xdr"]);
-        } catch (\Exception $E) {
+        if (!is_string($_POST['xdr'])) {
             SimpleRouter::response()->httpCode(400);
             return 'invalid xdr';
         }
-        $Envelope = XdrTransactionEnvelope::fromEnvelopeBase64XdrString($_POST['xdr']);
+        $Result = $this->verifyLoginChallenge($_POST['xdr'], self::MODE_SEP07);
 
-        $account_id = $Transaction->getSourceAccount()->getAccountId();
-        $FirstOperation = $Transaction->getOperations()[0];
-        if (!($FirstOperation instanceof ManageDataOperation)) {
-            SimpleRouter::response()->httpCode(400);
-            return 'invalid xdr (operation)';
-        }
-        $nonce = $FirstOperation->getValue();
-
-        $data = $this->Memcached->get("login_nonce_" . $nonce);
-        if (!$data) {
-            SimpleRouter::response()->httpCode(400);
-            return 'unknown nonce';
-        }
-
-        if ($data['status'] !== 'created') {
-            SimpleRouter::response()->httpCode(400);
-            return 'obsolete transaction';
-        }
-
-        /** @var TimeBounds $TimeBounds */
-        $TimeBounds = $Transaction->getTimeBounds();
-        if (!$TimeBounds) {
-            SimpleRouter::response()->httpCode(400);
-            return 'missing time bounds';
-        }
-
-        if (time() < $TimeBounds->getMinTime()->getTimestamp() || time() > $TimeBounds->getMaxTime()->getTimestamp()) {
-            $data['status'] = 'timeout';
-            $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
-            SimpleRouter::response()->httpCode(400);
-            return 'too old';
-        }
-
-        $check_sign = $this->checkSignature($_POST['xdr']);
-
-        if ($check_sign === null) {
+        if ($Result['status'] === 'upstream_error') {
             SimpleRouter::response()->httpCode(503);
             SimpleRouter::response()->header('Retry-After: 5');
             return 'Stellar node error';
         }
-
-        if ($check_sign === false) {
+        if ($Result['status'] === 'bad_signature') {
+            $data = $Result['data'];
             $data['status'] = 'bad_signature';
-            $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
+            $this->storeLoginChallenge($Result['nonce'], $data);
             SimpleRouter::response()->httpCode(403);
-            return "Missing client signature";
+            return 'Missing client signature';
+        }
+        if ($Result['status'] !== 'OK') {
+            SimpleRouter::response()->httpCode(400);
+            return match ($Result['status']) {
+                'invalid_xdr' => 'invalid xdr',
+                'unknown_nonce' => 'unknown nonce',
+                'obsolete' => 'obsolete transaction',
+                'timeout' => 'too old',
+                default => 'invalid challenge',
+            };
         }
 
+        $data = $Result['data'];
         $data['status'] = 'OK';
-        $data['account_id'] = $account_id;
-        $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
+        $data['account_id'] = $Result['account_id'];
+        $this->storeLoginChallenge($Result['nonce'], $data);
 
         return 'OK';
+    }
+
+    /**
+     * @return array{
+     *     nonce: string,
+     *     xdr: string,
+     *     data: array<string, mixed>
+     * }
+     */
+    private function buildLoginChallenge(string $return_to, ?string $account_id = null): array
+    {
+        $ServerKeypair = Keypair::fromSeed($_ENV['SERVER_STELLAR_SECRET_KEY']);
+        $source_account_id = $account_id ?? $ServerKeypair->getAccountId();
+
+        // Sequence 1 is intentional. It keeps a manually signed auth challenge
+        // unusable on the public network while remaining a valid signable XDR.
+        $SourceAccount = new Account($source_account_id, new BigInteger(0));
+        $nonce = bin2hex(random_bytes(16));
+        $now = new DateTime();
+        $Builder = new TransactionBuilder($SourceAccount);
+        $Builder->addOperation(
+            (new ManageDataOperationBuilder(self::CHALLENGE_DATA_KEY, $nonce))->build()
+        );
+        $Builder->addOperation(
+            (new ManageDataOperationBuilder('web_auth_domain', self::WEB_AUTH_DOMAIN))->build()
+        );
+        $Builder->setTimeBounds(new TimeBounds(
+            $now,
+            (clone $now)->add(new DateInterval('PT5M')),
+        ));
+        $Transaction = $Builder->build();
+        if ($account_id === null) {
+            $Transaction->sign($ServerKeypair, Network::public());
+        }
+        $xdr = $Transaction->toEnvelopeXdrBase64();
+
+        $data = [
+            'status' => 'created',
+            'timestamp' => time(),
+            'return_to' => $return_to,
+            self::CHALLENGE_XDR_KEY => $xdr,
+            self::CHALLENGE_MODE_KEY => $account_id === null ? self::MODE_SEP07 : self::MODE_MANUAL,
+            self::BROWSER_SESSION_HASH_KEY => $this->currentBrowserSessionHash(),
+        ];
+        if ($account_id !== null) {
+            $data[self::EXPECTED_ACCOUNT_ID_KEY] = $account_id;
+        }
+
+        return compact('nonce', 'xdr', 'data');
+    }
+
+    /**
+     * @return array{
+     *     status: string,
+     *     nonce?: string,
+     *     account_id?: string,
+     *     data?: array<string, mixed>
+     * }
+     */
+    private function verifyLoginChallenge(string $xdr, string $mode): array
+    {
+        $Transaction = $this->parseV1Transaction($xdr);
+        if ($Transaction === null) {
+            return ['status' => 'invalid_xdr'];
+        }
+
+        $nonce = $this->extractChallengeNonce($Transaction);
+        if ($nonce === null) {
+            return ['status' => 'invalid_challenge'];
+        }
+
+        $data = $this->Memcached->get('login_nonce_' . $nonce);
+        if (!is_array($data)) {
+            return ['status' => 'unknown_nonce', 'nonce' => $nonce];
+        }
+        if (($data['status'] ?? null) !== 'created') {
+            return ['status' => 'obsolete', 'nonce' => $nonce, 'data' => $data];
+        }
+        if (($data[self::CHALLENGE_MODE_KEY] ?? null) !== $mode) {
+            return ['status' => 'invalid_challenge', 'nonce' => $nonce, 'data' => $data];
+        }
+        if ($mode === self::MODE_MANUAL && !$this->challengeBelongsToCurrentBrowser($data)) {
+            return ['status' => 'invalid_challenge', 'nonce' => $nonce];
+        }
+        if (!$this->challengeTransactionMatches($Transaction, $data, $mode)) {
+            return ['status' => 'invalid_challenge', 'nonce' => $nonce, 'data' => $data];
+        }
+
+        $TimeBounds = $Transaction->getTimeBounds();
+        if (
+            $TimeBounds === null
+            || time() < $TimeBounds->getMinTime()->getTimestamp()
+            || time() > $TimeBounds->getMaxTime()->getTimestamp()
+        ) {
+            $data['status'] = 'timeout';
+            $this->storeLoginChallenge($nonce, $data);
+            return ['status' => 'timeout', 'nonce' => $nonce, 'data' => $data];
+        }
+
+        $check_sign = $this->checkSignature($xdr);
+        if ($check_sign === null) {
+            return ['status' => 'upstream_error', 'nonce' => $nonce, 'data' => $data];
+        }
+        if ($check_sign === false) {
+            return ['status' => 'bad_signature', 'nonce' => $nonce, 'data' => $data];
+        }
+
+        return [
+            'status' => 'OK',
+            'nonce' => $nonce,
+            'account_id' => $Transaction->getSourceAccount()->getAccountId(),
+            'data' => $data,
+        ];
+    }
+
+    /** @param array<string, mixed> $data */
+    private function challengeTransactionMatches(Transaction $Submitted, array $data, string $mode): bool
+    {
+        $challenge_xdr = $data[self::CHALLENGE_XDR_KEY] ?? null;
+        if (!is_string($challenge_xdr)) {
+            return false;
+        }
+
+        $Expected = $this->parseV1Transaction($challenge_xdr);
+        if (
+            $Expected === null
+            || $Submitted->getSourceAccount()->getId() !== null
+            || !$this->BSN::validateStellarAccountIdFormat($Submitted->getSourceAccount()->getAccountId())
+        ) {
+            return false;
+        }
+
+        if ($mode === self::MODE_MANUAL) {
+            return ($data[self::EXPECTED_ACCOUNT_ID_KEY] ?? null) === $Submitted->getSourceAccount()->getAccountId()
+                && hash_equals($Expected->toXdr()->encode(), $Submitted->toXdr()->encode());
+        }
+        if ($mode !== self::MODE_SEP07) {
+            return false;
+        }
+
+        try {
+            // SEP-07 replacement may update these three fields. Signatures are
+            // envelope data and therefore are not part of this comparison.
+            $Normalized = new Transaction(
+                $Expected->getSourceAccount(),
+                $Expected->getSequenceNumber(),
+                $Submitted->getOperations(),
+                $Submitted->getMemo(),
+                $Submitted->getPreconditions(),
+                $Expected->getFee(),
+                $Submitted->getSorobanTransactionData(),
+            );
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return hash_equals($Expected->toXdr()->encode(), $Normalized->toXdr()->encode());
+    }
+
+    private function parseV1Transaction(string $xdr): ?Transaction
+    {
+        try {
+            $Transaction = Transaction::fromEnvelopeBase64XdrString($xdr);
+            $Envelope = XdrTransactionEnvelope::fromEnvelopeBase64XdrString($xdr);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $Transaction instanceof Transaction && $Envelope->getV1() !== null
+            ? $Transaction
+            : null;
+    }
+
+    private function extractChallengeNonce(Transaction $Transaction): ?string
+    {
+        $FirstOperation = $Transaction->getOperations()[0] ?? null;
+        if (
+            !($FirstOperation instanceof ManageDataOperation)
+            || $FirstOperation->getKey() !== self::CHALLENGE_DATA_KEY
+            || !is_string($FirstOperation->getValue())
+            || preg_match('/^[a-f0-9]{32}$/D', $FirstOperation->getValue()) !== 1
+        ) {
+            return null;
+        }
+
+        return $FirstOperation->getValue();
+    }
+
+    /** @param array<string, mixed> $data */
+    private function storeLoginChallenge(string $nonce, array $data): void
+    {
+        $this->Memcached->set('login_nonce_' . $nonce, $data, self::CHALLENGE_TTL);
     }
 
     /**
@@ -323,69 +475,81 @@ class LoginController
         return $sign_weight_sum >= $StellarAccount->getThresholds()->getMedThreshold();
     }
 
-    public function LoginManual()
+    public function LoginManual(): string
     {
         $Template = $this->Twig->load('login_manual.twig');
         $return_to = $this->resolveReturnTo();
 
-        $account_id = $_POST['account_id'] ?? null;
-        $Account = null;
-
+        $account_id = isset($_POST['account_id']) && is_string($_POST['account_id'])
+            ? trim($_POST['account_id'])
+            : null;
+        $nonce = isset($_POST['nonce']) && is_string($_POST['nonce']) ? $_POST['nonce'] : null;
+        $signed_xdr = isset($_POST['signed_xdr']) && is_string($_POST['signed_xdr'])
+            ? trim($_POST['signed_xdr'])
+            : null;
+        $xdr = null;
         $error = null;
         $Translator = $this->Container->get(Translator::class);
+
         if ($account_id) {
             if (!$this->BSN::validateStellarAccountIdFormat($account_id)) {
                 $error = $Translator->trans('login_manual.errors.invalid_account_id');
-            } else {
-                $Account = $this->Stellar->requestAccount($account_id);
             }
         }
 
-        $xdr = $_POST['xdr'] ?? null;
-
-        if ($Account && !$xdr) {
-            $xdr = (new TransactionBuilder($Account))
-                ->addOperation(
-                    (new PaymentOperationBuilder(
-                        'GBDWGABTWCQHVARC7OQH4FC42O2SFI6FQRJRKVFMZ2U33RUGO3UMFBSN',
-                        Asset::createNonNativeAsset('EURMTL', 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V'),
-                        '0.10',
-                    ))->build()
-                )->build()->toEnvelopeXdrBase64();
-        }
-
-        $signed_xdr = $_POST['signed_xdr'] ?? null;
-
-        if ($Account && $signed_xdr) {
-            try {
-                /** @var Transaction $Transaction */
-                $Transaction = Transaction::fromEnvelopeBase64XdrString($signed_xdr);
-            } catch (\Exception $E) {
-                SimpleRouter::response()->httpCode(400);
-                $error = $Translator->trans('login_manual.errors.invalid_signed_xdr');
+        if (!$error && $account_id && $signed_xdr) {
+            $Result = $this->verifyLoginChallenge($signed_xdr, self::MODE_MANUAL);
+            $data = $Result['data'] ?? null;
+            if (is_array($data) && ($data[self::EXPECTED_ACCOUNT_ID_KEY] ?? null) === $account_id) {
+                $xdr = $data[self::CHALLENGE_XDR_KEY] ?? null;
+                $nonce = $Result['nonce'] ?? $nonce;
+                $return_to = self::normalizeReturnTo($data['return_to'] ?? $return_to);
             }
 
-            if (!$error && $Transaction->getSourceAccount()->getAccountId() !== $account_id) {
+            if ($Result['status'] === 'OK' && $Result['account_id'] !== $account_id) {
                 $error = $Translator->trans('login_manual.errors.wrong_account_id');
-            }
-
-            if (!$error && $Transaction->getSequenceNumber()->compare($Account->getIncrementedSequenceNumber()) !== 0) {
-                $error = $Translator->trans('login_manual.errors.wrong_seq_number');
-            }
-
-            if (!$error) {
-                $check_sign = $this->checkSignature($signed_xdr);
-
-                if ($check_sign === null) {
+            } elseif ($Result['status'] === 'OK') {
+                $this->Memcached->delete('login_nonce_' . $Result['nonce']);
+                $this->authenticate($account_id);
+                SimpleRouter::response()->redirect($return_to, 302);
+                return '';
+            } else {
+                $error = match ($Result['status']) {
+                    'invalid_xdr' => $Translator->trans('login_manual.errors.invalid_signed_xdr'),
+                    'timeout' => $Translator->trans('login_manual.errors.expired_challenge'),
+                    'upstream_error' => $Translator->trans('login_manual.errors.stellar_node_unavailable'),
+                    'bad_signature' => $Translator->trans('login_manual.errors.bad_signature'),
+                    default => $Translator->trans('login_manual.errors.invalid_challenge'),
+                };
+                if ($Result['status'] === 'upstream_error') {
                     SimpleRouter::response()->httpCode(503);
-                    $error = $Translator->trans('login_manual.errors.stellar_node_unavailable');
-                } elseif ($check_sign === true) {
-                    $this->authenticate($account_id);
-                    SimpleRouter::response()->redirect($return_to, 302);
-                } else {
-                    $error = $Translator->trans('login_manual.errors.bad_signature');
+                } elseif (!in_array($Result['status'], ['bad_signature'], true)) {
+                    SimpleRouter::response()->httpCode(400);
+                }
+                if (in_array($Result['status'], ['timeout', 'unknown_nonce', 'obsolete'], true)) {
+                    $xdr = null;
+                    $nonce = null;
                 }
             }
+        } elseif (!$error && $account_id && $nonce) {
+            $data = $this->Memcached->get('login_nonce_' . $nonce);
+            if (
+                is_array($data)
+                && ($data['status'] ?? null) === 'created'
+                && ($data[self::CHALLENGE_MODE_KEY] ?? null) === self::MODE_MANUAL
+                && ($data[self::EXPECTED_ACCOUNT_ID_KEY] ?? null) === $account_id
+                && $this->challengeBelongsToCurrentBrowser($data)
+            ) {
+                $xdr = $data[self::CHALLENGE_XDR_KEY] ?? null;
+                $return_to = self::normalizeReturnTo($data['return_to'] ?? $return_to);
+            } else {
+                $error = $Translator->trans('login_manual.errors.expired_challenge');
+            }
+        } elseif (!$error && $account_id) {
+            $Challenge = $this->buildLoginChallenge($return_to, $account_id);
+            $nonce = $Challenge['nonce'];
+            $xdr = $Challenge['xdr'];
+            $this->storeLoginChallenge($nonce, $Challenge['data']);
         }
 
         return $Template->render([
@@ -393,6 +557,7 @@ class LoginController
             'account_id' => $account_id,
             'xdr' => $xdr,
             'signed_xdr' => $signed_xdr,
+            'nonce' => $nonce,
             'return_to' => $return_to,
         ]);
 
