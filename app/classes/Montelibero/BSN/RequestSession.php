@@ -30,6 +30,21 @@ class RequestSession
         }
     }
 
+    public function regenerateId(): void
+    {
+        if (!$this->enabled) {
+            return;
+        }
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            throw new \RuntimeException('Cannot regenerate an inactive session.');
+        }
+
+        if (!session_regenerate_id(true)) {
+            throw new \RuntimeException('Unable to regenerate the session ID.');
+        }
+    }
+
     public function destroy(): void
     {
         $_SESSION = [];

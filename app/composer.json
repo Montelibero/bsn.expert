@@ -36,7 +36,8 @@
   "scripts": {
     "test:auth": [
       "php tests/LoginControllerFailClosedTest.php",
-      "php tests/LoginControllerSignatureWeightsTest.php"
+      "php tests/LoginControllerSignatureWeightsTest.php",
+      "php tests/LoginControllerSessionBindingTest.php"
     ]
   },
   "extra": {

@@ -9,6 +9,7 @@ use DI\Container;
 use Memcached;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\ReturnTo;
 use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
@@ -30,12 +31,15 @@ use Twig\Environment;
 
 class LoginController
 {
+    private const BROWSER_SESSION_HASH_KEY = 'browser_session_hash';
+
     private BSN $BSN;
     private Environment $Twig;
     private StellarSDK $Stellar;
     private Memcached $Memcached;
     private Container $Container;
     private CurrentUser $CurrentUser;
+    private RequestSession $RequestSession;
 
     public function __construct(
         BSN $BSN,
@@ -44,6 +48,7 @@ class LoginController
         Memcached $Memcached,
         Container $Container,
         CurrentUser $CurrentUser,
+        RequestSession $RequestSession,
     ) {
         $this->BSN = $BSN;
 
@@ -54,6 +59,7 @@ class LoginController
 
         $this->Container = $Container;
         $this->CurrentUser = $CurrentUser;
+        $this->RequestSession = $RequestSession;
     }
 
     public function Login(): ?string
@@ -107,18 +113,22 @@ class LoginController
                 'status' => 'created',
                 'timestamp' => time(),
                 'return_to' => $return_to,
+                self::BROWSER_SESSION_HASH_KEY => $this->currentBrowserSessionHash(),
             ];
 
             $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
         } else {
             $data = $this->Memcached->get("login_nonce_" . $nonce) ?: null;
+            if ($data && !$this->challengeBelongsToCurrentBrowser($data)) {
+                $data = null;
+            }
             if (($_GET['format'] ?? null) === 'json' || ($_SERVER['HTTP_ACCEPT'] ?? '') === 'application/json') {
                 header('Content-type: application/json');
                 if (!$data) {
                     $data = ['status' => 'timeout'];
                 }
                 return json_encode(
-                    $data,
+                    $this->publicChallengeStatus($data),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
                 );
             }
@@ -129,6 +139,7 @@ class LoginController
                 $return_to = self::normalizeReturnTo($data['return_to'] ?? $return_to);
             } elseif ($data['status'] === 'OK') {
                 $this->authenticate($data['account_id']);
+                $this->Memcached->delete("login_nonce_" . $nonce);
                 SimpleRouter::response()->redirect(self::normalizeReturnTo($data['return_to'] ?? $return_to), 302);
             } else {
                 $error = $data['status'];
@@ -409,6 +420,29 @@ class LoginController
 
     private function authenticate($account_id): void
     {
+        $this->RequestSession->regenerateId();
         $this->CurrentUser->authenticate($account_id);
+    }
+
+    private function currentBrowserSessionHash(): string
+    {
+        $session_id = session_id();
+        if ($session_id === '') {
+            throw new \RuntimeException('Login challenge requires an active browser session.');
+        }
+
+        return hash('sha256', $session_id);
+    }
+
+    private function challengeBelongsToCurrentBrowser(array $data): bool
+    {
+        $expected_hash = $data[self::BROWSER_SESSION_HASH_KEY] ?? null;
+        return is_string($expected_hash)
+            && hash_equals($expected_hash, $this->currentBrowserSessionHash());
+    }
+
+    private function publicChallengeStatus(array $data): array
+    {
+        return array_intersect_key($data, array_flip(['status', 'timestamp']));
     }
 }
