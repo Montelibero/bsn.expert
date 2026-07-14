@@ -38,7 +38,8 @@
       "@test:bsn",
       "@test:auth",
       "@test:crowd",
-      "@test:markdown"
+      "@test:markdown",
+      "@test:grist"
     ],
     "test:bsn": [
       "php tests/BsnAtomicReloadTest.php"
@@ -56,6 +57,9 @@
     ],
     "test:markdown": [
       "php tests/MarkdownRendererTest.php"
+    ],
+    "test:grist": [
+      "php tests/GristWebhookAccessTest.php"
     ]
   },
   "extra": {

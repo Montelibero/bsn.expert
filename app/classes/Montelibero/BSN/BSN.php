@@ -241,6 +241,10 @@ class BSN
 
     private function applyMtlaMembersJson(): void
     {
+        foreach ($this->tg_id_to_account as $Account) {
+            $Account->setTelegramId(null);
+            $Account->setTelegramUsername(null);
+        }
         $this->tg_id_to_account = [];
 
         foreach ($this->mtla_members_json as $item) {

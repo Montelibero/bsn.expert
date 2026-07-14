@@ -543,38 +543,6 @@ class MtlaController implements RefreshDataCodeInterface
         }
     }
 
-    public function MtlaReloadMembers(): ?string
-    {
-        self::reloadMembers();
-        return "OK";
-    }
-
-    public static function reloadMembers(): void
-    {
-        $grist_response = \gristRequest(
-            'https://montelibero.getgrist.com/api/docs/aYk6cpKAp9CDPJe51sP3AT/tables/Users/records',
-            'GET'
-        );
-        $members = [];
-        foreach ($grist_response['records'] as $item) {
-            $fields = $item['fields'];
-            if (
-                empty($fields['TGID'])
-                || empty($fields['Stellar'])
-                || empty($fields['MTLAP'])
-                || $fields['MTLAP'] == 0
-            ) {
-                continue;
-            }
-            $members[] = [
-                'stellar' => $fields['Stellar'],
-                'tg_id' => $fields['TGID'],
-                'tg_username' => trim($fields['Telegram'], '@'),
-            ];
-        }
-        apcu_store('mtla_members', $members, 3600);
-    }
-
     public function MtlaPrograms(): ?string
     {
         $programs = $this->ReportService->collectPrograms();

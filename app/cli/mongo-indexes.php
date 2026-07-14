@@ -127,6 +127,33 @@ function ensureCacheEntriesIndexes(Manager $manager, string $database, string $c
     );
 }
 
+function ensureGristSnapshotsIndexes(Manager $manager, string $database, string $collection = 'grist_snapshots'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['updated_at' => -1], 'name' => 'idx_updated_at'],
+            ],
+        ])
+    );
+}
+
+function ensureGristSyncJobsIndexes(Manager $manager, string $database, string $collection = 'grist_sync_jobs'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['due_at' => 1], 'name' => 'idx_due_at'],
+                ['key' => ['lease_until' => 1], 'name' => 'idx_lease_until'],
+            ],
+        ])
+    );
+}
+
 function ensureStellarTomlsIndexes(Manager $manager, string $database, string $collection = 'stellar_tomls'): void
 {
     $manager->executeCommand(
@@ -200,6 +227,8 @@ try {
     ensureApiKeysIndexes($manager, $database);
     ensureSessionsIndexes($manager, $database);
     ensureCacheEntriesIndexes($manager, $database);
+    ensureGristSnapshotsIndexes($manager, $database);
+    ensureGristSyncJobsIndexes($manager, $database);
     ensureStellarTomlsIndexes($manager, $database);
     ensureStellarTomlRunsIndexes($manager, $database);
     ensureStellarTomlImagesIndexes($manager, $database);

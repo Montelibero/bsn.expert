@@ -3,8 +3,10 @@
 namespace Montelibero\BSN\Routes;
 
 use DI\Container;
+use Montelibero\BSN\Controllers\GristWebhookController;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MtlaDmReportController;
+use Montelibero\BSN\GristSyncService;
 use Pecee\SimpleRouter\SimpleRouter;
 
 class MtlaRouter
@@ -14,8 +16,8 @@ class MtlaRouter
         SimpleRouter::get('/', function () use ($Container) {
             return $Container->get(MtlaController::class)->Mtla();
         });
-        SimpleRouter::match(['get', 'post'], '/reload_members', function () use ($Container) {
-            return $Container->get(MtlaController::class)->MtlaReloadMembers();
+        SimpleRouter::post('/reload_members', function () use ($Container) {
+            return $Container->get(GristWebhookController::class)->receive(GristSyncService::MTLA_MEMBERS);
         });
 
         SimpleRouter::get('/council', function () use ($Container) {

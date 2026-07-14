@@ -23,6 +23,7 @@ class ApplicationContext
         public readonly RequestArrayView $SessionView,
         public readonly RequestArrayView $ServerView,
         public readonly BSN $BSN,
+        public readonly GristRuntimeData $GristRuntimeData,
         public readonly string $BsnJsonPath,
     ) {
     }
@@ -49,6 +50,7 @@ class ApplicationContext
 
     public function syncRequestContext(): void
     {
+        $this->GristRuntimeData->refreshMtlaMembersIfNeeded();
         $this->RequestSession->beginRequest();
         $this->SessionView->bind($_SESSION);
         $this->ServerView->bind($_SERVER);

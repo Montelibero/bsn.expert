@@ -6,8 +6,9 @@ use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Contract;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\GristSnapshotStore;
+use Montelibero\BSN\GristSyncService;
 use Montelibero\BSN\MarkdownRenderer;
-use Montelibero\BSN\Relations\Person;
 use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\WebApp;
@@ -51,6 +52,8 @@ class TokensController
     private CurrentUser $CurrentUser;
 
     private MarkdownRenderer $MarkdownRenderer;
+    private GristSnapshotStore $GristSnapshotStore;
+    private GristSyncService $GristSyncService;
 
     private array $known_tokens = [];
     private array $known_tokens_by_code = [];
@@ -67,6 +70,8 @@ class TokensController
         StellarTomlImageManager $TomlImageManager,
         CurrentUser $CurrentUser,
         MarkdownRenderer $MarkdownRenderer,
+        GristSnapshotStore $GristSnapshotStore,
+        GristSyncService $GristSyncService,
     )
     {
         $this->BSN = $BSN;
@@ -82,6 +87,8 @@ class TokensController
         $this->CurrentUser = $CurrentUser;
 
         $this->MarkdownRenderer = $MarkdownRenderer;
+        $this->GristSnapshotStore = $GristSnapshotStore;
+        $this->GristSyncService = $GristSyncService;
     }
 
     public function Tokens(): ?string
@@ -488,83 +495,6 @@ class TokensController
         return false;
     }
 
-    public function reloadKnownTokens(): void
-    {
-        $grist_response = gristRequest(
-            'https://montelibero.getgrist.com/api/docs/gxZer88w3TotbWzkQCzvyw/tables/Assets/records',
-            'GET'
-        );
-        $known_tokens = [];
-        $known_codes = [];
-        foreach ($grist_response['records'] as $item) {
-            $fields = $item['fields'];
-            if (
-                empty($fields['code'])
-                || empty($fields['issuer'])
-            ) {
-                continue;
-            }
-            $code = trim((string) $fields['code']);
-            $issuer = trim((string) $fields['issuer']);
-            if (
-                !BSN::validateTokenNameFormat($code)
-                || !BSN::validateStellarAccountIdFormat($issuer)
-            ) {
-                continue;
-            }
-            $known_tokens[] = [
-                'code' => $code,
-                'issuer' => $issuer,
-                'offer_link' => $fields['offerta_link'],
-                'category' => $fields['category'],
-            ];
-            $known_codes[strtolower($code)] = true;
-        }
-
-        $TagTimeTokenIssuer = $this->BSN->makeTagByName('TimeTokenIssuer');
-        foreach ($this->BSN->getAccounts() as $Account) {
-            if (
-                !($Account->getRelation() instanceof Person)
-                || $Account->getBalance('MTLAP') < 1
-            ) {
-                continue;
-            }
-
-            $code = trim((string) $Account->getProfileSingleItem('TimeTokenCode'));
-            if (!BSN::validateTokenNameFormat($code)) {
-                continue;
-            }
-
-            $issuer = $Account->getId();
-            if ($tt_issuers = $Account->getOutcomeLinks($TagTimeTokenIssuer)) {
-                $issuer = $tt_issuers[0]->getId();
-            } elseif ($tt_issuer_profile = $Account->getProfileSingleItem('TimeTokenIssuer')) {
-                $issuer = trim((string) $tt_issuer_profile);
-            }
-
-            if (!BSN::validateStellarAccountIdFormat($issuer)) {
-                continue;
-            }
-
-            $code_key = strtolower($code);
-            if (array_key_exists($code_key, $known_codes)) {
-                continue;
-            }
-
-            $known_tokens[] = [
-                'code' => $code,
-                'issuer' => $issuer,
-                'offer_link' => null,
-                'category' => 'time_tokens',
-            ];
-            $known_codes[$code_key] = true;
-        }
-
-        apcu_store('known_tokens', $known_tokens, 3600);
-        $this->applyKnownTokens($known_tokens);
-        $this->known_tokens_checked_at = time();
-    }
-
     private function ensureKnownTokensLoaded(): void
     {
         if ($this->known_tokens && time() - $this->known_tokens_checked_at < self::KNOWN_TOKENS_REFRESH_INTERVAL) {
@@ -577,16 +507,21 @@ class TokensController
     private function loadKnownTokens(): void
     {
         $this->known_tokens_checked_at = time();
-        $known_tokens = apcu_fetch('known_tokens');
-        if (!$known_tokens) {
-            $this->reloadKnownTokens();
-            $known_tokens = apcu_fetch('known_tokens');
-            if (!$known_tokens) {
+        $snapshot = $this->GristSnapshotStore->fetch(GristSyncService::KNOWN_TOKENS);
+        if ($snapshot === null) {
+            try {
+                $this->GristSyncService->syncKnownTokens();
+                $snapshot = $this->GristSnapshotStore->fetch(GristSyncService::KNOWN_TOKENS);
+            } catch (\Throwable $Exception) {
+                error_log('Unable to initialize known tokens from Grist: ' . $Exception->getMessage());
                 return;
             }
         }
+        if ($snapshot === null) {
+            return;
+        }
 
-        $this->applyKnownTokens($known_tokens);
+        $this->applyKnownTokens($snapshot['data']);
     }
 
     private function applyKnownTokens(array $known_tokens): void

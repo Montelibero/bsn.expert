@@ -137,6 +137,19 @@ try {
     assertSnapshotState('social', $BSN->getTag('Friend')?->getCategory()?->getId(), 'Tag categories must survive a valid refresh.');
     assertSnapshotState('Owner', $BSN->getTag('Friend')?->getPair()?->getName(), 'Tag pairs must survive a valid refresh.');
     assertSnapshotState(true, $BSN->getTag('Friend')?->isPairStrong(), 'Strong-pair configuration must survive a valid refresh.');
+
+    $BSN->loadMtlaMembersFromJson([[
+        'stellar' => $Replacement,
+        'tg_id' => '12345',
+        'tg_username' => 'replacement',
+    ]]);
+    assertSnapshotState('12345', $BSN->getAccountById($Replacement)?->getTelegramId(), 'MTLA member refresh must apply Telegram metadata.');
+    assertSnapshotState($Replacement, $BSN->getAccountByTelegramId('12345')?->getId(), 'MTLA member refresh must rebuild the Telegram lookup.');
+
+    $BSN->loadMtlaMembersFromJson([]);
+    assertSnapshotState(null, $BSN->getAccountById($Replacement)?->getTelegramId(), 'Removed MTLA members must lose stale Telegram ids.');
+    assertSnapshotState(null, $BSN->getAccountById($Replacement)?->getTelegramUsername(), 'Removed MTLA members must lose stale Telegram usernames.');
+    assertSnapshotState(null, $BSN->getAccountByTelegramId('12345'), 'Removed MTLA members must disappear from the Telegram lookup.');
 } finally {
     @unlink($snapshot_path);
 }

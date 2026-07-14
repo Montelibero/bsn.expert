@@ -19,6 +19,24 @@
 - Быстрый доступ из терминала: `docker compose exec mongo mongosh -u "$MONGO_ROOT_USERNAME" -p "$MONGO_ROOT_PASSWORD"`.
 - Индексы (`usernames`, `contacts`) создаются при старте контейнера `app` через `app/cli/mongo-indexes.php` (запуск из `init.sh`).
 
+### Синхронизация с Grist
+
+Grist webhooks используют существующие POST-адреса:
+
+- `/tokens/reload_known_tokens`;
+- `/mtla/reload_members`;
+- `/documents/update_from_grist`.
+
+Webhook только планирует полное обновление соответствующей таблицы. Каждое следующее событие переносит запуск ещё на 60 секунд; `app-cron` обрабатывает готовые задачи раз в минуту. Дополнительно раз в час планируется полная сверка всех трёх источников.
+
+Для каждого Grist-документа предусмотрен отдельный bearer secret:
+
+- `GRIST_WEBHOOK_SECRET_KNOWN_TOKENS`;
+- `GRIST_WEBHOOK_SECRET_MTLA_MEMBERS`;
+- `GRIST_WEBHOOK_SECRET_DOCUMENTS`.
+
+Секрет задаётся в Grist в поле `Header Authorization` как `Bearer <secret>`. Пока соответствующая переменная окружения пуста, endpoint принимает webhook без проверки — это режим миграции, а не рекомендуемая постоянная конфигурация.
+
 ## Контрибуция
 
 Стоит согласовать с @sozidatel (в телеграме одноимённый аккаунт) планируемый пул реквест.

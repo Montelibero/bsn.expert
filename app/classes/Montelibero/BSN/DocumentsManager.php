@@ -33,7 +33,7 @@ class DocumentsManager
     }
 
     /**
-     * @return array{documents: array<string, array>, count: int}
+     * @return array{documents: array<string, array>, count: int, deleted: int}
      */
     public function refreshFromGrist(): array
     {
@@ -41,32 +41,47 @@ class DocumentsManager
             'https://montelibero.getgrist.com/api/docs/4ZvHAqR5wB33KedcdjQC1r/tables/Hashes/records',
             'GET'
         );
+        if (!is_array($grist_response) || !is_array($grist_response['records'] ?? null)) {
+            throw new \UnexpectedValueException('Grist returned a response without a records array.');
+        }
+
         $grist_records = [];
         foreach ($grist_response['records'] as $item) {
+            if (!is_array($item) || !isset($item['id']) || !is_array($item['fields'] ?? null)) {
+                throw new \UnexpectedValueException('Grist returned an invalid document record.');
+            }
             $grist_records[$item['id']] = $item['fields'];
         }
 
         $documents = [];
         foreach ($grist_records as $row) {
-            $documents[$row['Hash']] = [
-                'hash' => $row['Hash'],
+            $hash = strtolower(trim((string) ($row['Hash'] ?? '')));
+            if (!Contract::validate($hash)) {
+                throw new \UnexpectedValueException('Grist returned a document with an invalid hash.');
+            }
+            $is_obsolete = (bool) ($row['Obsolete'] ?? false);
+            $new_version_id = $row['New_version'] ?? null;
+            $documents[$hash] = [
+                'hash' => $hash,
                 'name' => $row['Name'] ?? null,
                 'type' => $row['Type'] ?? null,
                 'url' => $row['Document_URL'] ?? null,
                 'text' => $row['Document_Text'] ?? null,
-                'is_obsolete' => (bool) ($row['Obsolete'] ?? false),
-                'new_hash' => ($row['Obsolete'] && $row['New_version'])
-                    ? ($grist_records[$row['New_version']]['Hash'] ?? null)
+                'is_obsolete' => $is_obsolete,
+                'new_hash' => ($is_obsolete && $new_version_id)
+                    ? ($grist_records[$new_version_id]['Hash'] ?? null)
                     : null,
                 'source' => 'grist',
             ];
         }
 
         $this->saveDocuments($documents);
+        $deleted = $this->deleteMissingGristDocuments(array_keys($documents));
 
         return [
             'documents' => $documents,
             'count' => count($documents),
+            'deleted' => $deleted,
         ];
     }
 
@@ -164,6 +179,22 @@ class DocumentsManager
             $this->namespace(),
             $Bulk
         );
+    }
+
+    /** @param list<string> $current_hashes */
+    private function deleteMissingGristDocuments(array $current_hashes): int
+    {
+        $Bulk = new BulkWrite();
+        $Bulk->delete(
+            [
+                'source' => 'grist',
+                'hash' => ['$nin' => array_map('strtolower', $current_hashes)],
+            ],
+            ['limit' => 0]
+        );
+        $result = $this->Mongo->executeBulkWrite($this->namespace(), $Bulk);
+
+        return $result->getDeletedCount();
     }
 
     private function namespace(): string

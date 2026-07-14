@@ -24,6 +24,7 @@ use Montelibero\BSN\Controllers\ErrorController;
 use Montelibero\BSN\Controllers\EurmtlReportController;
 use Montelibero\BSN\Controllers\FederationController;
 use Montelibero\BSN\Controllers\GraphController;
+use Montelibero\BSN\Controllers\GristWebhookController;
 use Montelibero\BSN\Controllers\HomeController;
 use Montelibero\BSN\Controllers\LoginController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
@@ -51,6 +52,11 @@ use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\EurmtlReportConfig;
 use Montelibero\BSN\EurmtlReportService;
 use Montelibero\BSN\KnownTagsCatalog;
+use Montelibero\BSN\GristRuntimeData;
+use Montelibero\BSN\GristSnapshotStore;
+use Montelibero\BSN\GristSyncJobManager;
+use Montelibero\BSN\GristSyncService;
+use Montelibero\BSN\GristWebhookAccess;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
 use Montelibero\BSN\RequestArrayView;
@@ -110,6 +116,8 @@ $Memcached->addServer("cache", 11211);
 $AccountsManager = new AccountsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $DocumentsManager = new DocumentsManager($MongoManager, $_ENV['MONGO_BASENAME']);
+$GristSnapshotStore = new GristSnapshotStore($MongoManager, $_ENV['MONGO_BASENAME']);
+$GristSyncJobManager = new GristSyncJobManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $RequestLocale = new RequestLocale();
 $KnownTagsCatalog = new KnownTagsCatalog($RequestLocale, __DIR__ . '/known_tags');
 $BSN = new BSN($AccountsManager, $DocumentsManager);
@@ -181,18 +189,16 @@ if (IS_CLI_CONTEXT) {
 
 $BSN->loadFromJsonFile(JSON_DATA_FILE_PATH);
 
-$mtla_members = [];
-if (function_exists('apcu_exists') && function_exists('apcu_fetch')) {
-    if (!apcu_exists('mtla_members')) {
-        MtlaController::reloadMembers();
-    }
-
-    $fetched_mtla_members = apcu_fetch('mtla_members');
-    if (is_array($fetched_mtla_members)) {
-        $mtla_members = $fetched_mtla_members;
+$GristSyncService = new GristSyncService($BSN, $DocumentsManager, $GristSnapshotStore);
+if ($GristSnapshotStore->fetch(GristSyncService::MTLA_MEMBERS) === null) {
+    try {
+        $GristSyncService->syncMtlaMembers();
+    } catch (\Throwable $Exception) {
+        error_log('Unable to initialize MTLA members from Grist: ' . $Exception->getMessage());
     }
 }
-$BSN->loadMtlaMembersFromJson($mtla_members);
+$GristRuntimeData = new GristRuntimeData($BSN, $GristSnapshotStore);
+$GristRuntimeData->refreshMtlaMembersIfNeeded(true);
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
 $CurrentUser = new CurrentUser($BSN);
@@ -216,6 +222,11 @@ $ContainerBuilder->addDefinitions([
     AccountsManager::class => $AccountsManager,
     ContactsManager::class => $ContactsManager,
     DocumentsManager::class => $DocumentsManager,
+    GristSnapshotStore::class => $GristSnapshotStore,
+    GristSyncJobManager::class => $GristSyncJobManager,
+    GristSyncService::class => $GristSyncService,
+    GristRuntimeData::class => $GristRuntimeData,
+    GristWebhookAccess::class => autowire(),
     MongoCacheManager::class => function() use ($MongoManager) {
         return new MongoCacheManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },
@@ -296,6 +307,7 @@ $ContainerBuilder->addDefinitions([
     VotesController::class => autowire(),
     FederationController::class => autowire(),
     GraphController::class => autowire(),
+    GristWebhookController::class => autowire(),
     HomeController::class => autowire(),
     SearchController::class => autowire(),
     WhoAreYouController::class => autowire(),
@@ -332,7 +344,8 @@ function gristRequest($url, $method, $data = null)
             ],
             'method' => $method,
             'content' => $data ? json_encode($data) : null,
-            'ignore_errors' => true // Позволяет получить тело ответа даже при ошибках HTTP
+            'ignore_errors' => true, // Позволяет получить тело ответа даже при ошибках HTTP
+            'timeout' => 20,
         ]
     ];
     $context = stream_context_create($options);
@@ -380,5 +393,6 @@ return new ApplicationContext(
     $SessionView,
     $ServerView,
     $BSN,
+    $GristRuntimeData,
     JSON_DATA_FILE_PATH,
 );

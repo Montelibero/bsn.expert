@@ -576,27 +576,6 @@ class DocumentsController
         ]);
     }
 
-    public function UpdateFromGrist(): string
-    {
-        try {
-            $result = $this->DocumentsManager->refreshFromGrist();
-        } catch (\Throwable $E) {
-            SimpleRouter::response()->httpCode(500);
-            SimpleRouter::response()->header('Content-Type', 'application/json; charset=utf-8');
-            return json_encode([
-                'status' => 'error',
-                'message' => $E->getMessage(),
-            ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        }
-
-        SimpleRouter::response()->header('Content-Type: application/json; charset=utf-8');
-
-        return json_encode([
-            'status' => 'ok',
-            'updated' => $result['count'],
-        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-    }
-
     private function requireMtlaHolder(): ?Account
     {
         $Account = $this->requireAuthAccount();
