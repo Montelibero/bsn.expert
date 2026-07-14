@@ -15,6 +15,7 @@ use Pecee\SimpleRouter\SimpleRouter;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Account;
 use Soneso\StellarSDK\Crypto\KeyPair;
+use Soneso\StellarSDK\Exceptions\HorizonRequestException;
 use Soneso\StellarSDK\ManageDataOperation;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\Network;
@@ -415,15 +416,22 @@ class LoginController
 
         $sign_weight_sum = 0;
         $StellarAccount = null;
+        $account_not_found = false;
         $last_error = null;
         for ($attempt = 1; $attempt <= 4 && $StellarAccount === null; $attempt++) {
             try {
                 $StellarAccount = $this->Stellar->requestAccount($account_id);
+            } catch (HorizonRequestException $E) {
+                if ($E->getStatusCode() === 404) {
+                    $account_not_found = true;
+                    break;
+                }
+                $last_error = $E;
             } catch (\Throwable $E) {
                 $last_error = $E;
             }
         }
-        if ($StellarAccount === null) {
+        if ($StellarAccount === null && !$account_not_found) {
             error_log(sprintf(
                 'Unable to verify login signature for %s after 4 Horizon attempts: %s',
                 $account_id,
@@ -432,16 +440,27 @@ class LoginController
             return null;
         }
 
-        $signers = [];
-        foreach ($StellarAccount->getSigners()->toArray() as $Signature) {
-            $id = $Signature->getKey();
-            if (!$this->BSN::validateStellarAccountIdFormat($id)) {
-                continue;
-            }
-            $signers[$id] = [
-                'weight' => $Signature->getWeight(),
-                'Keypair' => Keypair::fromAccountId($id),
+        if ($account_not_found) {
+            $signers = [
+                $account_id => [
+                    'weight' => 1,
+                    'Keypair' => Keypair::fromAccountId($account_id),
+                ],
             ];
+            $medium_threshold = 1;
+        } else {
+            $signers = [];
+            foreach ($StellarAccount->getSigners()->toArray() as $Signature) {
+                $id = $Signature->getKey();
+                if (!$this->BSN::validateStellarAccountIdFormat($id)) {
+                    continue;
+                }
+                $signers[$id] = [
+                    'weight' => $Signature->getWeight(),
+                    'Keypair' => Keypair::fromAccountId($id),
+                ];
+            }
+            $medium_threshold = $StellarAccount->getThresholds()->getMedThreshold();
         }
 
         $envelope_signatures = $Envelope->getV1()->getSignatures();
@@ -472,7 +491,7 @@ class LoginController
             }
         }
 
-        return $sign_weight_sum >= $StellarAccount->getThresholds()->getMedThreshold();
+        return $sign_weight_sum >= $medium_threshold;
     }
 
     public function LoginManual(): string
