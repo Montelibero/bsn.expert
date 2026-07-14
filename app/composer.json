@@ -35,9 +35,13 @@
   },
   "scripts": {
     "test": [
+      "@test:bsn",
       "@test:auth",
       "@test:crowd",
       "@test:markdown"
+    ],
+    "test:bsn": [
+      "php tests/BsnAtomicReloadTest.php"
     ],
     "test:auth": [
       "php tests/LoginControllerFailClosedTest.php",

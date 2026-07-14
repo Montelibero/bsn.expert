@@ -90,6 +90,13 @@ class BSN
             throw new \InvalidArgumentException('BSN JSON data must contain an accounts object.');
         }
 
+        $Candidate = $this->makeLoadCandidate();
+        $Candidate->loadIntoCurrentState($json);
+        $this->replaceLoadedState($Candidate);
+    }
+
+    private function loadIntoCurrentState(array $json): void
+    {
         $this->clearLoadedData();
 
         foreach ($json['accounts'] as $account_id => $data) {
@@ -159,6 +166,61 @@ class BSN
 
         $this->data_timestamp = self::extractDataTimestamp($json);
         $this->data_loaded_at = time();
+    }
+
+    private function makeLoadCandidate(): self
+    {
+        $Candidate = clone $this;
+        $Candidate->accounts = [];
+        $Candidate->tg_id_to_account = [];
+        $Candidate->clearLinks();
+
+        $Candidate->Signatures = clone $this->Signatures;
+        $Candidate->Signatures->clearSignatures();
+
+        $Candidate->tags = [];
+        $Candidate->tag_categories = [];
+        $Candidate->tags_by_category_id = [];
+
+        foreach ($this->tag_categories as $Category) {
+            $Candidate->makeTagCategoryById($Category->getId(), $Category->getName());
+        }
+
+        foreach ($this->tags as $Tag) {
+            $CandidateTag = $Candidate->makeTagByName($Tag->getName());
+            $CandidateTag->isEditable($Tag->isEditable());
+            $CandidateTag->isSingle($Tag->isSingle());
+            $CandidateTag->isStandard($Tag->isStandard());
+            $CandidateTag->isPromote($Tag->isPromote());
+        }
+
+        foreach ($this->tags as $Tag) {
+            $CandidateTag = $Candidate->getTag($Tag->getName());
+            $Category = $Tag->getCategory();
+            if ($CandidateTag && $Category) {
+                $Candidate->assignTagCategory($CandidateTag, $Category->getId());
+            }
+
+            $Pair = $Tag->getPair();
+            if ($CandidateTag && $Pair && ($CandidatePair = $Candidate->getTag($Pair->getName()))) {
+                $CandidateTag->setPair($CandidatePair, $Tag->isPairStrong());
+            }
+        }
+
+        return $Candidate;
+    }
+
+    private function replaceLoadedState(self $Candidate): void
+    {
+        $this->accounts = $Candidate->accounts;
+        $this->tags = $Candidate->tags;
+        $this->tag_categories = $Candidate->tag_categories;
+        $this->tags_by_category_id = $Candidate->tags_by_category_id;
+        $this->tg_id_to_account = $Candidate->tg_id_to_account;
+        $this->links = $Candidate->links;
+        $this->Signatures = $Candidate->Signatures;
+        $this->data_timestamp = $Candidate->data_timestamp;
+        $this->data_loaded_at = $Candidate->data_loaded_at;
     }
 
     public function loadMtlaMembersFromJson(array $json): void
