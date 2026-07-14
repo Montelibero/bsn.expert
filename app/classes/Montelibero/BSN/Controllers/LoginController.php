@@ -275,17 +275,36 @@ class LoginController
             if (!$this->BSN::validateStellarAccountIdFormat($id)) {
                 continue;
             }
-            $signers[] = [
-                'id' => $id,
+            $signers[$id] = [
                 'weight' => $Signature->getWeight(),
                 'Keypair' => Keypair::fromAccountId($id),
             ];
         }
+
+        $envelope_signatures = $Envelope->getV1()->getSignatures();
+        $seen_signatures = [];
+        foreach ($envelope_signatures as $Signature) {
+            $signature_id = base64_encode($Signature->getSignature());
+            if (isset($seen_signatures[$signature_id])) {
+                return false;
+            }
+            $seen_signatures[$signature_id] = true;
+        }
+
         $tx_hash = $Transaction->hash(Network::public());
-        foreach ($Envelope->getV1()->getSignatures() as $Signature) {
-            foreach ($signers as $signer) {
+        $verified_signer_ids = [];
+        foreach ($envelope_signatures as $Signature) {
+            foreach ($signers as $signer_id => $signer) {
+                if (isset($verified_signer_ids[$signer_id])) {
+                    continue;
+                }
+                if (!hash_equals($signer['Keypair']->getHint(), $Signature->getHint())) {
+                    continue;
+                }
                 if ($signer['Keypair']->verifySignature($Signature->getSignature(), $tx_hash)) {
+                    $verified_signer_ids[$signer_id] = true;
                     $sign_weight_sum += $signer['weight'];
+                    break;
                 }
             }
         }

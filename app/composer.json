@@ -34,7 +34,10 @@
     }
   },
   "scripts": {
-    "test:auth": "php tests/LoginControllerFailClosedTest.php"
+    "test:auth": [
+      "php tests/LoginControllerFailClosedTest.php",
+      "php tests/LoginControllerSignatureWeightsTest.php"
+    ]
   },
   "extra": {
     "google/apiclient-services": [
