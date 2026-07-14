@@ -1,0 +1,82 @@
+{% extends "page.twig" %}
+
+{% block title %}Кеши и данные Grist{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/admin">Admin</a></li>
+    <li class="is-active"><a href="/admin/caches/" aria-current="page">Кеши</a></li>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">Кеши и данные Grist</h1>
+
+<div class="content">
+    <p>
+        Webhook откладывает полное обновление до минуты тишины. Кнопки ниже запускают
+        ту же синхронизацию немедленно и дожидаются результата.
+    </p>
+</div>
+
+{% if notice %}
+    <div class="notification is-{{ notice.type }}">{{ notice.text }}</div>
+{% endif %}
+
+{% for cache in caches %}
+    <div class="box">
+        <div class="level is-align-items-flex-start">
+            <div class="level-left">
+                <div>
+                    <div class="is-flex is-align-items-center is-flex-wrap-wrap mb-2" style="gap: .5rem">
+                        <h2 class="title is-4 mb-0">{{ cache.title }}</h2>
+                        <span class="tag {{ cache.state_class }}">{{ cache.state_label }}</span>
+                    </div>
+                    <p class="subtitle is-6 mb-3">{{ cache.source }}</p>
+                    <div class="content mb-0">
+                        <p>{{ cache.description }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="level-right">
+                <form method="post" action="/admin/caches/">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
+                    <input type="hidden" name="scope" value="{{ cache.scope|e('html_attr') }}">
+                    <button class="button is-link" type="submit">Обновить сейчас</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="columns is-multiline mt-2">
+            <div class="column is-6-mobile is-3-tablet">
+                <p class="heading">Записей</p>
+                <p class="title is-5">{{ cache.count is null ? '—' : cache.count }}</p>
+            </div>
+            {% if cache.version is not null %}
+                <div class="column is-6-mobile is-3-tablet">
+                    <p class="heading">Версия снимка</p>
+                    <p class="title is-5">{{ cache.version }}</p>
+                </div>
+            {% endif %}
+            <div class="column is-12-mobile is-6-tablet">
+                <p class="heading">Последнее успешное обновление</p>
+                <p class="is-family-monospace">{{ cache.updated_at ?? 'пока неизвестно' }}</p>
+            </div>
+        </div>
+
+        {% if cache.job.state == 'scheduled' %}
+            <p class="is-size-7 has-text-grey">Фоновый запуск после {{ cache.due_at }}.</p>
+        {% elseif cache.job.state == 'retry' %}
+            <p class="is-size-7 has-text-danger">Следующая попытка после {{ cache.retry_after }}.</p>
+        {% elseif cache.job.state == 'running' %}
+            <p class="is-size-7 has-text-info">Сейчас выполняется фоновая синхронизация.</p>
+        {% elseif cache.job.state == 'pending' %}
+            <p class="is-size-7 has-text-warning-dark">Задача готова к запуску и ожидает worker.</p>
+        {% endif %}
+
+        {% if cache.job.last_error %}
+            <div class="notification is-danger is-light mt-3 mb-0">
+                <strong>Последняя ошибка:</strong> {{ cache.job.last_error }}
+            </div>
+        {% endif %}
+    </div>
+{% endfor %}
+{% endblock %}

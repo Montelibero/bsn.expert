@@ -16,5 +16,10 @@ class AdminRoutes
         SimpleRouter::match(['get', 'post'], '/tomls', function () use ($Container) {
             return $Container->get(AdminController::class)->Tomls();
         });
+        $caches = function () use ($Container) {
+            return $Container->get(AdminController::class)->Caches();
+        };
+        SimpleRouter::match(['get', 'post'], '/caches', $caches);
+        SimpleRouter::match(['get', 'post'], '/caches/', $caches);
     }
 }

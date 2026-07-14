@@ -104,6 +104,7 @@ class GristSyncJobManager
                     'last_success_at' => $Now,
                     'last_result' => $result_data,
                     'last_error' => null,
+                    'last_trigger' => 'worker',
                 ],
                 '$unset' => [
                     'lease_until' => '',
@@ -114,6 +115,115 @@ class GristSyncJobManager
             ['limit' => 1]
         );
         $this->Mongo->executeBulkWrite($this->namespace(), $Bulk);
+    }
+
+    public function recordManualSuccess(string $scope, array $result_data, int $satisfied_revision): void
+    {
+        GristSyncService::assertScope($scope);
+        $Now = new UTCDateTime((int) (microtime(true) * 1000));
+        $Bulk = new BulkWrite();
+        $Bulk->update(
+            ['_id' => $scope],
+            [
+                '$set' => [
+                    'scope' => $scope,
+                    'last_success_at' => $Now,
+                    'last_result' => $result_data,
+                    'last_error' => null,
+                    'last_trigger' => 'admin',
+                ],
+                '$setOnInsert' => [
+                    'revision' => 0,
+                    'created_at' => $Now,
+                ],
+                '$max' => ['completed_revision' => max(0, $satisfied_revision)],
+            ],
+            ['upsert' => true]
+        );
+        $this->Mongo->executeBulkWrite($this->namespace(), $Bulk);
+    }
+
+    public function recordManualFailure(string $scope, \Throwable $Exception): void
+    {
+        GristSyncService::assertScope($scope);
+        $Now = new UTCDateTime((int) (microtime(true) * 1000));
+        $Bulk = new BulkWrite();
+        $Bulk->update(
+            ['_id' => $scope],
+            [
+                '$set' => [
+                    'scope' => $scope,
+                    'last_failure_at' => $Now,
+                    'last_error' => $Exception->getMessage(),
+                    'last_trigger' => 'admin',
+                ],
+                '$setOnInsert' => [
+                    'revision' => 0,
+                    'completed_revision' => 0,
+                    'created_at' => $Now,
+                ],
+            ],
+            ['upsert' => true]
+        );
+        $this->Mongo->executeBulkWrite($this->namespace(), $Bulk);
+    }
+
+    /**
+     * @return array{
+     *     state: string,
+     *     revision: int,
+     *     completed_revision: int,
+     *     running_revision: ?int,
+     *     due_at_ts: ?int,
+     *     retry_after_ts: ?int,
+     *     last_success_at_ts: ?int,
+     *     last_failure_at_ts: ?int,
+     *     last_result: array,
+     *     last_error: ?string,
+     *     last_trigger: ?string
+     * }
+     */
+    public function status(string $scope): array
+    {
+        GristSyncService::assertScope($scope);
+        $Query = new Query(['_id' => $scope], ['limit' => 1]);
+        $document = current($this->Mongo->executeQuery($this->namespace(), $Query)->toArray()) ?: null;
+        $revision = (int) ($document->revision ?? 0);
+        $completed_revision = (int) ($document->completed_revision ?? 0);
+        $running_revision = isset($document->running_revision) ? (int) $document->running_revision : null;
+        $now = time();
+        $lease_until = $this->timestamp($document->lease_until ?? null);
+        $due_at = $this->timestamp($document->due_at ?? null);
+        $retry_after = $this->timestamp($document->retry_after ?? null);
+
+        $state = 'idle';
+        if ($running_revision !== null && $lease_until !== null && $lease_until > $now) {
+            $state = 'running';
+        } elseif ($revision > $completed_revision) {
+            if ($retry_after !== null && $retry_after > $now) {
+                $state = 'retry';
+            } elseif ($due_at !== null && $due_at > $now) {
+                $state = 'scheduled';
+            } else {
+                $state = 'pending';
+            }
+        }
+
+        $last_result = $this->normalizeMongoValue($document->last_result ?? []);
+
+        return [
+            'state' => $state,
+            'revision' => $revision,
+            'completed_revision' => $completed_revision,
+            'running_revision' => $running_revision,
+            'due_at_ts' => $due_at,
+            'retry_after_ts' => $retry_after,
+            'last_success_at_ts' => $this->timestamp($document->last_success_at ?? null),
+            'last_failure_at_ts' => $this->timestamp($document->last_failure_at ?? null),
+            'last_result' => is_array($last_result) ? $last_result : [],
+            'last_error' => isset($document->last_error) ? (string) $document->last_error : null,
+            'last_trigger' => isset($document->last_trigger) ? (string) $document->last_trigger : null,
+        ];
     }
 
     public function fail(string $scope, int $revision, \Throwable $Exception): void
@@ -198,5 +308,28 @@ class GristSyncJobManager
     private function namespace(): string
     {
         return sprintf('%s.%s', $this->database, self::COLLECTION);
+    }
+
+    private function timestamp(mixed $value): ?int
+    {
+        return $value instanceof UTCDateTime
+            ? $value->toDateTime()->getTimestamp()
+            : null;
+    }
+
+    private function normalizeMongoValue(mixed $value): mixed
+    {
+        if (is_object($value)) {
+            $value = get_object_vars($value);
+        }
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->normalizeMongoValue($item);
+        }
+
+        return $value;
     }
 }
