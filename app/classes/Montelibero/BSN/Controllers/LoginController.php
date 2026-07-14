@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Montelibero\BSN\Controllers;
 
 use DateInterval;
@@ -216,7 +218,13 @@ class LoginController
 
         $check_sign = $this->checkSignature($_POST['xdr']);
 
-        if (!$check_sign) {
+        if ($check_sign === null) {
+            SimpleRouter::response()->httpCode(503);
+            SimpleRouter::response()->header('Retry-After: 5');
+            return 'Stellar node error';
+        }
+
+        if ($check_sign === false) {
             $data['status'] = 'bad_signature';
             $this->Memcached->set("login_nonce_" . $nonce, $data, 300);
             SimpleRouter::response()->httpCode(403);
@@ -230,7 +238,11 @@ class LoginController
         return 'OK';
     }
 
-    public function checkSignature(string $xdr): bool
+    /**
+     * Returns null when Horizon is unavailable so callers can fail closed
+     * without invalidating an otherwise reusable login challenge.
+     */
+    public function checkSignature(string $xdr): ?bool
     {
         /** @var Transaction $Transaction */
         $Transaction = Transaction::fromEnvelopeBase64XdrString($xdr);
@@ -239,17 +251,22 @@ class LoginController
         $account_id = $Transaction->getSourceAccount()->getAccountId();
 
         $sign_weight_sum = 0;
-        $count = 0;
-        while (empty($StellarAccount) && $count++ < 4) {
+        $StellarAccount = null;
+        $last_error = null;
+        for ($attempt = 1; $attempt <= 4 && $StellarAccount === null; $attempt++) {
             try {
                 $StellarAccount = $this->Stellar->requestAccount($account_id);
-            } catch (\Exception $E) {
-
+            } catch (\Throwable $E) {
+                $last_error = $E;
             }
         }
-        if (!$StellarAccount) {
-            SimpleRouter::response()->httpCode(500);
-            return "Stellar node error";
+        if ($StellarAccount === null) {
+            error_log(sprintf(
+                'Unable to verify login signature for %s after 4 Horizon attempts: %s',
+                $account_id,
+                $last_error?->getMessage() ?? 'unknown error'
+            ));
+            return null;
         }
 
         $signers = [];
@@ -329,7 +346,10 @@ class LoginController
             if (!$error) {
                 $check_sign = $this->checkSignature($signed_xdr);
 
-                if ($check_sign) {
+                if ($check_sign === null) {
+                    SimpleRouter::response()->httpCode(503);
+                    $error = $Translator->trans('login_manual.errors.stellar_node_unavailable');
+                } elseif ($check_sign === true) {
                     $this->authenticate($account_id);
                     SimpleRouter::response()->redirect($return_to, 302);
                 } else {

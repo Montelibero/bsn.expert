@@ -173,6 +173,7 @@ login_manual:
     wrong_account_id: The account in the transaction does not match the specified account
     wrong_seq_number: The transaction has expired, because a new transaction has been sent from this account
     bad_signature: Problem with the signature. Maybe there are not enough votes, or the wrong key was signed.
+    stellar_node_unavailable: The Stellar network is temporarily unavailable. Please try again in a few seconds.
 
 preferences:
   auth:

@@ -33,6 +33,9 @@
       "": "classes/"
     }
   },
+  "scripts": {
+    "test:auth": "php tests/LoginControllerFailClosedTest.php"
+  },
   "extra": {
     "google/apiclient-services": [
       "Sheets"
