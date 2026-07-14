@@ -58,10 +58,14 @@
     {% if can_manage %}
         <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-4">
             {% if admin_actions.primary %}
-                <a class="button is-small {{ admin_actions.primary.class }} mr-2 mb-2" href="{{ admin_actions.primary.url }}">
-                    <span class="icon"><i class="fa-solid {{ admin_actions.primary.icon }}" aria-hidden="true"></i></span>
-                    <span>{{ admin_actions.primary.label|trans }}</span>
-                </a>
+                <form method="post" action="{{ admin_actions.primary.url }}" class="mr-2 mb-2"
+                      onsubmit="return confirm('{{ ('crowd_action.confirm.' ~ admin_actions.primary.action)|trans|e('js') }}');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
+                    <button type="submit" class="button is-small {{ admin_actions.primary.class }}">
+                        <span class="icon"><i class="fa-solid {{ admin_actions.primary.icon }}" aria-hidden="true"></i></span>
+                        <span>{{ admin_actions.primary.label|trans }}</span>
+                    </button>
+                </form>
             {% endif %}
 
             <div class="dropdown is-hoverable mr-2 mb-2">
@@ -74,10 +78,21 @@
                 <div class="dropdown-menu" id="crowd-project-actions-menu" role="menu">
                     <div class="dropdown-content">
                         {% for item in admin_actions.menu %}
-                            <a class="dropdown-item" href="{{ item.url }}">
-                                <span class="icon"><i class="fa-solid {{ item.icon }}" aria-hidden="true"></i></span>
-                                <span>{{ item.label|trans }}</span>
-                            </a>
+                            {% if item.action|default(null) %}
+                                <form method="post" action="{{ item.url }}"
+                                      onsubmit="return confirm('{{ ('crowd_action.confirm.' ~ item.action)|trans|e('js') }}');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
+                                    <button type="submit" class="dropdown-item">
+                                        <span class="icon"><i class="fa-solid {{ item.icon }}" aria-hidden="true"></i></span>
+                                        <span>{{ item.label|trans }}</span>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <a class="dropdown-item" href="{{ item.url }}">
+                                    <span class="icon"><i class="fa-solid {{ item.icon }}" aria-hidden="true"></i></span>
+                                    <span>{{ item.label|trans }}</span>
+                                </a>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 </div>

@@ -93,12 +93,6 @@ class CrowdProjectService
         return null;
     }
 
-    public function canCreateProjects(?string $current_account_id): bool
-    {
-        $issuer = $this->Config->issuer();
-        return $issuer !== null && $current_account_id === $issuer;
-    }
-
     public function defaultCreateValues(): array
     {
         return [
@@ -125,6 +119,11 @@ class CrowdProjectService
             'project_account_id' => (string) ($project['project_account']['id'] ?? ''),
             'contact_account_id' => (string) ($project['contact_account']['id'] ?? ''),
         ];
+    }
+
+    public function createValuesFromInput(array $input): array
+    {
+        return $this->normalizeCreateValues($input);
     }
 
     public function crowdToken(): array
@@ -168,6 +167,7 @@ class CrowdProjectService
             ];
             if (!$deadline_reached && !$is_funded) {
                 $menu[] = [
+                    'action' => 'cancel',
                     'url' => $this->withCurrentAccountParam(self::BASE_PATH . "/$code/action/cancel", $current_account_id),
                     'label' => 'crowd_page.admin.cancel',
                     'icon' => 'fa-xmark',
@@ -176,6 +176,7 @@ class CrowdProjectService
         }
 
         $menu[] = [
+            'action' => 'delete',
             'url' => $this->withCurrentAccountParam(self::BASE_PATH . "/$code/action/delete", $current_account_id),
             'label' => 'crowd_page.admin.delete',
             'icon' => 'fa-xmark',
@@ -300,15 +301,9 @@ class CrowdProjectService
 
     public function prepareProjectAction(string $code, string $action): array
     {
-        $project = $this->findProject($code);
-        if (!$project) {
-            throw new \RuntimeException('Project not found');
-        }
-
-        $action = strtolower(trim($action));
-        if (!in_array($action, ['complete', 'cancel', 'delete'], true)) {
-            throw new \RuntimeException('Unknown project action');
-        }
+        $context = $this->projectActionContext($code, $action);
+        $project = $context['project'];
+        $action = $context['action'];
 
         $issuer = $this->Config->issuer();
         if (!$issuer) {
@@ -316,14 +311,6 @@ class CrowdProjectService
         }
 
         $is_active = !($project['is_closed'] ?? false);
-        $is_funded = bccomp($project['funded_amount'] ?? '0', $project['target_amount'] ?? '0', self::SCALE) >= 0
-            && bccomp($project['target_amount'] ?? '0', '0', self::SCALE) > 0;
-        if ($action === 'complete' && (!$is_active || !$is_funded)) {
-            throw new \RuntimeException('Project is not ready to complete');
-        }
-        if ($action === 'cancel' && !$is_active) {
-            throw new \RuntimeException('Only active projects can be canceled');
-        }
 
         $IssuerAccount = $this->Stellar->requestAccount($issuer);
         $Transaction = new TransactionBuilder($IssuerAccount);
@@ -369,6 +356,34 @@ class CrowdProjectService
             'signing_xdr' => $Transaction->build()->toEnvelopeXdrBase64(),
             'signing_description' => ucfirst($action) . ' crowd project ' . $project['code'],
             'upload' => $upload ?? null,
+        ];
+    }
+
+    public function projectActionContext(string $code, string $action): array
+    {
+        $project = $this->findProject($code);
+        if (!$project) {
+            throw new \RuntimeException('Project not found');
+        }
+
+        $action = strtolower(trim($action));
+        if (!in_array($action, ['complete', 'cancel', 'delete'], true)) {
+            throw new \RuntimeException('Unknown project action');
+        }
+
+        $is_active = !($project['is_closed'] ?? false);
+        $is_funded = bccomp($project['funded_amount'] ?? '0', $project['target_amount'] ?? '0', self::SCALE) >= 0
+            && bccomp($project['target_amount'] ?? '0', '0', self::SCALE) > 0;
+        if ($action === 'complete' && (!$is_active || !$is_funded)) {
+            throw new \RuntimeException('Project is not ready to complete');
+        }
+        if ($action === 'cancel' && !$is_active) {
+            throw new \RuntimeException('Only active projects can be canceled');
+        }
+
+        return [
+            'project' => $project,
+            'action' => $action,
         ];
     }
 

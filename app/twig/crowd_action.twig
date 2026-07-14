@@ -18,6 +18,27 @@
     {% if error|default(null) %}
         <div class="notification is-danger">{{ error }}</div>
     {% endif %}
+    {% if error_key|default(null) %}
+        <div class="notification is-danger">{{ error_key|trans }}</div>
+    {% endif %}
+
+    {% if project and not signing_form|default(null) %}
+        <div class="notification is-warning">
+            {{ ('crowd_action.confirm.' ~ action)|trans }}
+        </div>
+        <form method="post" action="/mtla/crowd/{{ project.code|url_encode }}/action/{{ action|url_encode }}" class="block">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
+            {% if current_account_param %}
+                <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+            {% endif %}
+            <div class="buttons">
+                <button type="submit" class="button {{ action == 'complete' ? 'is-primary' : 'is-danger' }}">
+                    {{ 'crowd_action.submit'|trans }}
+                </button>
+                <a class="button is-light" href="/mtla/crowd/{{ project.code|url_encode }}">{{ 'common.cancel'|trans }}</a>
+            </div>
+        </form>
+    {% endif %}
 
     {% if upload.cid|default(null) %}
         <div class="notification is-success">

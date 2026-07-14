@@ -1825,6 +1825,7 @@ crowd_create:
     deadline_past: Deadline cannot be in the past.
     project_account_invalid: Enter a valid project account.
     contact_account_invalid: Enter a valid contact account or leave the field empty.
+    csrf_invalid: The form has expired. Reload the page and try again.
     prepare_failed: "Could not build transaction: %message%"
 
 crowd_action:
@@ -1834,6 +1835,13 @@ crowd_action:
     delete: Delete campaign
   final_metadata: Final description was uploaded to IPFS
   signing_notice: The transaction is ready. Review the operations, sign it, and submit it to Stellar.
+  submit: Build transaction
+  confirm:
+    complete: Build a transaction that completes this campaign?
+    cancel: Build a transaction that stops this campaign?
+    delete: Build a transaction that deletes this campaign?
+  errors:
+    csrf_invalid: The form has expired. Reload the page and try again.
 
 crowd_snapshot_box:
   collected_at: Collected

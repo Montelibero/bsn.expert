@@ -39,6 +39,7 @@
     {% endif %}
 
     <form method="post" action="/mtla/crowd/create{% if edit_project %}?code={{ values.code|url_encode }}{% endif %}" class="block">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
         {% if current_account_param %}
             <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
         {% endif %}

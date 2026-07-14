@@ -45,6 +45,7 @@ use Montelibero\BSN\CurrentAccountOptions;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\CrowdConfig;
 use Montelibero\BSN\CrowdIpfsClient;
+use Montelibero\BSN\CrowdAccess;
 use Montelibero\BSN\CrowdProjectService;
 use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\EurmtlReportConfig;
@@ -230,6 +231,7 @@ $ContainerBuilder->addDefinitions([
     CurrentAccountOptions::class => autowire(),
     CrowdConfig::class => autowire(),
     CrowdIpfsClient::class => autowire(),
+    CrowdAccess::class => autowire(),
     CrowdProjectService::class => autowire(),
     EurmtlReportConfig::class => autowire(),
     EurmtlReportService::class => autowire(),

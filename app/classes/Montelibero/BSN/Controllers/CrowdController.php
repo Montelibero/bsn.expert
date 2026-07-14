@@ -3,9 +3,12 @@
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\CrowdAccess;
 use Montelibero\BSN\CrowdProjectService;
 use Montelibero\BSN\MarkdownRenderer;
+use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
+use Throwable;
 use Twig\Environment;
 
 class CrowdController implements RefreshDataCodeInterface
@@ -13,11 +16,14 @@ class CrowdController implements RefreshDataCodeInterface
     use RefreshDataCodeTrait;
 
     private const REFRESH_SCOPE = 'crowd_snapshot';
+    private const CSRF_SESSION_KEY = 'crowd_csrf_token';
 
     public function __construct(
         private readonly Environment $Twig,
         private readonly CrowdProjectService $ProjectService,
+        private readonly CrowdAccess $CrowdAccess,
         private readonly CurrentUser $CurrentUser,
+        private readonly RequestSession $RequestSession,
         private readonly SignController $SignController,
         private readonly MarkdownRenderer $MarkdownRenderer,
     ) {
@@ -42,7 +48,7 @@ class CrowdController implements RefreshDataCodeInterface
         return $this->Twig->render('crowd_index.twig', [
             'snapshot' => $snapshot,
             'refresh' => $refresh,
-            'can_create' => $this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId()),
+            'can_create' => $this->canManageForDisplay(),
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'is_wide_page' => true,
         ]);
@@ -50,9 +56,8 @@ class CrowdController implements RefreshDataCodeInterface
 
     public function Create(): ?string
     {
-        if (!$this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId())) {
-            SimpleRouter::response()->httpCode(403);
-            return $this->Twig->render('404.twig');
+        if (($AccessResponse = $this->guardManageAccess()) !== null) {
+            return $AccessResponse;
         }
 
         $edit_project = null;
@@ -77,15 +82,24 @@ class CrowdController implements RefreshDataCodeInterface
         $signing_form = null;
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            $result = $edit_project
-                ? $this->ProjectService->prepareEditProject($edit_project, $_POST)
-                : $this->ProjectService->prepareCreateProject($_POST);
-            if ($result['signing_xdr']) {
-                $signing_form = $this->SignController->SignTransaction(
-                    $result['signing_xdr'],
-                    null,
-                    $result['signing_description']
-                );
+            if (!$this->isCsrfTokenValid($_POST['csrf_token'] ?? null)) {
+                SimpleRouter::response()->httpCode(400);
+                $result['values'] = $this->ProjectService->createValuesFromInput($_POST);
+                if ($edit_project) {
+                    $result['values']['code'] = (string) ($edit_project['code'] ?? '');
+                }
+                $result['errors'][] = ['key' => 'crowd_create.errors.csrf_invalid', 'params' => []];
+            } else {
+                $result = $edit_project
+                    ? $this->ProjectService->prepareEditProject($edit_project, $_POST)
+                    : $this->ProjectService->prepareCreateProject($_POST);
+                if ($result['signing_xdr']) {
+                    $signing_form = $this->SignController->SignTransaction(
+                        $result['signing_xdr'],
+                        null,
+                        $result['signing_description']
+                    );
+                }
             }
         }
 
@@ -97,18 +111,29 @@ class CrowdController implements RefreshDataCodeInterface
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'edit_project' => $edit_project,
             'crowd_token' => $this->ProjectService->crowdToken(),
+            'csrf_token' => $this->csrfToken(),
             'is_wide_page' => true,
         ]);
     }
 
     public function Action(string $code, string $action): ?string
     {
-        if (!$this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId())) {
-            SimpleRouter::response()->httpCode(403);
-            return $this->Twig->render('404.twig');
+        if (($AccessResponse = $this->guardManageAccess()) !== null) {
+            return $AccessResponse;
         }
 
         try {
+            if (!$this->isCsrfTokenValid($_POST['csrf_token'] ?? null)) {
+                SimpleRouter::response()->httpCode(400);
+                $context = $this->ProjectService->projectActionContext($code, $action);
+                return $this->Twig->render('crowd_action.twig', $context + [
+                    'error_key' => 'crowd_action.errors.csrf_invalid',
+                    'csrf_token' => $this->csrfToken(),
+                    'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
+                    'is_wide_page' => true,
+                ]);
+            }
+
             $result = $this->ProjectService->prepareProjectAction($code, $action);
             $signing_form = $this->SignController->SignTransaction(
                 $result['signing_xdr'],
@@ -121,6 +146,8 @@ class CrowdController implements RefreshDataCodeInterface
                 'action' => $result['action'],
                 'upload' => $result['upload'],
                 'signing_form' => $signing_form,
+                'csrf_token' => $this->csrfToken(),
+                'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
                 'is_wide_page' => true,
             ]);
         } catch (\Throwable $Exception) {
@@ -129,6 +156,8 @@ class CrowdController implements RefreshDataCodeInterface
                 'project' => $this->ProjectService->findProject($code),
                 'action' => $action,
                 'error' => $Exception->getMessage(),
+                'csrf_token' => $this->csrfToken(),
+                'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
                 'is_wide_page' => true,
             ]);
         }
@@ -174,12 +203,15 @@ class CrowdController implements RefreshDataCodeInterface
             }
         }
 
+        $can_manage = $this->canManageForDisplay();
+
         return $this->Twig->render('crowd_project.twig', [
             'project' => $project,
             'snapshot' => $this->ProjectService->fetchSnapshot(),
             'refresh' => $refresh,
-            'can_manage' => $this->ProjectService->canCreateProjects($this->CurrentUser->getCurrentAccountId()),
+            'can_manage' => $can_manage,
             'admin_actions' => $this->ProjectService->projectAdminActions($project, $this->CurrentUser->getCurrentAccountRequestParam()),
+            'csrf_token' => $can_manage ? $this->csrfToken() : null,
             'donation' => $donation,
             'donation_signing_form' => $donation_signing_form,
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
@@ -194,5 +226,49 @@ class CrowdController implements RefreshDataCodeInterface
         }
 
         return $this->MarkdownRenderer->render($text);
+    }
+
+    private function canManageForDisplay(): bool
+    {
+        try {
+            return $this->CrowdAccess->canManage();
+        } catch (Throwable $Exception) {
+            error_log('Unable to check crowd access: ' . $Exception->getMessage());
+            return false;
+        }
+    }
+
+    private function guardManageAccess(): ?string
+    {
+        try {
+            $can_manage = $this->CrowdAccess->canManage();
+        } catch (Throwable $Exception) {
+            error_log('Unable to check crowd access: ' . $Exception->getMessage());
+            SimpleRouter::response()->httpCode(503);
+            return 'Stellar node error';
+        }
+
+        if ($can_manage) {
+            return null;
+        }
+
+        SimpleRouter::response()->httpCode(403);
+        return $this->Twig->render('404.twig');
+    }
+
+    private function csrfToken(): string
+    {
+        $token = $this->RequestSession->get(self::CSRF_SESSION_KEY);
+        if (!is_string($token) || preg_match('/^[a-f0-9]{64}$/D', $token) !== 1) {
+            $token = bin2hex(random_bytes(32));
+            $this->RequestSession->set(self::CSRF_SESSION_KEY, $token);
+        }
+
+        return $token;
+    }
+
+    private function isCsrfTokenValid(mixed $token): bool
+    {
+        return is_string($token) && hash_equals($this->csrfToken(), $token);
     }
 }
