@@ -21,7 +21,7 @@ class TwigPluralizeExtension extends AbstractExtension
         ];
     }
 
-    public function transPlural(string $key, $parameters = [], string $domain = 'messages', string $locale = null): string
+    public function transPlural(string $key, $parameters = [], string $domain = 'messages', ?string $locale = null): string
     {
         // Устанавливаем локаль по умолчанию, если не указана
         $locale = $locale ?? $this->translator->getLocale();
@@ -58,5 +58,7 @@ class TwigPluralizeExtension extends AbstractExtension
         } elseif (substr($num, -1) >= 5 & substr($num, -1) <= 9) {
             return $v3;
         }
+
+        return $v3;
     }
 }

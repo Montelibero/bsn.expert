@@ -53,7 +53,8 @@ class MembershipDistributionController
         $error = '';
         $transaction = '';
         $accounts = [];
-        if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token && ($_POST['accounts'] ?? '')) {
+        $memo = '';
+        if ($_POST !== [] && ($_POST['csrf_token'] ?? null) === $csrf_token && ($_POST['accounts'] ?? '')) {
             // Нормализуем переносы строк и разбиваем на массив
             $lines = preg_split('/\r\n|\r|\n/', $_POST['accounts']);
             // Удаляем пустые строки и пробелы

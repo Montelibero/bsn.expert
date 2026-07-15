@@ -161,7 +161,6 @@ class LoginController
             'no_cookie' => isset($_GET['no_cookie']),
             'signing_form' => $signing_form,
             'sign_uri' => $uri_signed ?? null,
-            'sign_qr' => $qr ?? null,
             'nonce' => $nonce,
             'timer' => isset($data) ? (300 - (time() - $data['timestamp'])) : null,
             'error' => $error,

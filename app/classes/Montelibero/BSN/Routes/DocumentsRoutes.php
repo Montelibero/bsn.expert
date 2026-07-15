@@ -27,7 +27,7 @@ class DocumentsRoutes
         SimpleRouter::match(['get', 'post'], '/{id}/edit', function ($id) use ($Container) {
             return $Container->get(DocumentsController::class)->Edit($id);
         });
-        SimpleRouter::get('/{id}/text', function ($id) use ($Container) {
+        SimpleRouter::get('/{id}/text', function ($id) {
             SimpleRouter::response()->redirect(SimpleRouter::getUrl('document_page', ['id' => $id]));
         });
         SimpleRouter::get('/{id}', function ($id) use ($Container) {

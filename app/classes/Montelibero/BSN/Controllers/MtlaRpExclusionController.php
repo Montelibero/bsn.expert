@@ -59,7 +59,7 @@ class MtlaRpExclusionController
         $seq_num = $_POST['seq_num'] ?? '';
 
         if (
-            ($_POST ?? [])
+            $_POST !== []
             && ($_POST['csrf_token'] ?? null) === $csrf_token
             && ($_POST['accounts'] ?? '')
         ) {

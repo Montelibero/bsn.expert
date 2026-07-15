@@ -338,7 +338,7 @@ class MtlaController implements RefreshDataCodeInterface
             'current_council_threshold' => $current_council_threshold,
             'council_snapshot' => $council_snapshot,
             'council_refresh' => $council_refresh,
-            'delegation_tree' => $delegation_tree ?? [],
+            'delegation_tree' => $delegation_tree,
             'show_all_delegations' => $show_all_delegations,
             'hidden_no_voice_accounts_count' => $hidden_no_voice_accounts_count,
             'show_all_delegations_url' => $this->getRefreshDataRedirectUri(['show_all' => 'yes']),

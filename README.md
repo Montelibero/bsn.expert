@@ -13,6 +13,19 @@
 2. Создать `.env` на основе `.env.example`.
 3. Запустить `docker compose up`.
 
+### Проверки перед pull request
+
+PHP-проверки запускаются из каталога `app` одной командой:
+
+```bash
+composer install
+composer check
+```
+
+Она выполняет PHP lint, Twig lint, PHPStan, regression-тесты и проверку Composer security advisories. Проверка набора Font Awesome запускается из корня проекта командой `npm run fa_test`.
+
+В pull request workflow дополнительно собирается production image и запускается изолированный HTTP route smoke с временными MongoDB и Memcached. Публикация образа разрешена только после успешного прохождения обоих CI jobs.
+
 ### MongoDB
 
 - В docker-compose добавлен сервис `mongo` (порт `27017`, volume `mongo_data`). Обновите `.env` по образцу и поднимите контейнеры `docker compose up`.

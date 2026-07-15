@@ -42,10 +42,11 @@ class SendTimeTokensController
 
         $error = '';
         $transaction = '';
+        $memo = '';
 
         $source_account = $_GET['source_account'] ?? $_POST['source_account'] ?? $default_account;
 
-        if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token && ($_POST['targets'] ?? '')) {
+        if ($_POST !== [] && ($_POST['csrf_token'] ?? null) === $csrf_token && ($_POST['targets'] ?? '')) {
             // Нормализуем переносы строк и разбиваем на массив
             $lines = preg_split('/\r\n|\r|\n/', $_POST['targets']);
             // Удаляем пустые строки и пробелы

@@ -20,7 +20,7 @@ $Jobs = $Container->get(GristSyncJobManager::class);
 /** @var GristSyncService $Sync */
 $Sync = $Container->get(GristSyncService::class);
 
-if (in_array('--schedule-all', $argv, true)) {
+if (in_array('--schedule-all', $_SERVER['argv'] ?? [], true)) {
     foreach (GristSyncService::scopes() as $scope) {
         $Jobs->schedule($scope, 60);
         printf("[%s] scheduled periodic Grist reconciliation: scope=%s delay=60s\n", date('c'), $scope);

@@ -227,7 +227,7 @@ class ContactsController
             SimpleRouter::getUrl('account', ['id' => $Account->getId()])
         );
 
-        if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
+        if ($_POST !== [] && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($_POST['action'] === $this->Translator->trans('contacts.edit.action.delete')) {
                 $ContactsManager->deleteContact($current_account_id, $account_id);
                 $this->CurrentContacts->refresh();

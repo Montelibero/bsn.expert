@@ -47,7 +47,7 @@ class Account
         return $this->token_amount;
     }
 
-    public function isReadyToCouncil(bool $new_value = null): bool
+    public function isReadyToCouncil(?bool $new_value = null): bool
     {
         if ($new_value !== null) {
             $this->is_ready_to_council = $new_value;
@@ -78,7 +78,7 @@ class Account
         $DelegateAssemblyTo?->addDelegatedAssemblyBy($this);
     }
 
-    public function isBrokenAssemblyDelegate(bool $new_value = null): bool
+    public function isBrokenAssemblyDelegate(?bool $new_value = null): bool
     {
         if ($new_value !== null) {
             $this->is_broken_a_delegate = $new_value;
@@ -109,7 +109,7 @@ class Account
         $DelegateCouncilTo?->addDelegatedCouncilBy($this);
     }
 
-    public function isBrokenCouncilDelegate(bool $new_value = null): bool
+    public function isBrokenCouncilDelegate(?bool $new_value = null): bool
     {
         if ($new_value !== null) {
             $this->is_broken_a_delegate = $new_value;

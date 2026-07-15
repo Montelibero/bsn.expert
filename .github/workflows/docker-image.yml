@@ -1,6 +1,9 @@
-name: Build and push Docker image
+name: CI and Docker image
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -13,7 +16,179 @@ env:
   OCI_REVISION: ${{ github.sha }}
 
 jobs:
-  build-and-push:
+  quality:
+    name: Quality checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: apcu, bcmath, curl, gd, intl, memcached, mongodb, pcntl, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate Composer metadata
+        working-directory: app
+        run: composer validate --strict
+
+      - name: Install Composer dependencies
+        working-directory: app
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHP quality checks
+        working-directory: app
+        run: composer check
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Check Font Awesome subset config
+        run: npm ci && npm run fa_test
+
+  route-smoke:
+    name: Route smoke
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: curl
+          coverage: none
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build production image for smoke test
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: app/Dockerfile
+          target: prod
+          load: true
+          push: false
+          tags: bsn-viewer:route-smoke
+          cache-from: type=gha,scope=bsn-route-smoke
+          cache-to: type=gha,scope=bsn-route-smoke,mode=max
+
+      - name: Start isolated smoke environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker network create bsn-route-smoke
+          docker run -d \
+            --name bsn-route-mongo \
+            --network bsn-route-smoke \
+            -e MONGO_INITDB_ROOT_USERNAME=mongo \
+            -e MONGO_INITDB_ROOT_PASSWORD=mongo_pass \
+            mongo:7
+          docker run -d \
+            --name bsn-route-cache \
+            --network bsn-route-smoke \
+            memcached:alpine
+
+          for attempt in {1..30}; do
+            if docker exec bsn-route-mongo mongosh --quiet \
+              'mongodb://mongo:mongo_pass@127.0.0.1:27017/admin?authSource=admin' \
+              --eval 'db.runCommand({ping: 1}).ok' | grep -q 1; then
+              break
+            fi
+            if [[ "$attempt" == 30 ]]; then
+              echo 'MongoDB did not become ready in time.' >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
+          docker exec bsn-route-mongo mongosh --quiet \
+            'mongodb://mongo:mongo_pass@127.0.0.1:27017/app_db?authSource=admin' \
+            --eval '
+              db.grist_snapshots.insertMany([
+                {_id: "mtla_members", version: 1, data: [], updated_at: new Date()},
+                {_id: "known_tokens", version: 1, data: [], updated_at: new Date()}
+              ]);
+              db.documents.insertOne({
+                hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                name: "CI fixture",
+                type: "test",
+                source: "ci",
+                is_obsolete: false,
+                created_at: new Date(),
+                updated_at: new Date()
+              });
+            '
+
+          docker run -d \
+            --name bsn-route-app \
+            --network bsn-route-smoke \
+            -p 127.0.0.1:18080:80 \
+            -v "$PWD/app/tests/fixtures/bsn.json:/var/www/bsn/bsn.json:ro" \
+            -e MONGO_HOST=bsn-route-mongo \
+            -e MONGO_PORT=27017 \
+            -e MONGO_BASENAME=app_db \
+            -e MONGO_ROOT_USERNAME=mongo \
+            -e MONGO_ROOT_PASSWORD=mongo_pass \
+            -e MONGO_AUTH_SOURCE=admin \
+            -e STELLAR_HORIZON_ENDPOINT=http://127.0.0.1:9 \
+            -e GRIST_API_KEY=ci-unused \
+            -e PHP_SESSION_NO_SECURE=1 \
+            -e FRANKENPHP_WORKER_NUM=1 \
+            -e MAX_REQUESTS=100 \
+            bsn-viewer:route-smoke
+
+          for attempt in {1..40}; do
+            if curl --fail --silent --max-time 5 http://127.0.0.1:18080/health >/dev/null; then
+              exit 0
+            fi
+            if [[ "$attempt" == 40 ]]; then
+              echo 'Application did not become ready in time.' >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Check public HTTP routes
+        env:
+          ROUTE_SMOKE_BASE_URL: http://127.0.0.1:18080
+        run: php app/tools/ci/route-smoke.php
+
+      - name: Show smoke environment logs
+        if: failure()
+        run: |
+          docker logs bsn-route-app || true
+          docker logs bsn-route-mongo || true
+          docker logs bsn-route-cache || true
+
+      - name: Stop smoke environment
+        if: always()
+        run: |
+          docker rm -f bsn-route-app bsn-route-mongo bsn-route-cache 2>/dev/null || true
+          docker network rm bsn-route-smoke 2>/dev/null || true
+
+  publish:
+    name: Publish Docker image
+    if: github.event_name != 'pull_request'
+    needs:
+      - quality
+      - route-smoke
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,16 +208,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - name: Check Font Awesome subset config
-        run: npm ci && npm run fa_test
-
-      - name: Build APP Docker image
+      - name: Build and push APP Docker image
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -58,7 +224,7 @@ jobs:
 
       - name: Notify Telegram
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+          curl --fail --silent --show-error -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
             -d '{"chat_id": "-1003339919065", "text": "Docker image pushed to registry /info_bsn_app (@sozidatel!)"}'
-          

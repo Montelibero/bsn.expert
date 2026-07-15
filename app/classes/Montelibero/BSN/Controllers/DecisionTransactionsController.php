@@ -58,7 +58,7 @@ class DecisionTransactionsController
             // Если недоступно, оставляем пустым.
         }
 
-        if (($_POST ?? []) && ($_POST['csrf_token'] ?? null) === $csrf_token) {
+        if ($_POST !== [] && ($_POST['csrf_token'] ?? null) === $csrf_token) {
             if ($decision_number === '' || !preg_match('/^\d+$/', $decision_number)) {
                 $error .= "Номер решения обязателен и должен быть числом\n";
             }

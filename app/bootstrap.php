@@ -155,8 +155,6 @@ $functional_tags = [
 
 if (IS_CLI_CONTEXT) {
     $_SESSION ??= [];
-    $_SERVER ??= [];
-    $_COOKIE ??= [];
 } else {
     session_name("HELLOKITTY");
     //$session_save_path(__DIR__ . '/../sessions');

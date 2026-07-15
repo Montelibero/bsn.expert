@@ -591,6 +591,7 @@ class TokensController
         }
 
         $holders = [];
+        $accounts = [];
         $Asset = Asset::createNonNativeAsset($code, $issuer);
         try {
             $Accounts = $this->Stellar
@@ -598,7 +599,6 @@ class TokensController
                 ->forAsset($Asset)
                 ->limit(200)
                 ->execute();
-            $accounts = [];
     //        do {
     //            $this->log('Got new ' . $Accounts->getAccounts()->count() . ' accounts');
     //            foreach ($Accounts->getAccounts() as $Account) {

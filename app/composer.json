@@ -1,6 +1,7 @@
 {
   "name": "mtl/bsn_viewer",
-  "version": "1.0.0",
+  "description": "Montelibero blockchain social network explorer",
+  "license": "CC0-1.0",
   "require": {
     "php": ">=8.5",
     "ext-apcu": "*",
@@ -10,10 +11,11 @@
     "ext-intl": "*",
     "ext-memcached": "*",
     "ext-mongodb": "*",
-    "vlucas/phpdotenv": "5.4",
+    "vlucas/phpdotenv": "^5.6",
     "twig/twig": "^3.10",
     "pecee/simple-router": "^5.4",
-    "google/apiclient": "^2.15.0",
+    "guzzlehttp/guzzle": "^7.12.1",
+    "phpseclib/phpseclib": "^3.0.54",
     "soneso/stellar-php-sdk": "^1.7.1",
     "splitbrain/php-qrcode": "^0.1.0",
     "league/uri": "^7.4",
@@ -26,11 +28,12 @@
     "erusev/parsedown": "^1.8"
   },
   "require-dev": {
+    "phpstan/phpstan": "^2.2",
     "roave/security-advisories": "dev-latest"
   },
   "autoload": {
     "psr-4": {
-      "": "classes/"
+      "Montelibero\\BSN\\": "classes/Montelibero/BSN/"
     }
   },
   "scripts": {
@@ -64,11 +67,28 @@
     ],
     "test:grist": [
       "php tests/GristWebhookAccessTest.php"
-    ]
-  },
-  "extra": {
-    "google/apiclient-services": [
-      "Sheets"
+    ],
+    "lint:php": [
+      "@php tools/ci/php-lint.php"
+    ],
+    "lint:twig": [
+      "@php tests/TwigSyntaxTest.php"
+    ],
+    "analyse:php": [
+      "phpstan analyse --no-progress --memory-limit=1G"
+    ],
+    "security:audit": [
+      "composer audit --locked --no-dev"
+    ],
+    "smoke:routes": [
+      "@php tools/ci/route-smoke.php"
+    ],
+    "check": [
+      "@lint:php",
+      "@lint:twig",
+      "@analyse:php",
+      "@test",
+      "@security:audit"
     ]
   }
 }
