@@ -492,7 +492,11 @@ class LoginController
             }
         }
 
-        return $sign_weight_sum >= $medium_threshold;
+        // Web authentication must prove control of at least one positive-weight
+        // signer even when Stellar permits medium-threshold operations at zero.
+        $required_weight = max(1, $medium_threshold);
+
+        return $verified_signer_ids !== [] && $sign_weight_sum >= $required_weight;
     }
 
     public function LoginManual(): string

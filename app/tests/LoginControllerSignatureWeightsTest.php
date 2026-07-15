@@ -102,6 +102,42 @@ function makeController(AccountResponse $AccountResponse): LoginController
 $SignerOne = KeyPair::random();
 $SignerTwo = KeyPair::random();
 
+$ZeroThresholdAccount = makeAccountResponse($SignerOne->getAccountId(), 0, [
+    ['keypair' => $SignerOne, 'weight' => 1],
+]);
+assertSignatureCheck(
+    false,
+    makeController($ZeroThresholdAccount)->checkSignature(
+        makeSignedTransaction($SignerOne, [])->toEnvelopeXdrBase64()
+    ),
+    'A zero-threshold account must not authenticate without a verified signer.'
+);
+assertSignatureCheck(
+    false,
+    makeController($ZeroThresholdAccount)->checkSignature(
+        makeSignedTransaction($SignerOne, [$SignerTwo])->toEnvelopeXdrBase64()
+    ),
+    'A zero-threshold account must not authenticate with an unrelated signature.'
+);
+assertSignatureCheck(
+    true,
+    makeController($ZeroThresholdAccount)->checkSignature(
+        makeSignedTransaction($SignerOne, [$SignerOne])->toEnvelopeXdrBase64()
+    ),
+    'A zero-threshold account must authenticate with a positive-weight signer.'
+);
+
+$ZeroWeightSignerAccount = makeAccountResponse($SignerOne->getAccountId(), 0, [
+    ['keypair' => $SignerOne, 'weight' => 0],
+]);
+assertSignatureCheck(
+    false,
+    makeController($ZeroWeightSignerAccount)->checkSignature(
+        makeSignedTransaction($SignerOne, [$SignerOne])->toEnvelopeXdrBase64()
+    ),
+    'A zero-weight signer must not authenticate a zero-threshold account.'
+);
+
 $DuplicateTransaction = makeSignedTransaction($SignerOne, [$SignerOne]);
 $DuplicateSignature = $DuplicateTransaction->getSignatures()[0];
 $DuplicateTransaction->addSignature(new XdrDecoratedSignature(
