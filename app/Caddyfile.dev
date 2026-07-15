@@ -31,6 +31,14 @@
 		@workerScript path /worker.php
 		respond @workerScript 404
 
+		# Only explicitly public files may be served from the application tree.
+		# All other existing files are private and must not be served directly.
+		@nonPublicFile {
+			file {path}
+			not path /robots.txt /.well-known/stellar.toml /favicon.ico /fontawesome/* /jquery-3.7.1.min.js /jquery.tablesorter.min.js /style.css /script.js /llms.txt /schemas/known_tags_schema.json
+		}
+		respond @nonPublicFile 404
+
 		handle /robots.txt {
 			header Cache-Control "public, max-age=300"
 			file_server
