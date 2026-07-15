@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\RequestSession;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
@@ -29,8 +30,13 @@ class MtlaRpExclusionController
     private BSN $BSN;
     private SignController $SignController;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar, BSN $BSN, SignController $SignController)
-    {
+    public function __construct(
+        Environment $Twig,
+        StellarSDK $Stellar,
+        BSN $BSN,
+        SignController $SignController,
+        private readonly RequestSession $RequestSession,
+    ) {
         $this->Twig = $Twig;
 
         $this->Stellar = $Stellar;
@@ -40,7 +46,7 @@ class MtlaRpExclusionController
 
     public function MtlaRpExclusion(): string
     {
-        $csrf_token = md5(session_id() . 'mtla_rp_exclusion');
+        $csrf_token = $this->RequestSession->getOrCreateToken('csrf:mtla_rp_exclusion');
 
         $error = '';
         $warning = '';

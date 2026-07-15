@@ -36,6 +36,7 @@
   "scripts": {
     "test": [
       "@test:bsn",
+      "@test:session",
       "@test:auth",
       "@test:crowd",
       "@test:markdown",
@@ -43,6 +44,9 @@
     ],
     "test:bsn": [
       "php tests/BsnAtomicReloadTest.php"
+    ],
+    "test:session": [
+      "php tests/RequestSessionLazyTest.php"
     ],
     "test:auth": [
       "php tests/LoginControllerFailClosedTest.php",

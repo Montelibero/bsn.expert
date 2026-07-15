@@ -5,6 +5,7 @@ namespace Montelibero\BSN\Controllers;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\MTLA\MtlaProgramReportService;
+use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
 use Twig\Environment;
 use function htmlspecialchars;
@@ -19,18 +20,21 @@ class MtlaDmReportController implements RefreshDataCodeInterface
     private Environment $Twig;
     private CurrentUser $CurrentUser;
     private MtlaProgramReportService $ReportService;
+    private RequestSession $RequestSession;
 
     public function __construct(
         BSN $BSN,
         Environment $Twig,
         CurrentUser $CurrentUser,
-        MtlaProgramReportService $ReportService
+        MtlaProgramReportService $ReportService,
+        RequestSession $RequestSession,
     )
     {
         $this->BSN = $BSN;
         $this->Twig = $Twig;
         $this->CurrentUser = $CurrentUser;
         $this->ReportService = $ReportService;
+        $this->RequestSession = $RequestSession;
     }
 
     public function MtlaDmReport(): ?string

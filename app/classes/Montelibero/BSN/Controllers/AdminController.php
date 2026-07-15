@@ -7,6 +7,7 @@ use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\GristSnapshotStore;
 use Montelibero\BSN\GristSyncJobManager;
 use Montelibero\BSN\GristSyncService;
+use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\StellarTomlCrawler;
 use Montelibero\BSN\StellarTomlManager;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -23,6 +24,7 @@ class AdminController
         private GristSyncJobManager $GristSyncJobs,
         private GristSnapshotStore $GristSnapshots,
         private DocumentsManager $DocumentsManager,
+        private RequestSession $RequestSession,
     ) {
     }
 
@@ -161,7 +163,7 @@ class AdminController
 
     private function csrfToken(string $purpose = 'admin_tomls'): string
     {
-        return hash('sha256', session_id() . ':' . $purpose);
+        return $this->RequestSession->getOrCreateToken('csrf:' . $purpose);
     }
 
     /** @return list<array<string, mixed>> */

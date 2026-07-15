@@ -44,8 +44,9 @@
                         <span class="icon"><i class="fa-solid fa-list"></i></span>
                         <span>{{ 'account_page.operations_button'|trans }}</span>
                     </a>
+                    {% set current_account_switch_key = current_user.existingCurrentAccountSwitchKey %}
                     <a class="dropdown-item"
-                       href="/preferences?current_account={{ account_id|url_encode }}&ca_key={{ current_user.currentAccountSwitchKey|url_encode }}&return_to={{ server.REQUEST_URI|url_encode }}">
+                       href="/preferences?current_account={{ account_id|url_encode }}{% if current_account_switch_key %}&ca_key={{ current_account_switch_key|url_encode }}{% endif %}&return_to={{ server.REQUEST_URI|url_encode }}">
                         <span class="icon"><i class="fa-solid fa-user"></i></span>
                         <span>{{ 'account_page.set_current_account_button'|trans }}</span>
                     </a>

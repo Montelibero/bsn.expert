@@ -73,6 +73,8 @@ $MemcachedProperty = $ControllerReflection->getProperty('Memcached');
 $MemcachedProperty->setValue($Controller, new SessionBindingMemcached([
     'login_nonce_' . $nonce => $challenge,
 ]));
+$RequestSessionProperty = $ControllerReflection->getProperty('RequestSession');
+$RequestSessionProperty->setValue($Controller, new RequestSession(false));
 
 $owner_status = pollChallenge($Controller, $owner_session_id, $nonce);
 assertSessionBinding('created', $owner_status['status'] ?? null, 'The initiating browser must see its challenge.');
@@ -91,6 +93,7 @@ $MemcachedProperty->setValue($LegacyController, new SessionBindingMemcached([
         'account_id' => 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
     ],
 ]));
+$RequestSessionProperty->setValue($LegacyController, new RequestSession(false));
 assertSessionBinding(
     ['status' => 'timeout'],
     pollChallenge($LegacyController, $owner_session_id, $legacy_nonce),

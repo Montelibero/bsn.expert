@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\LoginController;
+use Montelibero\BSN\RequestSession;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\ManageDataOperation;
@@ -123,6 +124,8 @@ $Controller = $ControllerReflection->newInstanceWithoutConstructor();
 $BsnReflection = new ReflectionClass(BSN::class);
 $BsnProperty = $ControllerReflection->getProperty('BSN');
 $BsnProperty->setValue($Controller, $BsnReflection->newInstanceWithoutConstructor());
+$RequestSessionProperty = $ControllerReflection->getProperty('RequestSession');
+$RequestSessionProperty->setValue($Controller, new RequestSession(false));
 $Matches = $ControllerReflection->getMethod('challengeTransactionMatches');
 
 $Sep07Expected = makeChallengeTransaction(

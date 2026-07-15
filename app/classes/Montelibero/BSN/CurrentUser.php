@@ -14,20 +14,16 @@ class CurrentUser
     private const SESSION_CURRENT_ACCOUNT_SWITCH_KEY = 'current_account_switch_key';
     private const SESSION_SHOW_TELEGRAM_USERNAMES_KEY = 'show_telegram_usernames';
     private const HISTORY_LIMIT = 20;
-    private BSN $BSN;
     private ?string $request_current_account_id = null;
 
-    public function __construct(BSN $BSN)
-    {
-        $this->BSN = $BSN;
+    public function __construct(
+        private readonly BSN $BSN,
+        private readonly RequestSession $RequestSession,
+    ) {
     }
 
     public function beginRequest(): void
     {
-        if (!isset($this->session()[self::SESSION_HISTORY_KEY]) || !is_array($this->session()[self::SESSION_HISTORY_KEY])) {
-            $this->session()[self::SESSION_HISTORY_KEY] = [];
-        }
-
         $previous_current_account_id = $this->getCurrentAccountIdWithoutRequestParam();
         $this->request_current_account_id = $this->resolveRequestCurrentAccountId();
         if ($this->request_current_account_id !== null) {
@@ -44,7 +40,8 @@ class CurrentUser
 
     public function getAccountId(): ?string
     {
-        return $this->session()[self::SESSION_ACCOUNT_KEY]['id'] ?? null;
+        $account = $this->RequestSession->get(self::SESSION_ACCOUNT_KEY);
+        return is_array($account) ? ($account['id'] ?? null) : null;
     }
 
     public function isAuthorized(): bool
@@ -55,11 +52,11 @@ class CurrentUser
     public function authenticate(string $account_id): void
     {
         $Account = $this->BSN->makeAccountById($account_id);
-        $this->session()[self::SESSION_ACCOUNT_KEY] = $Account->jsonSerialize();
+        $this->RequestSession->set(self::SESSION_ACCOUNT_KEY, $Account->jsonSerialize());
 
         $Relation = $Account->getRelation();
         if (($Relation instanceof Member) && $Relation->getLevel() >= 2) {
-            $this->session()[self::SESSION_SHOW_TELEGRAM_USERNAMES_KEY] = true;
+            $this->RequestSession->set(self::SESSION_SHOW_TELEGRAM_USERNAMES_KEY, true);
         }
     }
 
@@ -99,7 +96,7 @@ class CurrentUser
             return true;
         }
 
-        return (bool) ($this->session()[self::SESSION_SHOW_TELEGRAM_USERNAMES_KEY] ?? false);
+        return (bool) $this->RequestSession->get(self::SESSION_SHOW_TELEGRAM_USERNAMES_KEY);
     }
 
     public function getShowUnknownTags(): bool
@@ -118,7 +115,7 @@ class CurrentUser
 
     private function getCurrentAccountIdWithoutRequestParam(): ?string
     {
-        $explicit = $this->session()[self::SESSION_CURRENT_ACCOUNT_KEY] ?? null;
+        $explicit = $this->RequestSession->get(self::SESSION_CURRENT_ACCOUNT_KEY);
         if ($explicit) {
             return $explicit;
         }
@@ -179,7 +176,7 @@ class CurrentUser
             return false;
         }
 
-        $this->session()[self::SESSION_CURRENT_ACCOUNT_KEY] = $account_id ?: null;
+        $this->RequestSession->set(self::SESSION_CURRENT_ACCOUNT_KEY, $account_id ?: null);
 
         if ($account_id) {
             $this->rememberCurrentAccount($account_id);
@@ -204,13 +201,12 @@ class CurrentUser
             return;
         }
 
-        $this->session()[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY] = $account_id;
+        $this->RequestSession->set(self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY, $account_id);
     }
 
     public function consumeAutoCurrentAccountNotice(): ?array
     {
-        $account_id = $this->session()[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY] ?? null;
-        unset($this->session()[self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY]);
+        $account_id = $this->RequestSession->consume(self::SESSION_AUTO_CURRENT_ACCOUNT_NOTICE_KEY);
 
         if (!BSN::validateStellarAccountIdFormat($account_id)) {
             return null;
@@ -222,13 +218,19 @@ class CurrentUser
 
     public function getCurrentAccountHistory(): array
     {
-        $history = $this->session()[self::SESSION_HISTORY_KEY] ?? [];
+        $history = $this->RequestSession->get(self::SESSION_HISTORY_KEY) ?? [];
+        if (!is_array($history)) {
+            return [];
+        }
         return array_values(array_filter(array_unique($history)));
     }
 
     public function getIgnoredCurrentAccountOptionIds(): array
     {
-        $ignored = $this->session()[self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY] ?? [];
+        $ignored = $this->RequestSession->get(self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY) ?? [];
+        if (!is_array($ignored)) {
+            return [];
+        }
         return array_values(array_filter(array_unique($ignored), [BSN::class, 'validateStellarAccountIdFormat']));
     }
 
@@ -241,25 +243,41 @@ class CurrentUser
 
         $ignored = $this->getIgnoredCurrentAccountOptionIds();
         $ignored[] = $account_id;
-        $this->session()[self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY] = array_values(array_unique($ignored));
+        $this->RequestSession->set(
+            self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY,
+            array_values(array_unique($ignored))
+        );
 
         return true;
     }
 
-    public function getCurrentAccountSwitchKey(): string
+    public function getCurrentAccountSwitchKey(): ?string
     {
-        $key = $this->session()[self::SESSION_CURRENT_ACCOUNT_SWITCH_KEY] ?? null;
-        if (!is_string($key) || $key === '') {
-            $key = bin2hex(random_bytes(16));
-            $this->session()[self::SESSION_CURRENT_ACCOUNT_SWITCH_KEY] = $key;
+        $key = $this->getExistingCurrentAccountSwitchKey();
+        if ($key !== null) {
+            return $key;
         }
+
+        if (!$this->RequestSession->isStarted()) {
+            return null;
+        }
+
+        $key = bin2hex(random_bytes(16));
+        $this->RequestSession->set(self::SESSION_CURRENT_ACCOUNT_SWITCH_KEY, $key);
 
         return $key;
     }
 
+    public function getExistingCurrentAccountSwitchKey(): ?string
+    {
+        $key = $this->RequestSession->get(self::SESSION_CURRENT_ACCOUNT_SWITCH_KEY);
+        return is_string($key) && $key !== '' ? $key : null;
+    }
+
     public function isCurrentAccountSwitchKeyValid(?string $key): bool
     {
-        return is_string($key) && hash_equals($this->getCurrentAccountSwitchKey(), $key);
+        $existing_key = $this->getExistingCurrentAccountSwitchKey();
+        return is_string($key) && $existing_key !== null && hash_equals($existing_key, $key);
     }
 
     private function rememberCurrentAccount(string $account_id): void
@@ -268,10 +286,10 @@ class CurrentUser
             return;
         }
 
-        $history = $this->session()[self::SESSION_HISTORY_KEY] ?? [];
+        $history = $this->getCurrentAccountHistory();
         array_unshift($history, $account_id);
         $history = array_slice(array_values(array_unique($history)), 0, self::HISTORY_LIMIT);
-        $this->session()[self::SESSION_HISTORY_KEY] = $history;
+        $this->RequestSession->set(self::SESSION_HISTORY_KEY, $history);
     }
 
     private function forgetIgnoredCurrentAccountOption(string $account_id): void
@@ -281,15 +299,13 @@ class CurrentUser
         }
 
         $ignored = $this->getIgnoredCurrentAccountOptionIds();
-        $this->session()[self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY] = array_values(array_filter(
-            $ignored,
-            fn(string $ignored_account_id): bool => $ignored_account_id !== $account_id
-        ));
-    }
-
-    private function &session(): array
-    {
-        return $_SESSION;
+        $this->RequestSession->set(
+            self::SESSION_CURRENT_ACCOUNT_OPTIONS_IGNORE_KEY,
+            array_values(array_filter(
+                $ignored,
+                fn(string $ignored_account_id): bool => $ignored_account_id !== $account_id
+            ))
+        );
     }
 
     private function resolveRequestCurrentAccountId(): ?string

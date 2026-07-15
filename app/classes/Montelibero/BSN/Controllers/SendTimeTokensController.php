@@ -3,6 +3,7 @@
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\RequestSession;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
@@ -21,8 +22,12 @@ class SendTimeTokensController
     private StellarSDK $Stellar;
     private SignController $SignController;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar, SignController $SignController)
-    {
+    public function __construct(
+        Environment $Twig,
+        StellarSDK $Stellar,
+        SignController $SignController,
+        private readonly RequestSession $RequestSession,
+    ) {
         $this->Twig = $Twig;
         
         $this->Stellar = $Stellar;
@@ -33,7 +38,7 @@ class SendTimeTokensController
     {
         $default_account = 'GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA';
 
-        $csrf_token = md5(session_id() . 'send_time_tokens');
+        $csrf_token = $this->RequestSession->getOrCreateToken('csrf:send_time_tokens');
 
         $error = '';
         $transaction = '';

@@ -5,7 +5,7 @@
 <nav class="panel">
     {% for option in current_account_options %}
     {% set is_current = option.id == current_account_value %}
-    {% set can_remove = not current_user.account or option.id != current_user.account.id %}
+    {% set can_remove = ca_key and (not current_user.account or option.id != current_user.account.id) %}
     <div
         class="panel-block {% if is_current %}is-active{% endif %}"
         data-current-account-option
@@ -16,7 +16,7 @@
         </span>
         <span class="is-flex is-flex-direction-column is-flex-grow-1">
             <a
-                href="/preferences?current_account={{ option.id|url_encode }}&ca_key={{ ca_key|url_encode }}&return_to={{ return_to|url_encode }}"
+                href="/preferences?current_account={{ option.id|url_encode }}{% if ca_key %}&ca_key={{ ca_key|url_encode }}{% endif %}&return_to={{ return_to|url_encode }}"
             >{{ option.display_name }}</a>
             <span class="is-size-7 has-text-grey">
                 <a href="{% if option.username %}/@{{ option.username }}{% else %}/accounts/{{ option.id }}{% endif %}">
@@ -64,7 +64,9 @@
 
 <form action="/preferences" method="get">
     <input type="hidden" name="return_to" value="{{ return_to|e('html_attr') }}">
+    {% if ca_key %}
     <input type="hidden" name="ca_key" value="{{ ca_key|e('html_attr') }}">
+    {% endif %}
 
     <div class="field">
         <label class="label" for="{{ input_id|e('html_attr') }}">

@@ -201,12 +201,15 @@ $GristRuntimeData = new GristRuntimeData($BSN, $GristSnapshotStore);
 $GristRuntimeData->refreshMtlaMembersIfNeeded(true);
 //$memory2 = memory_get_usage();
 //print $memory2 - $memory1 . "\n";
-$CurrentUser = new CurrentUser($BSN);
+$RequestSession = new RequestSession(!IS_CLI_CONTEXT);
+$CurrentUser = new CurrentUser($BSN, $RequestSession);
 $CurrentContacts = new CurrentContacts($BSN, $ContactsManager, $CurrentUser);
 $AssetVersions = new AssetVersions(__DIR__);
 $SessionView = new RequestArrayView();
+$RequestSession->onStarted(static function () use ($SessionView): void {
+    $SessionView->bind($_SESSION);
+});
 $ServerView = new RequestArrayView();
-$RequestSession = new RequestSession(!IS_CLI_CONTEXT);
 $Translator = new Translator($RequestLocale->getLocale());
 $Translator->addLoader('yaml', new YamlFileLoader());
 $Translator->addResource('yaml', __DIR__ . '/i18n/messages.ru.yaml', 'ru');

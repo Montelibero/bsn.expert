@@ -9,6 +9,7 @@ use Montelibero\BSN\MTLA\CalcDelegations\CalcVoices;
 use Montelibero\BSN\MTLA\MtlaProgramReportService;
 use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\RequestLocale;
+use Montelibero\BSN\RequestSession;
 use Soneso\StellarSDK\ChangeTrustOperationBuilder;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
@@ -42,6 +43,7 @@ class MtlaController implements RefreshDataCodeInterface
     private SignController $SignController;
     private MongoCacheManager $CacheManager;
     private RequestLocale $RequestLocale;
+    private RequestSession $RequestSession;
 
     public function __construct(
         BSN $BSN,
@@ -51,7 +53,8 @@ class MtlaController implements RefreshDataCodeInterface
         CurrentUser $CurrentUser,
         SignController $SignController,
         MongoCacheManager $CacheManager,
-        RequestLocale $RequestLocale
+        RequestLocale $RequestLocale,
+        RequestSession $RequestSession,
     ) {
         $this->BSN = $BSN;
 
@@ -63,6 +66,7 @@ class MtlaController implements RefreshDataCodeInterface
         $this->SignController = $SignController;
         $this->CacheManager = $CacheManager;
         $this->RequestLocale = $RequestLocale;
+        $this->RequestSession = $RequestSession;
     }
 
     public function Mtla(): ?string

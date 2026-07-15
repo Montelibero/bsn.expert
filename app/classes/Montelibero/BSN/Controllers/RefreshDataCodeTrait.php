@@ -48,7 +48,7 @@ trait RefreshDataCodeTrait
 
     protected function buildRefreshDataCode(string $scope): string
     {
-        return hash('sha256', session_id() . ':' . $scope);
+        return $this->RequestSession->getOrCreateToken('refresh_data:' . $scope);
     }
 
     protected function getCurrentRequestUri(): string

@@ -6,6 +6,7 @@ use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
@@ -24,6 +25,7 @@ class ContactsController
         ContactsManager $ContactsManager,
         private readonly CurrentUser $CurrentUser,
         private readonly CurrentContacts $CurrentContacts,
+        private readonly RequestSession $RequestSession,
     ) {
         $this->BSN = $BSN;
 
@@ -206,7 +208,7 @@ class ContactsController
             return null;
         }
 
-        $csrf_token = md5(session_id() . 'contacts');
+        $csrf_token = $this->RequestSession->getOrCreateToken('csrf:contacts');
 
         $current_account_id = $this->CurrentUser->getAccountId();
         if ($current_account_id === null) {

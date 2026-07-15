@@ -10,6 +10,7 @@ use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\MongoCacheManager;
+use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\Tag;
 use Montelibero\BSN\WebApp;
@@ -68,6 +69,7 @@ class AccountsController implements RefreshDataCodeInterface
     private CurrentContacts $CurrentContacts;
     private StellarTomlImageManager $TomlImageManager;
     private MongoCacheManager $CacheManager;
+    private RequestSession $RequestSession;
 
     public function __construct(
         BSN $BSN,
@@ -78,6 +80,7 @@ class AccountsController implements RefreshDataCodeInterface
         CurrentContacts $CurrentContacts,
         StellarTomlImageManager $TomlImageManager,
         MongoCacheManager $CacheManager,
+        RequestSession $RequestSession,
     ) {
         $this->BSN = $BSN;
 
@@ -88,6 +91,7 @@ class AccountsController implements RefreshDataCodeInterface
         $this->Container = $Container;
         $this->CurrentUser = $CurrentUser;
         $this->CurrentContacts = $CurrentContacts;
+        $this->RequestSession = $RequestSession;
         $this->TomlImageManager = $TomlImageManager;
         $this->CacheManager = $CacheManager;
     }

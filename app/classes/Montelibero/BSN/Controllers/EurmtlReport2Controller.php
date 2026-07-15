@@ -5,6 +5,7 @@ namespace Montelibero\BSN\Controllers;
 use Montelibero\BSN\EurmtlReport2Config;
 use Montelibero\BSN\EurmtlReport2Service;
 use Montelibero\BSN\EurmtlReportAccess;
+use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
 use Twig\Environment;
 
@@ -18,6 +19,7 @@ class EurmtlReport2Controller implements RefreshDataCodeInterface
         private readonly Environment $Twig,
         private readonly EurmtlReport2Service $ReportService,
         private readonly EurmtlReportAccess $ReportAccess,
+        private readonly RequestSession $RequestSession,
     ) {
     }
 

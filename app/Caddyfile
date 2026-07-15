@@ -94,6 +94,10 @@
 			}
 		}
 
+		# Keep health independent from the main worker bootstrap and sessions.
+		@health path /health
+		rewrite @health /health.php
+
 		header Access-Control-Allow-Origin "*"
 		request_header X-Original-URI {uri}
 		try_files {path} /main.php?{query}

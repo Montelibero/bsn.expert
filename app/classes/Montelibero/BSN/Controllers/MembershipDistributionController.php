@@ -2,6 +2,7 @@
 namespace Montelibero\BSN\Controllers;
 
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\RequestSession;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
@@ -23,8 +24,12 @@ class MembershipDistributionController
     private StellarSDK $Stellar;
     private SignController $SignController;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar, SignController $SignController)
-    {
+    public function __construct(
+        Environment $Twig,
+        StellarSDK $Stellar,
+        SignController $SignController,
+        private readonly RequestSession $RequestSession,
+    ) {
         $this->Twig = $Twig;
         
         $this->Stellar = $Stellar;
@@ -36,7 +41,7 @@ class MembershipDistributionController
         $account_main = 'GCNVDZIHGX473FEI7IXCUAEXUJ4BGCKEMHF36VYP5EMS7PX2QBLAMTLA';
         $account_secretary = 'GDGC46H4MQKRW3TZTNCWUU6R2C7IPXGN7HQLZBJTNQO6TW7ZOS6MSECR';
 
-        $csrf_token = md5(session_id() . 'membership_distribution');
+        $csrf_token = $this->RequestSession->getOrCreateToken('csrf:membership_distribution');
 
         /** @var AssetTypeCreditAlphanum[] $assets */
         $assets = [

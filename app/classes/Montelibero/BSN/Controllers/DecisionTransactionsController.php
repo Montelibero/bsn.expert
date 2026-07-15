@@ -5,6 +5,7 @@ namespace Montelibero\BSN\Controllers;
 use DateInterval;
 use DateTime;
 use DateTimeZone;
+use Montelibero\BSN\RequestSession;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
@@ -25,8 +26,11 @@ class DecisionTransactionsController
     private Environment $Twig;
     private StellarSDK $Stellar;
 
-    public function __construct(Environment $Twig, StellarSDK $Stellar)
-    {
+    public function __construct(
+        Environment $Twig,
+        StellarSDK $Stellar,
+        private readonly RequestSession $RequestSession,
+    ) {
         $this->Twig = $Twig;
 
         $this->Stellar = $Stellar;
@@ -34,7 +38,7 @@ class DecisionTransactionsController
 
     public function MtlaDecisionTransactions(): string
     {
-        $csrf_token = md5(session_id() . 'decision_transactions');
+        $csrf_token = $this->RequestSession->getOrCreateToken('csrf:decision_transactions');
 
         $error = '';
         $positive_xdr = '';

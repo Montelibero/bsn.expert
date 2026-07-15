@@ -71,6 +71,7 @@ class LoginController
 
     public function Login(): ?string
     {
+        $this->RequestSession->id();
         $return_to = $this->resolveReturnTo();
 
         // Cookie check
@@ -496,6 +497,7 @@ class LoginController
 
     public function LoginManual(): string
     {
+        $this->RequestSession->id();
         $Template = $this->Twig->load('login_manual.twig');
         $return_to = $this->resolveReturnTo();
 
@@ -610,12 +612,7 @@ class LoginController
 
     private function currentBrowserSessionHash(): string
     {
-        $session_id = session_id();
-        if ($session_id === '') {
-            throw new \RuntimeException('Login challenge requires an active browser session.');
-        }
-
-        return hash('sha256', $session_id);
+        return hash('sha256', $this->RequestSession->id());
     }
 
     private function challengeBelongsToCurrentBrowser(array $data): bool
