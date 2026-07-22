@@ -182,6 +182,9 @@ class ApiKeysManager
             'last_succeed_contacts_sync_at' => isset($doc->last_succeed_contacts_sync_at)
                 ? (int)(string) $doc->last_succeed_contacts_sync_at
                 : null,
+            'last_succeed_contacts_sync_revision' => isset($doc->last_succeed_contacts_sync_revision)
+                ? (int) $doc->last_succeed_contacts_sync_revision
+                : null,
         ];
     }
 

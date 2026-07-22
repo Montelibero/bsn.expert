@@ -92,18 +92,19 @@ class ContactsManager
 
     public function deleteContact(string $host_account_id, $stellar_account): void
     {
+        $Now = new UTCDateTime((int) (microtime(true) * 1000));
         $Bulk = new BulkWrite();
         $Bulk->update(
             ['account_id' => $host_account_id],
-            [
+            [[
                 '$set' => [
-                    "$this->collection.$stellar_account" => [
-                        'name' => null,
-                        'updated_at' => new UTCDateTime((int) (microtime(true) * 1000)),
-                    ],
-                    'updated_at' => new UTCDateTime((int) (microtime(true) * 1000)),
+                    'revision' => $this->nextRevisionExpression(),
+                    "$this->collection.$stellar_account.name" => ['$literal' => null],
+                    "$this->collection.$stellar_account.updated_at" => ['$literal' => $Now],
+                    "$this->collection.$stellar_account.revision" => $this->nextRevisionExpression(),
+                    'updated_at' => ['$literal' => $Now],
                 ],
-            ]
+            ]]
         );
         $this->Mongo->executeBulkWrite(
             $this->namespace(),
@@ -117,16 +118,16 @@ class ContactsManager
         $Bulk = new BulkWrite();
         $Bulk->update(
             ['account_id' => $host_account_id],
-            [
+            [[
                 '$set' => [
-                    "$this->collection.$stellar_account" => [
-                        'name' => $name,
-                        'updated_at' => $Now,
-                    ],
-                    'updated_at' => $Now,
+                    'account_id' => ['$ifNull' => ['$account_id', ['$literal' => $host_account_id]]],
+                    'revision' => $this->nextRevisionExpression(),
+                    "$this->collection.$stellar_account.name" => ['$literal' => $name],
+                    "$this->collection.$stellar_account.updated_at" => ['$literal' => $Now],
+                    "$this->collection.$stellar_account.revision" => $this->nextRevisionExpression(),
+                    'updated_at' => ['$literal' => $Now],
                 ],
-                '$setOnInsert' => ['account_id' => $host_account_id],
-            ],
+            ]],
             ['upsert' => true]
         );
         $this->Mongo->executeBulkWrite(
@@ -142,6 +143,14 @@ class ContactsManager
 
     public function getAllItems(string $host_account_id): array
     {
+        return $this->getSyncSnapshot($host_account_id)['items'];
+    }
+
+    /**
+     * @return array{revision: int, items: array<string, array{label: ?string, updated_at: int, revision: int}>}
+     */
+    public function getSyncSnapshot(string $host_account_id): array
+    {
         $filter = ['account_id' => $host_account_id];
         $options = ['limit' => 1];
         $query = new Query($filter, $options);
@@ -156,10 +165,14 @@ class ContactsManager
             $contacts[$address] = [
                 'label' => $value['name'],
                 'updated_at' => (int)(string) $updated_at,
+                'revision' => (int) ($value['revision'] ?? 0),
             ];
         }
 
-        return $contacts;
+        return [
+            'revision' => (int) ($doc?->revision ?? 0),
+            'items' => $contacts,
+        ];
     }
 
     public function bulkUpdate(string $account_id, array $bulk_update): void
@@ -168,19 +181,23 @@ class ContactsManager
             return;
         }
 
-        $bulk_update_prep = [];
+        $Now = new UTCDateTime((int) (microtime(true) * 1000));
+        $bulk_update_prep = [
+            'account_id' => ['$ifNull' => ['$account_id', ['$literal' => $account_id]]],
+            'revision' => $this->nextRevisionExpression(),
+            'updated_at' => ['$literal' => $Now],
+        ];
         foreach ($bulk_update as $key => $value) {
-            $bulk_update_prep["$this->collection.$key"] = $value;
+            $bulk_update_prep["$this->collection.$key.name"] = ['$literal' => $value['name']];
+            $bulk_update_prep["$this->collection.$key.updated_at"] = ['$literal' => $value['updated_at']];
+            $bulk_update_prep["$this->collection.$key.revision"] = $this->nextRevisionExpression();
         }
 
         $Bulk = new BulkWrite();
         $Bulk->update(
             ['account_id' => $account_id],
-            [
-                '$set' => $bulk_update_prep,
-                '$setOnInsert' => ['account_id' => $account_id],
-            ],
-            ['multi' => true, 'upsert' => true]
+            [['$set' => $bulk_update_prep]],
+            ['upsert' => true]
         );
         $Result = $this->Mongo->executeBulkWrite(
             $this->namespace(),
@@ -190,5 +207,10 @@ class ContactsManager
         if ($Result->getMatchedCount() === 0 && $Result->getUpsertedCount() === 0) {
             throw new \RuntimeException('Contacts bulk update did not match or create an account document.');
         }
+    }
+
+    private function nextRevisionExpression(): array
+    {
+        return ['$add' => [['$ifNull' => ['$revision', 0]], 1]];
     }
 }

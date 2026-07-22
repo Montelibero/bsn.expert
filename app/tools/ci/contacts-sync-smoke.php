@@ -64,7 +64,7 @@ function syncContacts(string $base_url, string $token, array $items): array
 }
 
 try {
-    $updated_at = (int) (microtime(true) * 1000);
+    $updated_at = (int) (microtime(true) * 1000) - 60000;
     $write_response = syncContacts($base_url, WRITER_TOKEN, [
         CONTACT_ACCOUNT => [
             'label' => CONTACT_LABEL,
@@ -82,7 +82,7 @@ try {
         throw new RuntimeException('A second API key could not read the first synced contact.');
     }
 
-    $renamed_at = max($updated_at + 1, (int) (microtime(true) * 1000));
+    $renamed_at = $updated_at + 1;
     $update_response = syncContacts($base_url, UPDATER_TOKEN, [
         CONTACT_ACCOUNT => [
             'label' => UPDATED_CONTACT_LABEL,
@@ -98,7 +98,15 @@ try {
         throw new RuntimeException('Contact rename response did not contain the post-write value.');
     }
 
-    $deleted_at = max($renamed_at + 1, (int) (microtime(true) * 1000));
+    $offline_update_response = syncContacts($base_url, READER_TOKEN, []);
+    $offline_updated_contact = $offline_update_response['items'][CONTACT_ACCOUNT] ?? null;
+    if (!is_array($offline_updated_contact)
+        || ($offline_updated_contact['label'] ?? null) !== UPDATED_CONTACT_LABEL
+    ) {
+        throw new RuntimeException('An established API key missed an offline contact update.');
+    }
+
+    $deleted_at = $renamed_at + 1;
     $delete_response = syncContacts($base_url, DELETER_TOKEN, [
         CONTACT_ACCOUNT => [
             'label' => null,
@@ -115,6 +123,15 @@ try {
         || $deleted_contact['label'] !== null
     ) {
         throw new RuntimeException('Contact deletion response did not contain the post-write tombstone.');
+    }
+
+    $offline_delete_response = syncContacts($base_url, READER_TOKEN, []);
+    $offline_deleted_contact = $offline_delete_response['items'][CONTACT_ACCOUNT] ?? null;
+    if (!is_array($offline_deleted_contact)
+        || !array_key_exists('label', $offline_deleted_contact)
+        || $offline_deleted_contact['label'] !== null
+    ) {
+        throw new RuntimeException('An established API key missed an offline contact deletion.');
     }
 } catch (Throwable $Throwable) {
     fwrite(STDERR, $Throwable->getMessage() . PHP_EOL);

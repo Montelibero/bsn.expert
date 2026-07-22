@@ -104,7 +104,8 @@ class ApiContactsController
         }
         $new_items = $request_data['items'] ?? [];
 
-        $contacts = $this->ContactsManager->getAllItems($account_id);
+        $sync_snapshot = $this->ContactsManager->getSyncSnapshot($account_id);
+        $contacts = $sync_snapshot['items'];
 
         $errors = [];
 
@@ -192,11 +193,12 @@ class ApiContactsController
                 ];
             }
             $this->ContactsManager->bulkUpdate($account_id, $normalized_bulk_update);
-            $contacts = $this->ContactsManager->getAllItems($account_id);
+            $sync_snapshot = $this->ContactsManager->getSyncSnapshot($account_id);
+            $contacts = $sync_snapshot['items'];
         }
 
         // Tell new data to the client
-        $last_sync_at = $key['last_succeed_contacts_sync_at'] ?? 0;
+        $last_sync_revision = $key['last_succeed_contacts_sync_revision'];
 
         $response = [
             'status' => 'OK',
@@ -206,13 +208,14 @@ class ApiContactsController
         if ($permissions['read']) {
             $response['items'] = [];
             foreach ($contacts as $address => $item) {
-                if ($item['updated_at'] > $last_sync_at) {
+                if ($last_sync_revision === null || $item['revision'] > $last_sync_revision) {
+                    unset($item['revision']);
                     $response['items'][$address] = $item;
                 }
             }
         }
 
-        $this->updateLastSyncAt($key);
+        $this->updateLastSyncRevision($key, $sync_snapshot['revision']);
 
         return $this->jsonResponse($response);
     }
@@ -271,10 +274,10 @@ class ApiContactsController
         return true;
     }
 
-    private function updateLastSyncAt(array $key): void
+    private function updateLastSyncRevision(array $key, int $revision): void
     {
         $this->ApiKeysManager->updateKey($key['id'], [
-            'last_succeed_contacts_sync_at' => new UTCDateTime((int) (microtime(true) * 1000)),
+            'last_succeed_contacts_sync_revision' => $revision,
         ]);
     }
 }
