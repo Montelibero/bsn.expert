@@ -4,6 +4,7 @@ namespace Montelibero\BSN;
 
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\Driver\BulkWrite;
+use MongoDB\Driver\Exception\BulkWriteException;
 use MongoDB\Driver\Manager;
 use MongoDB\Driver\Query;
 
@@ -175,10 +176,10 @@ class ContactsManager
         ];
     }
 
-    public function bulkUpdate(string $account_id, array $bulk_update): void
+    public function bulkUpdate(string $account_id, array $bulk_update, int $expected_revision): bool
     {
         if (empty($bulk_update)) {
-            return;
+            return true;
         }
 
         $Now = new UTCDateTime((int) (microtime(true) * 1000));
@@ -193,20 +194,36 @@ class ContactsManager
             $bulk_update_prep["$this->collection.$key.revision"] = $this->nextRevisionExpression();
         }
 
+        $filter = ['account_id' => $account_id];
+        if ($expected_revision === 0) {
+            $filter['$or'] = [
+                ['revision' => 0],
+                ['revision' => ['$exists' => false]],
+            ];
+        } else {
+            $filter['revision'] = $expected_revision;
+        }
+
         $Bulk = new BulkWrite();
         $Bulk->update(
-            ['account_id' => $account_id],
+            $filter,
             [['$set' => $bulk_update_prep]],
-            ['upsert' => true]
+            ['upsert' => $expected_revision === 0]
         );
-        $Result = $this->Mongo->executeBulkWrite(
-            $this->namespace(),
-            $Bulk
-        );
+        try {
+            $Result = $this->Mongo->executeBulkWrite(
+                $this->namespace(),
+                $Bulk
+            );
+        } catch (BulkWriteException $Exception) {
+            if ($Exception->getCode() === 11000) {
+                return false;
+            }
 
-        if ($Result->getMatchedCount() === 0 && $Result->getUpsertedCount() === 0) {
-            throw new \RuntimeException('Contacts bulk update did not match or create an account document.');
+            throw $Exception;
         }
+
+        return $Result->getMatchedCount() > 0 || $Result->getUpsertedCount() > 0;
     }
 
     private function nextRevisionExpression(): array

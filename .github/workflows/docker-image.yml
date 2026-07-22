@@ -209,6 +209,7 @@ jobs:
         run: |
           php app/tools/ci/route-smoke.php
           php app/tools/ci/contacts-sync-smoke.php
+          docker exec bsn-route-app php tools/ci/contacts-cas-smoke.php
 
       - name: Show smoke environment logs
         if: failure()

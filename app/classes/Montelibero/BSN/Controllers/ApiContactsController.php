@@ -214,7 +214,20 @@ class ApiContactsController
                     'updated_at' => new UTCDateTime($item['updated_at']),
                 ];
             }
-            $this->ContactsManager->bulkUpdate($account_id, $normalized_bulk_update);
+
+            $was_updated = $this->ContactsManager->bulkUpdate(
+                $account_id,
+                $normalized_bulk_update,
+                $sync_snapshot['revision']
+            );
+            if (!$was_updated) {
+                SimpleRouter::response()->httpCode(409);
+                return $this->jsonResponse([
+                    'status' => 'error',
+                    'message' => 'Contacts changed concurrently; retry sync',
+                ]);
+            }
+
             $sync_snapshot = $this->ContactsManager->getSyncSnapshot($account_id);
             $contacts = $sync_snapshot['items'];
         }
