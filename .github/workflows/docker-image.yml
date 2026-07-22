@@ -85,8 +85,8 @@ jobs:
           load: true
           push: false
           tags: bsn-viewer:route-smoke
-          cache-from: type=gha,scope=bsn-route-smoke
-          cache-to: type=gha,scope=bsn-route-smoke,mode=max
+          cache-from: type=gha,scope=bsn-app
+          cache-to: type=gha,scope=bsn-app,mode=max
 
       - name: Start isolated smoke environment
         shell: bash
