@@ -102,9 +102,31 @@ class ApiContactsController
                 'message' => 'Wrong `items` type',
             ]);
         }
+        $has_explicit_cursor = array_key_exists('cursor', $request_data);
+        $request_cursor = $request_data['cursor'] ?? null;
+        if ($has_explicit_cursor
+            && $request_cursor !== null
+            && (!is_int($request_cursor) || $request_cursor < 0)
+        ) {
+            SimpleRouter::response()->httpCode(400);
+            return $this->jsonResponse([
+                'status' => 'error',
+                'message' => 'Wrong `cursor` value',
+            ]);
+        }
         $new_items = $request_data['items'] ?? [];
 
         $sync_snapshot = $this->ContactsManager->getSyncSnapshot($account_id);
+        if ($has_explicit_cursor
+            && $request_cursor !== null
+            && $request_cursor > $sync_snapshot['revision']
+        ) {
+            SimpleRouter::response()->httpCode(409);
+            return $this->jsonResponse([
+                'status' => 'error',
+                'message' => '`cursor` is ahead of the current server revision',
+            ]);
+        }
         $contacts = $sync_snapshot['items'];
 
         $errors = [];
@@ -198,11 +220,14 @@ class ApiContactsController
         }
 
         // Tell new data to the client
-        $last_sync_revision = $key['last_succeed_contacts_sync_revision'];
+        $last_sync_revision = $has_explicit_cursor
+            ? $request_cursor
+            : $key['last_succeed_contacts_sync_revision'];
 
         $response = [
             'status' => 'OK',
             'report' => $report,
+            'next_cursor' => $sync_snapshot['revision'],
         ];
 
         if ($permissions['read']) {
@@ -215,7 +240,9 @@ class ApiContactsController
             }
         }
 
-        $this->updateLastSyncRevision($key, $sync_snapshot['revision']);
+        if (!$has_explicit_cursor) {
+            $this->updateLastSyncRevision($key, $sync_snapshot['revision']);
+        }
 
         return $this->jsonResponse($response);
     }
