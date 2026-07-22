@@ -16,5 +16,8 @@ class ApiRoutes
         SimpleRouter::post('/contacts/sync', function () use ($Container) {
             return $Container->get(ApiContactsController::class)->Sync();
         })->name('api_contacts_sync');
+        SimpleRouter::options('/contacts/sync', function () use ($Container) {
+            return $Container->get(ApiContactsController::class)->Preflight();
+        })->name('api_contacts_sync_preflight');
     }
 }

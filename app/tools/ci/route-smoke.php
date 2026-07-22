@@ -19,6 +19,23 @@ $checks = [
     ['path' => '/who_are_you', 'status' => 200],
     ['path' => '/token/XLM?ci=1', 'status' => 301, 'location' => '/tokens/XLM?ci=1'],
     ['path' => '/contracts/demo?ci=1', 'status' => 301, 'location' => '/documents/demo?ci=1'],
+    [
+        'path' => '/api/contacts/sync',
+        'method' => 'OPTIONS',
+        'status' => 204,
+        'request_headers' => [
+            'Origin: https://client.example',
+            'Access-Control-Request-Method: POST',
+            'Access-Control-Request-Headers: authorization,content-type',
+        ],
+        'response_headers' => [
+            'access-control-allow-origin' => '*',
+            'access-control-allow-methods' => 'POST, OPTIONS',
+            'access-control-allow-headers' => 'Authorization, Content-Type',
+            'access-control-max-age' => '86400',
+        ],
+        'body' => '',
+    ],
     ['path' => '/route-that-must-not-exist-ci', 'status' => 404],
     ['path' => '/composer.lock', 'status' => 404],
     ['path' => '/composer.json', 'status' => 404],
@@ -32,6 +49,7 @@ $checks = [
 $errors = [];
 foreach ($checks as $check) {
     $headers = [];
+    $header_counts = [];
     $Curl = curl_init($base_url . $check['path']);
     if ($Curl === false) {
         $errors[] = $check['path'] . ': unable to initialize cURL';
@@ -43,12 +61,18 @@ foreach ($checks as $check) {
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_TIMEOUT => 10,
-        CURLOPT_HTTPHEADER => ['Accept: text/html, application/json;q=0.9'],
-        CURLOPT_HEADERFUNCTION => static function ($Curl, string $line) use (&$headers): int {
+        CURLOPT_CUSTOMREQUEST => $check['method'] ?? 'GET',
+        CURLOPT_HTTPHEADER => array_merge(
+            ['Accept: text/html, application/json;q=0.9'],
+            $check['request_headers'] ?? []
+        ),
+        CURLOPT_HEADERFUNCTION => static function ($Curl, string $line) use (&$headers, &$header_counts): int {
             $length = strlen($line);
             $parts = explode(':', $line, 2);
             if (count($parts) === 2) {
-                $headers[strtolower(trim($parts[0]))] = trim($parts[1]);
+                $name = strtolower(trim($parts[0]));
+                $headers[$name] = trim($parts[1]);
+                $header_counts[$name] = ($header_counts[$name] ?? 0) + 1;
             }
 
             return $length;
@@ -66,6 +90,31 @@ foreach ($checks as $check) {
     if ($status !== $check['status']) {
         $errors[] = sprintf('%s: expected HTTP %d, got %d', $check['path'], $check['status'], $status);
         continue;
+    }
+
+    foreach ($check['response_headers'] ?? [] as $name => $expected_value) {
+        $actual_value = $headers[$name] ?? null;
+        if ($actual_value !== $expected_value) {
+            $errors[] = sprintf(
+                '%s: expected header %s: %s, got %s',
+                $check['path'],
+                $name,
+                $expected_value,
+                $actual_value ?? '(missing)'
+            );
+        }
+        if (($header_counts[$name] ?? 0) !== 1) {
+            $errors[] = sprintf(
+                '%s: expected header %s exactly once, got %d occurrences',
+                $check['path'],
+                $name,
+                $header_counts[$name] ?? 0
+            );
+        }
+    }
+
+    if (array_key_exists('body', $check) && $body !== $check['body']) {
+        $errors[] = sprintf('%s: expected an empty response body', $check['path']);
     }
 
     if (isset($check['location'])) {

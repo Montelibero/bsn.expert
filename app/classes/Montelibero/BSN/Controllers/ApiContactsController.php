@@ -12,6 +12,9 @@ use Pecee\SimpleRouter\SimpleRouter;
 class ApiContactsController
 {
     const TIMESTAMP_TOLERANCE_MS = 5000;
+    private const CORS_ALLOWED_METHODS = 'POST, OPTIONS';
+    private const CORS_ALLOWED_HEADERS = 'Authorization, Content-Type';
+    private const CORS_MAX_AGE_SECONDS = 86400;
     private ApiKeysManager $ApiKeysManager;
     private ContactsManager $ContactsManager;
 
@@ -213,15 +216,34 @@ class ApiContactsController
         return $this->jsonResponse($response);
     }
 
+    public function Preflight(): string
+    {
+        $this->setCorsHeaders(preflight: true);
+        SimpleRouter::response()->httpCode(204);
+
+        return '';
+    }
+
     private function jsonResponse(array $data): string
     {
-        header('Access-Control-Allow-Origin: *');
+        $this->setCorsHeaders();
         header('Content-Type: application/json');
 
         return json_encode(
             $data,
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
+    }
+
+    private function setCorsHeaders(bool $preflight = false): void
+    {
+        header('Access-Control-Allow-Origin: *');
+
+        if ($preflight) {
+            header('Access-Control-Allow-Methods: ' . self::CORS_ALLOWED_METHODS);
+            header('Access-Control-Allow-Headers: ' . self::CORS_ALLOWED_HEADERS);
+            header('Access-Control-Max-Age: ' . self::CORS_MAX_AGE_SECONDS);
+        }
     }
 
     private function validateSyncItem(mixed $address, mixed $data): bool|string

@@ -13,6 +13,12 @@
 - `POST /api/contacts/sync`
 - Формат: `application/json`
 
+## CORS
+
+- Эндпоинт доступен с любого origin (`Access-Control-Allow-Origin: *`).
+- Preflight-запрос `OPTIONS /api/contacts/sync` не требует авторизации и возвращает `204 No Content`.
+- Разрешены метод `POST` и заголовки `Authorization`, `Content-Type`.
+
 ## Поля запроса
 
 ```json
