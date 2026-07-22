@@ -110,11 +110,21 @@
       "pair": true,
       "standard": true
     },
+    "MyGuide": {
+      "category": "social",
+      "pair": "MyMentee",
+      "strong_pair": true
+    },
     "MyJudge": {
       "category": "arbitration"
     },
     "MyMediator": {
       "category": "arbitration"
+    },
+    "MyMentee": {
+      "category": "social",
+      "pair": "MyGuide",
+      "strong_pair": true
     },
     "MyPart": {
       "category": "structure",
