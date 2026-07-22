@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 const WRITER_TOKEN = '111111111111111111111111111111111111111111111111';
 const READER_TOKEN = '222222222222222222222222222222222222222222222222';
+const UPDATER_TOKEN = '333333333333333333333333333333333333333333333333';
+const DELETER_TOKEN = '444444444444444444444444444444444444444444444444';
 const CONTACT_ACCOUNT = 'GDGXXBP7P4YXZFTZX5RGCVUYK5YB24ANMD5IPUT3MFBQGSMDCK75W67S';
 const CONTACT_LABEL = 'First sync regression fixture';
+const UPDATED_CONTACT_LABEL = 'Updated sync regression fixture';
 
 $base_url = rtrim((string) (getenv('ROUTE_SMOKE_BASE_URL') ?: ($argv[1] ?? '')), '/');
 if ($base_url === '') {
@@ -78,9 +81,44 @@ try {
     if (!is_array($stored_contact) || ($stored_contact['label'] ?? null) !== CONTACT_LABEL) {
         throw new RuntimeException('A second API key could not read the first synced contact.');
     }
+
+    $renamed_at = max($updated_at + 1, (int) (microtime(true) * 1000));
+    $update_response = syncContacts($base_url, UPDATER_TOKEN, [
+        CONTACT_ACCOUNT => [
+            'label' => UPDATED_CONTACT_LABEL,
+            'updated_at' => $renamed_at,
+        ],
+    ]);
+
+    if (($update_response['report']['updated'] ?? null) !== [CONTACT_ACCOUNT]) {
+        throw new RuntimeException('Contact rename was not reported as updated.');
+    }
+    $updated_contact = $update_response['items'][CONTACT_ACCOUNT] ?? null;
+    if (!is_array($updated_contact) || ($updated_contact['label'] ?? null) !== UPDATED_CONTACT_LABEL) {
+        throw new RuntimeException('Contact rename response did not contain the post-write value.');
+    }
+
+    $deleted_at = max($renamed_at + 1, (int) (microtime(true) * 1000));
+    $delete_response = syncContacts($base_url, DELETER_TOKEN, [
+        CONTACT_ACCOUNT => [
+            'label' => null,
+            'updated_at' => $deleted_at,
+        ],
+    ]);
+
+    if (($delete_response['report']['deleted'] ?? null) !== [CONTACT_ACCOUNT]) {
+        throw new RuntimeException('Contact deletion was not reported as deleted.');
+    }
+    $deleted_contact = $delete_response['items'][CONTACT_ACCOUNT] ?? null;
+    if (!is_array($deleted_contact)
+        || !array_key_exists('label', $deleted_contact)
+        || $deleted_contact['label'] !== null
+    ) {
+        throw new RuntimeException('Contact deletion response did not contain the post-write tombstone.');
+    }
 } catch (Throwable $Throwable) {
     fwrite(STDERR, $Throwable->getMessage() . PHP_EOL);
     exit(1);
 }
 
-fwrite(STDOUT, "Contacts first-sync regression smoke passed.\n");
+fwrite(STDOUT, "Contacts sync regression smoke passed.\n");

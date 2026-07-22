@@ -152,6 +152,24 @@ jobs:
                     contacts: {read: true, create: false, update: false, delete: false}
                   },
                   created_at: new Date()
+                },
+                {
+                  account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
+                  name: "CI contacts updater",
+                  key: "333333333333333333333333333333333333333333333333",
+                  permissions: {
+                    contacts: {read: true, create: false, update: true, delete: false}
+                  },
+                  created_at: new Date()
+                },
+                {
+                  account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
+                  name: "CI contacts deleter",
+                  key: "444444444444444444444444444444444444444444444444",
+                  permissions: {
+                    contacts: {read: true, create: false, update: false, delete: true}
+                  },
+                  created_at: new Date()
                 }
               ]);
             '

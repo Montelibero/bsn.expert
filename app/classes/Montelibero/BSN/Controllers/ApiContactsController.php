@@ -192,6 +192,7 @@ class ApiContactsController
                 ];
             }
             $this->ContactsManager->bulkUpdate($account_id, $normalized_bulk_update);
+            $contacts = $this->ContactsManager->getAllItems($account_id);
         }
 
         // Tell new data to the client
