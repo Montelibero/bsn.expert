@@ -134,6 +134,26 @@ jobs:
                 created_at: new Date(),
                 updated_at: new Date()
               });
+              db.api_keys.insertMany([
+                {
+                  account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
+                  name: "CI contacts writer",
+                  key: "111111111111111111111111111111111111111111111111",
+                  permissions: {
+                    contacts: {read: false, create: true, update: false, delete: false}
+                  },
+                  created_at: new Date()
+                },
+                {
+                  account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
+                  name: "CI contacts reader",
+                  key: "222222222222222222222222222222222222222222222222",
+                  permissions: {
+                    contacts: {read: true, create: false, update: false, delete: false}
+                  },
+                  created_at: new Date()
+                }
+              ]);
             '
 
           docker run -d \
@@ -168,7 +188,9 @@ jobs:
       - name: Check public HTTP routes
         env:
           ROUTE_SMOKE_BASE_URL: http://127.0.0.1:18080
-        run: php app/tools/ci/route-smoke.php
+        run: |
+          php app/tools/ci/route-smoke.php
+          php app/tools/ci/contacts-sync-smoke.php
 
       - name: Show smoke environment logs
         if: failure()

@@ -176,12 +176,19 @@ class ContactsManager
         $Bulk = new BulkWrite();
         $Bulk->update(
             ['account_id' => $account_id],
-            ['$set' => $bulk_update_prep],
-            ['multi' => true]
+            [
+                '$set' => $bulk_update_prep,
+                '$setOnInsert' => ['account_id' => $account_id],
+            ],
+            ['multi' => true, 'upsert' => true]
         );
-        $this->Mongo->executeBulkWrite(
+        $Result = $this->Mongo->executeBulkWrite(
             $this->namespace(),
             $Bulk
         );
+
+        if ($Result->getMatchedCount() === 0 && $Result->getUpsertedCount() === 0) {
+            throw new \RuntimeException('Contacts bulk update did not match or create an account document.');
+        }
     }
 }
