@@ -432,8 +432,9 @@ assertTelegramProcessor(9007199254740, $first_article_payload['direct_messages_t
 $PromptUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
         '10',
-        TelegramUpdateParser::TYPE_ACCOUNT_PROMPT,
-        TelegramUpdateParser::COMMAND_ACCOUNT
+        TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
+        validation_error: 'missing_account_id'
     )),
 ]);
 $PromptUsage = new TelegramProcessorUsageStore();
@@ -477,6 +478,8 @@ assertTelegramProcessor(true, $prompt_payload['reply_markup']['selective'] ?? nu
 assertTelegramProcessor('G…', $prompt_payload['reply_markup']['input_field_placeholder'] ?? null, 'The prompt must hint at a Stellar address.');
 assertTelegramProcessor(110, $prompt_payload['reply_parameters']['message_id'] ?? null, 'The prompt must reply to the command.');
 
+// Jobs produced by the first prompt-capable release may still be pending while
+// the worker is updated, so the transitional queue type remains supported.
 $ClearFailureUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
         '11',
@@ -559,7 +562,7 @@ $ValidationUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
         '7',
         TelegramUpdateParser::TYPE_VALIDATION_ERROR,
-        TelegramUpdateParser::COMMAND_ACCOUNT,
+        TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
         validation_error: 'missing_account_id'
     )),
 ]);
@@ -580,16 +583,27 @@ $ValidationProcessor = new TelegramUpdateProcessor(
     new TelegramProcessorSubscriptionStore()
 );
 $ValidationProcessor->processNext();
-assertTelegramProcessor(1, count($ValidationUpdates->completed), 'A delivered validation reply must complete.');
+assertTelegramProcessor(1, count($ValidationUpdates->completed), 'A delivered legacy validation reply must complete.');
 assertTelegramProcessor(
     ['setMessageReaction', 'sendMessage', 'setMessageReaction'],
     telegramProcessorRequestMethods($validation_history),
-    'A validation reply must clear eyes after delivery.'
+    'A legacy validation reply must clear eyes after delivery.'
 );
 assertTelegramProcessor(
     [TelegramBotApiClient::REACTION_PROCESSING, 'cleared'],
     telegramProcessorReactionStates($validation_history),
-    'A validation reply must remove the processing reaction.'
+    'A legacy validation reply must remove the processing reaction.'
+);
+$legacy_validation_payload = telegramProcessorRequestPayload($validation_history, 1);
+assertTelegramProcessor(
+    'Укажите Stellar-адрес после команды: /account_info G…',
+    $legacy_validation_payload['text'] ?? null,
+    'A job from the legacy producer must instruct the user with its supported command.'
+);
+assertTelegramProcessor(
+    false,
+    array_key_exists('reply_markup', $legacy_validation_payload),
+    'A job from the legacy producer must not start a reply flow that it cannot parse.'
 );
 
 $ErrorUpdates = new TelegramProcessorUpdateStore([

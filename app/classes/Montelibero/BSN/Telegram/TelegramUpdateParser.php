@@ -166,7 +166,14 @@ final class TelegramUpdateParser
 
         if (in_array($command, [self::COMMAND_ACCOUNT, self::COMMAND_ACCOUNT_INFO], true)) {
             if ($argument === '') {
-                return $this->parsed(self::TYPE_ACCOUNT_PROMPT, self::COMMAND_ACCOUNT);
+                // Keep the durable payload compatible with workers deployed
+                // before interactive account prompts were introduced.
+                return $this->parsed(
+                    self::TYPE_VALIDATION_ERROR,
+                    self::COMMAND_ACCOUNT,
+                    null,
+                    'missing_account_id'
+                );
             }
 
             $account_id = $this->normalizeAccountId($argument);

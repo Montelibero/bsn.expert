@@ -178,16 +178,34 @@ assertTelegramWebhook(null, $Parser->parse($foreign_suffix), 'Foreign bot suffix
 $account_prompt = $group_update;
 $account_prompt['message']['text'] = '/account@BSN_robot';
 $prompt = $Parser->parse($account_prompt);
-assertTelegramWebhook(TelegramUpdateParser::TYPE_ACCOUNT_PROMPT, $prompt['type'] ?? null, 'Account command without an argument must request an account.');
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+    $prompt['type'] ?? null,
+    'Account prompt must retain the backward-compatible queue type.'
+);
 assertTelegramWebhook(TelegramUpdateParser::COMMAND_ACCOUNT, $prompt['command'] ?? null, 'Account prompt must use the canonical command.');
-assertTelegramWebhook(null, $prompt['validation_error'] ?? null, 'Account prompt must not be a validation error.');
+assertTelegramWebhook(
+    'missing_account_id',
+    $prompt['validation_error'] ?? null,
+    'Account command without an argument must request an account.'
+);
 
 $account_info_prompt = $group_update;
 $account_info_prompt['message']['text'] = '/account_info';
 assertTelegramWebhook(
-    TelegramUpdateParser::TYPE_ACCOUNT_PROMPT,
+    TelegramUpdateParser::TYPE_VALIDATION_ERROR,
     $Parser->parse($account_info_prompt)['type'] ?? null,
+    'Legacy account_info alias must retain the backward-compatible queue type.'
+);
+assertTelegramWebhook(
+    'missing_account_id',
+    $Parser->parse($account_info_prompt)['validation_error'] ?? null,
     'Legacy account_info alias without an argument must request an account.'
+);
+assertTelegramWebhook(
+    TelegramUpdateParser::COMMAND_ACCOUNT,
+    $Parser->parse($account_info_prompt)['command'] ?? null,
+    'Legacy account_info alias prompt must normalize to the canonical command.'
 );
 
 $extra_account = $group_update;

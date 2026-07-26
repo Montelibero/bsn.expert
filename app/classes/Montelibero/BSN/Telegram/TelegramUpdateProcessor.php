@@ -195,8 +195,16 @@ final class TelegramUpdateProcessor
      */
     private function processValidationError(array $job, array $payload): void
     {
+        if (($payload['validation_error'] ?? null) === 'missing_account_id'
+            && ($payload['command'] ?? null) === TelegramUpdateParser::COMMAND_ACCOUNT
+        ) {
+            $this->processAccountPrompt($job, $payload);
+
+            return;
+        }
+
         $text = match ($payload['validation_error'] ?? null) {
-            'missing_account_id' => 'Укажите Stellar-адрес после команды: /account G…',
+            'missing_account_id' => 'Укажите Stellar-адрес после команды: /account_info G…',
             'invalid_account_id' => 'Нужен корректный публичный Stellar-адрес аккаунта, начинающийся с G.',
             'unexpected_argument' => 'Эта команда не принимает аргументы.',
             default => 'Не удалось распознать команду.',
