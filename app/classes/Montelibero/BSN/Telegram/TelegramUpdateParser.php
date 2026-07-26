@@ -129,6 +129,32 @@ final class TelegramUpdateParser
      */
     private function parseText(string $text, string $chat_type, mixed $reply_to_message): ?array
     {
+        if (preg_match(
+            '/\A\/start(?:@([A-Za-z][A-Za-z0-9_]{4,31}))?(?:\s+(.*))?\z/isuD',
+            $text,
+            $matches
+        ) === 1) {
+            if ($chat_type !== 'private') {
+                return null;
+            }
+
+            $suffix = $matches[1] ?? '';
+            if ($suffix !== '' && strtolower($suffix) !== $this->bot_username) {
+                return null;
+            }
+
+            $payload = trim((string) ($matches[2] ?? ''));
+            if (!str_starts_with($payload, 'a_')) {
+                return null;
+            }
+
+            $account_id = $this->normalizeAccountId(substr($payload, 2));
+
+            return $account_id === null
+                ? null
+                : $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT, $account_id);
+        }
+
         if ($this->isReplyToAccountPrompt($reply_to_message)) {
             $account_id = $this->normalizeAccountId($text);
 

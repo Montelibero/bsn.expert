@@ -355,7 +355,7 @@ $Translator = new Translator('ru');
 $Translator->addLoader('yaml', new YamlFileLoader());
 $Translator->addResource('yaml', dirname(__DIR__) . '/i18n/messages.ru.yaml', 'ru');
 $Translator->addResource('yaml', dirname(__DIR__) . '/i18n/messages.en.yaml', 'en');
-$Renderer = new AccountRichMessageRenderer($Translator);
+$Renderer = new AccountRichMessageRenderer($Translator, $Config);
 
 $account_jobs = [
     telegramProcessorJob(telegramProcessorPayload(

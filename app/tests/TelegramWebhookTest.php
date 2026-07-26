@@ -142,6 +142,47 @@ assertTelegramWebhook('9007199254740', $private['direct_messages_topic_id'] ?? n
 assertTelegramWebhook(null, $Parser->parse(telegramWebhookUpdate($invalid_checksum)), 'Invalid plain address must be ignored.');
 assertTelegramWebhook(null, $Parser->parse(telegramWebhookUpdate('ordinary text')), 'Unrelated private text must be ignored.');
 
+$deep_link = $Parser->parse(telegramWebhookUpdate('/start a_' . strtolower($account_id)));
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_ACCOUNT_INFO,
+    $deep_link['type'] ?? null,
+    'Private account deep link must parse as an account lookup.'
+);
+assertTelegramWebhook(
+    TelegramUpdateParser::COMMAND_ACCOUNT,
+    $deep_link['command'] ?? null,
+    'Private account deep link must use the canonical account command.'
+);
+assertTelegramWebhook(
+    $account_id,
+    $deep_link['account_id'] ?? null,
+    'Private account deep link must normalize the account ID.'
+);
+$suffixed_deep_link = $Parser->parse(telegramWebhookUpdate(
+    '/start@BSN_robot a_' . $account_id
+));
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_ACCOUNT_INFO,
+    $suffixed_deep_link['type'] ?? null,
+    'A deep link command suffixed with this bot username must parse.'
+);
+assertTelegramWebhook(
+    null,
+    $Parser->parse(telegramWebhookUpdate('/start@Other_robot a_' . $account_id)),
+    'A deep link command suffixed with another bot username must be ignored.'
+);
+assertTelegramWebhook(null, $Parser->parse(telegramWebhookUpdate('/start')), 'Deep link without a payload must be ignored.');
+assertTelegramWebhook(
+    null,
+    $Parser->parse(telegramWebhookUpdate('/start d_' . $account_id)),
+    'Unsupported deep-link payload must be ignored.'
+);
+assertTelegramWebhook(
+    null,
+    $Parser->parse(telegramWebhookUpdate('/start a_' . $invalid_checksum)),
+    'Invalid account deep-link payload must be ignored.'
+);
+
 $group_update = telegramWebhookUpdate('/account@BSN_robot ' . strtolower($account_id), [
     'message' => [
         'chat' => [
@@ -157,6 +198,10 @@ assertTelegramWebhook(TelegramUpdateParser::TYPE_ACCOUNT_INFO, $group['type'] ??
 assertTelegramWebhook(TelegramUpdateParser::COMMAND_ACCOUNT, $group['command'] ?? null, 'Primary account command must stay canonical.');
 assertTelegramWebhook('-100123', $group['chat']['id'] ?? null, 'Negative group ID must be preserved.');
 assertTelegramWebhook('BSN group', $group['chat']['title'] ?? null, 'Group title must be preserved.');
+
+$group_deep_link = $group_update;
+$group_deep_link['message']['text'] = '/start a_' . $account_id;
+assertTelegramWebhook(null, $Parser->parse($group_deep_link), 'Account deep links must be private-only.');
 
 $group_alias = $group_update;
 $group_alias['message']['text'] = '/account_info ' . $account_id;

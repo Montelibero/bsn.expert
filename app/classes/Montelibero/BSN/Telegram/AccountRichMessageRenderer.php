@@ -13,8 +13,10 @@ final class AccountRichMessageRenderer
     private const BSN_BASE_URL = 'https://bsn.expert';
     private string $locale = 'ru';
 
-    public function __construct(private readonly Translator $Translator)
-    {
+    public function __construct(
+        private readonly Translator $Translator,
+        private readonly TelegramBotConfig $Config,
+    ) {
     }
 
     /**
@@ -500,8 +502,20 @@ final class AccountRichMessageRenderer
         return [
             'type' => 'url',
             'text' => (string) $account['label'],
-            'url' => $this->accountUrl($account),
+            'url' => $this->accountTelegramUrl($account),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $account
+     */
+    private function accountTelegramUrl(array $account): string
+    {
+        return sprintf(
+            'https://t.me/%s?start=a_%s',
+            rawurlencode($this->Config->botUsername()),
+            rawurlencode((string) $account['id'])
+        );
     }
 
     /**

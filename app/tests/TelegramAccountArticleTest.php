@@ -15,6 +15,7 @@ use Montelibero\BSN\Knowledge\AccountReportBuilder;
 use Montelibero\BSN\RequestLocale;
 use Montelibero\BSN\Telegram\AccountRichMessageRenderer;
 use Montelibero\BSN\Telegram\TelegramBotApiClient;
+use Montelibero\BSN\Telegram\TelegramBotConfig;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Symfony\Component\Translation\Loader\YamlFileLoader;
 use Symfony\Component\Translation\Translator;
@@ -257,7 +258,10 @@ $Translator = new Translator('ru');
 $Translator->addLoader('yaml', new YamlFileLoader());
 $Translator->addResource('yaml', dirname(__DIR__) . '/i18n/messages.ru.yaml', 'ru');
 $Translator->addResource('yaml', dirname(__DIR__) . '/i18n/messages.en.yaml', 'en');
-$Renderer = new AccountRichMessageRenderer($Translator);
+$BotConfig = new TelegramBotConfig([
+    'TG_BOT_USERNAME' => 'BSN_test_robot',
+]);
+$Renderer = new AccountRichMessageRenderer($Translator, $BotConfig);
 $message = $Renderer->render($report);
 $message_json = json_encode($message, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
@@ -388,6 +392,12 @@ assertTelegramArticle(
     'Changing the visible account format must not change the existing name-based order.'
 );
 $first_linked_display_name = $BSN->getAccountById($target_ids[0])?->getDisplayName();
+$account_start_parameter = 'a_' . $target_ids[0];
+assertTelegramArticle(
+    true,
+    strlen($account_start_parameter) <= 64,
+    'The complete account start parameter must fit Telegram\'s 64-character limit.'
+);
 assertTelegramArticle(
     $first_linked_display_name,
     $first_linked_account['label'] ?? null,
@@ -395,8 +405,11 @@ assertTelegramArticle(
 );
 assertTelegramArticle(
     $first_linked_display_name,
-    telegramArticleUrlText($message['rich_message'], 'https://bsn.expert/@paired_friend'),
-    'A named Telegram account link must show short_id followed by the profile name.'
+    telegramArticleUrlText(
+        $message['rich_message'],
+        'https://t.me/BSN_test_robot?start=' . $account_start_parameter
+    ),
+    'A named Telegram account deep link must show short_id followed by the profile name.'
 );
 assertTelegramArticle(
     false,
@@ -409,13 +422,21 @@ assertTelegramArticle(
 $unnamed_linked_display_name = $BSN->getAccountById($target_ids[11])?->getDisplayName();
 assertTelegramArticle(
     $unnamed_linked_display_name,
-    telegramArticleUrlText($message['rich_message'], 'https://bsn.expert/@unnamed_account'),
-    'An unnamed federation account link must show only its short_id.'
+    telegramArticleUrlText(
+        $message['rich_message'],
+        'https://t.me/BSN_test_robot?start=a_' . $target_ids[11]
+    ),
+    'An unnamed federation account deep link must show only its short_id.'
 );
 assertTelegramArticle(
     false,
     str_contains($message_json, 'unnamed_account*bsn.expert'),
-    'A federation username must affect the account URL, not its visible label.'
+    'A federation username must not replace the account display label.'
+);
+assertTelegramArticle(
+    'полная страница',
+    telegramArticleUrlText($message['rich_message'], 'https://bsn.expert/@Soz'),
+    'The article footer must keep the full BSN.expert account link.'
 );
 
 $heading_sizes = [];
