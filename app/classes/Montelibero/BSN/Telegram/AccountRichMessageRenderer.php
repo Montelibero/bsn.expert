@@ -83,7 +83,6 @@ final class AccountRichMessageRenderer
             }
         }
 
-        $blocks[] = ['type' => 'divider'];
         $blocks[] = $this->heading($this->trans('telegram_account_article.summary.header'), 2);
         $blocks[] = $this->summaryList($report);
 
@@ -92,13 +91,11 @@ final class AccountRichMessageRenderer
             ...$this->ownershipBlocks($report['ownership']),
             ...$this->directionBlocks(
                 $report['relations']['income'],
-                $this->trans('account_page.income_tags.header'),
-                $this->trans('account_page.no_income_tags')
+                $this->trans('account_page.income_tags.header')
             ),
             ...$this->directionBlocks(
                 $report['relations']['outcome'],
-                $this->trans('account_page.outcome_tags.header'),
-                $this->trans('account_page.no_outcome_tags')
+                $this->trans('account_page.outcome_tags.header')
             ),
             ...$this->signatureBlocks($report['signatures']),
             ...$this->multisigBlocks($report['multisig']),
@@ -170,18 +167,25 @@ final class AccountRichMessageRenderer
             $this->bold($this->trans('telegram_account_article.summary.tags') . ': '),
             sprintf(
                 '%d входящих, %d исходящих',
-                (int) $income['links_count'],
-                (int) $outcome['links_count']
+                $this->tagLinksCount($income),
+                $this->tagLinksCount($outcome)
             ),
         ];
-        $summary[] = [
-            $this->bold($this->trans('telegram_account_article.signed_documents') . ': '),
-            (string) count($report['signatures']),
-        ];
-        $summary[] = [
-            $this->bold($this->trans('account_page.multisig.participates_in') . ': '),
-            (string) count($report['multisig_participations']),
-        ];
+        $signed_documents_count = count($report['signatures']);
+        if ($signed_documents_count > 0) {
+            $summary[] = [
+                $this->bold($this->trans('telegram_account_article.signed_documents') . ': '),
+                (string) $signed_documents_count,
+            ];
+        }
+
+        $multisig_participations_count = count($report['multisig_participations']);
+        if ($multisig_participations_count > 0) {
+            $summary[] = [
+                $this->bold($this->trans('account_page.multisig.participates_in') . ': '),
+                (string) $multisig_participations_count,
+            ];
+        }
 
         return $this->listBlock($summary);
     }
@@ -198,7 +202,7 @@ final class AccountRichMessageRenderer
             return [];
         }
 
-        $blocks = [['type' => 'divider']];
+        $blocks = [];
         if ($owner !== null) {
             $blocks[] = $this->paragraph([
                 $this->bold($this->trans('telegram_account_article.ownership.belongs_to')),
@@ -221,18 +225,14 @@ final class AccountRichMessageRenderer
      * @param array<string, mixed> $direction
      * @return list<array<string, mixed>>
      */
-    private function directionBlocks(array $direction, string $title, string $empty_message): array
+    private function directionBlocks(array $direction, string $title): array
     {
-        $blocks = [
-            ['type' => 'divider'],
-            $this->heading($title, 2),
-        ];
-        $groups = array_values($direction['groups'] ?? []);
+        $groups = $this->nonEmptyTagGroups($direction);
         if ($groups === []) {
-            $blocks[] = $this->paragraph($empty_message);
-
-            return $blocks;
+            return [];
         }
+
+        $blocks = [$this->heading($title, 2)];
 
         $tag_blocks = [];
         foreach ($groups as $group) {
@@ -254,11 +254,32 @@ final class AccountRichMessageRenderer
 
         $blocks[] = [
             'type' => 'details',
-            'summary' => $this->countLabel(count($groups), 'tags'),
+            'summary' => $this->countLabel(count($groups), 'types'),
             'blocks' => $tag_blocks,
         ];
 
         return $blocks;
+    }
+
+    /**
+     * @param array<string, mixed> $direction
+     * @return list<array<string, mixed>>
+     */
+    private function nonEmptyTagGroups(array $direction): array
+    {
+        return array_values(array_filter(
+            array_values($direction['groups'] ?? []),
+            static fn(array $group): bool => array_values($group['items'] ?? []) !== []
+        ));
+    }
+
+    /** @param array<string, mixed> $direction */
+    private function tagLinksCount(array $direction): int
+    {
+        return array_sum(array_map(
+            static fn(array $group): int => count(array_values($group['items'] ?? [])),
+            $this->nonEmptyTagGroups($direction)
+        ));
     }
 
     /**
@@ -345,7 +366,6 @@ final class AccountRichMessageRenderer
         }, $signatures);
 
         return [
-            ['type' => 'divider'],
             $this->heading($this->trans('telegram_account_article.signed_documents'), 2),
             [
                 'type' => 'details',
@@ -371,7 +391,6 @@ final class AccountRichMessageRenderer
         $signers = array_values($multisig['signers']);
 
         $blocks = [
-            ['type' => 'divider'],
             $this->heading($this->trans('account_page.multisig.header'), 2),
             $this->paragraph([
                 $this->bold($this->trans('account_page.multisig.limit') . ': '),
@@ -429,15 +448,30 @@ final class AccountRichMessageRenderer
      */
     private function footer(array $source, string $account_url): array
     {
-        $snapshot_at = is_int($source['snapshot_at'] ?? null)
-            ? gmdate('d.m.Y H:i', $source['snapshot_at']) . ' UTC'
-            : 'время снимка неизвестно';
-        $generated_at = gmdate('d.m.Y H:i', (int) $source['generated_at']) . ' UTC';
+        $snapshot_timestamp = is_int($source['snapshot_at'] ?? null)
+            ? $source['snapshot_at']
+            : null;
+        $generated_timestamp = is_int($source['generated_at'] ?? null)
+            ? $source['generated_at']
+            : null;
+
+        $snapshot_at = $snapshot_timestamp === null
+            ? 'неизвестно'
+            : gmdate('Y-m-d H:i', $snapshot_timestamp) . ' UTC';
+        if ($generated_timestamp === null) {
+            $generated_at = 'неизвестно';
+        } elseif ($snapshot_timestamp !== null
+            && gmdate('Y-m-d', $snapshot_timestamp) === gmdate('Y-m-d', $generated_timestamp)
+        ) {
+            $generated_at = gmdate('H:i', $generated_timestamp) . ' UTC';
+        } else {
+            $generated_at = gmdate('Y-m-d H:i', $generated_timestamp) . ' UTC';
+        }
 
         return [
             'type' => 'footer',
             'text' => [
-                sprintf('BSN snapshot: %s · статья: %s · ', $snapshot_at, $generated_at),
+                sprintf('BSN: %s · статья: %s · ', $snapshot_at, $generated_at),
                 [
                     'type' => 'url',
                     'text' => 'полная страница',

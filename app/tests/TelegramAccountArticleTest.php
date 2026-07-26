@@ -78,6 +78,28 @@ function telegramArticlePlainText(mixed $text): string
     return telegramArticlePlainText($text['text'] ?? ($text['alternative_text'] ?? ''));
 }
 
+function telegramArticleAllText(mixed $value): string
+{
+    if (is_string($value)) {
+        return $value;
+    }
+    if (!is_array($value)) {
+        return '';
+    }
+    if (array_is_list($value)) {
+        return implode('', array_map(telegramArticleAllText(...), $value));
+    }
+
+    $parts = [];
+    foreach (['text', 'summary', 'blocks', 'items'] as $field) {
+        if (array_key_exists($field, $value)) {
+            $parts[] = telegramArticleAllText($value[$field]);
+        }
+    }
+
+    return implode("\n", $parts);
+}
+
 function telegramArticleUrlText(mixed $value, string $url): ?string
 {
     if (!is_array($value)) {
@@ -118,6 +140,7 @@ $target_ids = [];
 for ($index = 0; $index < 12; $index++) {
     $target_ids[] = KeyPair::random()->getAccountId();
 }
+$sparse_account_id = KeyPair::random()->getAccountId();
 
 $Catalog = new KnownTagsCatalog(new RequestLocale(), dirname(__DIR__) . '/known_tags');
 $BSN = new BSN(
@@ -176,6 +199,11 @@ foreach ($target_ids as $index => $target_id) {
         ],
     ];
 }
+$accounts[$sparse_account_id] = [
+    'profile' => [
+        'Name' => ['Sparse account'],
+    ],
+];
 $accounts[$target_ids[11]] = [];
 $accounts[$target_ids[0]]['tags'] = [
     'Friend' => [$account_id],
@@ -202,6 +230,7 @@ $BSN->loadFromJson([
 
 $ReportBuilder = new AccountReportBuilder($BSN, $Catalog);
 $report = $ReportBuilder->build($account_id, 'ru');
+$report['source']['generated_at'] = (int) $report['source']['snapshot_at'] + 3600;
 $report_json = json_encode($report, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
 assertTelegramArticle(
@@ -268,6 +297,7 @@ $message_json = json_encode($message, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICO
 $unknown_account_id = KeyPair::random()->getAccountId();
 $known_accounts_count = $BSN->getAccountsCount();
 $unknown_report = $ReportBuilder->build($unknown_account_id, 'ru');
+$unknown_report['source']['generated_at'] = (int) $unknown_report['source']['snapshot_at'] + 90000;
 $unknown_message = $Renderer->render($unknown_report);
 $unknown_message_json = json_encode(
     $unknown_message,
@@ -294,17 +324,22 @@ assertTelegramArticle(
     true,
     str_contains(
         $unknown_footer_text,
-        'BSN snapshot: ' . gmdate('d.m.Y H:i', (int) $unknown_report['source']['snapshot_at']) . ' UTC'
+        'BSN: ' . gmdate('Y-m-d H:i', (int) $unknown_report['source']['snapshot_at']) . ' UTC'
     ),
-    'The unknown-account footer must show when the BSN snapshot was created.'
+    'The unknown-account footer must show the BSN timestamp in ISO order.'
 );
 assertTelegramArticle(
     true,
     str_contains(
         $unknown_footer_text,
-        'статья: ' . gmdate('d.m.Y H:i', (int) $unknown_report['source']['generated_at']) . ' UTC'
+        'статья: ' . gmdate('Y-m-d H:i', (int) $unknown_report['source']['generated_at']) . ' UTC'
     ),
-    'The unknown-account footer must show when the report was generated.'
+    'The article footer must retain the generation date when it differs from the BSN date.'
+);
+assertTelegramArticle(
+    false,
+    str_contains($unknown_footer_text, 'BSN snapshot:'),
+    'The footer must use the compact BSN label.'
 );
 assertTelegramArticle(
     1,
@@ -320,6 +355,126 @@ assertTelegramArticle(
     false,
     str_contains($unknown_message_json, 'В BSN.expert пока нет сведений'),
     'An unknown account article must not contain a separate unknown-account notice.'
+);
+
+$one_sided_report = $ReportBuilder->build($target_ids[6], 'ru');
+$one_sided_message = $Renderer->render($one_sided_report);
+$one_sided_text = telegramArticleAllText($one_sided_message['rich_message']);
+assertTelegramArticle(
+    true,
+    (int) $one_sided_report['relations']['income']['links_count'] > 0,
+    'The one-sided fixture must have incoming tag links.'
+);
+assertTelegramArticle(
+    0,
+    $one_sided_report['relations']['outcome']['links_count'],
+    'The one-sided fixture must have no outgoing tag links.'
+);
+assertTelegramArticle(
+    true,
+    is_int(telegramArticleHeadingIndex($one_sided_message['rich_message']['blocks'], 'Входящие теги')),
+    'A non-empty incoming tag section must remain visible.'
+);
+assertTelegramArticle(
+    null,
+    telegramArticleHeadingIndex($one_sided_message['rich_message']['blocks'], 'Исходящие теги'),
+    'An empty outgoing tag section must be omitted entirely.'
+);
+assertTelegramArticle(
+    true,
+    str_contains(
+        $one_sided_text,
+        sprintf(
+            'Теги: %d входящих, 0 исходящих',
+            (int) $one_sided_report['relations']['income']['links_count']
+        )
+    ),
+    'The summary must retain a zero for an empty tag direction.'
+);
+assertTelegramArticle(
+    false,
+    str_contains($one_sided_text, 'Нет ни одного исходящего тега.'),
+    'An omitted tag direction must not leave an empty-state paragraph.'
+);
+assertTelegramArticle(
+    false,
+    str_contains($one_sided_text, 'Подписанные документы'),
+    'A zero signed-document count must not be mentioned.'
+);
+assertTelegramArticle(
+    false,
+    str_contains($one_sided_text, 'Участвует в мультиподписи'),
+    'A zero multisig-participation count must not be mentioned.'
+);
+
+$sparse_report = $ReportBuilder->build($sparse_account_id, 'ru');
+$sparse_message = $Renderer->render($sparse_report);
+$sparse_text = telegramArticleAllText($sparse_message['rich_message']);
+assertTelegramArticle(0, $sparse_report['relations']['income']['links_count'], 'The sparse fixture must have no incoming tags.');
+assertTelegramArticle(0, $sparse_report['relations']['outcome']['links_count'], 'The sparse fixture must have no outgoing tags.');
+assertTelegramArticle(
+    true,
+    str_contains($sparse_text, 'Теги: 0 входящих, 0 исходящих'),
+    'The all-zero tag summary is important and must remain visible.'
+);
+foreach (['Входящие теги', 'Исходящие теги', 'Нет ни одного входящего тега.', 'Нет ни одного исходящего тега.'] as $text) {
+    assertTelegramArticle(
+        false,
+        str_contains($sparse_text, $text),
+        'A sparse account must not contain empty tag sections or empty-state prose.'
+    );
+}
+assertTelegramArticle(
+    false,
+    str_contains($sparse_text, 'Подписанные документы'),
+    'A sparse account must not mention zero signed documents.'
+);
+assertTelegramArticle(
+    false,
+    str_contains($sparse_text, 'Участвует в мультиподписи'),
+    'A sparse account must not mention zero multisig participations.'
+);
+
+$inconsistent_report = $sparse_report;
+$inconsistent_report['relations']['income'] = [
+    'groups' => [[
+        'name' => 'Like',
+        'description' => null,
+        'items' => [],
+    ]],
+    'groups_count' => 1,
+    'links_count' => 99,
+];
+$inconsistent_report['relations']['outcome'] = [
+    'groups' => [[
+        'name' => 'Like',
+        'description' => null,
+        'items' => [$report['relations']['outcome']['groups'][0]['items'][0]],
+    ]],
+    'groups_count' => 1,
+    'links_count' => 0,
+];
+$inconsistent_message = $Renderer->render($inconsistent_report);
+$inconsistent_text = telegramArticleAllText($inconsistent_message['rich_message']);
+assertTelegramArticle(
+    true,
+    str_contains($inconsistent_text, 'Теги: 0 входящих, 1 исходящих'),
+    'The summary and sections must count the same visible tag links.'
+);
+assertTelegramArticle(
+    null,
+    telegramArticleHeadingIndex($inconsistent_message['rich_message']['blocks'], 'Входящие теги'),
+    'A formally present tag group with no accounts must be omitted.'
+);
+assertTelegramArticle(
+    true,
+    is_int(telegramArticleHeadingIndex($inconsistent_message['rich_message']['blocks'], 'Исходящие теги')),
+    'A tag group with a visible account must not be hidden by a stale links_count field.'
+);
+assertTelegramArticle(
+    false,
+    str_contains($inconsistent_text, '0 аккаунтов'),
+    'The article must never expose an empty account details block.'
 );
 
 $invalid_account_error = null;
@@ -438,6 +593,28 @@ assertTelegramArticle(
     telegramArticleUrlText($message['rich_message'], 'https://bsn.expert/@Soz'),
     'The article footer must keep the full BSN.expert account link.'
 );
+$article_blocks = $message['rich_message']['blocks'];
+$article_footer_index = array_key_last($article_blocks);
+$article_footer_text = telegramArticlePlainText(
+    is_int($article_footer_index) ? ($article_blocks[$article_footer_index]['text'] ?? '') : ''
+);
+assertTelegramArticle(
+    true,
+    str_contains($article_footer_text, 'BSN: 2026-07-25 15:48 UTC · статья: 16:48 UTC'),
+    'The footer must omit the article date when it matches the BSN date.'
+);
+$article_dividers = array_values(array_filter(
+    $article_blocks,
+    static fn(array $block): bool => ($block['type'] ?? null) === 'divider'
+));
+assertTelegramArticle(1, count($article_dividers), 'A known-account article must contain only the footer divider.');
+assertTelegramArticle(
+    'divider',
+    is_int($article_footer_index) && $article_footer_index > 0
+        ? ($article_blocks[$article_footer_index - 1]['type'] ?? null)
+        : null,
+    'The only divider must be immediately before the footer.'
+);
 
 $heading_sizes = [];
 $incoming_heading_index = null;
@@ -480,14 +657,14 @@ assertTelegramArticle('details', $outgoing_details['type'] ?? null, 'All outgoin
 assertTelegramArticle(false, (bool) ($incoming_details['is_open'] ?? false), 'Incoming tags must be collapsed by default.');
 assertTelegramArticle(false, (bool) ($outgoing_details['is_open'] ?? false), 'Outgoing tags must be collapsed by default.');
 assertTelegramArticle(
-    sprintf('%d тега', count($report['relations']['income']['groups'])),
+    sprintf('%d типа', count($report['relations']['income']['groups'])),
     $incoming_details['summary'] ?? null,
-    'The incoming details summary must show only the localized tag count.'
+    'The incoming details summary must show the localized tag type count.'
 );
 assertTelegramArticle(
-    sprintf('%d тегов', count($report['relations']['outcome']['groups'])),
+    sprintf('%d типов', count($report['relations']['outcome']['groups'])),
     $outgoing_details['summary'] ?? null,
-    'The outgoing details summary must show only the localized tag count.'
+    'The outgoing details summary must show the localized tag type count.'
 );
 
 $outgoing_tag_headings = [];

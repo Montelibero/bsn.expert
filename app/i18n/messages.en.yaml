@@ -513,6 +513,10 @@ telegram_account_article:
   obsolete: obsolete
   signers: Signers
   counts:
+    types:
+      one: type
+      few: types
+      many: types
     tags:
       one: tag
       few: tags

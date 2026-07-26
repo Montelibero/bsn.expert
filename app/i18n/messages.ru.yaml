@@ -511,6 +511,10 @@ telegram_account_article:
   obsolete: устарел
   signers: Подписанты
   counts:
+    types:
+      one: тип
+      few: типа
+      many: типов
     tags:
       one: тег
       few: тега
