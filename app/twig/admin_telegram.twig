@@ -1,0 +1,194 @@
+{% extends "page.twig" %}
+
+{% block title %}Telegram-бот{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/admin">Admin</a></li>
+    <li class="is-active"><a href="/admin/telegram/" aria-current="page">Telegram-бот</a></li>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">Telegram-бот</h1>
+
+{% if notice %}
+    <div class="notification is-{{ notice.type|e('html_attr') }}">{{ notice.text|e }}</div>
+{% endif %}
+
+{% if config.error %}
+    <div class="notification is-danger is-light">{{ config.error|e }}</div>
+{% endif %}
+
+<div class="box">
+    <div class="level is-align-items-flex-start">
+        <div class="level-left">
+            <div>
+                <div class="is-flex is-align-items-center is-flex-wrap-wrap mb-2" style="gap: .5rem">
+                    <h2 class="title is-4 mb-0">Webhook</h2>
+                    {% if webhook.registered %}
+                        <span class="tag is-success is-light">зарегистрирован</span>
+                    {% elseif webhook.available %}
+                        <span class="tag is-warning is-light">требует регистрации</span>
+                    {% else %}
+                        <span class="tag is-danger is-light">статус недоступен</span>
+                    {% endif %}
+                </div>
+                <p class="mb-1">
+                    <strong>Ожидаемый бот:</strong>
+                    <code>@{{ config.username|e }}</code>
+                    {% if not config.bot_configured %}<span class="tag is-danger is-light">TG_BOT_KEY не задан</span>{% endif %}
+                </p>
+                {% if webhook.bot_username %}
+                    <p class="mb-1">
+                        <strong>Бот по токену:</strong>
+                        <code>@{{ webhook.bot_username|e }}</code>
+                        {% if not webhook.bot_matches_config %}<span class="tag is-danger is-light">не совпадает</span>{% endif %}
+                    </p>
+                {% endif %}
+                <p class="mb-1"><strong>Ожидаемый URL:</strong> <code>{{ config.webhook_url|e }}</code></p>
+                <p class="mb-1">
+                    <strong>Секрет:</strong>
+                    {% if config.secret_configured %}
+                        <span class="tag is-success is-light">задан</span>
+                    {% else %}
+                        <span class="tag is-danger is-light">TG_WEBHOOK_SECRET не задан</span>
+                    {% endif %}
+                </p>
+                <p class="mb-0"><strong>Telegram-админов:</strong> {{ config.admins_count|e }}</p>
+            </div>
+        </div>
+        <div class="level-right">
+            <form method="post" action="/admin/telegram/">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
+                <input type="hidden" name="action" value="register_webhook">
+                <button class="button is-link" type="submit"{% if not config.can_register_webhook %} disabled{% endif %}>
+                    {{ webhook.registered ? 'Обновить webhook' : 'Зарегистрировать webhook' }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if webhook.available %}
+        <hr>
+        <div class="columns is-multiline">
+            <div class="column is-12-mobile is-6-tablet">
+                <p class="heading">Фактический URL</p>
+                <p class="is-family-monospace is-size-7">{{ (webhook.url ?: 'не задан')|e }}</p>
+            </div>
+            <div class="column is-6-mobile is-3-tablet">
+                <p class="heading">Ожидают доставки</p>
+                <p class="title is-5">{{ webhook.pending_update_count|e }}</p>
+            </div>
+            <div class="column is-6-mobile is-3-tablet">
+                <p class="heading">Параллельных соединений</p>
+                <p class="title is-5">{{ (webhook.max_connections ?? '—')|e }}</p>
+            </div>
+        </div>
+        <p class="is-size-7 has-text-grey mb-0">
+            Updates: {{ (webhook.allowed_updates is empty ? 'настройка Telegram по умолчанию' : webhook.allowed_updates|join(', '))|e }}
+        </p>
+        {% if webhook.last_error_message %}
+            <div class="notification is-danger is-light mt-3 mb-0">
+                <strong>Последняя ошибка Telegram{% if webhook.last_error_at %} · {{ webhook.last_error_at|e }} UTC{% endif %}:</strong>
+                {{ webhook.last_error_message|e }}
+            </div>
+        {% endif %}
+    {% elseif webhook.error %}
+        <div class="notification is-danger is-light mt-4 mb-0">{{ webhook.error|e }}</div>
+    {% endif %}
+</div>
+
+<h2 class="title is-4">Использование за 14 дней</h2>
+<p class="block has-text-grey">Дни и границы суток — UTC. В статистику попадают только корректные запросы, по которым бот успешно ответил.</p>
+
+<div class="table-container">
+    <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+        <tr>
+            <th>День</th>
+            <th class="has-text-right">Обращений</th>
+            <th class="has-text-right">Чатов</th>
+            <th class="has-text-right">Пользователей</th>
+            <th class="has-text-right">Аккаунтов</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for day in days %}
+            <tr{% if selected_day and selected_day.day == day.day %} class="is-selected"{% endif %}>
+                <td>
+                    <span class="is-family-monospace">{{ day.label|e }}</span>
+                    {% if day.is_today %}<span class="tag is-info is-light">сегодня</span>{% endif %}
+                </td>
+                <td class="has-text-right">{{ day.requests|e }}</td>
+                <td class="has-text-right">{{ day.chats|e }}</td>
+                <td class="has-text-right">{{ day.users|e }}</td>
+                <td class="has-text-right">{{ day.accounts|e }}</td>
+                <td class="has-text-right"><a href="/admin/telegram/?day={{ day.day|url_encode|e('html_attr') }}">Подробнее</a></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if selected_day %}
+    <hr>
+    <div class="level">
+        <div class="level-left"><h2 class="title is-4 mb-0">{{ selected_day.label|e }} UTC</h2></div>
+        <div class="level-right"><a class="button is-small" href="/admin/telegram/">Закрыть детали</a></div>
+    </div>
+
+    <div class="columns is-multiline">
+        <div class="column is-6-mobile is-3-tablet"><div class="box"><p class="heading">Обращений</p><p class="title is-4">{{ selected_day.requests }}</p></div></div>
+        <div class="column is-6-mobile is-3-tablet"><div class="box"><p class="heading">Чатов</p><p class="title is-4">{{ selected_day.chats|length }}</p></div></div>
+        <div class="column is-6-mobile is-3-tablet"><div class="box"><p class="heading">Пользователей</p><p class="title is-4">{{ selected_day.users|length }}</p></div></div>
+        <div class="column is-6-mobile is-3-tablet"><div class="box"><p class="heading">Аккаунтов</p><p class="title is-4">{{ selected_day.accounts|length }}</p></div></div>
+    </div>
+
+    <h3 class="title is-5">Аккаунты</h3>
+    <div class="table-container mb-5">
+        <table class="table is-fullwidth is-striped">
+            <thead><tr><th>Аккаунт</th><th class="has-text-right">Запросов</th><th class="has-text-right">Чатов</th><th class="has-text-right">Пользователей</th></tr></thead>
+            <tbody>
+            {% for account in selected_day.accounts %}
+                <tr>
+                    <td><a class="is-family-monospace" href="/accounts/{{ account.id|url_encode|e('html_attr') }}">{{ account.short_id|e }}</a>{% if not account.known %} <span class="tag is-light">не известен BSN</span>{% endif %}</td>
+                    <td class="has-text-right">{{ account.requests|e }}</td>
+                    <td class="has-text-right">{{ account.chats|e }}</td>
+                    <td class="has-text-right">{{ account.users|e }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4" class="has-text-grey">Запросов нет.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="title is-5">Чаты</h3>
+    <div class="table-container mb-5">
+        <table class="table is-fullwidth is-striped">
+            <thead><tr><th>Чат</th><th>Тип</th><th class="has-text-right">Запросов</th><th class="has-text-right">Пользователей</th></tr></thead>
+            <tbody>
+            {% for chat in selected_day.chats %}
+                <tr><td>{{ (chat.title ?: chat.id)|e }}{% if chat.username %} <span class="has-text-grey">@{{ chat.username|e }}</span>{% endif %}<br><code>{{ chat.id|e }}</code></td><td>{{ chat.type|e }}</td><td class="has-text-right">{{ chat.requests|e }}</td><td class="has-text-right">{{ chat.users|e }}</td></tr>
+            {% else %}
+                <tr><td colspan="4" class="has-text-grey">Запросов нет.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="title is-5">Пользователи</h3>
+    <div class="table-container">
+        <table class="table is-fullwidth is-striped">
+            <thead><tr><th>Пользователь</th><th>Telegram ID</th><th class="has-text-right">Запросов</th><th class="has-text-right">Чатов</th></tr></thead>
+            <tbody>
+            {% for user in selected_day.users %}
+                <tr><td>{{ (user.name ?: 'без имени')|e }}{% if user.username %} <span class="has-text-grey">@{{ user.username|e }}</span>{% endif %}</td><td><code>{{ user.id|e }}</code></td><td class="has-text-right">{{ user.requests|e }}</td><td class="has-text-right">{{ user.chats|e }}</td></tr>
+            {% else %}
+                <tr><td colspan="4" class="has-text-grey">Запросов нет.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}

@@ -17,6 +17,12 @@ $checks = [
     ['path' => '/tokens/?format=json', 'status' => 200, 'json' => true],
     ['path' => '/graph', 'status' => 200],
     ['path' => '/who_are_you', 'status' => 200],
+    [
+        'path' => '/telegram/webhook',
+        'method' => 'POST',
+        'status' => 403,
+        'request_headers' => ['Content-Type: application/json'],
+    ],
     ['path' => '/token/XLM?ci=1', 'status' => 301, 'location' => '/tokens/XLM?ci=1'],
     ['path' => '/contracts/demo?ci=1', 'status' => 301, 'location' => '/documents/demo?ci=1'],
     [

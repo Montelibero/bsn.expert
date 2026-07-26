@@ -21,5 +21,9 @@ class AdminRoutes
         };
         SimpleRouter::match(['get', 'post'], '/caches', $caches);
         SimpleRouter::match(['get', 'post'], '/caches/', $caches);
+        $telegram = function () use ($Container) {
+            return $Container->get(AdminController::class)->Telegram();
+        };
+        SimpleRouter::match(['get', 'post'], '/telegram', $telegram);
     }
 }

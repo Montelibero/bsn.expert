@@ -77,7 +77,7 @@ try {
     $BSN->assignTagCategory($FriendTag, $BSN->makeTagCategoryById('social', 'Social'));
 
     writeSnapshot($snapshot_path, [
-        'data_timestamp' => 100,
+        'createDate' => '1970-01-01T00:01:40+00:00',
         'accounts' => [
             $Source => [
                 'profile' => ['Name' => ['Original']],
@@ -96,7 +96,7 @@ try {
     assertSnapshotState(2, $BSN->getAccountsCount(), 'The initial snapshot must load both accounts.');
     assertSnapshotState(1, count($BSN->getLinks()), 'The initial snapshot must load its link.');
     assertSnapshotState(1, count($BSN->getSignatures()->getSignatures()), 'The initial snapshot must load its signature.');
-    assertSnapshotState(100, $BSN->getDataTimestamp(), 'The initial snapshot timestamp must be recorded.');
+    assertSnapshotState(100, $BSN->getDataTimestamp(), 'The snapshot createDate timestamp must be recorded.');
 
     writeSnapshot($snapshot_path, [
         'data_timestamp' => 200,

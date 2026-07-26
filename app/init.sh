@@ -8,6 +8,9 @@ until php /var/www/html/cli/mongo-indexes.php; do
   tries=$((tries+1))
   if [ "$tries" -ge 5 ]; then
     echo "Failed to ensure MongoDB indexes after $tries attempts."
+    if [ "${MONGO_INDEXES_REQUIRED:-0}" = "1" ]; then
+      exit 1
+    fi
     break
   fi
   echo "Retrying in 2 seconds..."

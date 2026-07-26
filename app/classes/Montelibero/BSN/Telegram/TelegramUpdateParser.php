@@ -1,0 +1,298 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Montelibero\BSN\Telegram;
+
+use Soneso\StellarSDK\Crypto\StrKey;
+
+final class TelegramUpdateParser
+{
+    public const TYPE_ACCOUNT_INFO = 'account_info';
+    public const TYPE_ADMIN_COMMAND = 'admin_command';
+    public const TYPE_VALIDATION_ERROR = 'validation_error';
+
+    public const COMMAND_ACCOUNT_INFO = 'account_info';
+    public const COMMAND_DAILY_REPORT_ON = 'daily_report_on';
+    public const COMMAND_DAILY_REPORT_OFF = 'daily_report_off';
+
+    private readonly string $bot_username;
+
+    public function __construct(TelegramBotConfig $Config)
+    {
+        $bot_username = ltrim(trim($Config->botUsername()), '@');
+        if (preg_match('/\A[A-Za-z][A-Za-z0-9_]{4,31}\z/D', $bot_username) !== 1) {
+            throw new \InvalidArgumentException('Invalid Telegram bot username.');
+        }
+
+        $this->bot_username = strtolower($bot_username);
+    }
+
+    /**
+     * @param array<string, mixed> $update
+     * @return array{
+     *     update_id: string,
+     *     type: self::TYPE_*,
+     *     command: self::COMMAND_*,
+     *     account_id: ?string,
+     *     validation_error: ?string,
+     *     chat: array{id: string, type: string, title: ?string, username: ?string},
+     *     user: array{id: string, username: ?string, name: ?string, language_code: ?string},
+     *     message_id: int,
+     *     message_date: int,
+     *     message_thread_id: ?int,
+     *     direct_messages_topic_id: ?string
+     * }|null
+     */
+    public function parse(array $update): ?array
+    {
+        $update_id = $this->unsignedIntegerString($update['update_id'] ?? null);
+        $message = $update['message'] ?? null;
+        if ($update_id === null || !is_array($message)) {
+            return null;
+        }
+
+        $from = $message['from'] ?? null;
+        $chat = $message['chat'] ?? null;
+        $text = $message['text'] ?? null;
+        if (!is_array($from)
+            || ($from['is_bot'] ?? false) === true
+            || !is_array($chat)
+            || !is_string($text)
+        ) {
+            return null;
+        }
+
+        $chat_type = $chat['type'] ?? null;
+        if (!is_string($chat_type) || !in_array($chat_type, ['private', 'group', 'supergroup'], true)) {
+            return null;
+        }
+
+        $chat_id = $this->integerString($chat['id'] ?? null);
+        $user_id = $this->positiveIntegerString($from['id'] ?? null);
+        $message_id = $this->positiveInteger($message['message_id'] ?? null);
+        $message_date = $this->positiveInteger($message['date'] ?? null);
+        if ($chat_id === null || $user_id === null || $message_id === null || $message_date === null) {
+            return null;
+        }
+
+        $text = trim($text);
+        if ($text === '') {
+            return null;
+        }
+
+        $parsed = $this->parseText($text, $chat_type);
+        if ($parsed === null) {
+            return null;
+        }
+
+        $message_thread_id = $this->positiveInteger($message['message_thread_id'] ?? null);
+        $direct_messages_topic_id = null;
+        if (is_array($message['direct_messages_topic'] ?? null)) {
+            $direct_messages_topic_id = $this->positiveIntegerString(
+                $message['direct_messages_topic']['topic_id'] ?? null
+            );
+        }
+
+        return $parsed + [
+            'update_id' => $update_id,
+            'chat' => [
+                'id' => $chat_id,
+                'type' => $chat_type,
+                'title' => $this->cleanText($chat['title'] ?? null, 128),
+                'username' => $this->cleanUsername($chat['username'] ?? null),
+            ],
+            'user' => [
+                'id' => $user_id,
+                'username' => $this->cleanUsername($from['username'] ?? null),
+                'name' => $this->personName($from),
+                'language_code' => $this->cleanLanguageCode($from['language_code'] ?? null),
+            ],
+            'message_id' => $message_id,
+            'message_date' => $message_date,
+            'message_thread_id' => $message_thread_id,
+            'direct_messages_topic_id' => $direct_messages_topic_id,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     type: self::TYPE_*,
+     *     command: self::COMMAND_*,
+     *     account_id: ?string,
+     *     validation_error: ?string
+     * }|null
+     */
+    private function parseText(string $text, string $chat_type): ?array
+    {
+        if ($chat_type === 'private') {
+            $account_id = $this->normalizeAccountId($text);
+            if ($account_id !== null) {
+                return $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT_INFO, $account_id);
+            }
+        }
+
+        if (preg_match(
+            '/\A\/(account_info|daily_report_on|daily_report_off)(?:@([A-Za-z][A-Za-z0-9_]{4,31}))?(?:\s+(.*))?\z/isuD',
+            $text,
+            $matches
+        ) !== 1) {
+            return null;
+        }
+
+        $command = strtolower($matches[1]);
+        $suffix = $matches[2] ?? '';
+        if ($suffix !== '' && strtolower($suffix) !== $this->bot_username) {
+            return null;
+        }
+        $argument = trim((string) ($matches[3] ?? ''));
+
+        if ($command === self::COMMAND_ACCOUNT_INFO) {
+            $account_id = $this->normalizeAccountId($argument);
+            if ($account_id === null) {
+                return $this->parsed(
+                    self::TYPE_VALIDATION_ERROR,
+                    self::COMMAND_ACCOUNT_INFO,
+                    null,
+                    $argument === '' ? 'missing_account_id' : 'invalid_account_id'
+                );
+            }
+
+            return $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT_INFO, $account_id);
+        }
+
+        if ($chat_type !== 'private') {
+            return null;
+        }
+        if ($argument !== '') {
+            return $this->parsed(
+                self::TYPE_VALIDATION_ERROR,
+                $command,
+                null,
+                'unexpected_argument'
+            );
+        }
+
+        return $this->parsed(self::TYPE_ADMIN_COMMAND, $command);
+    }
+
+    /**
+     * @return array{
+     *     type: self::TYPE_*,
+     *     command: self::COMMAND_*,
+     *     account_id: ?string,
+     *     validation_error: ?string
+     * }
+     */
+    private function parsed(
+        string $type,
+        string $command,
+        ?string $account_id = null,
+        ?string $validation_error = null,
+    ): array {
+        return [
+            'type' => $type,
+            'command' => $command,
+            'account_id' => $account_id,
+            'validation_error' => $validation_error,
+        ];
+    }
+
+    private function normalizeAccountId(string $value): ?string
+    {
+        $account_id = strtoupper(trim($value));
+        if (preg_match('/\AG[A-Z2-7]{55}\z/D', $account_id) !== 1) {
+            return null;
+        }
+
+        try {
+            $public_key = StrKey::decodeAccountId($account_id);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+
+        return strlen($public_key) === 32 && StrKey::encodeAccountId($public_key) === $account_id
+            ? $account_id
+            : null;
+    }
+
+    private function personName(array $from): ?string
+    {
+        $parts = [];
+        foreach (['first_name', 'last_name'] as $field) {
+            $part = $this->cleanText($from[$field] ?? null, 64);
+            if ($part !== null) {
+                $parts[] = $part;
+            }
+        }
+
+        return $parts === [] ? null : mb_substr(implode(' ', $parts), 0, 128, 'UTF-8');
+    }
+
+    private function cleanUsername(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+        $value = ltrim(trim($value), '@');
+
+        return preg_match('/\A[A-Za-z][A-Za-z0-9_]{4,31}\z/D', $value) === 1 ? $value : null;
+    }
+
+    private function cleanLanguageCode(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+        $value = trim($value);
+
+        return preg_match('/\A[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*\z/D', $value) === 1
+            ? mb_strtolower($value, 'UTF-8')
+            : null;
+    }
+
+    private function cleanText(mixed $value, int $max_length): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '';
+        $value = trim($value);
+
+        return $value === '' ? null : mb_substr($value, 0, $max_length, 'UTF-8');
+    }
+
+    private function integerString(mixed $value): ?string
+    {
+        if (is_int($value)) {
+            $value = (string) $value;
+        }
+
+        return is_string($value) && preg_match('/\A-?(?:0|[1-9][0-9]*)\z/D', $value) === 1
+            ? $value
+            : null;
+    }
+
+    private function unsignedIntegerString(mixed $value): ?string
+    {
+        if (is_int($value)) {
+            $value = (string) $value;
+        }
+
+        return is_string($value) && preg_match('/\A(?:0|[1-9][0-9]*)\z/D', $value) === 1
+            ? $value
+            : null;
+    }
+
+    private function positiveIntegerString(mixed $value): ?string
+    {
+        $value = $this->unsignedIntegerString($value);
+
+        return $value !== null && $value !== '0' ? $value : null;
+    }
+
+    private function positiveInteger(mixed $value): ?int
+    {
+        return is_int($value) && $value > 0 ? $value : null;
+    }
+}

@@ -15,7 +15,10 @@
 
 	log {
 		output stdout
-		format json
+		format filter {
+			request>headers>X-Telegram-Bot-Api-Secret-Token delete
+			wrap json
+		}
 	}
 
 	route {

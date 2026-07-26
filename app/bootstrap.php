@@ -52,6 +52,7 @@ use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\EurmtlReportConfig;
 use Montelibero\BSN\EurmtlReportService;
 use Montelibero\BSN\KnownTagsCatalog;
+use Montelibero\BSN\Knowledge\AccountReportBuilder;
 use Montelibero\BSN\GristRuntimeData;
 use Montelibero\BSN\GristSnapshotStore;
 use Montelibero\BSN\GristSyncJobManager;
@@ -68,6 +69,19 @@ use Montelibero\BSN\StellarTomlCrawler;
 use Montelibero\BSN\StellarTomlImageCrawler;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\StellarTomlManager;
+use Montelibero\BSN\Telegram\AccountRichMessageRenderer;
+use Montelibero\BSN\Telegram\TelegramBotApiClient;
+use Montelibero\BSN\Telegram\TelegramBotConfig;
+use Montelibero\BSN\Telegram\TelegramDailyReportRenderer;
+use Montelibero\BSN\Telegram\TelegramDailyReportService;
+use Montelibero\BSN\Telegram\TelegramDailySubscriptionStore;
+use Montelibero\BSN\Telegram\TelegramUpdateParser;
+use Montelibero\BSN\Telegram\TelegramUpdateProcessor;
+use Montelibero\BSN\Telegram\TelegramUpdateStore;
+use Montelibero\BSN\Telegram\TelegramUsageAggregator;
+use Montelibero\BSN\Telegram\TelegramUsageStore;
+use Montelibero\BSN\Telegram\TelegramWebhookAccess;
+use Montelibero\BSN\Telegram\TelegramWebhookController;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
@@ -250,6 +264,34 @@ $ContainerBuilder->addDefinitions([
     RequestSession::class => $RequestSession,
     RequestLocale::class => $RequestLocale,
     KnownTagsCatalog::class => $KnownTagsCatalog,
+    AccountReportBuilder::class => autowire(),
+    AccountRichMessageRenderer::class => autowire(),
+    TelegramBotConfig::class => static function() {
+        return new TelegramBotConfig($_ENV);
+    },
+    TelegramBotApiClient::class => static function(Container $container) {
+        return new TelegramBotApiClient($container->get(TelegramBotConfig::class));
+    },
+    TelegramWebhookAccess::class => autowire(),
+    TelegramUpdateParser::class => autowire(),
+    TelegramUpdateStore::class => static function() use ($MongoManager) {
+        return new TelegramUpdateStore($MongoManager, $_ENV['MONGO_BASENAME']);
+    },
+    TelegramUsageStore::class => static function() use ($MongoManager) {
+        return new TelegramUsageStore($MongoManager, $_ENV['MONGO_BASENAME']);
+    },
+    TelegramDailySubscriptionStore::class => static function(Container $container) use ($MongoManager) {
+        return new TelegramDailySubscriptionStore(
+            $MongoManager,
+            $_ENV['MONGO_BASENAME'],
+            $container->get(TelegramBotConfig::class)->adminIdsFailClosed()
+        );
+    },
+    TelegramUsageAggregator::class => autowire(),
+    TelegramDailyReportRenderer::class => autowire(),
+    TelegramDailyReportService::class => autowire(),
+    TelegramUpdateProcessor::class => autowire(),
+    TelegramWebhookController::class => autowire(),
     ApiKeysManager::class => function() use ($MongoManager) {
         return new ApiKeysManager($MongoManager, $_ENV['MONGO_BASENAME']);
     },

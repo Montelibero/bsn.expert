@@ -9,6 +9,7 @@ use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\KnownTagsCatalog;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\StellarTomlImageManager;
@@ -30,38 +31,7 @@ class AccountsController implements RefreshDataCodeInterface
 
     private BSN $BSN;
     private Environment $Twig;
-    public static array $sort_tags_example = [
-        'PartOf',
-        'MyPart',
-        'Friend',
-        'Like',
-        'Dislike',
-        'A',
-        'B',
-        'C',
-        'D',
-        'Spouse',
-        'Love',
-        'OneFamily',
-        'Guardian',
-        'Ward',
-        'Sympathy',
-        'Divorce',
-        'Employer',
-        'Employee',
-        'Contractor',
-        'Client',
-        'Partnership',
-        'Collaboration',
-        'OwnershipFull',
-        'OwnerMajority',
-        'Owner',
-        'OwnerMinority',
-        'MyJudge',
-        'Signer',
-        'FactionMember',
-        'WelcomeGuest',
-    ];
+    public static array $sort_tags_example = KnownTagsCatalog::ACCOUNT_PAGE_TAG_ORDER;
 
     private StellarSDK $Stellar;
     private Container $Container;

@@ -1,0 +1,498 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Montelibero\BSN\Telegram;
+
+use Montelibero\BSN\BSN;
+use Montelibero\BSN\Knowledge\AccountReportBuilder;
+use Throwable;
+
+final class TelegramUpdateProcessor
+{
+    private const MAX_ATTEMPTS = 5;
+
+    public function __construct(
+        private readonly BSN $BSN,
+        private readonly AccountReportBuilder $AccountReports,
+        private readonly AccountRichMessageRenderer $AccountRenderer,
+        private readonly TelegramBotApiClient $BotApi,
+        private readonly TelegramBotConfig $Config,
+        private readonly TelegramUpdateStore $Updates,
+        private readonly TelegramUsageStore $Usage,
+        private readonly TelegramDailySubscriptionStore $DailySubscriptions,
+    ) {
+    }
+
+    /**
+     * Claims and processes at most one durable update.
+     *
+     * @return bool true when a job was claimed
+     */
+    public function processNext(): bool
+    {
+        $job = $this->Updates->claimNextDue();
+        if ($job === null) {
+            return false;
+        }
+
+        $payload = $job['payload'];
+        $this->setReactionBestEffort($payload, TelegramBotApiClient::REACTION_PROCESSING);
+
+        try {
+            if (($job['phase'] ?? TelegramUpdateStore::PHASE_RESPOND) === TelegramUpdateStore::PHASE_RECORD_USAGE) {
+                $this->processPendingUsage($job, $payload);
+
+                return true;
+            }
+
+            $type = $payload['type'] ?? null;
+            if ($type === TelegramUpdateParser::TYPE_ACCOUNT_INFO) {
+                $this->processAccountLookup($job, $payload);
+            } elseif ($type === TelegramUpdateParser::TYPE_ADMIN_COMMAND) {
+                $this->processAdminCommand($job, $payload);
+            } elseif ($type === TelegramUpdateParser::TYPE_VALIDATION_ERROR) {
+                $this->processValidationError($job, $payload);
+            } else {
+                $this->failJob($job, 'Unsupported Telegram update type.');
+            }
+        } catch (TelegramBotApiException $Exception) {
+            $this->handleTelegramFailure($job, $Exception);
+        } catch (Throwable $Exception) {
+            error_log(sprintf(
+                'Telegram update processing failed: update_id=%s error=%s',
+                $job['update_id'],
+                $Exception::class
+            ));
+            $this->failJob($job, 'Unexpected processing failure: ' . $Exception::class);
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
+     * @param array<string, mixed> $payload
+     */
+    private function processAccountLookup(array $job, array $payload): void
+    {
+        $account_id = strtoupper(trim((string) ($payload['account_id'] ?? '')));
+        if (!BSN::validateStellarAccountIdFormat($account_id)) {
+            $this->failJob($job, 'Queued account lookup has an invalid account ID.');
+
+            return;
+        }
+
+        try {
+            $report = $this->AccountReports->build($account_id, 'ru');
+            $rendered = $this->AccountRenderer->render($report);
+            $rich_message = $rendered['rich_message'] ?? null;
+            if (!is_array($rich_message) || $rich_message === []) {
+                throw new \RuntimeException('Account renderer returned an empty rich message.');
+            }
+        } catch (Throwable $Exception) {
+            error_log(sprintf(
+                'Telegram account report build failed: update_id=%s error=%s',
+                $job['update_id'],
+                $Exception::class
+            ));
+            $this->deliverAccountFallback($job, $payload, $account_id);
+
+            return;
+        }
+
+        try {
+            $response = $this->BotApi->sendRichMessage(
+                $this->chatId($payload),
+                $rich_message,
+                $this->replyOptions($payload)
+            );
+        } catch (TelegramBotApiException $Exception) {
+            if ($Exception->deliveryMayHaveSucceeded() || $this->shouldRetry($Exception, $job['attempt_count'])) {
+                throw $Exception;
+            }
+
+            error_log(sprintf(
+                'Telegram rich account response rejected: update_id=%s error_code=%s',
+                $job['update_id'],
+                $Exception->errorCode() === null ? 'none' : (string) $Exception->errorCode()
+            ));
+            $this->deliverAccountFallback($job, $payload, $account_id);
+
+            return;
+        }
+
+        $known = (bool) ($report['account']['is_known_in_bsn'] ?? false);
+        $this->finishAccountResponse(
+            $job,
+            $payload,
+            $account_id,
+            'article',
+            $known,
+            [
+                'response' => 'account_article',
+                'account_id' => $account_id,
+                'message_id' => $this->responseMessageId($response),
+            ],
+            true
+        );
+    }
+
+    /**
+     * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
+     * @param array<string, mixed> $payload
+     */
+    private function deliverAccountFallback(array $job, array $payload, string $account_id): void
+    {
+        $response = $this->sendReply(
+            $payload,
+            'Не удалось собрать описание аккаунта. Попробуйте повторить запрос позже.'
+        );
+        $this->finishAccountResponse(
+            $job,
+            $payload,
+            $account_id,
+            'error',
+            $this->BSN->getAccountById($account_id) !== null,
+            [
+                'response' => 'account_error',
+                'account_id' => $account_id,
+                'message_id' => $this->responseMessageId($response),
+            ],
+            false
+        );
+    }
+
+    /**
+     * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
+     * @param array<string, mixed> $payload
+     */
+    private function processValidationError(array $job, array $payload): void
+    {
+        $text = match ($payload['validation_error'] ?? null) {
+            'missing_account_id' => 'Укажите Stellar-адрес после команды: /account_info G…',
+            'invalid_account_id' => 'Нужен корректный публичный Stellar-адрес аккаунта, начинающийся с G.',
+            'unexpected_argument' => 'Эта команда не принимает аргументы.',
+            default => 'Не удалось распознать команду.',
+        };
+        $response = $this->sendReply($payload, $text);
+        $this->completeJob($job, $payload, [
+            'response' => 'validation_error',
+            'message_id' => $this->responseMessageId($response),
+        ]);
+    }
+
+    /**
+     * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
+     * @param array<string, mixed> $payload
+     */
+    private function processAdminCommand(array $job, array $payload): void
+    {
+        $chat = is_array($payload['chat'] ?? null) ? $payload['chat'] : [];
+        $user = is_array($payload['user'] ?? null) ? $payload['user'] : [];
+        $chat_id = (string) ($chat['id'] ?? '');
+        $user_id = (string) ($user['id'] ?? '');
+        $chat_type = (string) ($chat['type'] ?? '');
+
+        if (!$this->Config->isAdmin($user_id)
+            || !$this->DailySubscriptions->canManage($chat_id, $user_id, $chat_type)
+        ) {
+            $response = $this->sendReply($payload, 'Эта команда доступна только администраторам бота в личном чате.');
+            $this->completeJob($job, $payload, [
+                'response' => 'admin_denied',
+                'message_id' => $this->responseMessageId($response),
+            ]);
+
+            return;
+        }
+
+        $command = $payload['command'] ?? null;
+        if ($command === TelegramUpdateParser::COMMAND_DAILY_REPORT_ON) {
+            $changed = $this->DailySubscriptions->enable($chat_id, $user_id, $chat_type);
+            $text = $changed
+                ? 'Ежедневный отчёт включён. Он будет приходить сюда после завершения суток UTC.'
+                : 'Ежедневный отчёт уже включён.';
+        } elseif ($command === TelegramUpdateParser::COMMAND_DAILY_REPORT_OFF) {
+            $changed = $this->DailySubscriptions->disable($chat_id, $user_id, $chat_type);
+            $text = $changed
+                ? 'Ежедневный отчёт выключен.'
+                : 'Ежедневный отчёт уже был выключен.';
+        } else {
+            $this->failJob($job, 'Unsupported Telegram admin command.');
+
+            return;
+        }
+
+        $response = $this->sendReply($payload, $text);
+        $this->completeJob($job, $payload, [
+            'response' => 'admin_command',
+            'command' => $command,
+            'changed' => $changed,
+            'message_id' => $this->responseMessageId($response),
+        ], true);
+    }
+
+    /**
+     * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
+     */
+    private function handleTelegramFailure(array $job, TelegramBotApiException $Exception): void
+    {
+        if ($Exception->deliveryMayHaveSucceeded()) {
+            $this->Updates->deliveryUncertain(
+                $job['update_id'],
+                $job['lease_token'],
+                $Exception->getMessage()
+            );
+            error_log(sprintf(
+                'Telegram delivery is uncertain; update will not be retried: update_id=%s method=%s',
+                $job['update_id'],
+                $Exception->apiMethod()
+            ));
+
+            return;
+        }
+
+        if ($this->shouldRetry($Exception, $job['attempt_count'])) {
+            $this->Updates->retry(
+                $job['update_id'],
+                $job['lease_token'],
+                $Exception->getMessage(),
+                $this->retryDelay($Exception, $job['attempt_count'])
+            );
+
+            return;
+        }
+
+        $this->failJob($job, $Exception->getMessage());
+    }
+
+    private function shouldRetry(TelegramBotApiException $Exception, int $attempt_count): bool
+    {
+        if ($attempt_count >= self::MAX_ATTEMPTS) {
+            return false;
+        }
+
+        $error_code = $Exception->errorCode();
+        $http_status = $Exception->httpStatus();
+
+        return $Exception->retryAfterSeconds() !== null
+            || $error_code === 429
+            || ($error_code !== null && $error_code >= 500)
+            || ($http_status !== null && $http_status >= 500);
+    }
+
+    private function retryDelay(TelegramBotApiException $Exception, int $attempt_count): int
+    {
+        $retry_after = $Exception->retryAfterSeconds();
+        if ($retry_after !== null) {
+            // Telegram defines this as the exact number of seconds to wait;
+            // shortening a long flood wait can exhaust every retry too early.
+            return max(1, $retry_after);
+        }
+
+        return min(900, 15 * (2 ** max(0, $attempt_count - 1)));
+    }
+
+    /**
+     * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
+     * @param array<string, mixed> $payload
+     */
+    private function completeJob(array $job, array $payload, array $effect, bool $success_reaction = false): void
+    {
+        if (!$this->Updates->complete($job['update_id'], $job['lease_token'], $effect)) {
+            throw new \RuntimeException('Telegram update lease was lost before completion.');
+        }
+        if ($success_reaction) {
+            $this->setReactionBestEffort($payload, TelegramBotApiClient::REACTION_SUCCESS);
+        }
+    }
+
+    /** @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job */
+    private function failJob(array $job, string $error): void
+    {
+        $this->Updates->fail($job['update_id'], $job['lease_token'], $error);
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function sendReply(array $payload, string $text): array
+    {
+        return $this->BotApi->sendMessage(
+            $this->chatId($payload),
+            $text,
+            $this->replyOptions($payload)
+        );
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function chatId(array $payload): string
+    {
+        $chat = is_array($payload['chat'] ?? null) ? $payload['chat'] : [];
+        $chat_id = trim((string) ($chat['id'] ?? ''));
+        if ($chat_id === '') {
+            throw new \InvalidArgumentException('Queued Telegram update has no chat ID.');
+        }
+
+        return $chat_id;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function replyOptions(array $payload): array
+    {
+        $message_id = $payload['message_id'] ?? null;
+        if (!is_int($message_id) || $message_id <= 0) {
+            throw new \InvalidArgumentException('Queued Telegram update has no message ID.');
+        }
+
+        $options = [
+            'reply_parameters' => [
+                'message_id' => $message_id,
+                'allow_sending_without_reply' => true,
+            ],
+        ];
+        $thread_id = $payload['message_thread_id'] ?? null;
+        if (is_int($thread_id) && $thread_id > 0) {
+            $options['message_thread_id'] = $thread_id;
+        }
+        $direct_topic_id = $this->positiveInteger($payload['direct_messages_topic_id'] ?? null);
+        if ($direct_topic_id !== null) {
+            $options['direct_messages_topic_id'] = $direct_topic_id;
+        }
+
+        return $options;
+    }
+
+    private function positiveInteger(mixed $value): ?int
+    {
+        if (is_int($value)) {
+            return $value > 0 ? $value : null;
+        }
+        if (!is_string($value) || preg_match('/\A[1-9]\d*\z/D', $value) !== 1) {
+            return null;
+        }
+        $integer = filter_var($value, FILTER_VALIDATE_INT);
+
+        return is_int($integer) && $integer > 0 ? $integer : null;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function setReactionBestEffort(array $payload, string $emoji): void
+    {
+        try {
+            $message_id = $payload['message_id'] ?? null;
+            if (!is_int($message_id) || $message_id <= 0) {
+                return;
+            }
+            $this->BotApi->setMessageReaction($this->chatId($payload), $message_id, $emoji);
+        } catch (Throwable $Exception) {
+            error_log(sprintf(
+                'Telegram reaction failed: update_id=%s error=%s',
+                (string) ($payload['update_id'] ?? 'unknown'),
+                $Exception::class
+            ));
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $job
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $effect
+     */
+    private function finishAccountResponse(
+        array $job,
+        array $payload,
+        string $account_id,
+        string $outcome,
+        bool $known,
+        array $effect,
+        bool $success_reaction,
+    ): void {
+        $chat = is_array($payload['chat'] ?? null) ? $payload['chat'] : [];
+        $user = is_array($payload['user'] ?? null) ? $payload['user'] : null;
+        $message_date = $payload['message_date'] ?? null;
+        $usage = [
+            'message_date' => is_int($message_date) && $message_date > 0 ? $message_date : time(),
+            'chat' => $chat,
+            'user' => $user,
+            'account_id' => $account_id,
+            'outcome' => $outcome,
+            'known' => $known,
+        ];
+
+        if (!$this->Updates->markUsagePending(
+            $job['update_id'],
+            $job['lease_token'],
+            $usage,
+            $effect,
+            $success_reaction
+        )) {
+            throw new \RuntimeException('Telegram update lease was lost after response delivery.');
+        }
+
+        $job['phase'] = TelegramUpdateStore::PHASE_RECORD_USAGE;
+        $job['pending_usage'] = $usage;
+        $job['pending_effect'] = $effect;
+        $job['pending_success_reaction'] = $success_reaction;
+        $this->processPendingUsage($job, $payload);
+    }
+
+    /**
+     * @param array<string, mixed> $job
+     * @param array<string, mixed> $payload
+     */
+    private function processPendingUsage(array $job, array $payload): void
+    {
+        $usage = $job['pending_usage'] ?? null;
+        if (!is_array($usage)) {
+            $this->failJob($job, 'Queued Telegram usage phase has no payload.');
+
+            return;
+        }
+
+        try {
+            $chat = is_array($usage['chat'] ?? null) ? $usage['chat'] : [];
+            $user = is_array($usage['user'] ?? null) ? $usage['user'] : null;
+            $this->Usage->recordAccountLookup(
+                $job['update_id'],
+                (int) ($usage['message_date'] ?? 0),
+                $chat,
+                $user,
+                (string) ($usage['account_id'] ?? ''),
+                (string) ($usage['outcome'] ?? ''),
+                ($usage['known'] ?? false) === true
+            );
+        } catch (Throwable $Exception) {
+            error_log(sprintf(
+                'Telegram usage write deferred: update_id=%s error=%s',
+                $job['update_id'],
+                $Exception::class
+            ));
+            $this->Updates->retry(
+                $job['update_id'],
+                $job['lease_token'],
+                'Usage recording failed: ' . $Exception::class,
+                60
+            );
+
+            return;
+        }
+
+        $effect = is_array($job['pending_effect'] ?? null) ? $job['pending_effect'] : [];
+        $this->completeJob(
+            $job,
+            $payload,
+            $effect,
+            ($job['pending_success_reaction'] ?? false) === true
+        );
+    }
+
+    /** @param array<string, mixed> $response */
+    private function responseMessageId(array $response): ?int
+    {
+        return is_int($response['message_id'] ?? null) && $response['message_id'] > 0
+            ? $response['message_id']
+            : null;
+    }
+}

@@ -4,6 +4,39 @@ namespace Montelibero\BSN;
 
 class KnownTagsCatalog
 {
+    public const ACCOUNT_PAGE_TAG_ORDER = [
+        'PartOf',
+        'MyPart',
+        'Friend',
+        'Like',
+        'Dislike',
+        'A',
+        'B',
+        'C',
+        'D',
+        'Spouse',
+        'Love',
+        'OneFamily',
+        'Guardian',
+        'Ward',
+        'Sympathy',
+        'Divorce',
+        'Employer',
+        'Employee',
+        'Contractor',
+        'Client',
+        'Partnership',
+        'Collaboration',
+        'OwnershipFull',
+        'OwnerMajority',
+        'Owner',
+        'OwnerMinority',
+        'MyJudge',
+        'Signer',
+        'FactionMember',
+        'WelcomeGuest',
+    ];
+
     private ?array $list = null;
     private array $translationsByLocale = [];
 

@@ -220,6 +220,70 @@ function ensureStellarTomlImageRefsIndexes(Manager $manager, string $database, s
     );
 }
 
+function ensureTelegramUpdatesIndexes(Manager $manager, string $database, string $collection = 'telegram_updates'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                [
+                    'key' => ['state' => 1, 'available_at' => 1, 'received_at' => 1],
+                    'name' => 'idx_worker_due',
+                ],
+                ['key' => ['state' => 1, 'lease_until' => 1], 'name' => 'idx_worker_lease'],
+                [
+                    'key' => ['purge_at' => 1],
+                    'name' => 'purge_ttl',
+                    'expireAfterSeconds' => 0,
+                ],
+            ],
+        ])
+    );
+}
+
+function ensureTelegramUsageIndexes(Manager $manager, string $database, string $collection = 'telegram_usage_events'): void
+{
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                [
+                    'key' => ['day_utc' => 1, 'action' => 1, 'occurred_at' => 1],
+                    'name' => 'idx_daily_events',
+                ],
+                [
+                    'key' => ['expires_at' => 1],
+                    'name' => 'expires_ttl',
+                    'expireAfterSeconds' => 0,
+                ],
+            ],
+        ])
+    );
+}
+
+function ensureTelegramDailySubscriptionsIndexes(
+    Manager $manager,
+    string $database,
+    string $collection = 'telegram_daily_subscriptions',
+): void {
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                [
+                    'key' => ['enabled' => 1, 'last_sent_day_utc' => 1],
+                    'name' => 'idx_daily_due',
+                ],
+                ['key' => ['enabled' => 1, 'claim_until' => 1], 'name' => 'idx_daily_claim'],
+                ['key' => ['enabled' => 1, 'retry_after' => 1], 'name' => 'idx_daily_retry'],
+            ],
+        ])
+    );
+}
+
 try {
     ensureUsernamesIndexes($manager, $database);
     ensureContactsIndexes($manager, $database);
@@ -233,6 +297,9 @@ try {
     ensureStellarTomlRunsIndexes($manager, $database);
     ensureStellarTomlImagesIndexes($manager, $database);
     ensureStellarTomlImageRefsIndexes($manager, $database);
+    ensureTelegramUpdatesIndexes($manager, $database);
+    ensureTelegramUsageIndexes($manager, $database);
+    ensureTelegramDailySubscriptionsIndexes($manager, $database);
     echo "Mongo indexes ensured\n";
 } catch (\Throwable $e) {
     fwrite(STDERR, "[mongo-indexes] " . $e->getMessage() . PHP_EOL);

@@ -18,6 +18,7 @@ use Montelibero\BSN\Controllers\TransactionsController;
 use Montelibero\BSN\Controllers\WhoAreYouController;
 use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\ReturnTo;
+use Montelibero\BSN\Telegram\TelegramWebhookController;
 use Pecee\SimpleRouter\SimpleRouter;
 use Montelibero\BSN\WebApp;
 
@@ -28,6 +29,10 @@ class RootRoutes
         SimpleRouter::get('/', function () use ($Container) {
             return $Container->get(HomeController::class)->Index();
         })->name('root');
+
+        SimpleRouter::post('/telegram/webhook', function () use ($Container) {
+            return $Container->get(TelegramWebhookController::class)->receive();
+        });
 
         SimpleRouter::get('/search/', function () use ($Container) {
             return $Container->get(SearchController::class)->Search();

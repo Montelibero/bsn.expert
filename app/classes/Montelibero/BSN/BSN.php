@@ -297,7 +297,7 @@ class BSN
 
     private static function extractDataTimestamp(array $json): ?int
     {
-        foreach (['data_timestamp', 'timestamp', 'updated_at', 'updatedAt', 'generated_at', 'generatedAt', 'created_at', 'createdAt', 'time'] as $key) {
+        foreach (['data_timestamp', 'timestamp', 'updated_at', 'updatedAt', 'generated_at', 'generatedAt', 'created_at', 'createdAt', 'createDate', 'time'] as $key) {
             $value = $json[$key] ?? null;
             if (is_int($value)) {
                 return $value;

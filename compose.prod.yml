@@ -5,3 +5,6 @@ services:
   app-cron:
     build:
       target: prod
+  app-telegram-worker:
+    build:
+      target: prod

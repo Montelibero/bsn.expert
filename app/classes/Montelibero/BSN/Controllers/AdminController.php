@@ -2,6 +2,8 @@
 
 namespace Montelibero\BSN\Controllers;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\GristSnapshotStore;
@@ -10,6 +12,10 @@ use Montelibero\BSN\GristSyncService;
 use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\StellarTomlCrawler;
 use Montelibero\BSN\StellarTomlManager;
+use Montelibero\BSN\Telegram\TelegramBotApiClient;
+use Montelibero\BSN\Telegram\TelegramBotConfig;
+use Montelibero\BSN\Telegram\TelegramDailyReportService;
+use Montelibero\BSN\Telegram\TelegramUsageStore;
 use Pecee\SimpleRouter\SimpleRouter;
 use Twig\Environment;
 
@@ -25,6 +31,9 @@ class AdminController
         private GristSnapshotStore $GristSnapshots,
         private DocumentsManager $DocumentsManager,
         private RequestSession $RequestSession,
+        private TelegramBotConfig $TelegramConfig,
+        private TelegramBotApiClient $TelegramBotApi,
+        private TelegramDailyReportService $TelegramReports,
     ) {
     }
 
@@ -148,6 +157,200 @@ class AdminController
         ]);
     }
 
+    public function Telegram(): ?string
+    {
+        if (!$this->isAdmin()) {
+            SimpleRouter::response()->httpCode(404);
+            return null;
+        }
+
+        $notice = null;
+        $csrf_token = $this->csrfToken('admin_telegram');
+        $configuration_error = null;
+        try {
+            $this->TelegramConfig->validate();
+        } catch (\Throwable $Exception) {
+            $configuration_error = $Exception->getMessage();
+        }
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+            if (!hash_equals($csrf_token, (string) ($_POST['csrf_token'] ?? ''))) {
+                SimpleRouter::response()->httpCode(400);
+                return 'Bad CSRF token';
+            }
+            if ((string) ($_POST['action'] ?? '') !== 'register_webhook') {
+                SimpleRouter::response()->httpCode(400);
+                return 'Unknown Telegram admin action';
+            }
+
+            try {
+                $this->TelegramConfig->validate();
+                $this->TelegramBotApi->setWebhook($this->TelegramConfig);
+                $notice = [
+                    'type' => 'success',
+                    'text' => 'Webhook Telegram зарегистрирован.',
+                ];
+                $configuration_error = null;
+            } catch (\Throwable $Exception) {
+                $notice = [
+                    'type' => 'danger',
+                    'text' => $Exception->getMessage(),
+                ];
+            }
+        }
+
+        $webhook = [
+            'available' => false,
+            'registered' => false,
+            'url' => null,
+            'pending_update_count' => 0,
+            'max_connections' => null,
+            'allowed_updates' => [],
+            'bot_username' => null,
+            'bot_matches_config' => false,
+            'last_error_message' => null,
+            'last_error_at' => null,
+            'error' => null,
+        ];
+        if ($this->TelegramBotApi->isConfigured()) {
+            try {
+                $identity = $this->TelegramBotApi->getMe();
+                $actual_bot_username = is_string($identity['username'] ?? null)
+                    ? ltrim(trim($identity['username']), '@')
+                    : '';
+                $bot_matches_config = ($identity['is_bot'] ?? false) === true
+                    && $actual_bot_username !== ''
+                    && strcasecmp($actual_bot_username, $this->TelegramConfig->botUsername()) === 0;
+                $info = $this->TelegramBotApi->getWebhookInfo();
+                $actual_url = is_string($info['url'] ?? null) ? $info['url'] : '';
+                $allowed_updates = is_array($info['allowed_updates'] ?? null)
+                    ? array_values(array_filter(
+                        $info['allowed_updates'],
+                        static fn(mixed $value): bool => is_string($value)
+                    ))
+                    : [];
+                // Telegram omits/empties allowed_updates when all update types
+                // are enabled. Otherwise message must be explicitly present.
+                $messages_allowed = $allowed_updates === []
+                    || in_array('message', $allowed_updates, true);
+                $last_error_date = is_int($info['last_error_date'] ?? null)
+                    ? $info['last_error_date']
+                    : null;
+                $webhook = [
+                    'available' => true,
+                    'registered' => $actual_url === $this->TelegramConfig->webhookUrl()
+                        && $messages_allowed
+                        && $bot_matches_config,
+                    'url' => $actual_url,
+                    'pending_update_count' => max(0, (int) ($info['pending_update_count'] ?? 0)),
+                    'max_connections' => isset($info['max_connections'])
+                        ? max(0, (int) $info['max_connections'])
+                        : null,
+                    'allowed_updates' => $allowed_updates,
+                    'bot_username' => $actual_bot_username === '' ? null : $actual_bot_username,
+                    'bot_matches_config' => $bot_matches_config,
+                    'last_error_message' => is_string($info['last_error_message'] ?? null)
+                        ? $info['last_error_message']
+                        : null,
+                    'last_error_at' => $last_error_date === null
+                        ? null
+                        : gmdate('d.m.Y H:i:s', $last_error_date),
+                    'error' => null,
+                ];
+            } catch (\Throwable $Exception) {
+                $webhook['error'] = $Exception->getMessage();
+            }
+        } else {
+            $webhook['error'] = 'TG_BOT_KEY не задан или имеет неверный формат.';
+        }
+
+        $Now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        $days = array_map(
+            static fn(array $summary): array => [
+                'day' => (string) $summary['day_utc'],
+                'label' => DateTimeImmutable::createFromFormat(
+                    '!Y-m-d',
+                    (string) $summary['day_utc'],
+                    new DateTimeZone('UTC')
+                )?->format('d.m.Y') ?? (string) $summary['day_utc'],
+                'is_today' => $summary['day_utc'] === $Now->format('Y-m-d'),
+                'requests' => (int) $summary['requests'],
+                'chats' => (int) $summary['unique_chats'],
+                'users' => (int) $summary['unique_users'],
+                'accounts' => (int) $summary['unique_accounts'],
+            ],
+            $this->TelegramReports->adminSummaries($Now)
+        );
+
+        $selected_day = null;
+        $selected = trim((string) ($_GET['day'] ?? ''));
+        if ($selected !== '') {
+            try {
+                TelegramUsageStore::assertDay($selected);
+            } catch (\InvalidArgumentException) {
+                SimpleRouter::response()->httpCode(400);
+                return 'Invalid UTC day';
+            }
+            $oldest = $Now->setTime(0, 0)
+                ->modify('-' . (TelegramUsageStore::RAW_RETENTION_DAYS - 1) . ' days')
+                ->format('Y-m-d');
+            if ($selected < $oldest || $selected > $Now->format('Y-m-d')) {
+                SimpleRouter::response()->httpCode(400);
+                return 'UTC day is outside the detailed retention window';
+            }
+
+            $details = $this->TelegramReports->adminDayDetails($selected, $Now);
+            $aggregate = $details['aggregate'];
+            $totals = is_array($aggregate['totals'] ?? null) ? $aggregate['totals'] : [];
+            $selected_day = [
+                'day' => $selected,
+                'label' => DateTimeImmutable::createFromFormat('!Y-m-d', $selected, new DateTimeZone('UTC'))
+                    ?->format('d.m.Y') ?? $selected,
+                'requests' => (int) ($totals['requests'] ?? 0),
+                'accounts' => array_map(fn(array $account): array => [
+                    'id' => (string) ($account['account_id'] ?? ''),
+                    'short_id' => $this->shortStellarId((string) ($account['account_id'] ?? '')),
+                    'known' => ($account['known'] ?? false) === true,
+                    'requests' => (int) ($account['requests'] ?? 0),
+                    'chats' => (int) ($account['chat_count'] ?? 0),
+                    'users' => (int) ($account['user_count'] ?? 0),
+                ], is_array($aggregate['accounts'] ?? null) ? $aggregate['accounts'] : []),
+                'chats' => array_map(static fn(array $chat): array => [
+                    'id' => (string) ($chat['chat_id'] ?? ''),
+                    'title' => is_string($chat['title'] ?? null) ? $chat['title'] : null,
+                    'username' => is_string($chat['username'] ?? null) ? $chat['username'] : null,
+                    'type' => (string) ($chat['type'] ?? ''),
+                    'requests' => (int) ($chat['requests'] ?? 0),
+                    'users' => (int) ($chat['user_count'] ?? 0),
+                ], is_array($aggregate['chats'] ?? null) ? $aggregate['chats'] : []),
+                'users' => array_map(static fn(array $user): array => [
+                    'id' => (string) ($user['user_id'] ?? ''),
+                    'name' => is_string($user['name'] ?? null) ? $user['name'] : null,
+                    'username' => is_string($user['username'] ?? null) ? $user['username'] : null,
+                    'requests' => (int) ($user['requests'] ?? 0),
+                    'chats' => (int) ($user['chat_count'] ?? 0),
+                ], is_array($aggregate['users'] ?? null) ? $aggregate['users'] : []),
+            ];
+        }
+
+        return $this->Twig->render('admin_telegram.twig', [
+            'config' => [
+                'username' => $this->TelegramConfig->botUsername(),
+                'bot_configured' => $this->TelegramBotApi->isConfigured(),
+                'webhook_url' => $this->TelegramConfig->webhookUrl(),
+                'secret_configured' => $this->TelegramConfig->hasValidWebhookSecret(),
+                'admins_count' => count($this->TelegramConfig->adminIdsFailClosed()),
+                'can_register_webhook' => $configuration_error === null,
+                'error' => $configuration_error,
+            ],
+            'webhook' => $webhook,
+            'days' => $days,
+            'selected_day' => $selected_day,
+            'notice' => $notice,
+            'csrf_token' => $csrf_token,
+        ]);
+    }
+
     private function isAdmin(): bool
     {
         $account_id = $this->CurrentUser->getAccountId();
@@ -164,6 +367,13 @@ class AdminController
     private function csrfToken(string $purpose = 'admin_tomls'): string
     {
         return $this->RequestSession->getOrCreateToken('csrf:' . $purpose);
+    }
+
+    private function shortStellarId(string $account_id): string
+    {
+        return strlen($account_id) > 14
+            ? substr($account_id, 0, 7) . '…' . substr($account_id, -7)
+            : $account_id;
     }
 
     /** @return list<array<string, mixed>> */

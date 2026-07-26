@@ -501,6 +501,31 @@ account_page:
     notice: This is an activism program account of the Montelibero Association.
     link: View its page
 
+telegram_account_article:
+  account_not_known: ℹ️ BSN.expert does not have any information about this account yet.
+  summary:
+    header: Summary
+    tags: Tags
+  ownership:
+    belongs_to: Account belongs to
+    owns: Accounts owned by this account
+  signed_documents: Signed documents
+  obsolete: obsolete
+  signers: Signers
+  counts:
+    tags:
+      one: tag
+      few: tags
+      many: tags
+    accounts:
+      one: account
+      few: accounts
+      many: accounts
+    documents:
+      one: document
+      few: documents
+      many: documents
+
 account_operations:
   title: "%name% — operations"
   breadcrumb: Operations

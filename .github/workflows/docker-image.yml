@@ -187,6 +187,8 @@ jobs:
             -e MONGO_AUTH_SOURCE=admin \
             -e STELLAR_HORIZON_ENDPOINT=http://127.0.0.1:9 \
             -e GRIST_API_KEY=ci-unused \
+            -e TG_WEBHOOK_SECRET=ci_telegram_webhook_secret \
+            -e TG_BOT_USERNAME=BSN_robot \
             -e PHP_SESSION_NO_SECURE=1 \
             -e FRANKENPHP_WORKER_NUM=1 \
             -e MAX_REQUESTS=100 \
@@ -206,8 +208,10 @@ jobs:
       - name: Check public HTTP routes
         env:
           ROUTE_SMOKE_BASE_URL: http://127.0.0.1:18080
+          TELEGRAM_WEBHOOK_SMOKE_SECRET: ci_telegram_webhook_secret
         run: |
           php app/tools/ci/route-smoke.php
+          php app/tools/ci/telegram-webhook-smoke.php
           php app/tools/ci/contacts-sync-smoke.php
           docker exec bsn-route-app php tools/ci/contacts-cas-smoke.php
 

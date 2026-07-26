@@ -499,6 +499,31 @@ account_page:
     notice: Это аккаунт программы активизма Ассоциации Монтелиберо.
     link: Посмотреть её страницу
 
+telegram_account_article:
+  account_not_known: ℹ️ В BSN.expert пока нет сведений об этом аккаунте.
+  summary:
+    header: Коротко
+    tags: Теги
+  ownership:
+    belongs_to: Аккаунт принадлежит
+    owns: Аккаунту принадлежат
+  signed_documents: Подписанные документы
+  obsolete: устарел
+  signers: Подписанты
+  counts:
+    tags:
+      one: тег
+      few: тега
+      many: тегов
+    accounts:
+      one: аккаунт
+      few: аккаунта
+      many: аккаунтов
+    documents:
+      one: документ
+      few: документа
+      many: документов
+
 account_operations:
   title: "%name% — операции"
   breadcrumb: Операции

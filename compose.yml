@@ -42,6 +42,25 @@ services:
       - cache
       - mongo
 
+  app-telegram-worker:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    command: ["sh", "-c", "sh /var/www/html/init.sh && exec php /var/www/html/cli/process_telegram_updates.php"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["NONE"]
+    volumes:
+      - bsn_shared_data:/var/www/bsn
+      - bsn_stellar_toml_images:/var/www/bsn/stellar-toml-images
+    env_file:
+      - .env
+    environment:
+      MONGO_INDEXES_REQUIRED: "1"
+    depends_on:
+      - cache
+      - mongo
+
   mongo:
     image: mongo:7
     restart: unless-stopped

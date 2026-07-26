@@ -43,7 +43,8 @@
       "@test:auth",
       "@test:crowd",
       "@test:markdown",
-      "@test:grist"
+      "@test:grist",
+      "@test:telegram"
     ],
     "test:bsn": [
       "php tests/BsnAtomicReloadTest.php"
@@ -67,6 +68,13 @@
     ],
     "test:grist": [
       "php tests/GristWebhookAccessTest.php"
+    ],
+    "test:telegram": [
+      "php tests/TelegramAccountArticleTest.php",
+      "php tests/TelegramBotTransportTest.php",
+      "php tests/TelegramWebhookTest.php",
+      "php tests/TelegramDailyReportTest.php",
+      "php tests/TelegramUpdateProcessorTest.php"
     ],
     "lint:php": [
       "@php tools/ci/php-lint.php"
