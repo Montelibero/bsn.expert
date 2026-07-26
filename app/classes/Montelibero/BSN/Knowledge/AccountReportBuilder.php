@@ -105,10 +105,10 @@ final class AccountReportBuilder
                 ];
             }
 
-            usort($items, static function (array $left, array $right): int {
-                return strcasecmp((string) $left['label'], (string) $right['label'])
-                    ?: strcmp((string) $left['id'], (string) $right['id']);
-            });
+            usort(
+                $items,
+                static fn(array $left, array $right): int => self::comparePublicAccounts($left, $right)
+            );
 
             $Category = $Tag->getCategory();
             $groups[] = [
@@ -171,16 +171,40 @@ final class AccountReportBuilder
     {
         $name = $Account->getName()[0] ?? null;
         $username = $Account->getUsername();
-        $label = $name
-            ?: ($username === null ? $Account->getShortId() : $username . '*bsn.expert');
 
         return [
             'id' => $Account->getId(),
             'short_id' => $Account->getShortId(),
             'name' => $name,
             'username' => $username,
-            'label' => $label,
+            'label' => $Account->getDisplayName(),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $left
+     * @param array<string, mixed> $right
+     */
+    private static function comparePublicAccounts(array $left, array $right): int
+    {
+        return strcasecmp(self::publicAccountSortLabel($left), self::publicAccountSortLabel($right))
+            ?: strcmp((string) $left['id'], (string) $right['id']);
+    }
+
+    /** @param array<string, mixed> $account */
+    private static function publicAccountSortLabel(array $account): string
+    {
+        $name = $account['name'] ?? null;
+        if (is_string($name) && $name !== '') {
+            return $name;
+        }
+
+        $username = $account['username'] ?? null;
+        if (is_string($username) && $username !== '') {
+            return $username . '*bsn.expert';
+        }
+
+        return (string) $account['short_id'];
     }
 
     /**
@@ -265,10 +289,10 @@ final class AccountReportBuilder
             $links[] = $this->publicAccount($LinkedAccount);
         }
 
-        usort($links, static function (array $left, array $right): int {
-            return strcasecmp((string) $left['label'], (string) $right['label'])
-                ?: strcmp((string) $left['id'], (string) $right['id']);
-        });
+        usort(
+            $links,
+            static fn(array $left, array $right): int => self::comparePublicAccounts($left, $right)
+        );
 
         return $links;
     }

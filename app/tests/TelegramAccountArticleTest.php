@@ -77,6 +77,25 @@ function telegramArticlePlainText(mixed $text): string
     return telegramArticlePlainText($text['text'] ?? ($text['alternative_text'] ?? ''));
 }
 
+function telegramArticleUrlText(mixed $value, string $url): ?string
+{
+    if (!is_array($value)) {
+        return null;
+    }
+    if (($value['type'] ?? null) === 'url' && ($value['url'] ?? null) === $url) {
+        return telegramArticlePlainText($value['text'] ?? '');
+    }
+
+    foreach ($value as $child) {
+        $text = telegramArticleUrlText($child, $url);
+        if ($text !== null) {
+            return $text;
+        }
+    }
+
+    return null;
+}
+
 /**
  * @param list<array<string, mixed>> $blocks
  */
@@ -104,6 +123,7 @@ $BSN = new BSN(
     new TelegramArticleAccountsManager([
         $account_id => 'Soz',
         $target_ids[0] => 'paired_friend',
+        $target_ids[11] => 'unnamed_account',
     ]),
     new TelegramArticleDocumentsManager()
 );
@@ -155,6 +175,7 @@ foreach ($target_ids as $index => $target_id) {
         ],
     ];
 }
+$accounts[$target_ids[11]] = [];
 $accounts[$target_ids[0]]['tags'] = [
     'Friend' => [$account_id],
 ];
@@ -182,7 +203,11 @@ $ReportBuilder = new AccountReportBuilder($BSN, $Catalog);
 $report = $ReportBuilder->build($account_id, 'ru');
 $report_json = json_encode($report, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
-assertTelegramArticle('Soz Nov', $report['account']['label'], 'The public label must use the profile name.');
+assertTelegramArticle(
+    $BSN->getAccountById($account_id)?->getDisplayName(),
+    $report['account']['label'],
+    'The public label must reuse Account::getDisplayName().'
+);
 assertTelegramArticle('Soz', $report['account']['username'], 'The public federation username must be present.');
 assertTelegramArticle(true, $report['account']['is_known_in_bsn'], 'A snapshot account must be marked as known to BSN.');
 assertTelegramArticle(
@@ -338,8 +363,59 @@ foreach (['🟢', '🔴', '🟡', '⚪️'] as $marker) {
 }
 assertTelegramArticle(
     true,
-    str_contains($message_json, 'Linked account 12'),
+    str_contains(
+        $message_json,
+        (string) $BSN->getAccountById($target_ids[11])?->getDisplayName()
+    ),
     'Known tag links must not be truncated.'
+);
+$first_linked_account = null;
+$friend_group_report = null;
+foreach ($report['relations']['outcome']['groups'] as $group) {
+    if (($group['name'] ?? null) === 'Friend') {
+        $friend_group_report = $group;
+    }
+    foreach ($group['items'] as $item) {
+        if (($item['id'] ?? null) === $target_ids[0]) {
+            $first_linked_account = $item;
+            break;
+        }
+    }
+}
+assertTelegramArticle(
+    $target_ids[0],
+    $friend_group_report['items'][0]['id'] ?? null,
+    'Changing the visible account format must not change the existing name-based order.'
+);
+$first_linked_display_name = $BSN->getAccountById($target_ids[0])?->getDisplayName();
+assertTelegramArticle(
+    $first_linked_display_name,
+    $first_linked_account['label'] ?? null,
+    'Linked-account report data must reuse Account::getDisplayName().'
+);
+assertTelegramArticle(
+    $first_linked_display_name,
+    telegramArticleUrlText($message['rich_message'], 'https://bsn.expert/@paired_friend'),
+    'A named Telegram account link must show short_id followed by the profile name.'
+);
+assertTelegramArticle(
+    false,
+    str_contains(
+        $message_json,
+        'Linked account 1 · ' . ($first_linked_account['short_id'] ?? '')
+    ),
+    'Telegram account links must not use the old name-first format.'
+);
+$unnamed_linked_display_name = $BSN->getAccountById($target_ids[11])?->getDisplayName();
+assertTelegramArticle(
+    $unnamed_linked_display_name,
+    telegramArticleUrlText($message['rich_message'], 'https://bsn.expert/@unnamed_account'),
+    'An unnamed federation account link must show only its short_id.'
+);
+assertTelegramArticle(
+    false,
+    str_contains($message_json, 'unnamed_account*bsn.expert'),
+    'A federation username must affect the account URL, not its visible label.'
 );
 
 $heading_sizes = [];
@@ -450,7 +526,11 @@ $friend_links_block = $friend_links_details['blocks'][0] ?? null;
 assertTelegramArticle('paragraph', $friend_links_block['type'] ?? null, 'Tag links must share one text block.');
 assertTelegramArticle(
     true,
-    str_contains(telegramArticlePlainText($friend_links_block['text'] ?? ''), 'Linked account 12'),
+    is_string($unnamed_linked_display_name)
+        && str_contains(
+            telegramArticlePlainText($friend_links_block['text'] ?? ''),
+            $unnamed_linked_display_name
+        ),
     'The inner details block must contain every Friend link.'
 );
 
@@ -543,7 +623,12 @@ $many_participations_text = telegramArticlePlainText(
     $many_participations_details['blocks'][0]['text'] ?? ''
 );
 assertTelegramArticle('12 аккаунтов', $many_participations_details['summary'] ?? null, 'Participation details must not retain the old ten-account limit.');
-assertTelegramArticle(true, str_contains($many_participations_text, 'Linked account 12'), 'Every multisig participation must be shown.');
+assertTelegramArticle(
+    true,
+    is_string($unnamed_linked_display_name)
+        && str_contains($many_participations_text, $unnamed_linked_display_name),
+    'Every multisig participation must be shown.'
+);
 assertTelegramArticle(true, str_contains($many_participations_text, '(1/10)'), 'Every participation must include its weight and threshold.');
 assertTelegramArticle(false, str_contains($many_participations_text, 'Показано'), 'Participation output must not contain a truncation notice.');
 

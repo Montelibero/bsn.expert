@@ -497,14 +497,9 @@ final class AccountRichMessageRenderer
      */
     private function accountLink(array $account): array
     {
-        $label = (string) $account['label'];
-        if ($label !== (string) $account['short_id']) {
-            $label .= ' · ' . $account['short_id'];
-        }
-
         return [
             'type' => 'url',
-            'text' => $label,
+            'text' => (string) $account['label'],
             'url' => $this->accountUrl($account),
         ];
     }
