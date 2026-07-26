@@ -171,16 +171,90 @@ assertTelegramWebhook(
     $Parser->parse(telegramWebhookUpdate('/start@Other_robot a_' . $account_id)),
     'A deep link command suffixed with another bot username must be ignored.'
 );
-assertTelegramWebhook(null, $Parser->parse(telegramWebhookUpdate('/start')), 'Deep link without a payload must be ignored.');
+$start_help = $Parser->parse(telegramWebhookUpdate('/start'));
 assertTelegramWebhook(
-    null,
-    $Parser->parse(telegramWebhookUpdate('/start d_' . $account_id)),
-    'Unsupported deep-link payload must be ignored.'
+    TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+    $start_help['type'] ?? null,
+    'Start without a payload must use the existing validation queue type.'
+);
+assertTelegramWebhook(
+    TelegramUpdateParser::COMMAND_ACCOUNT,
+    $start_help['command'] ?? null,
+    'Start help must keep a command understood by older workers.'
+);
+assertTelegramWebhook(
+    'missing_account_id',
+    $start_help['validation_error'] ?? null,
+    'Start help must keep a validation code understood by older workers.'
+);
+assertTelegramWebhook(
+    'help_requested',
+    $start_help['help_context'] ?? null,
+    'Start without a payload must request help.'
+);
+$unsupported_start = $Parser->parse(telegramWebhookUpdate('/start d_' . $account_id));
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+    $unsupported_start['type'] ?? null,
+    'Unsupported deep-link payload must use the existing validation queue type.'
+);
+assertTelegramWebhook(
+    TelegramUpdateParser::COMMAND_ACCOUNT,
+    $unsupported_start['command'] ?? null,
+    'Unsupported deep-link payload must keep a command understood by older workers.'
+);
+assertTelegramWebhook(
+    'invalid_account_id',
+    $unsupported_start['validation_error'] ?? null,
+    'Unsupported deep-link payload must keep a validation code understood by older workers.'
+);
+assertTelegramWebhook(
+    'invalid_start_payload',
+    $unsupported_start['help_context'] ?? null,
+    'Unsupported deep-link payload must use the start payload help context.'
+);
+$invalid_start = $Parser->parse(telegramWebhookUpdate('/start a_' . $invalid_checksum));
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+    $invalid_start['type'] ?? null,
+    'Invalid account deep-link payload must use the existing validation queue type.'
+);
+assertTelegramWebhook(
+    'invalid_account_id',
+    $invalid_start['validation_error'] ?? null,
+    'Invalid account deep-link payload must keep a validation code understood by older workers.'
+);
+assertTelegramWebhook(
+    'invalid_start_payload',
+    $invalid_start['help_context'] ?? null,
+    'Invalid account deep-link payload must use the start payload help context.'
+);
+
+$private_help = $Parser->parse(telegramWebhookUpdate('/help explain this'));
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+    $private_help['type'] ?? null,
+    'Help must use the existing validation queue type.'
+);
+assertTelegramWebhook(
+    TelegramUpdateParser::COMMAND_ACCOUNT,
+    $private_help['command'] ?? null,
+    'Help must keep a command understood by older workers.'
+);
+assertTelegramWebhook(
+    'missing_account_id',
+    $private_help['validation_error'] ?? null,
+    'Help must keep a validation code understood by older workers.'
+);
+assertTelegramWebhook(
+    'help_requested',
+    $private_help['help_context'] ?? null,
+    'Help arguments must be ignored and help must be requested.'
 );
 assertTelegramWebhook(
     null,
-    $Parser->parse(telegramWebhookUpdate('/start a_' . $invalid_checksum)),
-    'Invalid account deep-link payload must be ignored.'
+    $Parser->parse(telegramWebhookUpdate('/help@Other_robot')),
+    'Help suffixed with another bot username must be ignored.'
 );
 
 $group_update = telegramWebhookUpdate('/account@BSN_robot ' . strtolower($account_id), [
@@ -202,6 +276,42 @@ assertTelegramWebhook('BSN group', $group['chat']['title'] ?? null, 'Group title
 $group_deep_link = $group_update;
 $group_deep_link['message']['text'] = '/start a_' . $account_id;
 assertTelegramWebhook(null, $Parser->parse($group_deep_link), 'Account deep links must be private-only.');
+
+$group_start = $group_update;
+$group_start['message']['text'] = '/start';
+assertTelegramWebhook(null, $Parser->parse($group_start), 'Start without a payload must be ignored outside private chats.');
+
+$group_help = $group_update;
+$group_help['message']['text'] = '/help@BSN_robot ignored argument';
+$parsed_group_help = $Parser->parse($group_help);
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+    $parsed_group_help['type'] ?? null,
+    'Help must be accepted in groups and supergroups.'
+);
+assertTelegramWebhook(
+    TelegramUpdateParser::COMMAND_ACCOUNT,
+    $parsed_group_help['command'] ?? null,
+    'Group help must keep a command understood by older workers.'
+);
+assertTelegramWebhook(
+    'missing_account_id',
+    $parsed_group_help['validation_error'] ?? null,
+    'Group help must keep a validation code understood by older workers.'
+);
+assertTelegramWebhook(
+    'help_requested',
+    $parsed_group_help['help_context'] ?? null,
+    'Group help must request help even when arguments are present.'
+);
+
+$basic_group_help = $group_help;
+$basic_group_help['message']['chat']['type'] = 'group';
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+    $Parser->parse($basic_group_help)['type'] ?? null,
+    'Help must also be accepted in basic groups.'
+);
 
 $group_alias = $group_update;
 $group_alias['message']['text'] = '/account_info ' . $account_id;
@@ -279,6 +389,14 @@ $group_prompt_reply['message']['reply_to_message'] = [
 $prompt_reply = $Parser->parse($group_prompt_reply);
 assertTelegramWebhook(TelegramUpdateParser::TYPE_ACCOUNT_INFO, $prompt_reply['type'] ?? null, 'Group address replying to the exact bot prompt must parse.');
 assertTelegramWebhook($account_id, $prompt_reply['account_id'] ?? null, 'Prompt reply account must be preserved.');
+
+$english_prompt_reply = $group_prompt_reply;
+$english_prompt_reply['message']['reply_to_message']['text'] = TelegramUpdateParser::ACCOUNT_PROMPT_TEXT_EN;
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_ACCOUNT_INFO,
+    $Parser->parse($english_prompt_reply)['type'] ?? null,
+    'Group address replying to the exact English bot prompt must parse.'
+);
 
 $private_prompt_reply = telegramWebhookUpdate(strtolower($account_id), [
     'message' => [

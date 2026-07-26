@@ -165,11 +165,10 @@ final class AccountRichMessageRenderer
 
         $summary[] = [
             $this->bold($this->trans('telegram_account_article.summary.tags') . ': '),
-            sprintf(
-                '%d входящих, %d исходящих',
-                $this->tagLinksCount($income),
-                $this->tagLinksCount($outcome)
-            ),
+            $this->trans('telegram_account_article.summary.directions', [
+                '%incoming%' => $this->tagLinksCount($income),
+                '%outgoing%' => $this->tagLinksCount($outcome),
+            ]),
         ];
         $signed_documents_count = count($report['signatures']);
         if ($signed_documents_count > 0) {
@@ -456,10 +455,10 @@ final class AccountRichMessageRenderer
             : null;
 
         $snapshot_at = $snapshot_timestamp === null
-            ? 'неизвестно'
+            ? $this->trans('telegram_account_article.footer.unknown')
             : gmdate('Y-m-d H:i', $snapshot_timestamp) . ' UTC';
         if ($generated_timestamp === null) {
-            $generated_at = 'неизвестно';
+            $generated_at = $this->trans('telegram_account_article.footer.unknown');
         } elseif ($snapshot_timestamp !== null
             && gmdate('Y-m-d', $snapshot_timestamp) === gmdate('Y-m-d', $generated_timestamp)
         ) {
@@ -471,10 +470,15 @@ final class AccountRichMessageRenderer
         return [
             'type' => 'footer',
             'text' => [
-                sprintf('BSN: %s · статья: %s · ', $snapshot_at, $generated_at),
+                sprintf(
+                    'BSN: %s · %s: %s · ',
+                    $snapshot_at,
+                    $this->trans('telegram_account_article.footer.article'),
+                    $generated_at
+                ),
                 [
                     'type' => 'url',
-                    'text' => 'полная страница',
+                    'text' => $this->trans('telegram_account_article.footer.full_page'),
                     'url' => $account_url,
                 ],
             ],
@@ -499,9 +503,10 @@ final class AccountRichMessageRenderer
         };
     }
 
-    private function trans(string $key): string
+    /** @param array<string, int|string> $parameters */
+    private function trans(string $key, array $parameters = []): string
     {
-        return $this->Translator->trans($key, [], null, $this->locale);
+        return $this->Translator->trans($key, $parameters, null, $this->locale);
     }
 
     private function countLabel(int $count, string $noun): string

@@ -222,8 +222,10 @@ function telegramProcessorPayload(
     string $command,
     ?string $account_id = null,
     ?string $validation_error = null,
+    ?string $language_code = 'ru',
+    ?string $help_context = null,
 ): array {
-    return [
+    $payload = [
         'update_id' => $update_id,
         'type' => $type,
         'command' => $command,
@@ -239,13 +241,19 @@ function telegramProcessorPayload(
             'id' => '42',
             'username' => 'test_user',
             'name' => 'Test User',
-            'language_code' => 'ru',
+            'language_code' => $language_code,
         ],
         'message_id' => 100 + (int) $update_id,
         'message_date' => 1785000000,
         'message_thread_id' => 77,
         'direct_messages_topic_id' => '9007199254740',
     ];
+
+    if ($help_context !== null) {
+        $payload['help_context'] = $help_context;
+    }
+
+    return $payload;
 }
 
 /** @return array<string, mixed> */
@@ -368,7 +376,8 @@ $account_jobs = [
         '2',
         TelegramUpdateParser::TYPE_ACCOUNT_INFO,
         TelegramUpdateParser::COMMAND_ACCOUNT,
-        $unknown_account
+        $unknown_account,
+        language_code: 'en'
     )),
 ];
 $AccountUpdates = new TelegramProcessorUpdateStore($account_jobs);
@@ -391,7 +400,8 @@ $AccountProcessor = new TelegramUpdateProcessor(
     $Config,
     $AccountUpdates,
     $AccountUsage,
-    $AccountSubscriptions
+    $AccountSubscriptions,
+    $Translator
 );
 assertTelegramProcessor(true, $AccountProcessor->processNext(), 'A known account job must be claimed.');
 assertTelegramProcessor(true, $AccountProcessor->processNext(), 'An unknown account job must be claimed.');
@@ -428,6 +438,21 @@ assertTelegramProcessor(101, $first_article_payload['reply_parameters']['message
 assertTelegramProcessor(true, $first_article_payload['reply_parameters']['allow_sending_without_reply'], 'Reply delivery must survive a deleted source message.');
 assertTelegramProcessor(77, $first_article_payload['message_thread_id'], 'The originating thread must be preserved.');
 assertTelegramProcessor(9007199254740, $first_article_payload['direct_messages_topic_id'], 'A stored topic string must become an API integer.');
+$english_article_payload = telegramProcessorRequestPayload($account_history, 4);
+$english_article_json = json_encode(
+    $english_article_payload['rich_message'] ?? [],
+    JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE
+);
+assertTelegramProcessor(
+    true,
+    str_contains($english_article_json, 'Full page'),
+    'A non-Russian Telegram language must select the English account article locale.'
+);
+assertTelegramProcessor(
+    false,
+    str_contains($english_article_json, 'полная страница'),
+    'An English account article must not retain the Russian footer link.'
+);
 
 $PromptUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
@@ -436,12 +461,22 @@ $PromptUpdates = new TelegramProcessorUpdateStore([
         TelegramUpdateParser::COMMAND_ACCOUNT,
         validation_error: 'missing_account_id'
     )),
+    telegramProcessorJob(telegramProcessorPayload(
+        '12',
+        TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
+        validation_error: 'missing_account_id',
+        language_code: 'en'
+    )),
 ]);
 $PromptUsage = new TelegramProcessorUsageStore();
 $prompt_history = [];
 $PromptApi = telegramProcessorApi($Config, [
     telegramProcessorOk(true),
     telegramProcessorOk(['message_id' => 510]),
+    telegramProcessorOk(true),
+    telegramProcessorOk(true),
+    telegramProcessorOk(['message_id' => 512]),
     telegramProcessorOk(true),
 ], $prompt_history);
 $PromptProcessor = new TelegramUpdateProcessor(
@@ -452,20 +487,34 @@ $PromptProcessor = new TelegramUpdateProcessor(
     $Config,
     $PromptUpdates,
     $PromptUsage,
-    new TelegramProcessorSubscriptionStore()
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
 );
 $PromptProcessor->processNext();
-assertTelegramProcessor(1, count($PromptUpdates->completed), 'A delivered account prompt must complete.');
+$PromptProcessor->processNext();
+assertTelegramProcessor(2, count($PromptUpdates->completed), 'Delivered localized account prompts must complete.');
 assertTelegramProcessor([], $PromptUsage->events, 'An account prompt must not count as an account lookup.');
 assertTelegramProcessor(
-    ['setMessageReaction', 'sendMessage', 'setMessageReaction'],
+    [
+        'setMessageReaction',
+        'sendMessage',
+        'setMessageReaction',
+        'setMessageReaction',
+        'sendMessage',
+        'setMessageReaction',
+    ],
     telegramProcessorRequestMethods($prompt_history),
     'An account prompt must be sent between eyes and reaction clearing.'
 );
 assertTelegramProcessor(
-    [TelegramBotApiClient::REACTION_PROCESSING, 'cleared'],
+    [
+        TelegramBotApiClient::REACTION_PROCESSING,
+        'cleared',
+        TelegramBotApiClient::REACTION_PROCESSING,
+        'cleared',
+    ],
     telegramProcessorReactionStates($prompt_history),
-    'A delivered account prompt must remove the processing reaction.'
+    'Delivered localized account prompts must remove the processing reaction.'
 );
 $prompt_payload = telegramProcessorRequestPayload($prompt_history, 1);
 assertTelegramProcessor(
@@ -477,6 +526,117 @@ assertTelegramProcessor(true, $prompt_payload['reply_markup']['force_reply'] ?? 
 assertTelegramProcessor(true, $prompt_payload['reply_markup']['selective'] ?? null, 'The prompt must target the requesting user.');
 assertTelegramProcessor('G…', $prompt_payload['reply_markup']['input_field_placeholder'] ?? null, 'The prompt must hint at a Stellar address.');
 assertTelegramProcessor(110, $prompt_payload['reply_parameters']['message_id'] ?? null, 'The prompt must reply to the command.');
+$english_prompt_payload = telegramProcessorRequestPayload($prompt_history, 4);
+assertTelegramProcessor(
+    TelegramUpdateParser::ACCOUNT_PROMPT_TEXT_EN,
+    $english_prompt_payload['text'] ?? null,
+    'A non-Russian Telegram language must receive the English account prompt.'
+);
+
+$HelpUpdates = new TelegramProcessorUpdateStore([
+    telegramProcessorJob(telegramProcessorPayload(
+        '20',
+        TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
+        validation_error: 'missing_account_id',
+        help_context: 'help_requested'
+    )),
+    telegramProcessorJob(telegramProcessorPayload(
+        '21',
+        TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
+        validation_error: 'missing_account_id',
+        language_code: 'en-US',
+        help_context: 'help_requested'
+    )),
+    telegramProcessorJob(telegramProcessorPayload(
+        '22',
+        TelegramUpdateParser::TYPE_VALIDATION_ERROR,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
+        validation_error: 'invalid_account_id',
+        language_code: null,
+        help_context: 'invalid_start_payload'
+    )),
+]);
+$help_history = [];
+$HelpApi = telegramProcessorApi($Config, [
+    telegramProcessorOk(true),
+    telegramProcessorOk(['message_id' => 520]),
+    telegramProcessorOk(true),
+    telegramProcessorOk(true),
+    telegramProcessorOk(['message_id' => 521]),
+    telegramProcessorOk(true),
+    telegramProcessorOk(true),
+    telegramProcessorOk(['message_id' => 522]),
+    telegramProcessorOk(true),
+], $help_history);
+$HelpUsage = new TelegramProcessorUsageStore();
+$HelpProcessor = new TelegramUpdateProcessor(
+    $BSN,
+    $Reports,
+    $Renderer,
+    $HelpApi,
+    $Config,
+    $HelpUpdates,
+    $HelpUsage,
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
+);
+assertTelegramProcessor(true, $HelpProcessor->processNext(), 'Russian start help must be processed.');
+assertTelegramProcessor(true, $HelpProcessor->processNext(), 'English help must be processed.');
+assertTelegramProcessor(true, $HelpProcessor->processNext(), 'Invalid start payload help must be processed.');
+assertTelegramProcessor(false, $HelpProcessor->processNext(), 'The help queue must be exhausted.');
+assertTelegramProcessor(3, count($HelpUpdates->completed), 'Every delivered help response must complete.');
+assertTelegramProcessor([], $HelpUsage->events, 'Help must not be counted as an account lookup.');
+assertTelegramProcessor(
+    [
+        'setMessageReaction',
+        'sendMessage',
+        'setMessageReaction',
+        'setMessageReaction',
+        'sendMessage',
+        'setMessageReaction',
+        'setMessageReaction',
+        'sendMessage',
+        'setMessageReaction',
+    ],
+    telegramProcessorRequestMethods($help_history),
+    'Help responses must preserve processing and reaction clearing.'
+);
+$russian_help_payload = telegramProcessorRequestPayload($help_history, 1);
+assertTelegramProcessor('HTML', $russian_help_payload['parse_mode'] ?? null, 'Help must use safe HTML formatting.');
+assertTelegramProcessor(
+    true,
+    str_contains((string) ($russian_help_payload['text'] ?? ''), 'BSN Robot показывает'),
+    'A Russian Telegram language must receive Russian help.'
+);
+foreach (['<code>G…</code>', '<code>/account G…</code>', '<code>/account</code>'] as $example) {
+    assertTelegramProcessor(
+        true,
+        str_contains((string) ($russian_help_payload['text'] ?? ''), $example),
+        'Every help example must use monospace code formatting.'
+    );
+}
+$english_help_payload = telegramProcessorRequestPayload($help_history, 4);
+assertTelegramProcessor(
+    true,
+    str_contains((string) ($english_help_payload['text'] ?? ''), 'BSN Robot shows'),
+    'Every non-Russian Telegram language must receive English help.'
+);
+assertTelegramProcessor(
+    false,
+    str_contains((string) ($english_help_payload['text'] ?? ''), 'BSN Robot показывает'),
+    'English help must not contain the Russian introduction.'
+);
+$invalid_start_help_payload = telegramProcessorRequestPayload($help_history, 7);
+assertTelegramProcessor(
+    true,
+    str_starts_with(
+        (string) ($invalid_start_help_payload['text'] ?? ''),
+        'This report link is invalid or no longer supported.'
+    ),
+    'An invalid start payload must explain the problem before English help.'
+);
 
 // Jobs produced by the first prompt-capable release may still be pending while
 // the worker is updated, so the transitional queue type remains supported.
@@ -506,7 +666,8 @@ $ClearFailureProcessor = new TelegramUpdateProcessor(
     $Config,
     $ClearFailureUpdates,
     new TelegramProcessorUsageStore(),
-    new TelegramProcessorSubscriptionStore()
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
 );
 $ClearFailureProcessor->processNext();
 assertTelegramProcessor(1, count($ClearFailureUpdates->completed), 'Reaction cleanup failure must not undo a delivered reply.');
@@ -541,7 +702,8 @@ $AdminProcessor = new TelegramUpdateProcessor(
     $Config,
     $AdminUpdates,
     $AdminUsage,
-    $AdminSubscriptions
+    $AdminSubscriptions,
+    $Translator
 );
 $AdminProcessor->processNext();
 assertTelegramProcessor(true, $AdminSubscriptions->enabled, 'A private configured admin may enable reports.');
@@ -580,7 +742,8 @@ $ValidationProcessor = new TelegramUpdateProcessor(
     $Config,
     $ValidationUpdates,
     new TelegramProcessorUsageStore(),
-    new TelegramProcessorSubscriptionStore()
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
 );
 $ValidationProcessor->processNext();
 assertTelegramProcessor(1, count($ValidationUpdates->completed), 'A delivered legacy validation reply must complete.');
@@ -596,9 +759,14 @@ assertTelegramProcessor(
 );
 $legacy_validation_payload = telegramProcessorRequestPayload($validation_history, 1);
 assertTelegramProcessor(
-    'Укажите Stellar-адрес после команды: /account_info G…',
+    "Укажите публичный Stellar-адрес аккаунта.\n<code>/account_info G…</code>",
     $legacy_validation_payload['text'] ?? null,
     'A job from the legacy producer must instruct the user with its supported command.'
+);
+assertTelegramProcessor(
+    'HTML',
+    $legacy_validation_payload['parse_mode'] ?? null,
+    'A legacy command example must use monospace HTML formatting.'
 );
 assertTelegramProcessor(
     false,
@@ -634,7 +802,8 @@ $ErrorProcessor = new TelegramUpdateProcessor(
     $Config,
     $ErrorUpdates,
     $ErrorUsage,
-    new TelegramProcessorSubscriptionStore()
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
 );
 $ErrorProcessor->processNext();
 assertTelegramProcessor(1, count($ErrorUpdates->completed), 'A delivered account error fallback must complete.');
@@ -675,7 +844,8 @@ $ReconcileProcessor = new TelegramUpdateProcessor(
     $Config,
     $ReconcileUpdates,
     $ReconcileUsage,
-    new TelegramProcessorSubscriptionStore()
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
 );
 assertTelegramProcessor(true, $ReconcileProcessor->processNext(), 'The initial lookup delivery must be processed.');
 assertTelegramProcessor(1, count($ReconcileUpdates->usage_pending), 'Confirmed delivery must persist pending usage before recording it.');
@@ -747,7 +917,8 @@ $RateProcessor = new TelegramUpdateProcessor(
     $Config,
     $RateUpdates,
     new TelegramProcessorUsageStore(),
-    new TelegramProcessorSubscriptionStore()
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
 );
 $RateProcessor->processNext();
 assertTelegramProcessor(7200, $RateUpdates->retried[0]['delay_seconds'] ?? null, 'A long retry_after must not be capped.');
@@ -780,7 +951,8 @@ $UncertainProcessor = new TelegramUpdateProcessor(
     $Config,
     $UncertainUpdates,
     $UncertainUsage,
-    new TelegramProcessorSubscriptionStore()
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
 );
 $UncertainProcessor->processNext();
 assertTelegramProcessor(1, count($UncertainUpdates->uncertain), 'A transport uncertainty must be terminal.');
@@ -817,7 +989,8 @@ $TerminalProcessor = new TelegramUpdateProcessor(
     $Config,
     $TerminalUpdates,
     new TelegramProcessorUsageStore(),
-    new TelegramProcessorSubscriptionStore()
+    new TelegramProcessorSubscriptionStore(),
+    $Translator
 );
 $TerminalProcessor->processNext();
 assertTelegramProcessor(1, count($TerminalUpdates->failed), 'A terminal Bot API rejection must fail the job.');

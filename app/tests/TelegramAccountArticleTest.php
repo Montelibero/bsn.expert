@@ -616,6 +616,67 @@ assertTelegramArticle(
     'The only divider must be immediately before the footer.'
 );
 
+$english_report = $ReportBuilder->build($account_id, 'en');
+$english_report['source']['generated_at'] = (int) $english_report['source']['snapshot_at'] + 3600;
+$english_message = $Renderer->render($english_report);
+$english_blocks = $english_message['rich_message']['blocks'];
+$english_text = telegramArticleAllText($english_message['rich_message']);
+$english_summary_index = telegramArticleHeadingIndex($english_blocks, 'Summary');
+$english_income_index = telegramArticleHeadingIndex($english_blocks, 'Income tags');
+$english_outcome_index = telegramArticleHeadingIndex($english_blocks, 'Outcome tags');
+assertTelegramArticle(true, is_int($english_summary_index), 'An English article must localize the summary heading.');
+assertTelegramArticle(
+    true,
+    str_contains(
+        $english_text,
+        sprintf(
+            'Tags: %d incoming, %d outgoing',
+            (int) $english_report['relations']['income']['links_count'],
+            (int) $english_report['relations']['outcome']['links_count']
+        )
+    ),
+    'An English article must localize the tag direction summary.'
+);
+assertTelegramArticle(true, is_int($english_income_index), 'An English article must localize the incoming tag heading.');
+assertTelegramArticle(true, is_int($english_outcome_index), 'An English article must localize the outgoing tag heading.');
+$english_income_details = is_int($english_income_index)
+    ? ($english_blocks[$english_income_index + 1] ?? null)
+    : null;
+$english_outcome_details = is_int($english_outcome_index)
+    ? ($english_blocks[$english_outcome_index + 1] ?? null)
+    : null;
+assertTelegramArticle(
+    sprintf('%d types', count($english_report['relations']['income']['groups'])),
+    $english_income_details['summary'] ?? null,
+    'An English article must localize the incoming type count.'
+);
+assertTelegramArticle(
+    sprintf('%d types', count($english_report['relations']['outcome']['groups'])),
+    $english_outcome_details['summary'] ?? null,
+    'An English article must localize the outgoing type count.'
+);
+$english_footer_index = array_key_last($english_blocks);
+$english_footer_text = telegramArticlePlainText(
+    is_int($english_footer_index) ? ($english_blocks[$english_footer_index]['text'] ?? '') : ''
+);
+assertTelegramArticle(
+    true,
+    str_contains($english_footer_text, 'BSN: 2026-07-25 15:48 UTC · Article: 16:48 UTC'),
+    'An English article must localize the footer label.'
+);
+assertTelegramArticle(
+    'Full page',
+    telegramArticleUrlText($english_message['rich_message'], 'https://bsn.expert/@Soz'),
+    'An English article must localize the full-page link.'
+);
+foreach (['Коротко', 'Теги:', 'Входящие теги', 'Исходящие теги', ' типа', ' типов', 'статья:', 'полная страница'] as $russian_label) {
+    assertTelegramArticle(
+        false,
+        str_contains($english_text, $russian_label),
+        sprintf('An English article must not contain the Russian label "%s".', $russian_label)
+    );
+}
+
 $heading_sizes = [];
 $incoming_heading_index = null;
 $outgoing_heading_index = null;

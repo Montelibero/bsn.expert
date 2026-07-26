@@ -145,6 +145,7 @@ $Mock = new MockHandler([
     telegramOkResponse(true),
     telegramOkResponse(true),
     telegramOkResponse(true),
+    telegramOkResponse(true),
 ]);
 $Handler = HandlerStack::create($Mock);
 $Handler->push(Middleware::history($history));
@@ -191,11 +192,12 @@ assertTelegramTransport(
 );
 assertTelegramTransport(
     104,
-    $ApiClient->sendMessage('3718221', 'hello', [
+    $ApiClient->sendMessage('3718221', '<code>hello</code>', [
         'direct_messages_topic_id' => 17,
         'reply_markup' => $legacy_markup,
+        'parse_mode' => 'HTML',
     ])['message_id'],
-    'Plain messages must support the safe shared options.'
+    'Plain messages must support safe HTML formatting and shared options.'
 );
 assertTelegramTransport(
     true,
@@ -209,7 +211,7 @@ assertTelegramTransport(
 );
 assertTelegramTransport(true, $ApiClient->setMyCommands(), 'The public command menu must be configurable.');
 
-assertTelegramTransport(10, count($history), 'Every successful client call must issue exactly one request.');
+assertTelegramTransport(11, count($history), 'Every successful client call must issue exactly one request.');
 assertTelegramTransport(
     'https://api.telegram.org/bot' . $fake_token . '/getWebhookInfo',
     (string) $history[0]['request']->getUri(),
@@ -247,7 +249,8 @@ $composed_payload = telegramRequestPayload($history, 5);
 assertTelegramTransport($legacy_markup, $composed_payload['reply_markup'], 'Composed reply markup must be forwarded.');
 assertTelegramTransport(true, $composed_payload['protect_content'], 'Content protection must be forwarded.');
 $plain_payload = telegramRequestPayload($history, 6);
-assertTelegramTransport('hello', $plain_payload['text'], 'Plain message text must be forwarded unchanged.');
+assertTelegramTransport('<code>hello</code>', $plain_payload['text'], 'Plain message text must be forwarded unchanged.');
+assertTelegramTransport('HTML', $plain_payload['parse_mode'] ?? null, 'Plain messages must allow only explicit HTML parsing.');
 $processing_reaction = telegramRequestPayload($history, 7);
 assertTelegramTransport(
     [['type' => 'emoji', 'emoji' => '👀']],
@@ -260,9 +263,26 @@ $commands_payload = telegramRequestPayload($history, 9);
 assertTelegramTransport([
     [
         'command' => 'account',
+        'description' => 'Show a Stellar account',
+    ],
+    [
+        'command' => 'help',
+        'description' => 'How to use the bot',
+    ],
+], $commands_payload['commands'] ?? null, 'The default command menu must be English.');
+assertTelegramTransport(false, array_key_exists('language_code', $commands_payload), 'Default commands must not be language-scoped.');
+$russian_commands_payload = telegramRequestPayload($history, 10);
+assertTelegramTransport([
+    [
+        'command' => 'account',
         'description' => 'Рассказать об аккаунте Stellar',
     ],
-], $commands_payload['commands'] ?? null, 'The menu must expose only the primary account command.');
+    [
+        'command' => 'help',
+        'description' => 'Как пользоваться ботом',
+    ],
+], $russian_commands_payload['commands'] ?? null, 'The Russian command menu must be localized.');
+assertTelegramTransport('ru', $russian_commands_payload['language_code'] ?? null, 'Russian commands must use Telegram language scoping.');
 
 $wrong_identity_history = [];
 $WrongIdentityHandler = HandlerStack::create(new MockHandler([
@@ -295,11 +315,11 @@ assertTelegramTransport(
 $request_count_before_validation = count($history);
 $unsupported_option_rejected = false;
 try {
-    $ApiClient->sendMessage('3718221', 'hello', ['parse_mode' => 'HTML']);
+    $ApiClient->sendMessage('3718221', 'hello', ['parse_mode' => 'MarkdownV2']);
 } catch (TelegramBotApiException $Exception) {
     $unsupported_option_rejected = $Exception->apiMethod() === 'sendMessage';
 }
-assertTelegramTransport(true, $unsupported_option_rejected, 'Unsupported message options must be rejected locally.');
+assertTelegramTransport(true, $unsupported_option_rejected, 'Unsupported parse modes must be rejected locally.');
 assertTelegramTransport(
     $request_count_before_validation,
     count($history),

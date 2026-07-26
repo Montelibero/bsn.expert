@@ -506,6 +506,11 @@ telegram_account_article:
   summary:
     header: Summary
     tags: Tags
+    directions: "%incoming% incoming, %outgoing% outgoing"
+  footer:
+    unknown: unknown
+    article: Article
+    full_page: Full page
   ownership:
     belongs_to: Account belongs to
     owns: Accounts owned by this account
@@ -529,6 +534,23 @@ telegram_account_article:
       one: document
       few: documents
       many: documents
+
+telegram_bot:
+  help:
+    intro: BSN Robot shows BSN.expert data about Stellar accounts directly in Telegram.
+    private_lookup: In a private chat, simply send a public Stellar address.
+    group_lookup: In a group, provide a public Stellar address after the command.
+    prompt_lookup: If no address is provided, I will ask you to send it in a separate message.
+    linked_accounts: Links to related accounts open their reports in a private chat with the bot.
+    data_notice: Reports use the latest available data snapshot. A link to the full BSN.expert page is available in every report footer.
+    invalid_start_payload: This report link is invalid or no longer supported.
+  account_prompt: Which account would you like me to tell you about?
+  account_fallback: The account report could not be generated. Please try again later.
+  validation:
+    missing_account_id: Please provide the account's public Stellar address.
+    invalid_account_id: A valid public Stellar account address starting with G is required.
+    unexpected_argument: This command does not accept arguments.
+    unknown_command: The command could not be recognized.
 
 account_operations:
   title: "%name% — operations"

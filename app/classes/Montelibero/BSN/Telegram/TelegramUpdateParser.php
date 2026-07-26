@@ -15,10 +15,13 @@ final class TelegramUpdateParser
 
     public const COMMAND_ACCOUNT = 'account';
     public const COMMAND_ACCOUNT_INFO = 'account_info';
+    public const COMMAND_START = 'start';
+    public const COMMAND_HELP = 'help';
     public const COMMAND_DAILY_REPORT_ON = 'daily_report_on';
     public const COMMAND_DAILY_REPORT_OFF = 'daily_report_off';
 
     public const ACCOUNT_PROMPT_TEXT = 'Про какой аккаунт вам рассказать?';
+    public const ACCOUNT_PROMPT_TEXT_EN = 'Which account would you like me to tell you about?';
 
     private readonly string $bot_username;
 
@@ -40,6 +43,7 @@ final class TelegramUpdateParser
      *     command: self::COMMAND_*,
      *     account_id: ?string,
      *     validation_error: ?string,
+     *     help_context?: 'help_requested'|'invalid_start_payload',
      *     chat: array{id: string, type: string, title: ?string, username: ?string},
      *     user: array{id: string, username: ?string, name: ?string, language_code: ?string},
      *     message_id: int,
@@ -130,28 +134,53 @@ final class TelegramUpdateParser
     private function parseText(string $text, string $chat_type, mixed $reply_to_message): ?array
     {
         if (preg_match(
-            '/\A\/start(?:@([A-Za-z][A-Za-z0-9_]{4,31}))?(?:\s+(.*))?\z/isuD',
+            '/\A\/(start|help)(?:@([A-Za-z][A-Za-z0-9_]{4,31}))?(?:\s+(.*))?\z/isuD',
             $text,
             $matches
         ) === 1) {
-            if ($chat_type !== 'private') {
-                return null;
-            }
-
-            $suffix = $matches[1] ?? '';
+            $command = strtolower($matches[1]);
+            $suffix = $matches[2] ?? '';
             if ($suffix !== '' && strtolower($suffix) !== $this->bot_username) {
                 return null;
             }
 
-            $payload = trim((string) ($matches[2] ?? ''));
-            if (!str_starts_with($payload, 'a_')) {
+            if ($command === self::COMMAND_HELP) {
+                return $this->parsed(
+                    self::TYPE_VALIDATION_ERROR,
+                    self::COMMAND_ACCOUNT,
+                    null,
+                    'missing_account_id',
+                    'help_requested'
+                );
+            }
+
+            if ($chat_type !== 'private') {
                 return null;
             }
 
-            $account_id = $this->normalizeAccountId(substr($payload, 2));
+            $payload = trim((string) ($matches[3] ?? ''));
+            if ($payload === '') {
+                return $this->parsed(
+                    self::TYPE_VALIDATION_ERROR,
+                    self::COMMAND_ACCOUNT,
+                    null,
+                    'missing_account_id',
+                    'help_requested'
+                );
+            }
+
+            $account_id = str_starts_with($payload, 'a_')
+                ? $this->normalizeAccountId(substr($payload, 2))
+                : null;
 
             return $account_id === null
-                ? null
+                ? $this->parsed(
+                    self::TYPE_VALIDATION_ERROR,
+                    self::COMMAND_ACCOUNT,
+                    null,
+                    'invalid_account_id',
+                    'invalid_start_payload'
+                )
                 : $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT, $account_id);
         }
 
@@ -232,9 +261,12 @@ final class TelegramUpdateParser
 
     private function isReplyToAccountPrompt(mixed $reply_to_message): bool
     {
-        if (!is_array($reply_to_message)
-            || ($reply_to_message['text'] ?? null) !== self::ACCOUNT_PROMPT_TEXT
-        ) {
+        if (!is_array($reply_to_message)) {
+            return false;
+        }
+
+        $text = $reply_to_message['text'] ?? null;
+        if (!in_array($text, [self::ACCOUNT_PROMPT_TEXT, self::ACCOUNT_PROMPT_TEXT_EN], true)) {
             return false;
         }
 
@@ -253,7 +285,8 @@ final class TelegramUpdateParser
      *     type: self::TYPE_*,
      *     command: self::COMMAND_*,
      *     account_id: ?string,
-     *     validation_error: ?string
+     *     validation_error: ?string,
+     *     help_context?: 'help_requested'|'invalid_start_payload'
      * }
      */
     private function parsed(
@@ -261,13 +294,20 @@ final class TelegramUpdateParser
         string $command,
         ?string $account_id = null,
         ?string $validation_error = null,
+        ?string $help_context = null,
     ): array {
-        return [
+        $parsed = [
             'type' => $type,
             'command' => $command,
             'account_id' => $account_id,
             'validation_error' => $validation_error,
         ];
+
+        if ($help_context !== null) {
+            $parsed['help_context'] = $help_context;
+        }
+
+        return $parsed;
     }
 
     private function normalizeAccountId(string $value): ?string

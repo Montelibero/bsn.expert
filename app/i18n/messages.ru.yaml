@@ -504,6 +504,11 @@ telegram_account_article:
   summary:
     header: Коротко
     tags: Теги
+    directions: "%incoming% входящих, %outgoing% исходящих"
+  footer:
+    unknown: неизвестно
+    article: статья
+    full_page: полная страница
   ownership:
     belongs_to: Аккаунт принадлежит
     owns: Аккаунту принадлежат
@@ -527,6 +532,23 @@ telegram_account_article:
       one: документ
       few: документа
       many: документов
+
+telegram_bot:
+  help:
+    intro: BSN Robot показывает данные BSN.expert об аккаунтах Stellar прямо в Telegram.
+    private_lookup: В личном чате достаточно отправить публичный Stellar-адрес.
+    group_lookup: В группе укажите публичный Stellar-адрес после команды.
+    prompt_lookup: Если адрес не указан, я попрошу прислать его отдельным сообщением.
+    linked_accounts: Ссылки на связанные аккаунты открывают их справки в личном чате с ботом.
+    data_notice: Справки основаны на последнем доступном снимке данных. Ссылка на полную страницу BSN.expert есть в футере каждой справки.
+    invalid_start_payload: Эта ссылка на справку некорректна или больше не поддерживается.
+  account_prompt: Про какой аккаунт вам рассказать?
+  account_fallback: Не удалось собрать описание аккаунта. Попробуйте повторить запрос позже.
+  validation:
+    missing_account_id: Укажите публичный Stellar-адрес аккаунта.
+    invalid_account_id: Нужен корректный публичный Stellar-адрес аккаунта, начинающийся с G.
+    unexpected_argument: Эта команда не принимает аргументы.
+    unknown_command: Не удалось распознать команду.
 
 account_operations:
   title: "%name% — операции"

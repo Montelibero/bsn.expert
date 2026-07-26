@@ -6,6 +6,7 @@ namespace Montelibero\BSN\Telegram;
 
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Knowledge\AccountReportBuilder;
+use Symfony\Component\Translation\Translator;
 use Throwable;
 
 final class TelegramUpdateProcessor
@@ -21,6 +22,7 @@ final class TelegramUpdateProcessor
         private readonly TelegramUpdateStore $Updates,
         private readonly TelegramUsageStore $Usage,
         private readonly TelegramDailySubscriptionStore $DailySubscriptions,
+        private readonly Translator $Translator,
     ) {
     }
 
@@ -89,7 +91,7 @@ final class TelegramUpdateProcessor
         }
 
         try {
-            $report = $this->AccountReports->build($account_id, 'ru');
+            $report = $this->AccountReports->build($account_id, $this->locale($payload));
             $rendered = $this->AccountRenderer->render($report);
             $rich_message = $rendered['rich_message'] ?? null;
             if (!is_array($rich_message) || $rich_message === []) {
@@ -150,7 +152,7 @@ final class TelegramUpdateProcessor
     {
         $response = $this->sendReply(
             $payload,
-            'Не удалось собрать описание аккаунта. Попробуйте повторить запрос позже.'
+            $this->trans($payload, 'telegram_bot.account_fallback')
         );
         $this->finishAccountResponse(
             $job,
@@ -174,7 +176,7 @@ final class TelegramUpdateProcessor
     {
         $response = $this->sendReply(
             $payload,
-            TelegramUpdateParser::ACCOUNT_PROMPT_TEXT,
+            $this->trans($payload, 'telegram_bot.account_prompt'),
             [
                 'reply_markup' => [
                     'force_reply' => true,
@@ -195,6 +197,21 @@ final class TelegramUpdateProcessor
      */
     private function processValidationError(array $job, array $payload): void
     {
+        $validation_error = $payload['validation_error'] ?? null;
+        $help_context = $payload['help_context'] ?? null;
+        if (!is_string($help_context)
+            && in_array($validation_error, ['help_requested', 'invalid_start_payload'], true)
+        ) {
+            // Accept jobs produced by the first implementation of start/help
+            // support, even if they were queued during a rolling deployment.
+            $help_context = $validation_error;
+        }
+        if (in_array($help_context, ['help_requested', 'invalid_start_payload'], true)) {
+            $this->processHelp($job, $payload, $help_context === 'invalid_start_payload');
+
+            return;
+        }
+
         if (($payload['validation_error'] ?? null) === 'missing_account_id'
             && ($payload['command'] ?? null) === TelegramUpdateParser::COMMAND_ACCOUNT
         ) {
@@ -203,15 +220,55 @@ final class TelegramUpdateProcessor
             return;
         }
 
-        $text = match ($payload['validation_error'] ?? null) {
-            'missing_account_id' => 'Укажите Stellar-адрес после команды: /account_info G…',
-            'invalid_account_id' => 'Нужен корректный публичный Stellar-адрес аккаунта, начинающийся с G.',
-            'unexpected_argument' => 'Эта команда не принимает аргументы.',
-            default => 'Не удалось распознать команду.',
-        };
-        $response = $this->sendReply($payload, $text);
+        if ($validation_error === 'missing_account_id') {
+            $text = $this->html($this->trans($payload, 'telegram_bot.validation.missing_account_id'))
+                . "\n"
+                . $this->code('/account_info G…');
+            $response = $this->sendReply($payload, $text, ['parse_mode' => 'HTML']);
+        } else {
+            $text = match ($validation_error) {
+                'invalid_account_id' => $this->trans($payload, 'telegram_bot.validation.invalid_account_id'),
+                'unexpected_argument' => $this->trans($payload, 'telegram_bot.validation.unexpected_argument'),
+                default => $this->trans($payload, 'telegram_bot.validation.unknown_command'),
+            };
+            $response = $this->sendReply($payload, $text);
+        }
         $this->completeJob($job, $payload, [
             'response' => 'validation_error',
+            'message_id' => $this->responseMessageId($response),
+        ]);
+    }
+
+    /**
+     * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
+     * @param array<string, mixed> $payload
+     */
+    private function processHelp(array $job, array $payload, bool $invalid_start_payload): void
+    {
+        $parts = [];
+        if ($invalid_start_payload) {
+            $parts[] = $this->html($this->trans($payload, 'telegram_bot.help.invalid_start_payload'));
+        }
+        $parts[] = $this->html($this->trans($payload, 'telegram_bot.help.intro'));
+        $parts[] = '• ' . $this->html($this->trans($payload, 'telegram_bot.help.private_lookup'))
+            . "\n"
+            . $this->code('G…');
+        $parts[] = '• ' . $this->html($this->trans($payload, 'telegram_bot.help.group_lookup'))
+            . "\n"
+            . $this->code('/account G…');
+        $parts[] = '• ' . $this->html($this->trans($payload, 'telegram_bot.help.prompt_lookup'))
+            . "\n"
+            . $this->code('/account');
+        $parts[] = '• ' . $this->html($this->trans($payload, 'telegram_bot.help.linked_accounts'));
+        $parts[] = $this->html($this->trans($payload, 'telegram_bot.help.data_notice'));
+
+        $response = $this->sendReply(
+            $payload,
+            implode("\n\n", $parts),
+            ['parse_mode' => 'HTML']
+        );
+        $this->completeJob($job, $payload, [
+            'response' => $invalid_start_payload ? 'help_invalid_start_payload' : 'help',
             'message_id' => $this->responseMessageId($response),
         ]);
     }
@@ -360,6 +417,34 @@ final class TelegramUpdateProcessor
             $text,
             array_merge($options, $extra_options)
         );
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function locale(array $payload): string
+    {
+        $user = is_array($payload['user'] ?? null) ? $payload['user'] : [];
+        $language_code = strtolower(trim((string) ($user['language_code'] ?? '')));
+
+        return $language_code === 'ru' || str_starts_with($language_code, 'ru-') ? 'ru' : 'en';
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, scalar> $parameters
+     */
+    private function trans(array $payload, string $key, array $parameters = []): string
+    {
+        return $this->Translator->trans($key, $parameters, null, $this->locale($payload));
+    }
+
+    private function html(string $text): string
+    {
+        return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    private function code(string $text): string
+    {
+        return '<code>' . $this->html($text) . '</code>';
     }
 
     /** @param array<string, mixed> $payload */

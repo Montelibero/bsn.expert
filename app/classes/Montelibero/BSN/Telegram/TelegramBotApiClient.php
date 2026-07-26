@@ -19,6 +19,7 @@ final class TelegramBotApiClient
         'disable_notification',
         'protect_content',
         'reply_markup',
+        'parse_mode',
     ];
 
     private const REPLY_MARKUP_NAMES = [
@@ -130,20 +131,46 @@ final class TelegramBotApiClient
 
     public function setMyCommands(): bool
     {
-        $response = $this->request(
-            'setMyCommands',
+        $command_sets = [
             [
+                'language_code' => null,
+                'commands' => [
+                    [
+                        'command' => TelegramUpdateParser::COMMAND_ACCOUNT,
+                        'description' => 'Show a Stellar account',
+                    ],
+                    [
+                        'command' => TelegramUpdateParser::COMMAND_HELP,
+                        'description' => 'How to use the bot',
+                    ],
+                ],
+            ],
+            [
+                'language_code' => 'ru',
                 'commands' => [
                     [
                         'command' => TelegramUpdateParser::COMMAND_ACCOUNT,
                         'description' => 'Рассказать об аккаунте Stellar',
                     ],
+                    [
+                        'command' => TelegramUpdateParser::COMMAND_HELP,
+                        'description' => 'Как пользоваться ботом',
+                    ],
                 ],
             ],
-            true
-        );
-        if ($response['result'] !== true) {
-            throw $this->unexpectedResult('setMyCommands', true, $response['http_status']);
+        ];
+
+        foreach ($command_sets as $command_set) {
+            $payload = ['commands' => $command_set['commands']];
+            $language_code = $command_set['language_code'];
+            if (is_string($language_code)) {
+                $payload['language_code'] = $language_code;
+            }
+
+            $response = $this->request('setMyCommands', $payload, true);
+            if ($response['result'] !== true) {
+                throw $this->unexpectedResult('setMyCommands', true, $response['http_status']);
+            }
         }
 
         return true;
@@ -362,6 +389,16 @@ final class TelegramBotApiClient
                 if (!is_bool($value)) {
                     throw new TelegramBotApiException(
                         sprintf('%s must be a boolean.', $name),
+                        api_method: $api_method
+                    );
+                }
+                continue;
+            }
+
+            if ($name === 'parse_mode') {
+                if ($api_method !== 'sendMessage' || $value !== 'HTML') {
+                    throw new TelegramBotApiException(
+                        'Only HTML parse mode is supported for plain messages.',
                         api_method: $api_method
                     );
                 }
