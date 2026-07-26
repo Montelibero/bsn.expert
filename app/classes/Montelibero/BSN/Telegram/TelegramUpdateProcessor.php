@@ -37,10 +37,13 @@ final class TelegramUpdateProcessor
         }
 
         $payload = $job['payload'];
-        $this->setReactionBestEffort($payload, TelegramBotApiClient::REACTION_PROCESSING);
+        $phase = $job['phase'] ?? TelegramUpdateStore::PHASE_RESPOND;
+        if ($phase === TelegramUpdateStore::PHASE_RESPOND) {
+            $this->setReactionBestEffort($payload, TelegramBotApiClient::REACTION_PROCESSING);
+        }
 
         try {
-            if (($job['phase'] ?? TelegramUpdateStore::PHASE_RESPOND) === TelegramUpdateStore::PHASE_RECORD_USAGE) {
+            if ($phase === TelegramUpdateStore::PHASE_RECORD_USAGE) {
                 $this->processPendingUsage($job, $payload);
 
                 return true;
@@ -49,6 +52,8 @@ final class TelegramUpdateProcessor
             $type = $payload['type'] ?? null;
             if ($type === TelegramUpdateParser::TYPE_ACCOUNT_INFO) {
                 $this->processAccountLookup($job, $payload);
+            } elseif ($type === TelegramUpdateParser::TYPE_ACCOUNT_PROMPT) {
+                $this->processAccountPrompt($job, $payload);
             } elseif ($type === TelegramUpdateParser::TYPE_ADMIN_COMMAND) {
                 $this->processAdminCommand($job, $payload);
             } elseif ($type === TelegramUpdateParser::TYPE_VALIDATION_ERROR) {
@@ -133,8 +138,7 @@ final class TelegramUpdateProcessor
                 'response' => 'account_article',
                 'account_id' => $account_id,
                 'message_id' => $this->responseMessageId($response),
-            ],
-            true
+            ]
         );
     }
 
@@ -158,9 +162,31 @@ final class TelegramUpdateProcessor
                 'response' => 'account_error',
                 'account_id' => $account_id,
                 'message_id' => $this->responseMessageId($response),
-            ],
-            false
+            ]
         );
+    }
+
+    /**
+     * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
+     * @param array<string, mixed> $payload
+     */
+    private function processAccountPrompt(array $job, array $payload): void
+    {
+        $response = $this->sendReply(
+            $payload,
+            TelegramUpdateParser::ACCOUNT_PROMPT_TEXT,
+            [
+                'reply_markup' => [
+                    'force_reply' => true,
+                    'selective' => true,
+                    'input_field_placeholder' => 'G…',
+                ],
+            ]
+        );
+        $this->completeJob($job, $payload, [
+            'response' => 'account_prompt',
+            'message_id' => $this->responseMessageId($response),
+        ]);
     }
 
     /**
@@ -170,7 +196,7 @@ final class TelegramUpdateProcessor
     private function processValidationError(array $job, array $payload): void
     {
         $text = match ($payload['validation_error'] ?? null) {
-            'missing_account_id' => 'Укажите Stellar-адрес после команды: /account_info G…',
+            'missing_account_id' => 'Укажите Stellar-адрес после команды: /account G…',
             'invalid_account_id' => 'Нужен корректный публичный Stellar-адрес аккаунта, начинающийся с G.',
             'unexpected_argument' => 'Эта команда не принимает аргументы.',
             default => 'Не удалось распознать команду.',
@@ -229,7 +255,7 @@ final class TelegramUpdateProcessor
             'command' => $command,
             'changed' => $changed,
             'message_id' => $this->responseMessageId($response),
-        ], true);
+        ]);
     }
 
     /**
@@ -297,13 +323,13 @@ final class TelegramUpdateProcessor
      * @param array{update_id: string, lease_token: string, attempt_count: int, payload: array<string, mixed>} $job
      * @param array<string, mixed> $payload
      */
-    private function completeJob(array $job, array $payload, array $effect, bool $success_reaction = false): void
+    private function completeJob(array $job, array $payload, array $effect, bool $clear_reaction = true): void
     {
         if (!$this->Updates->complete($job['update_id'], $job['lease_token'], $effect)) {
             throw new \RuntimeException('Telegram update lease was lost before completion.');
         }
-        if ($success_reaction) {
-            $this->setReactionBestEffort($payload, TelegramBotApiClient::REACTION_SUCCESS);
+        if ($clear_reaction) {
+            $this->clearReactionBestEffort($payload);
         }
     }
 
@@ -314,12 +340,17 @@ final class TelegramUpdateProcessor
     }
 
     /** @param array<string, mixed> $payload */
-    private function sendReply(array $payload, string $text): array
+    private function sendReply(array $payload, string $text, array $extra_options = []): array
     {
+        $options = $this->replyOptions($payload);
+        if (array_intersect_key($options, $extra_options) !== []) {
+            throw new \InvalidArgumentException('A Telegram reply option was provided twice.');
+        }
+
         return $this->BotApi->sendMessage(
             $this->chatId($payload),
             $text,
-            $this->replyOptions($payload)
+            array_merge($options, $extra_options)
         );
     }
 
@@ -395,6 +426,24 @@ final class TelegramUpdateProcessor
         }
     }
 
+    /** @param array<string, mixed> $payload */
+    private function clearReactionBestEffort(array $payload): void
+    {
+        try {
+            $message_id = $payload['message_id'] ?? null;
+            if (!is_int($message_id) || $message_id <= 0) {
+                return;
+            }
+            $this->BotApi->clearMessageReaction($this->chatId($payload), $message_id);
+        } catch (Throwable $Exception) {
+            error_log(sprintf(
+                'Telegram reaction clearing failed: update_id=%s error=%s',
+                (string) ($payload['update_id'] ?? 'unknown'),
+                $Exception::class
+            ));
+        }
+    }
+
     /**
      * @param array<string, mixed> $job
      * @param array<string, mixed> $payload
@@ -407,7 +456,6 @@ final class TelegramUpdateProcessor
         string $outcome,
         bool $known,
         array $effect,
-        bool $success_reaction,
     ): void {
         $chat = is_array($payload['chat'] ?? null) ? $payload['chat'] : [];
         $user = is_array($payload['user'] ?? null) ? $payload['user'] : null;
@@ -425,8 +473,7 @@ final class TelegramUpdateProcessor
             $job['update_id'],
             $job['lease_token'],
             $usage,
-            $effect,
-            $success_reaction
+            $effect
         )) {
             throw new \RuntimeException('Telegram update lease was lost after response delivery.');
         }
@@ -434,7 +481,6 @@ final class TelegramUpdateProcessor
         $job['phase'] = TelegramUpdateStore::PHASE_RECORD_USAGE;
         $job['pending_usage'] = $usage;
         $job['pending_effect'] = $effect;
-        $job['pending_success_reaction'] = $success_reaction;
         $this->processPendingUsage($job, $payload);
     }
 
@@ -450,6 +496,8 @@ final class TelegramUpdateProcessor
 
             return;
         }
+
+        $this->clearReactionBestEffort($payload);
 
         try {
             $chat = is_array($usage['chat'] ?? null) ? $usage['chat'] : [];
@@ -484,7 +532,7 @@ final class TelegramUpdateProcessor
             $job,
             $payload,
             $effect,
-            ($job['pending_success_reaction'] ?? false) === true
+            false
         );
     }
 

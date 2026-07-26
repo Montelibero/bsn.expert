@@ -9,12 +9,16 @@ use Soneso\StellarSDK\Crypto\StrKey;
 final class TelegramUpdateParser
 {
     public const TYPE_ACCOUNT_INFO = 'account_info';
+    public const TYPE_ACCOUNT_PROMPT = 'account_prompt';
     public const TYPE_ADMIN_COMMAND = 'admin_command';
     public const TYPE_VALIDATION_ERROR = 'validation_error';
 
+    public const COMMAND_ACCOUNT = 'account';
     public const COMMAND_ACCOUNT_INFO = 'account_info';
     public const COMMAND_DAILY_REPORT_ON = 'daily_report_on';
     public const COMMAND_DAILY_REPORT_OFF = 'daily_report_off';
+
+    public const ACCOUNT_PROMPT_TEXT = 'Про какой аккаунт вам рассказать?';
 
     private readonly string $bot_username;
 
@@ -81,7 +85,7 @@ final class TelegramUpdateParser
             return null;
         }
 
-        $parsed = $this->parseText($text, $chat_type);
+        $parsed = $this->parseText($text, $chat_type, $message['reply_to_message'] ?? null);
         if ($parsed === null) {
             return null;
         }
@@ -123,17 +127,30 @@ final class TelegramUpdateParser
      *     validation_error: ?string
      * }|null
      */
-    private function parseText(string $text, string $chat_type): ?array
+    private function parseText(string $text, string $chat_type, mixed $reply_to_message): ?array
     {
+        if ($this->isReplyToAccountPrompt($reply_to_message)) {
+            $account_id = $this->normalizeAccountId($text);
+
+            return $account_id === null
+                ? $this->parsed(
+                    self::TYPE_VALIDATION_ERROR,
+                    self::COMMAND_ACCOUNT,
+                    null,
+                    'invalid_account_id'
+                )
+                : $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT, $account_id);
+        }
+
         if ($chat_type === 'private') {
             $account_id = $this->normalizeAccountId($text);
             if ($account_id !== null) {
-                return $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT_INFO, $account_id);
+                return $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT, $account_id);
             }
         }
 
         if (preg_match(
-            '/\A\/(account_info|daily_report_on|daily_report_off)(?:@([A-Za-z][A-Za-z0-9_]{4,31}))?(?:\s+(.*))?\z/isuD',
+            '/\A\/(account|account_info|daily_report_on|daily_report_off)(?:@([A-Za-z][A-Za-z0-9_]{4,31}))?(?:\s+(.*))?\z/isuD',
             $text,
             $matches
         ) !== 1) {
@@ -147,18 +164,22 @@ final class TelegramUpdateParser
         }
         $argument = trim((string) ($matches[3] ?? ''));
 
-        if ($command === self::COMMAND_ACCOUNT_INFO) {
+        if (in_array($command, [self::COMMAND_ACCOUNT, self::COMMAND_ACCOUNT_INFO], true)) {
+            if ($argument === '') {
+                return $this->parsed(self::TYPE_ACCOUNT_PROMPT, self::COMMAND_ACCOUNT);
+            }
+
             $account_id = $this->normalizeAccountId($argument);
             if ($account_id === null) {
                 return $this->parsed(
                     self::TYPE_VALIDATION_ERROR,
-                    self::COMMAND_ACCOUNT_INFO,
+                    self::COMMAND_ACCOUNT,
                     null,
-                    $argument === '' ? 'missing_account_id' : 'invalid_account_id'
+                    'invalid_account_id'
                 );
             }
 
-            return $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT_INFO, $account_id);
+            return $this->parsed(self::TYPE_ACCOUNT_INFO, self::COMMAND_ACCOUNT, $account_id);
         }
 
         if ($chat_type !== 'private') {
@@ -174,6 +195,24 @@ final class TelegramUpdateParser
         }
 
         return $this->parsed(self::TYPE_ADMIN_COMMAND, $command);
+    }
+
+    private function isReplyToAccountPrompt(mixed $reply_to_message): bool
+    {
+        if (!is_array($reply_to_message)
+            || ($reply_to_message['text'] ?? null) !== self::ACCOUNT_PROMPT_TEXT
+        ) {
+            return false;
+        }
+
+        $from = $reply_to_message['from'] ?? null;
+        if (!is_array($from) || ($from['is_bot'] ?? null) !== true) {
+            return false;
+        }
+
+        $username = $this->cleanUsername($from['username'] ?? null);
+
+        return $username !== null && strtolower($username) === $this->bot_username;
     }
 
     /**

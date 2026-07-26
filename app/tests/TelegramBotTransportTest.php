@@ -144,6 +144,7 @@ $Mock = new MockHandler([
     telegramOkResponse(['message_id' => 104]),
     telegramOkResponse(true),
     telegramOkResponse(true),
+    telegramOkResponse(true),
 ]);
 $Handler = HandlerStack::create($Mock);
 $Handler->push(Middleware::history($history));
@@ -203,11 +204,12 @@ assertTelegramTransport(
 );
 assertTelegramTransport(
     true,
-    $ApiClient->setMessageReaction('3718221', 104, TelegramBotApiClient::REACTION_SUCCESS),
-    'The success reaction must be supported.'
+    $ApiClient->clearMessageReaction('3718221', 104),
+    'The processing reaction must be removable after the response.'
 );
+assertTelegramTransport(true, $ApiClient->setMyCommands(), 'The public command menu must be configurable.');
 
-assertTelegramTransport(9, count($history), 'Every successful client call must issue exactly one request.');
+assertTelegramTransport(10, count($history), 'Every successful client call must issue exactly one request.');
 assertTelegramTransport(
     'https://api.telegram.org/bot' . $fake_token . '/getWebhookInfo',
     (string) $history[0]['request']->getUri(),
@@ -252,8 +254,15 @@ assertTelegramTransport(
     $processing_reaction['reaction'],
     'Processing must use Telegram reaction objects.'
 );
-$success_reaction = telegramRequestPayload($history, 8);
-assertTelegramTransport('👌', $success_reaction['reaction'][0]['emoji'], 'Success must replace the reaction.');
+$cleared_reaction = telegramRequestPayload($history, 8);
+assertTelegramTransport([], $cleared_reaction['reaction'], 'Completion must remove the processing reaction.');
+$commands_payload = telegramRequestPayload($history, 9);
+assertTelegramTransport([
+    [
+        'command' => 'account',
+        'description' => 'Рассказать об аккаунте Stellar',
+    ],
+], $commands_payload['commands'] ?? null, 'The menu must expose only the primary account command.');
 
 $wrong_identity_history = [];
 $WrongIdentityHandler = HandlerStack::create(new MockHandler([

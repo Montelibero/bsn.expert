@@ -61,7 +61,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
                 <input type="hidden" name="action" value="register_webhook">
                 <button class="button is-link" type="submit"{% if not config.can_register_webhook %} disabled{% endif %}>
-                    {{ webhook.registered ? 'Обновить webhook' : 'Зарегистрировать webhook' }}
+                    {{ webhook.registered ? 'Обновить webhook и команды' : 'Зарегистрировать webhook и команды' }}
                 </button>
             </form>
         </div>

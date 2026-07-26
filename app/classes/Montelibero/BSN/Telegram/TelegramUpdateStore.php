@@ -84,8 +84,7 @@ class TelegramUpdateStore
      *     payload: array<string, mixed>,
      *     phase: self::PHASE_*,
      *     pending_usage: ?array<string, mixed>,
-     *     pending_effect: array<string, mixed>,
-     *     pending_success_reaction: bool
+     *     pending_effect: array<string, mixed>
      * }|null
      */
     public function claimNextDue(): ?array
@@ -147,7 +146,6 @@ class TelegramUpdateStore
                 'pending_effect' => is_array($document['pending_effect'] ?? null)
                     ? $document['pending_effect']
                     : [],
-                'pending_success_reaction' => ($document['pending_success_reaction'] ?? false) === true,
             ];
         }
 
@@ -167,7 +165,6 @@ class TelegramUpdateStore
         string $lease_token,
         array $usage,
         array $effect,
-        bool $success_reaction,
     ): bool {
         $update_id = $this->requireUpdateId($update_id);
         if (!preg_match('/\A[a-f0-9]{32}\z/D', $lease_token)) {
@@ -190,7 +187,6 @@ class TelegramUpdateStore
                     'phase' => self::PHASE_RECORD_USAGE,
                     'pending_usage' => $usage,
                     'pending_effect' => $effect,
-                    'pending_success_reaction' => $success_reaction,
                     'response_delivered_at' => $this->now(),
                 ],
             ],
@@ -285,7 +281,9 @@ class TelegramUpdateStore
                 'phase' => '',
                 'pending_usage' => '',
                 'pending_effect' => '',
+                // Clean up reaction metadata written by pre-release workers.
                 'pending_success_reaction' => '',
+                'pending_clear_reaction' => '',
             ];
         }
 

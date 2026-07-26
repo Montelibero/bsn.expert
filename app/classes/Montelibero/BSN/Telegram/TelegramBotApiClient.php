@@ -11,7 +11,6 @@ use Throwable;
 final class TelegramBotApiClient
 {
     public const REACTION_PROCESSING = '👀';
-    public const REACTION_SUCCESS = '👌';
 
     private const MESSAGE_OPTION_NAMES = [
         'message_thread_id',
@@ -129,6 +128,27 @@ final class TelegramBotApiClient
         return true;
     }
 
+    public function setMyCommands(): bool
+    {
+        $response = $this->request(
+            'setMyCommands',
+            [
+                'commands' => [
+                    [
+                        'command' => TelegramUpdateParser::COMMAND_ACCOUNT,
+                        'description' => 'Рассказать об аккаунте Stellar',
+                    ],
+                ],
+            ],
+            true
+        );
+        if ($response['result'] !== true) {
+            throw $this->unexpectedResult('setMyCommands', true, $response['http_status']);
+        }
+
+        return true;
+    }
+
     /**
      * @param array<string, mixed> $rich_message
      * @param array<string, mixed> $reply_markup_or_options
@@ -206,9 +226,9 @@ final class TelegramBotApiClient
                 api_method: 'setMessageReaction'
             );
         }
-        if (!in_array($emoji, [self::REACTION_PROCESSING, self::REACTION_SUCCESS], true)) {
+        if ($emoji !== self::REACTION_PROCESSING) {
             throw new TelegramBotApiException(
-                'Only the processing and success reactions are supported.',
+                'Only the processing reaction is supported.',
                 api_method: 'setMessageReaction'
             );
         }
@@ -224,6 +244,31 @@ final class TelegramBotApiClient
                         'emoji' => $emoji,
                     ],
                 ],
+            ],
+            true
+        );
+        if ($response['result'] !== true) {
+            throw $this->unexpectedResult('setMessageReaction', true, $response['http_status']);
+        }
+
+        return true;
+    }
+
+    public function clearMessageReaction(int|string $chat_id, int $message_id): bool
+    {
+        if ($message_id <= 0) {
+            throw new TelegramBotApiException(
+                'Telegram message ID must be a positive integer.',
+                api_method: 'setMessageReaction'
+            );
+        }
+
+        $response = $this->request(
+            'setMessageReaction',
+            [
+                'chat_id' => $this->normalizeChatId($chat_id, 'setMessageReaction'),
+                'message_id' => $message_id,
+                'reaction' => [],
             ],
             true
         );

@@ -186,9 +186,10 @@ class AdminController
             try {
                 $this->TelegramConfig->validate();
                 $this->TelegramBotApi->setWebhook($this->TelegramConfig);
+                $this->TelegramBotApi->setMyCommands();
                 $notice = [
                     'type' => 'success',
-                    'text' => 'Webhook Telegram зарегистрирован.',
+                    'text' => 'Webhook Telegram зарегистрирован, меню команд обновлено.',
                 ];
                 $configuration_error = null;
             } catch (\Throwable $Exception) {

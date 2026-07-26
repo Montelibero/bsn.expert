@@ -93,14 +93,12 @@ final class TelegramProcessorUpdateStore extends TelegramUpdateStore
         string $lease_token,
         array $usage,
         array $effect,
-        bool $success_reaction,
     ): bool {
         $this->usage_pending[] = compact(
             'update_id',
             'lease_token',
             'usage',
-            'effect',
-            'success_reaction'
+            'effect'
         );
 
         return true;
@@ -310,9 +308,9 @@ function telegramProcessorRequestMethods(array $history): array
 }
 
 /** @return list<string> */
-function telegramProcessorReactionEmojis(array $history): array
+function telegramProcessorReactionStates(array $history): array
 {
-    $emojis = [];
+    $states = [];
     foreach ($history as $index => $transaction) {
         $Request = $transaction['request'] ?? null;
         if (!$Request instanceof RequestInterface
@@ -321,13 +319,18 @@ function telegramProcessorReactionEmojis(array $history): array
             continue;
         }
         $payload = telegramProcessorRequestPayload($history, $index);
+        if (($payload['reaction'] ?? null) === []) {
+            $states[] = 'cleared';
+
+            continue;
+        }
         $emoji = $payload['reaction'][0]['emoji'] ?? null;
         if (is_string($emoji)) {
-            $emojis[] = $emoji;
+            $states[] = $emoji;
         }
     }
 
-    return $emojis;
+    return $states;
 }
 
 $known_account = 'GDUMK6YJZ6ZC72CAMVHLUHLIFTNSLD7WFWO75Q3T2EOEW75XWH4PNSOZ';
@@ -358,13 +361,13 @@ $account_jobs = [
     telegramProcessorJob(telegramProcessorPayload(
         '1',
         TelegramUpdateParser::TYPE_ACCOUNT_INFO,
-        TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
         $known_account
     )),
     telegramProcessorJob(telegramProcessorPayload(
         '2',
         TelegramUpdateParser::TYPE_ACCOUNT_INFO,
-        TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
         $unknown_account
     )),
 ];
@@ -408,23 +411,109 @@ assertTelegramProcessor(
         'setMessageReaction',
     ],
     telegramProcessorRequestMethods($account_history),
-    'Each successful lookup must send eyes, then the article, then success.'
+    'Each successful lookup must send eyes, then the article, then clear the reaction.'
 );
 assertTelegramProcessor(
     [
         TelegramBotApiClient::REACTION_PROCESSING,
-        TelegramBotApiClient::REACTION_SUCCESS,
+        'cleared',
         TelegramBotApiClient::REACTION_PROCESSING,
-        TelegramBotApiClient::REACTION_SUCCESS,
+        'cleared',
     ],
-    telegramProcessorReactionEmojis($account_history),
-    'Successful lookup reactions must transition from eyes to success.'
+    telegramProcessorReactionStates($account_history),
+    'Successful lookup reactions must be removed after the article is delivered.'
 );
 $first_article_payload = telegramProcessorRequestPayload($account_history, 1);
 assertTelegramProcessor(101, $first_article_payload['reply_parameters']['message_id'], 'The response must reply to the request.');
 assertTelegramProcessor(true, $first_article_payload['reply_parameters']['allow_sending_without_reply'], 'Reply delivery must survive a deleted source message.');
 assertTelegramProcessor(77, $first_article_payload['message_thread_id'], 'The originating thread must be preserved.');
 assertTelegramProcessor(9007199254740, $first_article_payload['direct_messages_topic_id'], 'A stored topic string must become an API integer.');
+
+$PromptUpdates = new TelegramProcessorUpdateStore([
+    telegramProcessorJob(telegramProcessorPayload(
+        '10',
+        TelegramUpdateParser::TYPE_ACCOUNT_PROMPT,
+        TelegramUpdateParser::COMMAND_ACCOUNT
+    )),
+]);
+$PromptUsage = new TelegramProcessorUsageStore();
+$prompt_history = [];
+$PromptApi = telegramProcessorApi($Config, [
+    telegramProcessorOk(true),
+    telegramProcessorOk(['message_id' => 510]),
+    telegramProcessorOk(true),
+], $prompt_history);
+$PromptProcessor = new TelegramUpdateProcessor(
+    $BSN,
+    $Reports,
+    $Renderer,
+    $PromptApi,
+    $Config,
+    $PromptUpdates,
+    $PromptUsage,
+    new TelegramProcessorSubscriptionStore()
+);
+$PromptProcessor->processNext();
+assertTelegramProcessor(1, count($PromptUpdates->completed), 'A delivered account prompt must complete.');
+assertTelegramProcessor([], $PromptUsage->events, 'An account prompt must not count as an account lookup.');
+assertTelegramProcessor(
+    ['setMessageReaction', 'sendMessage', 'setMessageReaction'],
+    telegramProcessorRequestMethods($prompt_history),
+    'An account prompt must be sent between eyes and reaction clearing.'
+);
+assertTelegramProcessor(
+    [TelegramBotApiClient::REACTION_PROCESSING, 'cleared'],
+    telegramProcessorReactionStates($prompt_history),
+    'A delivered account prompt must remove the processing reaction.'
+);
+$prompt_payload = telegramProcessorRequestPayload($prompt_history, 1);
+assertTelegramProcessor(
+    TelegramUpdateParser::ACCOUNT_PROMPT_TEXT,
+    $prompt_payload['text'] ?? null,
+    'The processor and parser must share the exact account prompt text.'
+);
+assertTelegramProcessor(true, $prompt_payload['reply_markup']['force_reply'] ?? null, 'The prompt must activate ForceReply.');
+assertTelegramProcessor(true, $prompt_payload['reply_markup']['selective'] ?? null, 'The prompt must target the requesting user.');
+assertTelegramProcessor('G…', $prompt_payload['reply_markup']['input_field_placeholder'] ?? null, 'The prompt must hint at a Stellar address.');
+assertTelegramProcessor(110, $prompt_payload['reply_parameters']['message_id'] ?? null, 'The prompt must reply to the command.');
+
+$ClearFailureUpdates = new TelegramProcessorUpdateStore([
+    telegramProcessorJob(telegramProcessorPayload(
+        '11',
+        TelegramUpdateParser::TYPE_ACCOUNT_PROMPT,
+        TelegramUpdateParser::COMMAND_ACCOUNT
+    )),
+]);
+$clear_failure_history = [];
+$ClearFailureApi = telegramProcessorApi($Config, [
+    telegramProcessorOk(true),
+    telegramProcessorOk(['message_id' => 511]),
+    new Response(429, ['Content-Type' => 'application/json'], json_encode([
+        'ok' => false,
+        'error_code' => 429,
+        'description' => 'Too Many Requests',
+        'parameters' => ['retry_after' => 1],
+    ], JSON_THROW_ON_ERROR)),
+], $clear_failure_history);
+$ClearFailureProcessor = new TelegramUpdateProcessor(
+    $BSN,
+    $Reports,
+    $Renderer,
+    $ClearFailureApi,
+    $Config,
+    $ClearFailureUpdates,
+    new TelegramProcessorUsageStore(),
+    new TelegramProcessorSubscriptionStore()
+);
+$ClearFailureProcessor->processNext();
+assertTelegramProcessor(1, count($ClearFailureUpdates->completed), 'Reaction cleanup failure must not undo a delivered reply.');
+assertTelegramProcessor([], $ClearFailureUpdates->retried, 'Cosmetic reaction cleanup must not resend a delivered reply.');
+assertTelegramProcessor([], $ClearFailureUpdates->failed, 'Cosmetic reaction cleanup must remain best-effort.');
+assertTelegramProcessor(
+    ['setMessageReaction', 'sendMessage', 'setMessageReaction'],
+    telegramProcessorRequestMethods($clear_failure_history),
+    'Reaction cleanup must still be attempted after a delivered reply.'
+);
 
 $AdminUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
@@ -458,19 +547,19 @@ assertTelegramProcessor([], $AdminUsage->events, 'Admin commands must not enter 
 assertTelegramProcessor(
     ['setMessageReaction', 'sendMessage', 'setMessageReaction'],
     telegramProcessorRequestMethods($admin_history),
-    'A successful admin command must transition from eyes to success after its reply.'
+    'A successful admin command must clear eyes after its reply.'
 );
 assertTelegramProcessor(
-    [TelegramBotApiClient::REACTION_PROCESSING, TelegramBotApiClient::REACTION_SUCCESS],
-    telegramProcessorReactionEmojis($admin_history),
-    'Successful admin reactions must have the expected emojis.'
+    [TelegramBotApiClient::REACTION_PROCESSING, 'cleared'],
+    telegramProcessorReactionStates($admin_history),
+    'A delivered admin reply must remove the processing reaction.'
 );
 
 $ValidationUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
         '7',
         TelegramUpdateParser::TYPE_VALIDATION_ERROR,
-        TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
         validation_error: 'missing_account_id'
     )),
 ]);
@@ -478,6 +567,7 @@ $validation_history = [];
 $ValidationApi = telegramProcessorApi($Config, [
     telegramProcessorOk(true),
     telegramProcessorOk(['message_id' => 504]),
+    telegramProcessorOk(true),
 ], $validation_history);
 $ValidationProcessor = new TelegramUpdateProcessor(
     $BSN,
@@ -492,21 +582,21 @@ $ValidationProcessor = new TelegramUpdateProcessor(
 $ValidationProcessor->processNext();
 assertTelegramProcessor(1, count($ValidationUpdates->completed), 'A delivered validation reply must complete.');
 assertTelegramProcessor(
-    ['setMessageReaction', 'sendMessage'],
+    ['setMessageReaction', 'sendMessage', 'setMessageReaction'],
     telegramProcessorRequestMethods($validation_history),
-    'A validation reply must keep eyes and must not send a success reaction.'
+    'A validation reply must clear eyes after delivery.'
 );
 assertTelegramProcessor(
-    [TelegramBotApiClient::REACTION_PROCESSING],
-    telegramProcessorReactionEmojis($validation_history),
-    'A validation reply must retain only the processing reaction.'
+    [TelegramBotApiClient::REACTION_PROCESSING, 'cleared'],
+    telegramProcessorReactionStates($validation_history),
+    'A validation reply must remove the processing reaction.'
 );
 
 $ErrorUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
         '8',
         TelegramUpdateParser::TYPE_ACCOUNT_INFO,
-        TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
         $known_account
     )),
 ]);
@@ -520,6 +610,7 @@ $ErrorApi = telegramProcessorApi($Config, [
         'description' => 'Bad Request: rich message rejected',
     ], JSON_THROW_ON_ERROR)),
     telegramProcessorOk(['message_id' => 505]),
+    telegramProcessorOk(true),
 ], $error_history);
 $ErrorProcessor = new TelegramUpdateProcessor(
     $BSN,
@@ -535,20 +626,20 @@ $ErrorProcessor->processNext();
 assertTelegramProcessor(1, count($ErrorUpdates->completed), 'A delivered account error fallback must complete.');
 assertTelegramProcessor('error', $ErrorUsage->events[0]['outcome'] ?? null, 'A delivered fallback must be recorded as an error outcome.');
 assertTelegramProcessor(
-    ['setMessageReaction', 'sendRichMessage', 'sendMessage'],
+    ['setMessageReaction', 'sendRichMessage', 'sendMessage', 'setMessageReaction'],
     telegramProcessorRequestMethods($error_history),
-    'An account error fallback must not send a success reaction.'
+    'An account error fallback must clear eyes after delivery.'
 );
 assertTelegramProcessor(
-    [TelegramBotApiClient::REACTION_PROCESSING],
-    telegramProcessorReactionEmojis($error_history),
-    'An account error fallback must retain only the processing reaction.'
+    [TelegramBotApiClient::REACTION_PROCESSING, 'cleared'],
+    telegramProcessorReactionStates($error_history),
+    'An account error fallback must remove the processing reaction.'
 );
 
 $ReconcilePayload = telegramProcessorPayload(
     '9',
     TelegramUpdateParser::TYPE_ACCOUNT_INFO,
-    TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
+    TelegramUpdateParser::COMMAND_ACCOUNT,
     $known_account
 );
 $ReconcileUpdates = new TelegramProcessorUpdateStore([
@@ -579,9 +670,9 @@ assertTelegramProcessor(60, $ReconcileUpdates->retried[0]['delay_seconds'] ?? nu
 assertTelegramProcessor([], $ReconcileUpdates->completed, 'A job with unrecorded usage must not complete.');
 assertTelegramProcessor([], $ReconcileUsage->events, 'A failed usage write must not create an event.');
 assertTelegramProcessor(
-    ['setMessageReaction', 'sendRichMessage'],
+    ['setMessageReaction', 'sendRichMessage', 'setMessageReaction'],
     telegramProcessorRequestMethods($reconcile_history),
-    'The initial pass must stop after confirmed delivery when usage recording fails.'
+    'The initial pass must clear eyes after delivery even when usage recording fails.'
 );
 
 $pending = $ReconcileUpdates->usage_pending[0];
@@ -589,7 +680,6 @@ $ReconcileUpdates->jobs[] = telegramProcessorJob($ReconcilePayload, 2) + [
     'phase' => TelegramUpdateStore::PHASE_RECORD_USAGE,
     'pending_usage' => $pending['usage'],
     'pending_effect' => $pending['effect'],
-    'pending_success_reaction' => $pending['success_reaction'],
 ];
 assertTelegramProcessor(true, $ReconcileProcessor->processNext(), 'The persisted usage phase must be resumable.');
 assertTelegramProcessor(false, $ReconcileProcessor->processNext(), 'The reconciled queue must be empty.');
@@ -610,18 +700,18 @@ assertTelegramProcessor(
 assertTelegramProcessor(
     [
         TelegramBotApiClient::REACTION_PROCESSING,
-        TelegramBotApiClient::REACTION_PROCESSING,
-        TelegramBotApiClient::REACTION_SUCCESS,
+        'cleared',
+        'cleared',
     ],
-    telegramProcessorReactionEmojis($reconcile_history),
-    'Reconciliation may repeat eyes and must finish with success after usage is stored.'
+    telegramProcessorReactionStates($reconcile_history),
+    'Usage reconciliation must not restore eyes and may safely repeat reaction clearing.'
 );
 
 $RateUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
         '4',
         TelegramUpdateParser::TYPE_VALIDATION_ERROR,
-        TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
         validation_error: 'missing_account_id'
     )),
 ]);
@@ -650,15 +740,15 @@ assertTelegramProcessor(7200, $RateUpdates->retried[0]['delay_seconds'] ?? null,
 assertTelegramProcessor([], $RateUpdates->completed, 'A rejected response must not complete.');
 assertTelegramProcessor(
     [TelegramBotApiClient::REACTION_PROCESSING],
-    telegramProcessorReactionEmojis($rate_history),
-    'A retryable validation failure must not send a success reaction.'
+    telegramProcessorReactionStates($rate_history),
+    'A retryable validation failure must retain the processing reaction.'
 );
 
 $UncertainUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
         '5',
         TelegramUpdateParser::TYPE_ACCOUNT_INFO,
-        TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
         $known_account
     )),
 ]);
@@ -684,15 +774,15 @@ assertTelegramProcessor([], $UncertainUpdates->retried, 'A possibly delivered ar
 assertTelegramProcessor([], $UncertainUsage->events, 'Unconfirmed delivery must not enter usage statistics.');
 assertTelegramProcessor(
     [TelegramBotApiClient::REACTION_PROCESSING],
-    telegramProcessorReactionEmojis($uncertain_history),
-    'An uncertain account response must not send a success reaction.'
+    telegramProcessorReactionStates($uncertain_history),
+    'An uncertain account response must retain the processing reaction.'
 );
 
 $TerminalUpdates = new TelegramProcessorUpdateStore([
     telegramProcessorJob(telegramProcessorPayload(
         '6',
         TelegramUpdateParser::TYPE_VALIDATION_ERROR,
-        TelegramUpdateParser::COMMAND_ACCOUNT_INFO,
+        TelegramUpdateParser::COMMAND_ACCOUNT,
         validation_error: 'invalid_account_id'
     )),
 ]);
@@ -720,8 +810,8 @@ assertTelegramProcessor(1, count($TerminalUpdates->failed), 'A terminal Bot API 
 assertTelegramProcessor([], $TerminalUpdates->retried, 'A terminal 4xx must not retry.');
 assertTelegramProcessor(
     [TelegramBotApiClient::REACTION_PROCESSING],
-    telegramProcessorReactionEmojis($terminal_history),
-    'A terminal validation failure must not send a success reaction.'
+    telegramProcessorReactionStates($terminal_history),
+    'A terminal validation failure must retain the processing reaction.'
 );
 
 fwrite(STDOUT, "Telegram update processor regression tests passed.\n");

@@ -130,6 +130,7 @@ $invalid_checksum = substr($account_id, 0, -1) . (str_ends_with($account_id, 'A'
 
 $private = $Parser->parse(telegramWebhookUpdate(strtolower($account_id)));
 assertTelegramWebhook(TelegramUpdateParser::TYPE_ACCOUNT_INFO, $private['type'] ?? null, 'Private address must parse.');
+assertTelegramWebhook(TelegramUpdateParser::COMMAND_ACCOUNT, $private['command'] ?? null, 'Private address must use the canonical account command.');
 assertTelegramWebhook($account_id, $private['account_id'] ?? null, 'Private address must normalize to uppercase.');
 assertTelegramWebhook('123456', $private['update_id'] ?? null, 'Update ID must be stored as a string.');
 assertTelegramWebhook('42', $private['chat']['id'] ?? null, 'Chat ID must be stored as a string.');
@@ -141,7 +142,7 @@ assertTelegramWebhook('9007199254740', $private['direct_messages_topic_id'] ?? n
 assertTelegramWebhook(null, $Parser->parse(telegramWebhookUpdate($invalid_checksum)), 'Invalid plain address must be ignored.');
 assertTelegramWebhook(null, $Parser->parse(telegramWebhookUpdate('ordinary text')), 'Unrelated private text must be ignored.');
 
-$group_update = telegramWebhookUpdate('/account_info@BSN_robot ' . strtolower($account_id), [
+$group_update = telegramWebhookUpdate('/account@BSN_robot ' . strtolower($account_id), [
     'message' => [
         'chat' => [
             'id' => -100123,
@@ -153,32 +154,97 @@ $group_update = telegramWebhookUpdate('/account_info@BSN_robot ' . strtolower($a
 ]);
 $group = $Parser->parse($group_update);
 assertTelegramWebhook(TelegramUpdateParser::TYPE_ACCOUNT_INFO, $group['type'] ?? null, 'Own suffixed group command must parse.');
+assertTelegramWebhook(TelegramUpdateParser::COMMAND_ACCOUNT, $group['command'] ?? null, 'Primary account command must stay canonical.');
 assertTelegramWebhook('-100123', $group['chat']['id'] ?? null, 'Negative group ID must be preserved.');
 assertTelegramWebhook('BSN group', $group['chat']['title'] ?? null, 'Group title must be preserved.');
 
-$group_without_suffix = $group_update;
-$group_without_suffix['message']['text'] = '/account_info ' . $account_id;
+$group_alias = $group_update;
+$group_alias['message']['text'] = '/account_info ' . $account_id;
 assertTelegramWebhook(
     TelegramUpdateParser::TYPE_ACCOUNT_INFO,
-    $Parser->parse($group_without_suffix)['type'] ?? null,
-    'Unsuffixed group command must parse.'
+    $Parser->parse($group_alias)['type'] ?? null,
+    'Legacy account_info alias must parse.'
+);
+assertTelegramWebhook(
+    TelegramUpdateParser::COMMAND_ACCOUNT,
+    $Parser->parse($group_alias)['command'] ?? null,
+    'Legacy account_info alias must normalize to the canonical command.'
 );
 
 $foreign_suffix = $group_update;
-$foreign_suffix['message']['text'] = '/account_info@Other_robot ' . $account_id;
+$foreign_suffix['message']['text'] = '/account@Other_robot ' . $account_id;
 assertTelegramWebhook(null, $Parser->parse($foreign_suffix), 'Foreign bot suffix must be ignored.');
 
-$missing_account = $group_update;
-$missing_account['message']['text'] = '/account_info@BSN_robot';
-$validation = $Parser->parse($missing_account);
-assertTelegramWebhook(TelegramUpdateParser::TYPE_VALIDATION_ERROR, $validation['type'] ?? null, 'Missing argument must be typed.');
-assertTelegramWebhook('missing_account_id', $validation['validation_error'] ?? null, 'Missing argument code must be stable.');
+$account_prompt = $group_update;
+$account_prompt['message']['text'] = '/account@BSN_robot';
+$prompt = $Parser->parse($account_prompt);
+assertTelegramWebhook(TelegramUpdateParser::TYPE_ACCOUNT_PROMPT, $prompt['type'] ?? null, 'Account command without an argument must request an account.');
+assertTelegramWebhook(TelegramUpdateParser::COMMAND_ACCOUNT, $prompt['command'] ?? null, 'Account prompt must use the canonical command.');
+assertTelegramWebhook(null, $prompt['validation_error'] ?? null, 'Account prompt must not be a validation error.');
+
+$account_info_prompt = $group_update;
+$account_info_prompt['message']['text'] = '/account_info';
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_ACCOUNT_PROMPT,
+    $Parser->parse($account_info_prompt)['type'] ?? null,
+    'Legacy account_info alias without an argument must request an account.'
+);
 
 $extra_account = $group_update;
 $extra_account['message']['text'] = '/account_info ' . $account_id . ' ' . $second_account_id;
 $validation = $Parser->parse($extra_account);
 assertTelegramWebhook(TelegramUpdateParser::TYPE_VALIDATION_ERROR, $validation['type'] ?? null, 'Extra argument must be typed.');
 assertTelegramWebhook('invalid_account_id', $validation['validation_error'] ?? null, 'Extra argument must not be accepted.');
+
+$group_plain_address = $group_update;
+$group_plain_address['message']['text'] = $account_id;
+assertTelegramWebhook(null, $Parser->parse($group_plain_address), 'Bare group address without a prompt reply must be ignored.');
+
+$group_prompt_reply = $group_plain_address;
+$group_prompt_reply['message']['reply_to_message'] = [
+    'message_id' => 90,
+    'date' => 1784999999,
+    'from' => [
+        'id' => 123456,
+        'is_bot' => true,
+        'first_name' => 'BSN Robot',
+        'username' => 'BSN_robot',
+    ],
+    'chat' => $group_prompt_reply['message']['chat'],
+    'text' => TelegramUpdateParser::ACCOUNT_PROMPT_TEXT,
+];
+$prompt_reply = $Parser->parse($group_prompt_reply);
+assertTelegramWebhook(TelegramUpdateParser::TYPE_ACCOUNT_INFO, $prompt_reply['type'] ?? null, 'Group address replying to the exact bot prompt must parse.');
+assertTelegramWebhook($account_id, $prompt_reply['account_id'] ?? null, 'Prompt reply account must be preserved.');
+
+$private_prompt_reply = telegramWebhookUpdate(strtolower($account_id), [
+    'message' => [
+        'reply_to_message' => $group_prompt_reply['message']['reply_to_message'],
+    ],
+]);
+assertTelegramWebhook(
+    TelegramUpdateParser::TYPE_ACCOUNT_INFO,
+    $Parser->parse($private_prompt_reply)['type'] ?? null,
+    'Private address replying to the exact bot prompt must parse.'
+);
+
+$invalid_prompt_reply = $group_prompt_reply;
+$invalid_prompt_reply['message']['text'] = 'not a Stellar address';
+$validation = $Parser->parse($invalid_prompt_reply);
+assertTelegramWebhook(TelegramUpdateParser::TYPE_VALIDATION_ERROR, $validation['type'] ?? null, 'Invalid prompt reply must be typed.');
+assertTelegramWebhook('invalid_account_id', $validation['validation_error'] ?? null, 'Invalid prompt reply must use the account validation code.');
+
+$human_prompt = $group_prompt_reply;
+$human_prompt['message']['reply_to_message']['from']['is_bot'] = false;
+assertTelegramWebhook(null, $Parser->parse($human_prompt), 'A human message copying the prompt must not authorize a bare group address.');
+
+$foreign_bot_prompt = $group_prompt_reply;
+$foreign_bot_prompt['message']['reply_to_message']['from']['username'] = 'Other_robot';
+assertTelegramWebhook(null, $Parser->parse($foreign_bot_prompt), 'A foreign bot prompt must not authorize a bare group address.');
+
+$changed_prompt = $group_prompt_reply;
+$changed_prompt['message']['reply_to_message']['text'] = TelegramUpdateParser::ACCOUNT_PROMPT_TEXT . ' ';
+assertTelegramWebhook(null, $Parser->parse($changed_prompt), 'Prompt text must match exactly.');
 
 $daily = $Parser->parse(telegramWebhookUpdate('/daily_report_on@BSN_robot'));
 assertTelegramWebhook(TelegramUpdateParser::TYPE_ADMIN_COMMAND, $daily['type'] ?? null, 'Private daily command must parse.');
@@ -192,7 +258,7 @@ $group_daily = $group_update;
 $group_daily['message']['text'] = '/daily_report_on';
 assertTelegramWebhook(null, $Parser->parse($group_daily), 'Daily command must be private-only.');
 
-$bot_update = telegramWebhookUpdate('/account_info ' . $account_id, ['message' => ['from' => ['is_bot' => true]]]);
+$bot_update = telegramWebhookUpdate('/account ' . $account_id, ['message' => ['from' => ['is_bot' => true]]]);
 assertTelegramWebhook(null, $Parser->parse($bot_update), 'Messages from bots must be ignored.');
 
 $Manager = new Manager('mongodb://127.0.0.1:1', ['serverSelectionTimeoutMS' => 1]);
@@ -208,7 +274,7 @@ $Controller = new TelegramWebhookController(
     $Parser,
     $FakeStore
 );
-$accepted_update = telegramWebhookUpdate('/account_info ' . $account_id);
+$accepted_update = telegramWebhookUpdate('/account ' . $account_id);
 $accepted_json = json_encode($accepted_update, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
 
 $response = telegramWebhookRequest($Controller, $accepted_json, method: 'GET');

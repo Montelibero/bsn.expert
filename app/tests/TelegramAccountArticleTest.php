@@ -249,29 +249,48 @@ assertTelegramArticle($known_accounts_count, $BSN->getAccountsCount(), 'Renderin
 assertTelegramArticle(0, $unknown_report['relations']['income']['links_count'], 'An unknown account must have zero incoming tags.');
 assertTelegramArticle(0, $unknown_report['relations']['outcome']['links_count'], 'An unknown account must have zero outgoing tags.');
 assertTelegramArticle(
+    1,
+    count($unknown_message['rich_message']['blocks']),
+    'An unknown account article must contain only one block.'
+);
+assertTelegramArticle(
+    'footer',
+    $unknown_message['rich_message']['blocks'][0]['type'] ?? null,
+    'The only unknown-account block must be the article footer.'
+);
+$unknown_footer_text = telegramArticlePlainText(
+    $unknown_message['rich_message']['blocks'][0]['text'] ?? ''
+);
+assertTelegramArticle(
     true,
-    str_contains($unknown_message_json, 'ℹ️ В BSN.expert пока нет сведений об этом аккаунте.'),
-    'An unknown account must produce a Telegram article with an explicit explanation.'
+    str_contains(
+        $unknown_footer_text,
+        'BSN snapshot: ' . gmdate('d.m.Y H:i', (int) $unknown_report['source']['snapshot_at']) . ' UTC'
+    ),
+    'The unknown-account footer must show when the BSN snapshot was created.'
 );
 assertTelegramArticle(
-    'paragraph',
-    $unknown_message['rich_message']['blocks'][2]['type'] ?? null,
-    'The unknown-account notice must be a regular paragraph rather than a quote.'
+    true,
+    str_contains(
+        $unknown_footer_text,
+        'статья: ' . gmdate('d.m.Y H:i', (int) $unknown_report['source']['generated_at']) . ' UTC'
+    ),
+    'The unknown-account footer must show when the report was generated.'
 );
 assertTelegramArticle(
-    'bold',
-    $unknown_message['rich_message']['blocks'][2]['text']['type'] ?? null,
-    'The unknown-account notice must look like a service status.'
+    1,
+    $unknown_message['stats']['blocks'],
+    'The unknown-account article statistics must reflect the footer-only response.'
 );
 assertTelegramArticle(
-    $unknown_report['account']['short_id'],
-    $unknown_message['rich_message']['blocks'][0]['text'] ?? null,
-    'An unknown account article must use short_id as its H1.'
+    false,
+    str_contains($unknown_message_json, 'Входящие теги'),
+    'An unknown account article must not contain empty tag sections.'
 );
 assertTelegramArticle(
-    $unknown_account_id,
-    $unknown_message['rich_message']['blocks'][1]['text']['text'] ?? null,
-    'An unknown account article must still expose the copyable Stellar address.'
+    false,
+    str_contains($unknown_message_json, 'В BSN.expert пока нет сведений'),
+    'An unknown account article must not contain a separate unknown-account notice.'
 );
 
 $invalid_account_error = null;

@@ -31,6 +31,13 @@ final class AccountRichMessageRenderer
             : 'ru';
         $account = $report['account'];
         $account_url = $this->accountUrl($account);
+
+        if (($account['is_known_in_bsn'] ?? true) === false) {
+            return $this->finalize([
+                $this->footer($report['source'], $account_url),
+            ]);
+        }
+
         $title = is_string($account['name'] ?? null) && $account['name'] !== ''
             ? $account['name']
             : (string) $account['short_id'];
@@ -38,12 +45,6 @@ final class AccountRichMessageRenderer
             $this->heading($title, 1),
             ...$this->accountIdentityBlocks($account),
         ];
-
-        if (($account['is_known_in_bsn'] ?? true) === false) {
-            $blocks[] = $this->paragraph(
-                $this->bold($this->trans('telegram_account_article.account_not_known'))
-            );
-        }
 
         $about = array_values($report['profile']['about'] ?? []);
         if ($about !== []) {
@@ -106,6 +107,18 @@ final class AccountRichMessageRenderer
         $blocks[] = $this->footer($report['source'], $account_url);
         $blocks = array_values($blocks);
 
+        return $this->finalize($blocks);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $blocks
+     * @return array{
+     *     rich_message: array<string, mixed>,
+     *     stats: array{blocks: int, characters: int}
+     * }
+     */
+    private function finalize(array $blocks): array
+    {
         $block_count = $this->countBlocks($blocks);
         $character_count = $this->countBlockCharacters($blocks);
         if ($block_count > self::MAX_BLOCKS || $character_count > self::MAX_TEXT_CHARACTERS) {
