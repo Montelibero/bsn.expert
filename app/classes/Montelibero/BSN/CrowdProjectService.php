@@ -469,7 +469,14 @@ class CrowdProjectService
         $crowd_token = $this->Config->mtlCrowdToken();
         $crowd_asset = $this->mtlCrowdAsset();
         $crowd_balance = $this->findBalanceForAsset($DonorAccount, $crowd_asset);
-        if ($crowd_balance !== null && bccomp($this->availableCreditBalance($crowd_balance), $amount, self::SCALE) >= 0) {
+        $crowd_available = $crowd_balance === null
+            ? '0.0000000'
+            : $this->availableCreditBalance($crowd_balance);
+        if (bccomp($crowd_available, '0', self::SCALE) < 0) {
+            $crowd_available = '0.0000000';
+        }
+
+        if (bccomp($crowd_available, $amount, self::SCALE) >= 0) {
             $this->validateDonationReserve($DonorAccount, $project, $crowd_asset, '0.0000000');
 
             return [
@@ -482,11 +489,12 @@ class CrowdProjectService
             ];
         }
 
+        $purchase_amount = bcsub($amount, $crowd_available, self::SCALE);
         $candidates = $this->paymentCandidates($DonorAccount);
         $paths = $this->fetchStrictReceivePaths(
             array_map(static fn(array $candidate): Asset => $candidate['asset'], $candidates),
             $crowd_asset,
-            $amount
+            $purchase_amount
         );
         foreach ($candidates as $candidate) {
             $asset = $candidate['asset'];
@@ -508,6 +516,8 @@ class CrowdProjectService
                 'token' => $candidate['token'],
                 'send_max' => $send_max,
                 'source_amount' => $this->decimal($path['source_amount']),
+                'crowd_amount' => $crowd_available,
+                'purchase_amount' => $purchase_amount,
                 'path' => $path['path'],
             ];
         }
@@ -535,7 +545,7 @@ class CrowdProjectService
                 $payment['send_max'],
                 $donor_account_id,
                 $crowd_asset,
-                $amount
+                $payment['purchase_amount']
             );
             $PathPayment->setPath($payment['path']);
             $Transaction->addOperation($PathPayment->build());

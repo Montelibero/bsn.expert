@@ -116,12 +116,19 @@
                 {% endfor %}
             </div>
         {% elseif donation.payment %}
-            <p class="block">
-                {% if donation.payment.mode == 'direct' %}
+            {% if donation.payment.mode == 'path' and donation.payment.crowd_amount + 0 > 0 %}
+                <p class="block">
                     {{ 'crowd_page.support.payment_direct'|trans }}
-                {% else %}
-                    {{ 'crowd_page.support.payment_path'|trans }}
-                {% endif %}
+                    {{ include('token_link.twig', {
+                        token: project.mtlcrowd_token,
+                        amount: donation.payment.crowd_amount + 0
+                    }, with_context = false) }}
+                </p>
+            {% endif %}
+            <p class="block">
+                {{ (donation.payment.mode == 'direct'
+                    ? 'crowd_page.support.payment_direct'
+                    : 'crowd_page.support.payment_path')|trans }}
                 {{ include('token_link.twig', {
                     token: donation.payment.token,
                     amount: donation.payment.mode == 'direct' ? donation.amount + 0 : donation.payment.send_max + 0
