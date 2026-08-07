@@ -1,0 +1,312 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_consolidate.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_consolidate.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <div
+        class="container is-max-desktop ml-0"
+        data-consolidation-root
+        data-autosave-url="/tools/consolidate/autosave"
+        data-status-saving="{{ 'tools_consolidate.draft.saving'|trans|e('html_attr') }}"
+        data-status-unsaved="{{ 'tools_consolidate.draft.unsaved'|trans|e('html_attr') }}"
+        data-status-conflict="{{ 'tools_consolidate.draft.conflict'|trans|e('html_attr') }}"
+        data-initial-conflict="{{ draft_conflict ? '1' : '0' }}"
+    >
+        <h1 class="title">{{ 'tools_consolidate.title'|trans }}</h1>
+        <div class="content">
+            <p>{{ 'tools_consolidate.description'|trans }}</p>
+        </div>
+
+        {% if not authorized %}
+            <div class="notification is-info is-light py-3">
+                {{ 'tools_consolidate.draft.guest'|trans }}
+                <a href="/login?return_to=%2Ftools%2Fconsolidate">{{ 'tools_consolidate.draft.login'|trans }}</a>
+            </div>
+        {% endif %}
+
+        {% for error in errors %}
+            <div class="notification is-danger">{{ error }}</div>
+        {% endfor %}
+        {% for warning in warnings %}
+            <div class="notification is-warning">{{ warning }}</div>
+        {% endfor %}
+        {% for notice in notices %}
+            <div class="notification is-info">{{ notice }}</div>
+        {% endfor %}
+
+        <form method="post" action="/tools/consolidate" data-consolidation-form>
+            {% if authorized %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
+                <input type="hidden" name="revision" value="{{ revision }}" data-consolidation-revision>
+            {% endif %}
+
+            <section class="box">
+                <h2 class="title is-4">{{ 'tools_consolidate.import.title'|trans }}</h2>
+                <div class="field">
+                    <label class="label" for="consolidation-xdr-batch">{{ 'tools_consolidate.import.label'|trans }}</label>
+                    <div class="control">
+                        <textarea
+                            class="textarea is-family-monospace"
+                            id="consolidation-xdr-batch"
+                            name="xdr_batch"
+                            rows="5"
+                            placeholder="{{ 'tools_consolidate.import.placeholder'|trans }}"
+                        >{{ xdr_batch }}</textarea>
+                    </div>
+                    <p class="help">{{ 'tools_consolidate.import.help'|trans }}</p>
+                </div>
+                <button class="button is-link" type="submit" name="action" value="import">
+                    <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                    <span>{{ 'tools_consolidate.buttons.import'|trans }}</span>
+                </button>
+            </section>
+
+            {% if items %}
+                <section class="block">
+                    <div class="is-flex is-justify-content-space-between is-align-items-center mb-4">
+                        <h2 class="title is-3 mb-0">{{ 'tools_consolidate.items.title'|trans }}</h2>
+                        <span class="tag is-medium"><span data-consolidation-selected-count>{{ selected_operation_count }}</span>&nbsp;/&nbsp;100&nbsp;{{ 'tools_consolidate.items.counter_operations'|trans }}</span>
+                    </div>
+
+                    <div data-consolidation-items>
+                    {% for item in items %}
+                        {% set previous_item = loop.index0 > 0 ? items[loop.index0 - 1] : null %}
+                        {% set next_item = not loop.last ? items[loop.index0 + 1] : null %}
+                        <article id="item-{{ item.id|e('html_attr') }}" class="box consolidation-item{% if not item.enabled %} consolidation-item--disabled{% endif %}" data-consolidation-item="{{ item.id|e('html_attr') }}">
+                            <input type="hidden" name="order[]" value="{{ item.id|e('html_attr') }}">
+                            <input type="hidden" name="items[{{ item.id|e('html_attr') }}][xdr]" value="{{ item.xdr|e('html_attr') }}">
+
+                            <div class="consolidation-item__header">
+                                <label class="checkbox consolidation-item__toggle">
+                                    <input
+                                        type="checkbox"
+                                        name="items[{{ item.id|e('html_attr') }}][enabled]"
+                                        value="1"
+                                        data-consolidation-dirty
+                                        {% if item.enabled %}checked{% endif %}
+                                    >
+                                    <strong>{{ 'tools_consolidate.items.transaction'|trans({'%number%': '<span data-consolidation-position>' ~ loop.index ~ '</span>'})|raw }}</strong>
+                                </label>
+                                <div class="is-flex is-align-items-center">
+                                    <div class="buttons has-addons are-small mb-0">
+                                        <button
+                                            class="button"
+                                            type="submit"
+                                            name="move_before"
+                                            value="{{ item.id|e('html_attr') }}:{{ previous_item.id|default('')|e('html_attr') }}"
+                                            data-consolidation-move="up"
+                                            {% if not previous_item %}disabled{% endif %}
+                                            aria-label="{{ 'tools_consolidate.buttons.up'|trans }}"
+                                        ><i class="fa-solid fa-angle-down" style="display: inline-block; transform: rotate(180deg)" aria-hidden="true"></i></button>
+                                        <button
+                                            class="button"
+                                            type="submit"
+                                            name="move_after"
+                                            value="{{ item.id|e('html_attr') }}:{{ next_item.id|default('')|e('html_attr') }}"
+                                            data-consolidation-move="down"
+                                            {% if not next_item %}disabled{% endif %}
+                                            aria-label="{{ 'tools_consolidate.buttons.down'|trans }}"
+                                        ><i class="fa-solid fa-angle-down" aria-hidden="true"></i></button>
+                                    </div>
+                                    <button
+                                        class="button is-danger is-outlined is-small ml-2"
+                                        type="submit"
+                                        name="remove"
+                                        value="{{ item.id|e('html_attr') }}"
+                                        title="{{ 'tools_consolidate.buttons.remove'|trans|e('html_attr') }}"
+                                        aria-label="{{ 'tools_consolidate.buttons.remove'|trans|e('html_attr') }}"
+                                        data-consolidation-remove
+                                        data-confirm="{{ 'tools_consolidate.items.remove_confirm'|trans|e('html_attr') }}"
+                                    >
+                                        <span class="icon is-small"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="content is-small mt-3 mb-3">
+                                <p>
+                                    <strong>{{ 'tools_consolidate.items.source'|trans }}:</strong>
+                                    {{ include('account_link.twig', {data: {id: item.source_account_id}}, with_context = false) }}
+                                    {% if item.source_account_id != item.source %}<code>{{ item.source }}</code>{% endif %}<br>
+                                    <strong>{{ 'tools_consolidate.items.memo'|trans }}:</strong> {{ item.memo.label|default('—') }}
+                                    {% if item.operation_count > 3 or item.signature_count %}<br>{% endif %}
+                                    {% if item.operation_count > 3 %}<strong>{{ 'tools_consolidate.items.operations_count'|trans }}:</strong> {{ item.operation_count }}{% endif %}
+                                    {% if item.signature_count %}{% if item.operation_count > 3 %} · {% endif %}<strong>{{ 'tools_consolidate.items.signatures'|trans }}:</strong> {{ item.signature_count }}{% endif %}
+                                </p>
+                            </div>
+
+                            {% for item_warning in item.warnings %}
+                                <div class="notification is-warning is-light py-2 px-3">{{ item_warning }}</div>
+                            {% endfor %}
+
+                            <div class="consolidation-operations">
+                                {% for operation in item.operations %}
+                                    {% set operation_checkbox_id = 'consolidation-op-' ~ item.id ~ '-' ~ operation.index %}
+                                    <div class="consolidation-operation" data-consolidation-operation>
+                                        <input
+                                            id="{{ operation_checkbox_id|e('html_attr') }}"
+                                            type="checkbox"
+                                            name="items[{{ item.id|e('html_attr') }}][enabled_operations][]"
+                                            value="{{ operation.index }}"
+                                            data-consolidation-dirty
+                                            {% if operation.index in item.enabled_operations %}checked{% endif %}
+                                        >
+                                        <div>
+                                            <label class="has-text-weight-semibold" for="{{ operation_checkbox_id|e('html_attr') }}">{{ operation.index + 1 }}. {{ operation.title }}</label>
+                                            {% if operation.effective_source != item.source %}
+                                                <span class="is-block is-size-7">
+                                                    {{ 'tools_consolidate.items.effective_source'|trans }}:
+                                                    {{ include('account_link.twig', {data: {id: operation.effective_source_account_id}}, with_context = false) }}
+                                                    {% if operation.effective_source_account_id != operation.effective_source %}<code>{{ operation.effective_source }}</code>{% endif %}
+                                                </span>
+                                            {% endif %}
+                                            {% if operation.template %}
+                                                {% include operation.template with {op: operation} only %}
+                                            {% endif %}
+                                            {{ include('operations/bsn_manage_data_semantics.twig', {semantics: operation.bsn_semantics}, with_context = false) }}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <details class="mt-3">
+                                <summary>{{ 'tools_consolidate.items.xdr'|trans }}</summary>
+                                <textarea class="textarea is-family-monospace mt-2" rows="3" readonly>{{ item.xdr }}</textarea>
+                            </details>
+                        </article>
+                    {% endfor %}
+                    </div>
+                </section>
+
+                <section class="box">
+                    <h2 class="title is-4">{{ 'tools_consolidate.settings.title'|trans }}</h2>
+                    <p class="block is-size-7">
+                        {{ 'tools_consolidate.settings.max_fee'|trans({'%fee%': max_fee_xlm}) }}
+                    </p>
+
+                    <fieldset class="field">
+                        <legend class="label">{{ 'tools_consolidate.source.title'|trans }}</legend>
+                        {% if current_source %}
+                            <label class="radio is-block mb-2">
+                                <input type="radio" name="source_choice" value="current" data-consolidation-dirty {% if source_choice == 'current' %}checked{% endif %}>
+                                {{ 'tools_consolidate.source.current'|trans }} —
+                                {{ include('account_link.twig', {data: {id: current_source.account_id}}, with_context = false) }}
+                            </label>
+                        {% endif %}
+                        {% for source in source_candidates %}
+                            <label class="radio is-block mb-2">
+                                <input type="radio" name="source_choice" value="source:{{ source.address|e('html_attr') }}" data-consolidation-dirty {% if source_choice == 'source:' ~ source.address %}checked{% endif %}>
+                                {{ include('account_link.twig', {data: {id: source.account_id}}, with_context = false) }}
+                                {% if source.account_id != source.address %}<code>{{ source.address }}</code>{% endif %}
+                            </label>
+                        {% endfor %}
+                        <label class="radio is-block mb-2">
+                            <input type="radio" name="source_choice" value="custom" data-consolidation-dirty {% if source_choice == 'custom' %}checked{% endif %}>
+                            {{ 'tools_consolidate.source.custom'|trans }}
+                        </label>
+                        <div class="control mt-2">
+                            <input class="input is-family-monospace" type="text" name="custom_source" value="{{ custom_source|e('html_attr') }}" placeholder="G…" autocomplete="off" data-account-autocomplete-input data-consolidation-dirty>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="field mt-5">
+                        <legend class="label">{{ 'tools_consolidate.memo.title'|trans }}</legend>
+                        {% for memo in memo_candidates %}
+                            <label class="radio is-block mb-2">
+                                <input type="radio" name="memo_choice" value="{{ memo.choice|e('html_attr') }}" data-consolidation-dirty {% if memo_choice == memo.choice %}checked{% endif %}>
+                                {{ memo.label }}
+                            </label>
+                        {% endfor %}
+                        <label class="radio is-block mb-2">
+                            <input type="radio" name="memo_choice" value="custom" data-consolidation-dirty {% if memo_choice == 'custom' %}checked{% endif %}>
+                            {{ 'tools_consolidate.memo.custom'|trans }}
+                        </label>
+                        <div class="control mt-2">
+                            <input class="input" type="text" name="custom_memo" value="{{ custom_memo|e('html_attr') }}" data-consolidation-dirty>
+                        </div>
+                        <p class="help">{{ 'tools_consolidate.memo.help'|trans }}</p>
+                    </fieldset>
+
+                    <div class="field mt-5">
+                        <label class="label" for="consolidation-sequence">{{ 'tools_consolidate.sequence.title'|trans }}</label>
+                        <div class="control">
+                            <input class="input is-family-monospace" id="consolidation-sequence" type="text" inputmode="numeric" name="seq_num" value="{{ seq_num|e('html_attr') }}" data-consolidation-dirty>
+                        </div>
+                        <p class="help">{{ 'tools_consolidate.sequence.help'|trans }}</p>
+                    </div>
+
+                    {% if has_preconditions %}
+                        <label class="checkbox notification is-warning is-light is-block">
+                            <input type="checkbox" name="preconditions_ack" value="1" data-consolidation-dirty {% if preconditions_ack %}checked{% endif %}>
+                            {{ 'tools_consolidate.preconditions.ack'|trans }}
+                        </label>
+                    {% endif %}
+                </section>
+            {% endif %}
+
+            <div class="level is-align-items-flex-start">
+                {% if items %}
+                    <div class="level-left">
+                        <div>
+                            <div class="buttons">
+                                <button class="button is-primary is-medium" type="submit" name="action" value="build" formaction="/tools/consolidate#consolidation-result">
+                                    <span class="icon"><i class="fa-solid fa-file-signature"></i></span>
+                                    <span>{{ 'tools_consolidate.buttons.build'|trans }}</span>
+                                </button>
+                                {% if authorized %}
+                                    <button class="button is-medium" type="submit" name="action" value="save">{{ 'tools_consolidate.buttons.save'|trans }}</button>
+                                {% endif %}
+                            </div>
+                            {% if authorized %}
+                                <p class="help{% if not draft_conflict %} is-hidden{% endif %}" data-consolidation-save-status aria-live="polite">
+                                    {% if draft_conflict %}{{ 'tools_consolidate.draft.conflict'|trans }}{% endif %}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <button
+                            class="button is-danger is-outlined is-medium"
+                            type="submit"
+                            name="action"
+                            value="confirm_clear"
+                            data-consolidation-clear
+                            data-confirm="{{ 'tools_consolidate.clear.confirm'|trans|e('html_attr') }}"
+                        >
+                            {{ 'tools_consolidate.buttons.clear'|trans }}
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if confirm_clear %}
+                <article class="message is-danger mt-4">
+                    <div class="message-body">
+                        <p class="block">{{ 'tools_consolidate.clear.confirm'|trans }}</p>
+                        <div class="buttons">
+                            <button class="button is-danger" type="submit" name="action" value="clear">{{ 'tools_consolidate.clear.yes'|trans }}</button>
+                            <button class="button" type="submit" name="action" value="save">{{ 'common.cancel'|trans }}</button>
+                        </div>
+                    </div>
+                </article>
+            {% endif %}
+
+            {# Must stay last: its absence tells the server that PHP truncated the form. #}
+            <input type="hidden" name="form_complete" value="1">
+        </form>
+
+        {% if signing_form %}
+            <section id="consolidation-result" class="mt-6">
+                <h2 class="title is-3">{{ 'tools_consolidate.result.title'|trans }}</h2>
+                <p class="block">{{ 'tools_consolidate.result.help'|trans }}</p>
+                {{ signing_form|raw }}
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

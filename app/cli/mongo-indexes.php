@@ -63,6 +63,22 @@ function ensureContactsIndexes(Manager $manager, string $database, string $colle
     );
 }
 
+function ensureTransactionConsolidationIndexes(
+    Manager $manager,
+    string $database,
+    string $collection = 'transaction_consolidation_drafts',
+): void {
+    $manager->executeCommand(
+        $database,
+        new Command([
+            'createIndexes' => $collection,
+            'indexes' => [
+                ['key' => ['owner_account_id' => 1], 'name' => 'uniq_owner_account', 'unique' => true],
+            ],
+        ])
+    );
+}
+
 function ensureDocumentsIndexes(Manager $manager, string $database, string $collection = 'documents'): void
 {
     $manager->executeCommand(
@@ -287,6 +303,7 @@ function ensureTelegramDailySubscriptionsIndexes(
 try {
     ensureUsernamesIndexes($manager, $database);
     ensureContactsIndexes($manager, $database);
+    ensureTransactionConsolidationIndexes($manager, $database);
     ensureDocumentsIndexes($manager, $database);
     ensureApiKeysIndexes($manager, $database);
     ensureSessionsIndexes($manager, $database);

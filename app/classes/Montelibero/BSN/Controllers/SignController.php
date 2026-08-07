@@ -7,6 +7,8 @@ use chillerlan\QRCode\QROptions;
 use DI\Container;
 use GuzzleHttp\Client;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\SEP\URIScheme\URIScheme;
@@ -18,6 +20,7 @@ use Twig\Environment;
 class SignController
 {
     private const ORIGIN_DOMAIN = 'bsn.expert';
+    private const CONSOLIDATION_CSRF_PURPOSE = 'csrf:transaction_consolidation';
 
     private BSN $BSN;
     private Environment $Twig;
@@ -124,6 +127,15 @@ class SignController
 
     public function renderSigningTemplateData(array $data): string
     {
+        if (!empty($data['xdr'])) {
+            $CurrentUser = $this->Container->get(CurrentUser::class);
+            if ($CurrentUser->isAuthorized()) {
+                $data['consolidation_csrf_token'] = $this->Container
+                    ->get(RequestSession::class)
+                    ->getOrCreateToken(self::CONSOLIDATION_CSRF_PURPOSE);
+            }
+        }
+
         $Template = $this->Twig->load('signing.twig');
         return $Template->render($data);
     }

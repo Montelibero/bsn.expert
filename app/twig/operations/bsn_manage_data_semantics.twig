@@ -1,0 +1,25 @@
+{% if semantics %}
+    <div class="mt-2">
+        {% for semantic in semantics %}
+            <p class="is-size-7">
+                <strong>{{ 'bsn_manage_data_semantics.label'|trans }}</strong>
+                {{ include('account_link.twig', {data: {id: semantic.source_account_id}}, with_context = false) }}
+                {% if semantic.kind == 'set' %}
+                    {{ 'bsn_manage_data_semantics.sets_tag'|trans }}
+                    <a href="/tags/{{ semantic.tag_name }}">{{ semantic.tag_name }}</a>
+                    {{ 'bsn_manage_data_semantics.for_account'|trans }}
+                    {{ include('account_link.twig', {data: {id: semantic.target_account_id}}, with_context = false) }}.
+                {% elseif semantic.kind == 'remove' %}
+                    {{ 'bsn_manage_data_semantics.removes_tag'|trans }}
+                    <a href="/tags/{{ semantic.tag_name }}">{{ semantic.tag_name }}</a>
+                    {{ 'bsn_manage_data_semantics.from_account'|trans }}
+                    {{ include('account_link.twig', {data: {id: semantic.target_account_id}}, with_context = false) }}.
+                {% elseif semantic.kind == 'remove_unknown' %}
+                    {{ 'bsn_manage_data_semantics.may_remove_tag'|trans }}
+                    <a href="/tags/{{ semantic.tag_name }}">{{ semantic.tag_name }}</a>
+                    ({{ 'bsn_manage_data_semantics.previous_target_unknown'|trans }}).
+                {% endif %}
+            </p>
+        {% endfor %}
+    </div>
+{% endif %}

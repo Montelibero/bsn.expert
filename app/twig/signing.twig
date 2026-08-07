@@ -3,6 +3,9 @@
     <input type="hidden" name="uri" value="{{ uri }}">
     <input type="hidden" name="description" value="{{ description }}">
     <input type="hidden" name="sign" value="{{ sign }}">
+    {% if consolidation_csrf_token %}
+        <input type="hidden" name="consolidation_csrf_token" value="{{ consolidation_csrf_token|e('html_attr') }}">
+    {% endif %}
     <article class="message is-primary">
 {#        <div class="message-header">#}
 {#            <p>{{ signing_title|default('editor.sign.default_title'|trans) }}</p>#}
@@ -56,6 +59,13 @@
                                     <span class="icon"><i class="fa-solid fa-file-code"></i></span>
                                     <span>XDR</span>
                                 </button>
+
+                                {% if consolidation_csrf_token %}
+                                    <button type="submit" formaction="/tools/consolidate/add" formtarget="_self" class="dropdown-item">
+                                        <span class="icon"><i class="fa-solid fa-layer-group"></i></span>
+                                        <span>{{ 'tools_consolidate.signing.add'|trans }}</span>
+                                    </button>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>

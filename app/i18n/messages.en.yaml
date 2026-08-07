@@ -32,6 +32,7 @@ nav:
     timetoken: Timetoken
     percent_pay: Bulk Percent Payment
     xdr2lab: XDR to LAB
+    consolidate: Consolidation
     mtla_votes: MTLA Votes
     mtla_dm_report: DM Report
   mtla: MTLA
@@ -1902,3 +1903,110 @@ crowd_snapshot_box:
   refresh:
     button: Refresh data
     fallback: Could not fetch fresh data; the cached snapshot is shown.
+
+tools_consolidate:
+  title: Consolidation
+  description: >
+    Combine several transactions into one while optionally excluding whole transactions or individual operations.
+    This is useful when a set of changes must be atomic: for example, set a tag, sign a document, and make a payment
+    so that every action is applied together. It is also a convenient way to record several actions at once.
+  signing:
+    add: Send to consolidation
+  draft:
+    guest: The page works without registration, but the draft is lost after you leave.
+    login: Log in to save it
+    saving: Saving…
+    unsaved: Changes were not saved
+    conflict: The draft changed in another tab. Do not reload; select “Save draft” or repeat the intended action to merge the changes.
+  import:
+    title: Add transactions
+    label: Transaction code (XDR)
+    placeholder: AAAAAgAAAAAi1zI...
+    help: You can add several XDRs at once, one per line.
+  items:
+    title: Transactions
+    transaction: "Transaction #%number%"
+    source: Source
+    memo: Memo
+    xdr: Transaction XDR
+    operations_count: Operations
+    counter_operations: operations
+    signatures: Old signatures
+    effective_source: Operation source
+    remove_confirm: Remove this transaction from the consolidation?
+  settings:
+    title: Resulting transaction
+    max_fee: "Maximum fee for the current selection: %fee% XLM."
+  source:
+    title: Primary account (fee payer)
+    current: Current account
+    custom: Another account
+  memo:
+    title: Memo
+    custom: Custom
+    help: No memo, text up to 28 bytes, or 64 hex characters (a hash).
+  sequence:
+    title: Sequence number
+    help: The next sequence number is used by default.
+  preconditions:
+    ack: I understand that conditions from the original envelopes (timebounds, ledger bounds, and other preconditions) are not preserved.
+  buttons:
+    import: Add
+    up: Move up
+    down: Move down
+    remove: Remove
+    save: Save draft
+    build: Build transaction
+    clear: Clear
+  clear:
+    confirm: Remove every transaction and setting from consolidation? This cannot be undone.
+    yes: Yes, clear it
+  result:
+    title: Resulting transaction
+    help: The draft remains saved and was not cleared. Review the XDR, then sign it or send it for multisig collection.
+    description: Consolidated transaction
+  errors:
+    form_truncated: The form was not received completely. Reduce the number of transactions or XDR size and try again.
+    import_too_large: Up to 1 MiB of XDR can be pasted at once. The existing draft was not changed.
+    csrf: This form expired. Reload the page and try again.
+    conflict: The draft already changed in another tab. Your input remains on screen and was merged with new transactions; review it and repeat the action.
+    no_operations: Select at least one operation.
+    too_many_operations: The resulting transaction cannot contain more than 100 operations.
+    invalid_source: Select a valid primary account.
+    current_source_missing: No current account is selected.
+    invalid_sequence: Sequence must be a positive integer.
+    sequence_unavailable: Could not load the current sequence for the selected source.
+    sequence_too_low: "Sequence is below the current next value %next%."
+    invalid_memo: Invalid memo.
+    preconditions_ack: Confirm that conditions from the original transactions will not be preserved.
+    build_failed: "Could not build the transaction: %message%"
+    invalid_state: The draft could not be restored from the form.
+    unauthorized: Log in to save a draft.
+    storage_unavailable: The draft could not be saved. The rest of the page remains usable.
+  notices:
+    added: Transactions added.
+    duplicate: "Line %line% is already in the consolidation."
+    duplicate_existing: This transaction is already in the consolidation.
+    conflict_overflow: Transactions that did not fit after merging two draft versions were left in the import field and are not saved yet. Free some space and add them, or copy their XDR.
+    rejected: "Line %line% was rejected: %message%"
+    limit: The draft limit of 50 transactions or 500 operations was reached.
+    cleared: Consolidation cleared.
+  warnings:
+    signatures_discarded: Existing signatures are not copied to the resulting transaction.
+    fee_bump_outer_discarded: The inner fee-bump transaction is used; the outer fee source and wrapper are discarded.
+    legacy_v0_normalized: Legacy V0 will be normalized to V1.
+    preconditions_discarded: Conditions from the original transaction will not be preserved.
+    claimable_balance_id_changes: The created claimable-balance ID depends on the source, sequence, and operation position; it will change in the resulting transaction.
+    sequence_not_verified: The specified sequence could not be checked against the current ledger state.
+    sequence_above_current: "The specified sequence is above the current next value %next%."
+    fee_balance: "The maximum fee needs %fee% XLM; approximately %available% XLM is available above reserve."
+    fee_not_verified: Available XLM for the fee could not be checked.
+
+bsn_manage_data_semantics:
+  label: "BSN:"
+  sets_tag: sets tag
+  removes_tag: removes tag
+  may_remove_tag: may remove tag
+  for_account: for
+  from_account: from
+  previous_target_unknown: previous target is unavailable

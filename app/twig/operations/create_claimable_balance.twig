@@ -1,6 +1,8 @@
 <ul>
+    {% if op.data.sponsor %}
     <li>{{ 'transactions.operations.fields.sponsor'|trans }}:
         {{ include('account_link.twig', {data: op.data.sponsor}, with_context = false) }}</li>
+    {% endif %}
     <li>{{ 'transactions.operations.fields.amount'|trans }}:
         {% include 'amount.twig' with {value: op.data.amount} only %}
     </li>
@@ -8,7 +10,8 @@
     <li>{{ 'transactions.operations.fields.asset'|trans }}:
         {{ include('token_link.twig', {token: asset}, with_context = false) }}
     </li>
-    <li>{{ 'transactions.operations.claimable.claimants'|trans }}:
+    {% if op.data.claimants %}
+        <li>{{ 'transactions.operations.claimable.claimants'|trans }}:
         <ul>
         {% for claimant in op.data.claimants %}
             <li>
@@ -17,5 +20,8 @@
             </li>
         {% endfor %}
         </ul>
-    </li>
+        </li>
+    {% elseif op.data.claimant_count is defined %}
+        <li>{{ 'transactions.operations.claimable.claimants'|trans }}: {{ op.data.claimant_count }}</li>
+    {% endif %}
 </ul>

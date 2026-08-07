@@ -17,6 +17,7 @@ use Montelibero\BSN\Controllers\DecisionTransactionsController;
 use Montelibero\BSN\Controllers\RecommendVerificationController;
 use Montelibero\BSN\Controllers\SendTimeTokensController;
 use Montelibero\BSN\Controllers\SwapController;
+use Montelibero\BSN\Controllers\TransactionConsolidationController;
 use Montelibero\BSN\Controllers\VotesController;
 use Montelibero\BSN\Controllers\XdrToLabController;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -105,6 +106,18 @@ class ToolsRouter
 
         SimpleRouter::match(['get', 'post'], '/xdr2lab', function () use ($Container) {
             return $Container->get(XdrToLabController::class)->XdrToLab();
+        });
+
+        SimpleRouter::match(['get', 'post'], '/consolidate', function () use ($Container) {
+            return $Container->get(TransactionConsolidationController::class)->Index();
+        })->name('tool_consolidate');
+
+        SimpleRouter::post('/consolidate/add', function () use ($Container) {
+            return $Container->get(TransactionConsolidationController::class)->Add();
+        });
+
+        SimpleRouter::post('/consolidate/autosave', function () use ($Container) {
+            return $Container->get(TransactionConsolidationController::class)->Autosave();
         });
     }
 

@@ -82,6 +82,7 @@ use Montelibero\BSN\Telegram\TelegramUsageAggregator;
 use Montelibero\BSN\Telegram\TelegramUsageStore;
 use Montelibero\BSN\Telegram\TelegramWebhookAccess;
 use Montelibero\BSN\Telegram\TelegramWebhookController;
+use Montelibero\BSN\TransactionConsolidationStore;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
@@ -132,6 +133,7 @@ $ContactsManager = new ContactsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $DocumentsManager = new DocumentsManager($MongoManager, $_ENV['MONGO_BASENAME']);
 $GristSnapshotStore = new GristSnapshotStore($MongoManager, $_ENV['MONGO_BASENAME']);
 $GristSyncJobManager = new GristSyncJobManager($MongoManager, $_ENV['MONGO_BASENAME']);
+$TransactionConsolidationStore = new TransactionConsolidationStore($MongoManager, $_ENV['MONGO_BASENAME']);
 $RequestLocale = new RequestLocale();
 $KnownTagsCatalog = new KnownTagsCatalog($RequestLocale, __DIR__ . '/known_tags');
 $BSN = new BSN($AccountsManager, $DocumentsManager);
@@ -239,6 +241,7 @@ $ContainerBuilder->addDefinitions([
     DocumentsManager::class => $DocumentsManager,
     GristSnapshotStore::class => $GristSnapshotStore,
     GristSyncJobManager::class => $GristSyncJobManager,
+    TransactionConsolidationStore::class => $TransactionConsolidationStore,
     GristSyncService::class => $GristSyncService,
     GristRuntimeData::class => $GristRuntimeData,
     GristWebhookAccess::class => autowire(),

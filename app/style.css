@@ -397,3 +397,38 @@
 .pseudo-link:focus {
     color: var(--bulma-link-text-hover, var(--bulma-link-hover));
 }
+
+.consolidation-item__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.consolidation-item__toggle {
+    font-size: 1.1rem;
+}
+
+.consolidation-item--disabled {
+    opacity: 0.68;
+}
+
+.consolidation-operation {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--bulma-border-weak, #dbdbdb);
+}
+
+.consolidation-operation input {
+    margin-top: 0.25rem;
+}
+
+@media screen and (max-width: 768px) {
+    .consolidation-item__header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}

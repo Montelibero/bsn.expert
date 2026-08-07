@@ -1,5 +1,223 @@
 document.documentElement.classList.add('has-js');
 
+/* Transaction consolidation: the real controls remain regular HTML submits. */
+document.addEventListener('DOMContentLoaded', function () {
+    const root = document.querySelector('[data-consolidation-root]');
+    if (!root) {
+        return;
+    }
+
+    const form = root.querySelector('[data-consolidation-form]');
+    const itemsRoot = root.querySelector('[data-consolidation-items]');
+    const revisionInput = form ? form.querySelector('[data-consolidation-revision]') : null;
+    const status = root.querySelector('[data-consolidation-save-status]');
+    const selectedCount = root.querySelector('[data-consolidation-selected-count]');
+    let timer = null;
+    let saving = false;
+    let dirty = false;
+    let conflicted = root.dataset.initialConflict === '1';
+    let pendingSubmitter = null;
+    let resubmitting = false;
+
+    if (!form) {
+        return;
+    }
+
+    function statusText(name) {
+        if (status) {
+            const text = root.dataset[name] || '';
+            status.textContent = text;
+            status.classList.toggle('is-hidden', text === '');
+        }
+    }
+
+    function refreshCards() {
+        const cards = itemsRoot ? Array.from(itemsRoot.querySelectorAll('[data-consolidation-item]')) : [];
+        cards.forEach(function (card, index) {
+            const id = card.dataset.consolidationItem || '';
+            const previous = cards[index - 1];
+            const next = cards[index + 1];
+            const orderInput = card.querySelector('input[name="order[]"]');
+            const position = card.querySelector('[data-consolidation-position]');
+            const up = card.querySelector('[data-consolidation-move="up"]');
+            const down = card.querySelector('[data-consolidation-move="down"]');
+            const enabled = card.querySelector('input[name$="[enabled]"]');
+
+            if (orderInput) orderInput.value = id;
+            if (position) position.textContent = String(index + 1);
+            if (up) {
+                up.disabled = !previous;
+                up.value = id + ':' + (previous ? previous.dataset.consolidationItem : '');
+            }
+            if (down) {
+                down.disabled = !next;
+                down.value = id + ':' + (next ? next.dataset.consolidationItem : '');
+            }
+            card.classList.toggle('consolidation-item--disabled', Boolean(enabled && !enabled.checked));
+        });
+
+        if (selectedCount) {
+            const count = Array.from(form.querySelectorAll('[data-consolidation-operation] input[type="checkbox"]'))
+                .filter(function (checkbox) {
+                    const card = checkbox.closest('[data-consolidation-item]');
+                    const parentEnabled = card ? card.querySelector('input[name$="[enabled]"]') : null;
+                    return checkbox.checked && (!parentEnabled || parentEnabled.checked);
+                }).length;
+            selectedCount.textContent = String(count);
+        }
+    }
+
+    function scheduleSave() {
+        refreshCards();
+        if (!revisionInput) {
+            return;
+        }
+        if (conflicted) {
+            statusText('statusConflict');
+            return;
+        }
+        dirty = true;
+        statusText('statusUnsaved');
+        window.clearTimeout(timer);
+        timer = window.setTimeout(save, 450);
+    }
+
+    function save() {
+        if (!revisionInput || saving || !dirty || conflicted) {
+            return;
+        }
+
+        saving = true;
+        dirty = false;
+        statusText('statusSaving');
+        const data = new FormData(form);
+        data.delete('xdr_batch');
+
+        fetch(root.dataset.autosaveUrl, {
+            method: 'POST',
+            body: data,
+            credentials: 'same-origin',
+            headers: {'Accept': 'application/json'}
+        }).then(function (response) {
+            if (response.status === 409) {
+                conflicted = true;
+                statusText('statusConflict');
+                throw new Error('revision conflict');
+            }
+            if (!response.ok) {
+                throw new Error('autosave failed');
+            }
+            return response.json();
+        }).then(function (payload) {
+            if (typeof payload.revision === 'number') {
+                revisionInput.value = String(payload.revision);
+            }
+            statusText('statusSaved');
+        }).catch(function () {
+            if (!status || status.textContent !== root.dataset.statusConflict) {
+                statusText('statusUnsaved');
+            }
+        }).finally(function () {
+            saving = false;
+            if (pendingSubmitter !== null) {
+                const submitter = pendingSubmitter === true ? null : pendingSubmitter;
+                pendingSubmitter = null;
+                resubmitting = true;
+                if (submitter) {
+                    form.requestSubmit(submitter);
+                } else {
+                    form.requestSubmit();
+                }
+                return;
+            }
+            if (dirty) {
+                window.clearTimeout(timer);
+                timer = window.setTimeout(save, 100);
+            }
+        });
+    }
+
+    form.addEventListener('submit', function (event) {
+        window.clearTimeout(timer);
+        if (resubmitting) {
+            return;
+        }
+        if (saving) {
+            event.preventDefault();
+            pendingSubmitter = event.submitter || true;
+            return;
+        }
+        dirty = false;
+    });
+
+    if (itemsRoot) {
+        itemsRoot.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-consolidation-move]');
+            if (!button || button.disabled) {
+                return;
+            }
+            const card = button.closest('[data-consolidation-item]');
+            if (!card) {
+                return;
+            }
+
+            const direction = button.dataset.consolidationMove;
+            const neighbour = direction === 'up' ? card.previousElementSibling : card.nextElementSibling;
+            if (!neighbour) {
+                return;
+            }
+
+            event.preventDefault();
+            if (direction === 'up') {
+                itemsRoot.insertBefore(card, neighbour);
+            } else {
+                itemsRoot.insertBefore(neighbour, card);
+            }
+            scheduleSave();
+        });
+    }
+
+    form.querySelectorAll('[data-consolidation-dirty]').forEach(function (control) {
+        control.addEventListener(control.matches('input[type="text"]') ? 'input' : 'change', scheduleSave);
+    });
+
+    const customSource = form.elements.custom_source;
+    if (customSource) {
+        customSource.addEventListener('input', function () {
+            const customChoice = form.querySelector('input[name="source_choice"][value="custom"]');
+            if (customChoice) customChoice.checked = true;
+        });
+    }
+    const customMemo = form.elements.custom_memo;
+    if (customMemo) {
+        customMemo.addEventListener('input', function () {
+            const customChoice = form.querySelector('input[name="memo_choice"][value="custom"]');
+            if (customChoice) customChoice.checked = true;
+        });
+    }
+
+    form.querySelectorAll('[data-consolidation-remove]').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            if (!window.confirm(button.dataset.confirm || '')) {
+                event.preventDefault();
+            }
+        });
+    });
+
+    const clearButton = form.querySelector('[data-consolidation-clear]');
+    if (clearButton) {
+        clearButton.addEventListener('click', function (event) {
+            if (!window.confirm(clearButton.dataset.confirm || '')) {
+                event.preventDefault();
+                return;
+            }
+            clearButton.value = 'clear';
+        });
+    }
+
+    refreshCards();
+});
+
 function initAccountAutocompletes(root) {
     if (typeof window.initAccountAutocompletes === 'function') {
         window.initAccountAutocompletes(root);

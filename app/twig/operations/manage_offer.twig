@@ -11,13 +11,13 @@
     {% endif %}
     {% if op.data.direct_rate %}
         <li>{{ 'transactions.operations.fields.direct_rate'|trans }}:
-            {% include 'amount.twig' with {value: op.data.direct_rate} only %}
+            {{ op.data.direct_rate }}
             {{ op.data.selling_code }} {{ 'transactions.operations.fields.per'|trans }} {{ op.data.buying_code }}
         </li>
     {% endif %}
     {% if op.data.reverse_rate %}
         <li>{{ 'transactions.operations.fields.reverse_rate'|trans }}:
-            ≈{% include 'amount.twig' with {value: op.data.reverse_rate} only %}
+            ≈{{ op.data.reverse_rate }}
             {{ op.data.buying_code }} {{ 'transactions.operations.fields.per'|trans }} {{ op.data.selling_code }}
         </li>
     {% endif %}

@@ -4,6 +4,7 @@ namespace Montelibero\BSN\Controllers;
 use DI\Container;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\BsnManageDataSemanticService;
 use Montelibero\BSN\StellarTomlImageManager;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
@@ -27,6 +28,7 @@ use Soneso\StellarSDK\Responses\Operations\SetTrustlineFlagsOperationResponse;
 use Soneso\StellarSDK\Responses\Operations\SetOptionsOperationResponse;
 use Soneso\StellarSDK\Responses\Operations\CreateAccountOperationResponse;
 use Soneso\StellarSDK\StellarSDK;
+use Soneso\StellarSDK\Xdr\XdrTransactionMeta;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
@@ -36,16 +38,23 @@ class TransactionsController
     private Environment $Twig;
     private StellarSDK $Stellar;
     private Container $Container;
+    private BsnManageDataSemanticService $BsnManageDataSemanticService;
     private array $formatted_assets = [];
 
-    public function __construct(BSN $BSN, Environment $Twig, StellarSDK $Stellar, Container $Container)
-    {
+    public function __construct(
+        BSN $BSN,
+        Environment $Twig,
+        StellarSDK $Stellar,
+        Container $Container,
+        BsnManageDataSemanticService $BsnManageDataSemanticService,
+    ) {
         $this->BSN = $BSN;
 
         $this->Twig = $Twig;
 
         $this->Stellar = $Stellar;
         $this->Container = $Container;
+        $this->BsnManageDataSemanticService = $BsnManageDataSemanticService;
     }
 
     public function Index(): ?string
@@ -156,7 +165,7 @@ class TransactionsController
 
     private function fetchTransaction(string $tx_hash): ?array
     {
-        $cache_key = 'transaction:' . strtolower($tx_hash) . ':2';
+        $cache_key = 'transaction:' . strtolower($tx_hash) . ':3';
         $cached = apcu_fetch($cache_key);
         if ($cached !== false) {
             return $cached;
@@ -198,7 +207,7 @@ class TransactionsController
                 'value' => $memo_value,
             ],
             'envelope_xdr' => $Transaction->getEnvelopeXdrBase64(),
-            'operations' => $this->fetchOperations($tx_hash),
+            'operations' => $this->fetchOperations($tx_hash, $Transaction->getResultMetaXdr()),
         ];
 
         $data['source_account_data'] = $this->BSN->makeAccountById($data['source_account'])->jsonSerialize();
@@ -211,9 +220,9 @@ class TransactionsController
         return $data;
     }
 
-    private function fetchOperations(string $tx_hash): ?array
+    private function fetchOperations(string $tx_hash, ?XdrTransactionMeta $TransactionMeta = null): ?array
     {
-        $cache_key = 'transaction_ops:' . strtolower($tx_hash) . ':2';
+        $cache_key = 'transaction_ops:' . strtolower($tx_hash) . ':3';
         $cached = apcu_fetch($cache_key);
         if ($cached !== false) {
             return $cached;
@@ -234,8 +243,36 @@ class TransactionsController
         }
 
         $operations = [];
-        foreach ($OperationsPage->getOperations()->toArray() as $Operation) {
-            $operations[] = $this->normalizeOperation($Operation);
+        $manage_data_overlay = [];
+        $prior_states = $this->BsnManageDataSemanticService->priorStatesFromTransactionMeta($TransactionMeta);
+        foreach ($OperationsPage->getOperations()->toArray() as $operation_index => $Operation) {
+            $manage_data_semantics = null;
+            if ($Operation instanceof ManageDataOperationResponse) {
+                $source_account_id = $Operation->getSourceAccount();
+                $data_name = $Operation->getName();
+                $prior_state = $prior_states[$operation_index][$source_account_id][$data_name] ?? null;
+                if ($prior_state !== null) {
+                    $this->BsnManageDataSemanticService->seedPriorState(
+                        $manage_data_overlay,
+                        $source_account_id,
+                        $data_name,
+                        $prior_state['exists'],
+                        $prior_state['value'],
+                    );
+                }
+
+                $raw_value = $this->rawManageDataValue($Operation);
+                $manage_data_semantics = $raw_value['known']
+                    ? $this->BsnManageDataSemanticService->analyzeAndApply(
+                        $source_account_id,
+                        $data_name,
+                        $raw_value['value'],
+                        $manage_data_overlay,
+                    )
+                    : [];
+            }
+
+            $operations[] = $this->normalizeOperation($Operation, $manage_data_semantics);
         }
 
         apcu_store($cache_key, $operations, 60 * 5);
@@ -246,7 +283,7 @@ class TransactionsController
     private function fetchAccountOperations(Account $Account, ?string $cursor): ?array
     {
         $cursor_key = $cursor ?? 'latest';
-        $cache_key = 'account_ops:' . strtolower($Account->getId()) . ':' . $cursor_key . ':1';
+        $cache_key = 'account_ops:' . strtolower($Account->getId()) . ':' . $cursor_key . ':2';
         $cached = apcu_fetch($cache_key);
         if ($cached !== false) {
             return $cached;
@@ -402,7 +439,7 @@ class TransactionsController
         return false;
     }
 
-    private function normalizeOperation(OperationResponse $Operation): array
+    private function normalizeOperation(OperationResponse $Operation, ?array $manage_data_semantics = null): array
     {
         $type = $Operation->getHumanReadableOperationType();
         $base = [
@@ -426,7 +463,10 @@ class TransactionsController
             'begin_sponsoring_future_reserves' => $base + $this->normalizeBeginSponsoring($Operation),
             'end_sponsoring_future_reserves' => $base + $this->normalizeEndSponsoring($Operation),
             'create_claimable_balance' => $base + $this->normalizeCreateClaimableBalance($Operation),
-            'manage_data' => $base + $this->normalizeManageData($Operation),
+            'manage_data' => $base + $this->normalizeManageData(
+                $Operation,
+                $manage_data_semantics ?? $this->standaloneManageDataSemantics($Operation),
+            ),
             'set_options' => $base + $this->normalizeSetOptions($Operation),
             'clawback' => $base + $this->normalizeClawback($Operation),
             default => $base + $this->normalizeUnsupported(),
@@ -726,13 +766,17 @@ class TransactionsController
             if ($mode === 'manage_buy_offer') {
                 $exchange_amount = number_format($amount_value * $price_value, 7, '.', '');
                 $target_amount = number_format($amount_value, 7, '.', '');
-                $direct_rate = number_format($price_value, 7, '.', '');
-                $reverse_rate = $price_value != 0.0 ? number_format(1 / $price_value, 7, '.', '') : null;
+                $direct_rate = $this->compactDecimal(number_format($price_value, 7, '.', ''));
+                $reverse_rate = $price_value != 0.0
+                    ? $this->compactDecimal(number_format(1 / $price_value, 7, '.', ''))
+                    : null;
             } else {
                 $exchange_amount = number_format($amount_value, 7, '.', '');
                 $target_amount = number_format($amount_value * $price_value, 7, '.', '');
-                $direct_rate = $price_value != 0.0 ? number_format(1 / $price_value, 7, '.', '') : null;
-                $reverse_rate = number_format($price_value, 7, '.', '');
+                $direct_rate = $price_value != 0.0
+                    ? $this->compactDecimal(number_format(1 / $price_value, 7, '.', ''))
+                    : null;
+                $reverse_rate = $this->compactDecimal(number_format($price_value, 7, '.', ''));
             }
         }
 
@@ -753,6 +797,12 @@ class TransactionsController
                 'offer_id' => $offer_id,
             ],
         ];
+    }
+
+    private function compactDecimal(string $value): string
+    {
+        $value = rtrim(rtrim($value, '0'), '.');
+        return $value === '' || $value === '-' ? '0' : $value;
     }
 
     private function normalizeAccountMerge(OperationResponse $Operation): array
@@ -826,7 +876,7 @@ class TransactionsController
         ];
     }
 
-    private function normalizeManageData(OperationResponse $Operation): array
+    private function normalizeManageData(OperationResponse $Operation, array $bsn_semantics = []): array
     {
         if (!$Operation instanceof ManageDataOperationResponse) {
             return $this->normalizeUnsupported();
@@ -855,8 +905,49 @@ class TransactionsController
                 'decoded_value' => $decoded_value,
                 'cleared' => $is_cleared,
                 'action_label' => $action_label,
+                'bsn_semantics' => $bsn_semantics,
             ],
         ];
+    }
+
+    private function standaloneManageDataSemantics(OperationResponse $Operation): array
+    {
+        if (!$Operation instanceof ManageDataOperationResponse) {
+            return [];
+        }
+
+        $raw_value = $this->rawManageDataValue($Operation);
+        if (!$raw_value['known']) {
+            return [];
+        }
+
+        $overlay = [];
+        return $this->BsnManageDataSemanticService->analyzeAndApply(
+            $Operation->getSourceAccount(),
+            $Operation->getName(),
+            $raw_value['value'],
+            $overlay,
+        );
+    }
+
+    /**
+     * Horizon encodes ManageData values as base64 and represents deletion as
+     * an empty value. Invalid payloads keep their technical view but are not
+     * interpreted as BSN data.
+     *
+     * @return array{known: bool, value: ?string}
+     */
+    private function rawManageDataValue(ManageDataOperationResponse $Operation): array
+    {
+        $encoded_value = $Operation->getValue();
+        if ($encoded_value === '') {
+            return ['known' => true, 'value' => null];
+        }
+
+        $value = base64_decode($encoded_value, true);
+        return $value === false
+            ? ['known' => false, 'value' => null]
+            : ['known' => true, 'value' => $value];
     }
 
     private function isLikelyText(string $value): bool

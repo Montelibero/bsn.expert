@@ -8,3 +8,4 @@
         {% endif %}
     {% endif %}
 </ul>
+{% include 'operations/bsn_manage_data_semantics.twig' with {semantics: op.data.bsn_semantics|default([])} only %}

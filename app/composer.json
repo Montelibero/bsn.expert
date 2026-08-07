@@ -47,7 +47,9 @@
       "@test:telegram"
     ],
     "test:bsn": [
-      "php tests/BsnAtomicReloadTest.php"
+      "php tests/BsnAtomicReloadTest.php",
+      "php tests/BsnManageDataSemanticServiceTest.php",
+      "php tests/TransactionConsolidatorTest.php"
     ],
     "test:session": [
       "php tests/RequestSessionLazyTest.php"

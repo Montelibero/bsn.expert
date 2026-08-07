@@ -12,6 +12,15 @@ $checks = [
     ['path' => '/health', 'status' => 200, 'json_status' => 'ok'],
     ['path' => '/', 'status' => 200],
     ['path' => '/tools/', 'status' => 200],
+    [
+        'path' => '/tools/consolidate',
+        'status' => 200,
+        'response_headers' => [
+            'cache-control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'referrer-policy' => 'no-referrer',
+        ],
+        'absent_response_headers' => ['set-cookie'],
+    ],
     ['path' => '/accounts/', 'status' => 200],
     ['path' => '/documents/', 'status' => 200],
     ['path' => '/tokens/?format=json', 'status' => 200, 'json' => true],
@@ -116,6 +125,12 @@ foreach ($checks as $check) {
                 $name,
                 $header_counts[$name] ?? 0
             );
+        }
+    }
+
+    foreach ($check['absent_response_headers'] ?? [] as $name) {
+        if (isset($headers[$name])) {
+            $errors[] = sprintf('%s: response must not include header %s', $check['path'], $name);
         }
     }
 
