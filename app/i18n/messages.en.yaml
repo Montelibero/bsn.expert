@@ -24,6 +24,7 @@ nav:
     multisig: Multisig Editor
     asset_swap: Private Asset Swap
     swap: Token Swap
+    payment: Outgoing Payment
     migration: Migration
     close_trustlines: Close trustlines
     orders: Orders
@@ -1453,6 +1454,68 @@ tools_swap:
     amount_exceeds_available: "You cannot send more than %available% %asset%: this is the currently available amount."
     receive_limit: "Recipient cannot receive %asset%: trustline limit is too low."
     transaction_failed: Failed to prepare the swap transaction.
+
+tools_payment:
+  title: Outgoing Payment
+  description: This page creates a Stellar transaction with ordinary payments — essentially what any wallet can do.
+  account: "Sender account:"
+  form:
+    payment: "Payment #%number%"
+    payment_js_prefix: "Payment #"
+    destination: Recipient
+    destination_help: Enter a G-address or muxed M-address of a Stellar account.
+    asset: Asset to send
+    amount: Amount to send
+    amount_help: A positive number with at most 7 digits after the decimal point or comma.
+    balance: "Balance:"
+    issuer_balance: not applicable to the issuer
+    maximum: "Maximum available to send:"
+    set_maximum: Set the maximum available amount
+    frozen_orders: Additionally locked in orders
+    frozen_account: "Unavailable because of account reserve and liabilities:"
+    memo: Memo
+    memo_help: "No memo, text up to 28 bytes, or 64 hex characters (a hash). An integer is detected as an ID."
+    add: Add payment
+    remove: "Remove payment #%number%"
+    remove_js_prefix: "Remove payment #"
+    operations_counter: "Operations: %number% / %maximum%"
+    operations_counter_js_prefix: "Operations: "
+    build: Validate and prepare transaction
+  preview:
+    title: Prepared transaction
+    operations: "Operation count: %number%"
+    max_fee: "Maximum fee: %fee% XLM"
+    memo: "Memo:"
+    muxed_destination: "Exact muxed recipient address:"
+    stale: The form has changed. The previously prepared transaction is hidden; validate the values and build it again.
+  memo:
+    type:
+      none: no memo
+      text: TEXT
+      id: ID
+      hash: HASH
+  signing:
+    title: Sign outgoing payment
+    description: "Outgoing payment from account %account%"
+  errors:
+    source_not_found: Sender account was not found in Horizon.
+    assets_not_loaded: Assets could not be loaded and available balances could not be calculated safely.
+    form_truncated: The form was not received completely. Reduce the number of payments and try again.
+    no_operations: Add at least one payment.
+    too_many_operations: One transaction cannot contain more than 100 payments.
+    anonymous_destination_limit: "Without signing in, at most %maximum% unique recipients can be checked at once. Sign in to prepare a bulk payment."
+    invalid_row: This payment has an invalid data structure.
+    destination_invalid: Enter a valid G-address or muxed M-address for the recipient.
+    destination_not_found: The recipient account was not found in Horizon. A new account needs Create Account, not Payment.
+    invalid_asset: Select an available sender asset.
+    invalid_amount: Enter an amount greater than zero with at most 7 digits after the decimal point or comma.
+    amount_exceeds_available: "After the other payments, at most %available% %asset% remains available."
+    fee_exceeds_available: "The maximum fee needs %fee% XLM, but only %available% XLM is available above reserve."
+    trustline_missing: "The recipient has no trustline for %asset%."
+    receiver_not_authorized: "The recipient is not authorized by the issuer to receive %asset%."
+    receiver_limit: "The recipient cannot receive %asset%: the trustline limit is too low after the other payments."
+    invalid_memo: "Invalid memo. Use text up to 28 bytes, an integer (ID), or 64 hex characters (a hash)."
+    transaction_failed: Failed to prepare the outgoing payment transaction.
 
 tools_migration:
   title: Migration

@@ -1,0 +1,141 @@
+{% set selected_token = tokens[payment.asset]|default(null) %}
+{% set payment_errors = payment_errors|default([]) %}
+<fieldset class="box" data-payment-row>
+    <div
+        class="{% if can_remove %}is-flex{% else %}is-hidden{% endif %} is-justify-content-space-between is-align-items-center mb-4"
+        data-payment-row-header
+    >
+        <h2 class="title is-4 mb-0" data-payment-row-title>
+            {{ 'tools_payment.form.payment'|trans({'%number%': payment_number}) }}
+        </h2>
+        <button
+            class="button is-small is-outlined is-danger"
+            type="submit"
+            name="remove"
+            value="{{ payment_index|e('html_attr') }}"
+            aria-label="{{ 'tools_payment.form.remove'|trans({'%number%': payment_number}) }}"
+            title="{{ 'tools_payment.form.remove'|trans({'%number%': payment_number}) }}"
+            formnovalidate
+            data-payment-remove
+            {% if not can_remove %}disabled{% endif %}
+        >
+            <span class="icon"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></span>
+        </button>
+    </div>
+
+    {% for error in payment_errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    <div class="columns is-multiline">
+        <div class="column is-12">
+            <div class="field">
+                <label class="label" for="payment_{{ payment_index }}_destination">
+                    {{ 'tools_payment.form.destination'|trans }}
+                </label>
+                <div class="control">
+                    <input
+                        class="input is-family-monospace"
+                        id="payment_{{ payment_index }}_destination"
+                        name="payments[{{ payment_index }}][destination]"
+                        value="{{ payment.destination|e('html_attr') }}"
+                        placeholder="G… / M…"
+                        maxlength="69"
+                        autocomplete="off"
+                        spellcheck="false"
+                        required
+                        data-account-autocomplete-input
+                        data-payment-destination
+                    >
+                </div>
+                <p class="help">{{ 'tools_payment.form.destination_help'|trans }}</p>
+            </div>
+        </div>
+
+        <div class="column is-12-tablet is-6-desktop">
+            <div class="field">
+                <label class="label" for="payment_{{ payment_index }}_asset">
+                    {{ 'tools_payment.form.asset'|trans }}
+                </label>
+                <div class="control">
+                    <div class="select is-fullwidth">
+                        <select
+                            id="payment_{{ payment_index }}_asset"
+                            name="payments[{{ payment_index }}][asset]"
+                            required
+                            data-payment-asset
+                        >
+                            {% for token in tokens %}
+                                <option
+                                    value="{{ token.key|e('html_attr') }}"
+                                    data-available="{{ token.available|default('')|e('html_attr') }}"
+                                    data-balance="{{ token.balance|default('')|e('html_attr') }}"
+                                    data-frozen="{{ token.frozen|default('0')|e('html_attr') }}"
+                                    data-frozen-kind="{{ token.frozen_kind|default('orders')|e('html_attr') }}"
+                                    data-self-receive-capacity="{{ token.self_receive_capacity|default('')|e('html_attr') }}"
+                                    data-unlimited="{% if token.available_unlimited|default(false) %}1{% else %}0{% endif %}"
+                                    data-native="{% if token.is_native|default(false) %}1{% else %}0{% endif %}"
+                                    {% if token.key == payment.asset %}selected{% endif %}
+                                    {% if token.disabled %}disabled{% endif %}
+                                >{{ token.option_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="help" data-payment-asset-details>
+                    <span>
+                        {{ 'tools_payment.form.balance'|trans }}
+                        <span data-payment-balance>{% if selected_token and selected_token.available_unlimited %}{{ 'tools_payment.form.issuer_balance'|trans }}{% elseif selected_token %}{{ selected_token.balance|default('0') }}{% else %}0{% endif %}</span>.
+                    </span>
+                    <span>
+                        {{ 'tools_payment.form.maximum'|trans }}
+                        <span data-payment-max-static><span data-payment-maximum>{% if selected_token %}{{ selected_token.transaction_available_label }}{% endif %}</span></span>
+                        <button
+                            class="button is-ghost is-small p-0 is-vertical-align-baseline is-hidden"
+                            type="button"
+                            aria-label="{{ 'tools_payment.form.set_maximum'|trans }}"
+                            title="{{ 'tools_payment.form.set_maximum'|trans }}"
+                            data-payment-max
+                            {% if not selected_token or selected_token.available_unlimited or selected_token.transaction_available == '0.0000000' %}disabled{% endif %}
+                        ><span data-payment-maximum>{% if selected_token %}{{ selected_token.transaction_available_label }}{% endif %}</span></button>.
+                    </span>
+                    <span
+                        data-payment-frozen-orders
+                        {% if not selected_token or selected_token.frozen_kind != 'orders' or selected_token.frozen == '0.0000000' %}class="is-hidden"{% endif %}
+                    >
+                        {{ 'tools_payment.form.frozen_orders'|trans }}
+                        <span data-payment-frozen>{% if selected_token %}{{ selected_token.frozen_label }}{% endif %}</span>.
+                    </span>
+                    <span
+                        data-payment-frozen-account
+                        {% if not selected_token or selected_token.frozen_kind != 'account' or selected_token.frozen == '0.0000000' %}class="is-hidden"{% endif %}
+                    >
+                        {{ 'tools_payment.form.frozen_account'|trans }}
+                        <span data-payment-frozen>{% if selected_token %}{{ selected_token.frozen_label }}{% endif %}</span>.
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="column is-12-tablet is-6-desktop">
+            <div class="field">
+                <label class="label" for="payment_{{ payment_index }}_amount">
+                    {{ 'tools_payment.form.amount'|trans }}
+                </label>
+                <div class="control">
+                    <input
+                        class="input"
+                        id="payment_{{ payment_index }}_amount"
+                        name="payments[{{ payment_index }}][amount]"
+                        value="{{ payment.amount|e('html_attr') }}"
+                        inputmode="decimal"
+                        autocomplete="off"
+                        required
+                        data-payment-amount
+                    >
+                </div>
+                <p class="help">{{ 'tools_payment.form.amount_help'|trans }}</p>
+            </div>
+        </div>
+    </div>
+</fieldset>

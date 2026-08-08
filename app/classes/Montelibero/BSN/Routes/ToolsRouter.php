@@ -11,6 +11,7 @@ use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MigrationController;
 use Montelibero\BSN\Controllers\MtlaRpExclusionController;
 use Montelibero\BSN\Controllers\OrdersController;
+use Montelibero\BSN\Controllers\PaymentController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\DecisionTransactionsController;
@@ -46,6 +47,10 @@ class ToolsRouter
         SimpleRouter::get('/swap', function () use ($Container) {
             return $Container->get(SwapController::class)->Swap();
         })->name('tool_swap');
+
+        SimpleRouter::match(['get', 'post'], '/payment', function () use ($Container) {
+            return $Container->get(PaymentController::class)->Payment();
+        })->name('tool_payment');
 
         SimpleRouter::match(['get', 'post'], '/migration', function () use ($Container) {
             return $Container->get(MigrationController::class)->Migration();

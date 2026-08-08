@@ -33,6 +33,7 @@ use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MtlaDmReportController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
+use Montelibero\BSN\Controllers\PaymentController;
 use Montelibero\BSN\Controllers\ProfileEditorController;
 use Montelibero\BSN\Controllers\SearchController;
 use Montelibero\BSN\Controllers\SingleAccountEditTagsController;
@@ -60,6 +61,7 @@ use Montelibero\BSN\GristSyncService;
 use Montelibero\BSN\GristWebhookAccess;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
+use Montelibero\BSN\PaymentTransactionBuilder;
 use Montelibero\BSN\RequestArrayView;
 use Montelibero\BSN\RequestLocale;
 use Montelibero\BSN\RequestSession;
@@ -266,6 +268,7 @@ $ContainerBuilder->addDefinitions([
     EurmtlReportService::class => autowire(),
     RequestSession::class => $RequestSession,
     RequestLocale::class => $RequestLocale,
+    PaymentTransactionBuilder::class => autowire(),
     KnownTagsCatalog::class => $KnownTagsCatalog,
     AccountReportBuilder::class => autowire(),
     AccountRichMessageRenderer::class => autowire(),
@@ -348,6 +351,7 @@ $ContainerBuilder->addDefinitions([
     MtlaController::class => autowire(),
     MtlaDmReportController::class => autowire(),
     PercentPayController::class => autowire(),
+    PaymentController::class => autowire(),
     ProfileEditorController::class => autowire(),
     MultisigController::class => autowire(),
     VotesController::class => autowire(),

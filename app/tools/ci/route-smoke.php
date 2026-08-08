@@ -13,6 +13,11 @@ $checks = [
     ['path' => '/', 'status' => 200],
     ['path' => '/tools/', 'status' => 200],
     [
+        'path' => '/tools/payment',
+        'status' => 302,
+        'location' => '/who_are_you?return_to=%2Ftools%2Fpayment',
+    ],
+    [
         'path' => '/tools/consolidate',
         'status' => 200,
         'response_headers' => [
