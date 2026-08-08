@@ -1,0 +1,50 @@
+{% set trustline_errors = trustline_errors|default([]) %}
+<fieldset class="box" data-open-trustline-row>
+    <div
+        class="{% if can_remove %}is-flex{% else %}is-hidden{% endif %} is-justify-content-space-between is-align-items-center mb-4"
+        data-open-trustline-row-header
+    >
+        <h2 class="title is-4 mb-0" data-open-trustline-row-title>
+            {{ 'tools_open_trustlines.form.trustline'|trans({'%number%': trustline_number}) }}
+        </h2>
+        <button
+            class="button is-small is-outlined is-danger"
+            type="submit"
+            name="remove"
+            value="{{ trustline_index|e('html_attr') }}"
+            aria-label="{{ 'tools_open_trustlines.form.remove'|trans({'%number%': trustline_number}) }}"
+            title="{{ 'tools_open_trustlines.form.remove'|trans({'%number%': trustline_number}) }}"
+            formnovalidate
+            data-open-trustline-remove
+            {% if not can_remove %}disabled{% endif %}
+        >
+            <span class="icon"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></span>
+        </button>
+    </div>
+
+    {% for error in trustline_errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    <div class="field">
+        <label class="label" for="open_trustline_{{ trustline_index }}_asset">
+            {{ 'tools_open_trustlines.form.asset'|trans }}
+        </label>
+        <div class="control">
+            <input
+                class="input is-family-monospace"
+                id="open_trustline_{{ trustline_index }}_asset"
+                name="trustlines[{{ trustline_index }}][asset]"
+                value="{{ trustline.asset|e('html_attr') }}"
+                placeholder="TOKEN-G…"
+                maxlength="69"
+                autocomplete="off"
+                spellcheck="false"
+                required
+                data-trustline-asset-autocomplete-input
+                data-open-trustline-asset
+            >
+        </div>
+        <p class="help">{{ 'tools_open_trustlines.form.asset_help'|trans }}</p>
+    </div>
+</fieldset>

@@ -1,0 +1,211 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_create_account.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_create_account.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_create_account.title'|trans }}</h1>
+    <p class="block">{{ 'tools_create_account.description'|trans }}</p>
+    <p class="block">
+        {{ 'tools_create_account.account'|trans }}
+        {{ include('account_link.twig', {data: account}, with_context = false) }}
+    </p>
+
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    <section data-transaction-scope>
+        {% if preview and signing_form %}
+            <section class="block">
+                <h2 class="title is-3">{{ 'tools_create_account.preview.title'|trans }}</h2>
+                <div class="content">
+                    <dl>
+                        <dt>{{ 'tools_create_account.preview.destination'|trans }}</dt>
+                        <dd>{{ include('account_link.twig', {data: preview.destination}, with_context = false) }}</dd>
+                        <dt>{{ 'tools_create_account.preview.starting_balance'|trans }}</dt>
+                        <dd>{{ preview.starting_balance }}&nbsp;XLM</dd>
+                        <dt>{{ 'tools_create_account.preview.operation_count'|trans }}</dt>
+                        <dd>{{ preview.operation_count }}</dd>
+                        <dt>{{ 'tools_create_account.preview.maximum_fee'|trans }}</dt>
+                        <dd>{{ preview.fee }}&nbsp;XLM</dd>
+                        <dt>{{ 'tools_create_account.preview.required_from_source'|trans }}</dt>
+                        <dd>{{ preview.required_from_source }}&nbsp;XLM</dd>
+                        <dt>{{ 'tools_create_account.preview.available'|trans }}</dt>
+                        <dd>{{ preview.available }}&nbsp;XLM</dd>
+                    </dl>
+
+                    {% if preview.sponsor %}
+                        <div class="notification is-info">
+                            {{ 'tools_create_account.preview.sponsor_reserve'|trans({
+                                '%entries%': preview.new_account_reserve_entries,
+                                '%reserve%': preview.new_account_minimum,
+                            }) }}
+                        </div>
+                    {% else %}
+                        <div class="notification is-info">
+                            {{ 'tools_create_account.preview.new_account_reserve'|trans({
+                                '%entries%': preview.new_account_reserve_entries,
+                                '%reserve%': preview.new_account_minimum,
+                            }) }}
+                        </div>
+                    {% endif %}
+
+                    {% if preview.requires_new_account_signature %}
+                        <div class="notification is-warning">
+                            {{ 'tools_create_account.preview.new_account_signature_required'|trans({
+                                '%account%': preview.destination.id,
+                            }) }}
+                        </div>
+                    {% endif %}
+
+                    {% if preview.lock_master_key %}
+                        <div class="notification is-warning">
+                            {{ 'tools_create_account.preview.lock_warning'|trans }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <h3 class="title is-4">{{ 'tools_create_account.preview.operations'|trans }}</h3>
+                {% for operation in preview.operations %}
+                    <article class="box">
+                        <h4 class="title is-5">{{ loop.index }}. {{ operation.title }}</h4>
+                        <p class="is-size-7 has-text-grey">
+                            {{ 'tools_create_account.preview.operation_source'|trans }}:
+                            {{ include('account_link.twig', {data: operation.source}, with_context = false) }}
+                        </p>
+                        {{ include(operation.template, {op: {data: operation.data}}, with_context = false) }}
+                    </article>
+                {% endfor %}
+
+                {{ signing_form|raw }}
+            </section>
+        {% endif %}
+
+        <form method="post" action="/tools/create_account" data-signing-stale-watch>
+            {% if current_account_param %}
+                <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+            {% endif %}
+
+            <div class="field">
+                <label class="label" for="create_account_destination">{{ 'tools_create_account.form.destination'|trans }}</label>
+                <div class="control">
+                    <input
+                        class="input"
+                        id="create_account_destination"
+                        name="destination"
+                        value="{{ values.destination|e('html_attr') }}"
+                        autocomplete="off"
+                        autocapitalize="characters"
+                        spellcheck="false"
+                        maxlength="56"
+                        required
+                    >
+                </div>
+                <p class="help">{{ 'tools_create_account.form.destination_help'|trans }}</p>
+            </div>
+
+            <div class="field">
+                <label class="label" for="create_account_starting_balance">{{ 'tools_create_account.form.starting_balance'|trans }}</label>
+                <div class="field has-addons">
+                    <div class="control is-expanded">
+                        <input
+                            class="input"
+                            id="create_account_starting_balance"
+                            name="starting_balance"
+                            value="{{ values.starting_balance|e('html_attr') }}"
+                            inputmode="decimal"
+                            required
+                        >
+                    </div>
+                    <div class="control"><span class="button is-static">XLM</span></div>
+                </div>
+                {% if base_reserve is not null %}
+                    <p class="help">{{ 'tools_create_account.form.starting_balance_help'|trans({'%minimum%': base_reserve}) }}</p>
+                {% endif %}
+            </div>
+
+            <div class="field">
+                <label class="checkbox">
+                    <input type="checkbox" name="sponsor" value="1" {% if values.sponsor %}checked{% endif %}>
+                    {{ 'tools_create_account.form.sponsor'|trans }}
+                </label>
+                <p class="help">{{ 'tools_create_account.form.sponsor_help'|trans }}</p>
+            </div>
+
+            <h2 class="title is-3">{{ 'tools_create_account.trustlines.title'|trans }}</h2>
+            {% if base_reserve is not null %}
+                <p class="block">{{ 'tools_create_account.trustlines.note'|trans({'%reserve%': base_reserve}) }}</p>
+            {% endif %}
+            {% if trustline_tokens %}
+                <div class="field is-grouped is-grouped-multiline">
+                    {% for token in trustline_tokens %}
+                        {% set checked = token.key in selected_token_keys %}
+                        <div class="control">
+                            <div class="is-flex is-align-items-center is-gap-2">
+                                <input
+                                    id="create_account_token_{{ loop.index }}"
+                                    type="checkbox"
+                                    name="tokens[{{ token.key|e('html_attr') }}]"
+                                    value="1"
+                                    aria-label="{{ token.code|e('html_attr') }}"
+                                    {% if checked %}checked{% endif %}
+                                >
+                                {{ include('token_link.twig', {token: token}, with_context = false) }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="notification is-info">{{ 'tools_create_account.trustlines.empty'|trans }}</div>
+            {% endif %}
+
+            <h2 class="title is-3">{{ 'tools_create_account.properties.title'|trans }}</h2>
+            <div class="field">
+                <label class="checkbox">
+                    <input type="checkbox" name="full_ownership" value="1" {% if values.full_ownership %}checked{% endif %}>
+                    {{ 'tools_create_account.properties.full_ownership'|trans }}
+                </label>
+                {% if base_reserve is not null %}
+                    <p class="help">{{ 'tools_create_account.properties.full_ownership_help'|trans({'%reserve%': base_reserve}) }}</p>
+                {% endif %}
+            </div>
+            <div class="field">
+                {% set lock_master_key_disabled = current_account_has_master_key is same as(false) %}
+                <label class="checkbox">
+                    <input
+                        type="checkbox"
+                        name="lock_master_key"
+                        value="1"
+                        {% if values.lock_master_key %}checked{% endif %}
+                        {% if lock_master_key_disabled %}disabled{% endif %}
+                    >
+                    {{ 'tools_create_account.properties.lock_master_key'|trans }}
+                </label>
+                {% if base_reserve is not null %}
+                    <p class="help">{{ 'tools_create_account.properties.lock_master_key_help'|trans({'%reserve%': base_reserve}) }}</p>
+                {% endif %}
+                {% if lock_master_key_disabled %}
+                    <p class="help has-text-warning">{{ 'tools_create_account.properties.master_key_unavailable'|trans }}</p>
+                {% else %}
+                    <p class="help has-text-warning">{{ 'tools_create_account.properties.lock_master_key_warning'|trans }}</p>
+                {% endif %}
+            </div>
+
+            <div class="field mt-5">
+                <div class="control">
+                    <button class="button is-primary" type="submit" name="action" value="build" {% if base_reserve is null %}disabled{% endif %}>
+                        <span class="icon"><i class="fa-solid fa-file-signature"></i></span>
+                        <span>{{ 'tools_create_account.form.build'|trans }}</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+    </section>
+{% endblock %}

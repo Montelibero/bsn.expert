@@ -1,0 +1,217 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'tools_open_trustlines.title'|trans }} — {{ 'nav.tools.title'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li><a href="/tools" aria-current="page">{{ 'nav.tools.title'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'tools_open_trustlines.title'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+    <h1 class="title">{{ 'tools_open_trustlines.title'|trans }}</h1>
+    <p class="block">{{ 'tools_open_trustlines.description'|trans }}</p>
+    <p class="block">
+        {{ 'tools_open_trustlines.account'|trans }}
+        {{ include('account_link.twig', {data: account}, with_context = false) }}
+    </p>
+
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    <section data-transaction-scope>
+        {% if preview and signing_form %}
+            <section class="block">
+                <h2 class="title is-3">{{ 'tools_open_trustlines.preview.title'|trans }}</h2>
+                <div class="content">
+                    <ul>
+                        <li>{{ 'tools_open_trustlines.preview.operations'|trans({'%number%': preview.operation_count}) }}</li>
+                        <li>{{ 'tools_open_trustlines.preview.reserve'|trans({'%reserve%': preview.reserve}) }}</li>
+                        <li>{{ 'tools_open_trustlines.preview.max_fee'|trans({'%fee%': preview.fee}) }}</li>
+                        <li>{{ 'tools_open_trustlines.preview.required'|trans({'%required%': preview.required, '%available%': preview.available}) }}</li>
+                    </ul>
+                </div>
+
+                {% for operation in preview.operations %}
+                    <article class="message">
+                        <div class="message-header">
+                            <p>{{ operation.title }}</p>
+                        </div>
+                        <div class="message-body">
+                            <p>
+                                {{ 'transactions.operations.source'|trans }}:
+                                {{ include('account_link.twig', {data: operation.source}, with_context = false) }}
+                            </p>
+                            {{ include(operation.template, {op: operation}, with_context = false) }}
+                        </div>
+                    </article>
+                {% endfor %}
+
+                {{ signing_form|raw }}
+            </section>
+        {% endif %}
+
+        <form method="post" action="/tools/open_trustlines" data-open-trustlines-form data-signing-stale-watch>
+            {% if current_account_param %}
+                <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+            {% endif %}
+
+            <div class="block" data-open-trustline-rows>
+                {% for trustline in trustlines %}
+                    {{ include('components/open_trustline_row.twig', {
+                        trustline_index: loop.index0,
+                        trustline_number: loop.index,
+                        trustline: trustline,
+                        trustline_errors: row_errors[loop.index0]|default([]),
+                        can_remove: trustlines|length > 1,
+                    }, with_context = false) }}
+                {% endfor %}
+            </div>
+
+            <template data-open-trustline-row-template>
+                {{ include('components/open_trustline_row.twig', {
+                    trustline_index: '__INDEX__',
+                    trustline_number: '__NUMBER__',
+                    trustline: {asset: ''},
+                    trustline_errors: [],
+                    can_remove: true,
+                }, with_context = false) }}
+            </template>
+
+            <div class="field is-grouped is-grouped-multiline is-align-items-center mb-5">
+                <div class="control">
+                    <button
+                        class="button is-info is-outlined"
+                        type="submit"
+                        name="action"
+                        value="add"
+                        formnovalidate
+                        data-open-trustline-add
+                        {% if trustlines|length >= max_operations %}disabled{% endif %}
+                    >
+                        <span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+                        <span>{{ 'tools_open_trustlines.form.add'|trans }}</span>
+                    </button>
+                </div>
+                <div class="control">
+                    <span class="tag" data-open-trustline-counter data-max-operations="{{ max_operations }}">
+                        {{ 'tools_open_trustlines.form.operations_counter'|trans({
+                            '%number%': trustlines|length,
+                            '%maximum%': max_operations,
+                        }) }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="control">
+                    <button class="button is-primary" type="submit" name="action" value="build">
+                        <span class="icon"><i class="fa-solid fa-file-signature" aria-hidden="true"></i></span>
+                        <span>{{ 'tools_open_trustlines.form.build'|trans }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <input type="hidden" name="form_complete" value="1">
+        </form>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('[data-open-trustlines-form]');
+            if (!form) {
+                return;
+            }
+
+            const rowsRoot = form.querySelector('[data-open-trustline-rows]');
+            const rowTemplate = form.querySelector('[data-open-trustline-row-template]');
+            const addButton = form.querySelector('[data-open-trustline-add]');
+            const counter = form.querySelector('[data-open-trustline-counter]');
+            const maxOperations = Number(counter ? counter.dataset.maxOperations : 100) || 100;
+            let nextIndex = rowsRoot.querySelectorAll('[data-open-trustline-row]').length;
+
+            function markSigningResultStale() {
+                form.dispatchEvent(new Event('signing-stale', {bubbles: true}));
+            }
+
+            function syncRows() {
+                const rows = Array.from(rowsRoot.querySelectorAll('[data-open-trustline-row]'));
+                rows.forEach(function (row, index) {
+                    const header = row.querySelector('[data-open-trustline-row-header]');
+                    const number = row.querySelector('[data-open-trustline-row-title]');
+                    const remove = row.querySelector('[data-open-trustline-remove]');
+                    if (header) {
+                        header.classList.toggle('is-flex', rows.length > 1);
+                        header.classList.toggle('is-hidden', rows.length <= 1);
+                    }
+                    if (number) {
+                        number.textContent = {{ 'tools_open_trustlines.form.trustline_js_prefix'|trans|json_encode|raw }} + String(index + 1);
+                    }
+                    if (remove) {
+                        const removeLabel = {{ 'tools_open_trustlines.form.remove_js_prefix'|trans|json_encode|raw }} + String(index + 1);
+                        remove.disabled = rows.length <= 1;
+                        remove.value = String(index);
+                        remove.setAttribute('aria-label', removeLabel);
+                        remove.title = removeLabel;
+                    }
+                });
+                if (counter) {
+                    counter.textContent = {{ 'tools_open_trustlines.form.operations_counter_js_prefix'|trans|json_encode|raw }}
+                        + String(rows.length) + ' / ' + String(maxOperations);
+                }
+                if (addButton) {
+                    addButton.disabled = rows.length >= maxOperations;
+                }
+            }
+
+            rowsRoot.addEventListener('click', function (event) {
+                const remove = event.target.closest('[data-open-trustline-remove]');
+                if (!remove) {
+                    return;
+                }
+
+                const rows = rowsRoot.querySelectorAll('[data-open-trustline-row]');
+                if (rows.length <= 1) {
+                    return;
+                }
+                event.preventDefault();
+                remove.closest('[data-open-trustline-row]').remove();
+                markSigningResultStale();
+                syncRows();
+            });
+
+            if (addButton && rowTemplate) {
+                addButton.addEventListener('click', function (event) {
+                    const count = rowsRoot.querySelectorAll('[data-open-trustline-row]').length;
+                    if (count >= maxOperations) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = rowTemplate.innerHTML
+                        .replaceAll('__INDEX__', String(nextIndex++))
+                        .replaceAll('__NUMBER__', String(count + 1));
+                    const row = wrapper.firstElementChild;
+                    if (!row) {
+                        return;
+                    }
+
+                    rowsRoot.appendChild(row);
+                    if (typeof window.initTrustlineAssetAutocompletes === 'function') {
+                        window.initTrustlineAssetAutocompletes(row);
+                    }
+                    markSigningResultStale();
+                    syncRows();
+                    const asset = row.querySelector('[data-open-trustline-asset]');
+                    if (asset) {
+                        asset.focus();
+                    }
+                });
+            }
+
+            syncRows();
+        });
+    </script>
+{% endblock %}
