@@ -35,7 +35,7 @@
                 <button type="submit" class="button {{ action == 'complete' ? 'is-primary' : 'is-danger' }}">
                     {{ 'crowd_action.submit'|trans }}
                 </button>
-                <a class="button is-light" href="/mtla/crowd/{{ project.code|url_encode }}">{{ 'common.cancel'|trans }}</a>
+                <a class="button" href="/mtla/crowd/{{ project.code|url_encode }}">{{ 'common.cancel'|trans }}</a>
             </div>
         </form>
     {% endif %}

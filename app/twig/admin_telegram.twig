@@ -15,7 +15,7 @@
 {% endif %}
 
 {% if config.error %}
-    <div class="notification is-danger is-light">{{ config.error|e }}</div>
+    <div class="notification is-danger">{{ config.error|e }}</div>
 {% endif %}
 
 <div class="box">
@@ -25,32 +25,32 @@
                 <div class="is-flex is-align-items-center is-flex-wrap-wrap mb-2" style="gap: .5rem">
                     <h2 class="title is-4 mb-0">Webhook</h2>
                     {% if webhook.registered %}
-                        <span class="tag is-success is-light">зарегистрирован</span>
+                        <span class="tag is-success">зарегистрирован</span>
                     {% elseif webhook.available %}
-                        <span class="tag is-warning is-light">требует регистрации</span>
+                        <span class="tag is-warning">требует регистрации</span>
                     {% else %}
-                        <span class="tag is-danger is-light">статус недоступен</span>
+                        <span class="tag is-danger">статус недоступен</span>
                     {% endif %}
                 </div>
                 <p class="mb-1">
                     <strong>Ожидаемый бот:</strong>
                     <code>@{{ config.username|e }}</code>
-                    {% if not config.bot_configured %}<span class="tag is-danger is-light">TG_BOT_KEY не задан</span>{% endif %}
+                    {% if not config.bot_configured %}<span class="tag is-danger">TG_BOT_KEY не задан</span>{% endif %}
                 </p>
                 {% if webhook.bot_username %}
                     <p class="mb-1">
                         <strong>Бот по токену:</strong>
                         <code>@{{ webhook.bot_username|e }}</code>
-                        {% if not webhook.bot_matches_config %}<span class="tag is-danger is-light">не совпадает</span>{% endif %}
+                        {% if not webhook.bot_matches_config %}<span class="tag is-danger">не совпадает</span>{% endif %}
                     </p>
                 {% endif %}
                 <p class="mb-1"><strong>Ожидаемый URL:</strong> <code>{{ config.webhook_url|e }}</code></p>
                 <p class="mb-1">
                     <strong>Секрет:</strong>
                     {% if config.secret_configured %}
-                        <span class="tag is-success is-light">задан</span>
+                        <span class="tag is-success">задан</span>
                     {% else %}
-                        <span class="tag is-danger is-light">TG_WEBHOOK_SECRET не задан</span>
+                        <span class="tag is-danger">TG_WEBHOOK_SECRET не задан</span>
                     {% endif %}
                 </p>
                 <p class="mb-0"><strong>Telegram-админов:</strong> {{ config.admins_count|e }}</p>
@@ -87,13 +87,13 @@
             Updates: {{ (webhook.allowed_updates is empty ? 'настройка Telegram по умолчанию' : webhook.allowed_updates|join(', '))|e }}
         </p>
         {% if webhook.last_error_message %}
-            <div class="notification is-danger is-light mt-3 mb-0">
+            <div class="notification is-danger mt-3 mb-0">
                 <strong>Последняя ошибка Telegram{% if webhook.last_error_at %} · {{ webhook.last_error_at|e }} UTC{% endif %}:</strong>
                 {{ webhook.last_error_message|e }}
             </div>
         {% endif %}
     {% elseif webhook.error %}
-        <div class="notification is-danger is-light mt-4 mb-0">{{ webhook.error|e }}</div>
+        <div class="notification is-danger mt-4 mb-0">{{ webhook.error|e }}</div>
     {% endif %}
 </div>
 
@@ -117,7 +117,7 @@
             <tr{% if selected_day and selected_day.day == day.day %} class="is-selected"{% endif %}>
                 <td>
                     <span class="is-family-monospace">{{ day.label|e }}</span>
-                    {% if day.is_today %}<span class="tag is-info is-light">сегодня</span>{% endif %}
+                    {% if day.is_today %}<span class="tag is-info">сегодня</span>{% endif %}
                 </td>
                 <td class="has-text-right">{{ day.requests|e }}</td>
                 <td class="has-text-right">{{ day.chats|e }}</td>
@@ -151,7 +151,7 @@
             <tbody>
             {% for account in selected_day.accounts %}
                 <tr>
-                    <td><a class="is-family-monospace" href="/accounts/{{ account.id|url_encode|e('html_attr') }}">{{ account.short_id|e }}</a>{% if not account.known %} <span class="tag is-light">не известен BSN</span>{% endif %}</td>
+                    <td><a class="is-family-monospace" href="/accounts/{{ account.id|url_encode|e('html_attr') }}">{{ account.short_id|e }}</a>{% if not account.known %} <span class="tag">не известен BSN</span>{% endif %}</td>
                     <td class="has-text-right">{{ account.requests|e }}</td>
                     <td class="has-text-right">{{ account.chats|e }}</td>
                     <td class="has-text-right">{{ account.users|e }}</td>

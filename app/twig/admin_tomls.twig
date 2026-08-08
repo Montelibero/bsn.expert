@@ -190,7 +190,7 @@
                             <div class="mb-1">
                                 {{ include('account_link.twig', {data: {id: account.account_id}}, with_context = true) }}
                                 {% if account.problem %}
-                                    <span class="tag is-warning is-light">{{ account.problem }}</span>
+                                    <span class="tag is-warning">{{ account.problem }}</span>
                                 {% endif %}
                                 {% if account.sources %}
                                     <span class="is-size-7 has-text-grey">({{ account.sources|join(', ') }})</span>

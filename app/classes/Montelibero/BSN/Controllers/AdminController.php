@@ -443,7 +443,7 @@ class AdminController
             'running' => 'is-info',
             'scheduled', 'pending' => 'is-warning',
             'retry' => 'is-danger',
-            default => 'is-success is-light',
+            default => 'is-success',
         };
     }
 
