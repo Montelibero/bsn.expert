@@ -20,8 +20,9 @@
         <div class="notification is-danger">{{ error }}</div>
     {% endfor %}
 
-    {% if preview and signing_form %}
-        <section class="block" data-payment-result>
+    <section data-transaction-scope>
+        {% if preview and signing_form %}
+            <section class="block">
             <h2 class="title is-3">{{ 'tools_payment.preview.title'|trans }}</h2>
             <div class="content">
                 <ul>
@@ -52,14 +53,10 @@
             {% endfor %}
 
             {{ signing_form|raw }}
-        </section>
-    {% endif %}
+            </section>
+        {% endif %}
 
-    <div class="notification is-warning is-hidden" data-payment-stale>
-        {{ 'tools_payment.preview.stale'|trans }}
-    </div>
-
-    <form method="post" action="/tools/payment" data-payment-form data-source-account="{{ source_account_id|e('html_attr') }}">
+    <form method="post" action="/tools/payment" data-payment-form data-signing-stale-watch data-source-account="{{ source_account_id|e('html_attr') }}">
         {% if current_account_param %}
             <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
         {% endif %}
@@ -158,8 +155,6 @@
             const rowTemplate = form.querySelector('[data-payment-row-template]');
             const addButton = form.querySelector('[data-payment-add]');
             const counter = form.querySelector('[data-payment-counter]');
-            const result = document.querySelector('[data-payment-result]');
-            const stale = document.querySelector('[data-payment-stale]');
             const maxOperations = Number(counter ? counter.dataset.maxOperations : 100) || 100;
             const issuerBalanceLabel = {{ 'tools_payment.form.issuer_balance'|trans|json_encode|raw }};
             const scale = 10000000n;
@@ -278,12 +273,8 @@
                 if (frozenAccount) frozenAccount.classList.toggle('is-hidden', frozen === 0n || option.dataset.frozenKind !== 'account');
             }
 
-            function markResultStale() {
-                if (!result || result.classList.contains('is-hidden')) {
-                    return;
-                }
-                result.classList.add('is-hidden');
-                if (stale) stale.classList.remove('is-hidden');
+            function markSigningResultStale() {
+                form.dispatchEvent(new Event('signing-stale', {bubbles: true}));
             }
 
             function syncRows() {
@@ -324,7 +315,7 @@
                     }
                     event.preventDefault();
                     remove.closest('[data-payment-row]').remove();
-                    markResultStale();
+                    markSigningResultStale();
                     syncRows();
                     return;
                 }
@@ -344,17 +335,14 @@
 
             rowsRoot.addEventListener('input', function (event) {
                 if (event.target.matches('[data-payment-amount], [data-payment-destination]')) {
-                    markResultStale();
                     syncRows();
                 }
             });
             rowsRoot.addEventListener('change', function (event) {
                 if (event.target.matches('[data-payment-asset]')) {
-                    markResultStale();
                     syncRows();
                 }
             });
-            form.querySelector('[data-payment-memo]').addEventListener('input', markResultStale);
 
             if (addButton && rowTemplate) {
                 addButton.addEventListener('click', function (event) {
@@ -375,7 +363,7 @@
                     if (typeof window.initAccountAutocompletes === 'function') {
                         window.initAccountAutocompletes(row);
                     }
-                    markResultStale();
+                    markSigningResultStale();
                     syncRows();
                     const destination = row.querySelector('[data-payment-destination]');
                     if (destination) destination.focus();
@@ -385,4 +373,5 @@
             syncRows();
         });
     </script>
+    </section>
 {% endblock %}

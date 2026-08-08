@@ -1,4 +1,4 @@
-<form method="post" action="/sign" target="_blank" class="container is-max-tablet block ml-0">
+<form method="post" action="/sign" target="_blank" class="container is-max-tablet block ml-0" data-signing-result>
     <input type="hidden" name="xdr" value="{{ xdr }}">
     <input type="hidden" name="uri" value="{{ uri }}">
     <input type="hidden" name="description" value="{{ description }}">
@@ -6,12 +6,16 @@
     {% if consolidation_csrf_token %}
         <input type="hidden" name="consolidation_csrf_token" value="{{ consolidation_csrf_token|e('html_attr') }}">
     {% endif %}
-    <article class="message is-primary">
+    <article class="message is-primary" data-signing-message>
 {#        <div class="message-header">#}
 {#            <p>{{ signing_title|default('editor.sign.default_title'|trans) }}</p>#}
 {#        </div>#}
         <div class="message-body">
             <p class="block">{{ 'editor.sign.default_instruction'|trans }}</p>
+
+            <p class="notification is-warning is-hidden" data-signing-stale-notice aria-live="polite">
+                {{ 'editor.sign.stale'|trans }}
+            </p>
 
             <div class="buttons">
                 <a href="{{ uri }}" class="button is-warning">
@@ -24,14 +28,12 @@
                     <span>@MyMTLWalletBot</span>
                 </button>
 
-                <div class="dropdown is-hoverable">
-                    <div class="dropdown-trigger">
-                        <button class="button" type="button" aria-haspopup="true" aria-controls="signing-more-menu">
-                            <span>{{ 'editor.sign.more_button_name'|trans }}</span>
-                            <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
-                        </button>
-                    </div>
-                    <div class="dropdown-menu" id="signing-more-menu" role="menu">
+                <details class="dropdown signing-more">
+                    <summary class="button">
+                        <span>{{ 'editor.sign.more_button_name'|trans }}</span>
+                        <span class="icon is-small"><i class="fa-solid fa-angle-down" aria-hidden="true"></i></span>
+                    </summary>
+                    <div class="dropdown-menu">
                         <div class="dropdown-content">
                             <button type="submit" name="action" value="qr" formtarget="_self" class="dropdown-item">
                                 <span class="icon"><i class="fa-solid fa-qrcode"></i></span>
@@ -69,7 +71,7 @@
                             {% endif %}
                         </div>
                     </div>
-                </div>
+                </details>
             </div>
         </div>
     </article>

@@ -1,5 +1,65 @@
 document.documentElement.classList.add('has-js');
 
+/*
+ * A tool opts in by placing its form and rendered signing form in one transaction scope.
+ * `data-signing-stale-watch` reacts to input/change; dynamic form controls can dispatch
+ * a bubbling `signing-stale` event on that element when their DOM change affects the XDR.
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-transaction-scope]').forEach(function (scope) {
+        const result = scope.querySelector('[data-signing-result]');
+        const message = result ? result.querySelector('[data-signing-message]') : null;
+        const notice = result ? result.querySelector('[data-signing-stale-notice]') : null;
+
+        if (!result) {
+            return;
+        }
+
+        function markStale() {
+            if (result.classList.contains('signing-result--stale')) {
+                return;
+            }
+
+            result.classList.add('signing-result--stale');
+            if (message) {
+                message.classList.remove('is-primary');
+            }
+            if (notice) {
+                notice.classList.remove('is-hidden');
+            }
+        }
+
+        scope.querySelectorAll('[data-signing-stale-watch]').forEach(function (watch) {
+            watch.addEventListener('input', markStale);
+            watch.addEventListener('change', markStale);
+            watch.addEventListener('signing-stale', markStale);
+        });
+    });
+});
+
+/* Native details remain usable without JS; this only adds familiar menu dismissal. */
+document.addEventListener('DOMContentLoaded', function () {
+    function closeSigningMenus() {
+        document.querySelectorAll('.signing-more[open]').forEach(function (menu) {
+            menu.removeAttribute('open');
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        document.querySelectorAll('.signing-more[open]').forEach(function (menu) {
+            if (!menu.contains(event.target)) {
+                menu.removeAttribute('open');
+            }
+        });
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeSigningMenus();
+        }
+    });
+});
+
 /* Transaction consolidation: the real controls remain regular HTML submits. */
 document.addEventListener('DOMContentLoaded', function () {
     const root = document.querySelector('[data-consolidation-root]');

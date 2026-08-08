@@ -1043,6 +1043,7 @@ editor:
     default_instruction: >
       We prepared a transaction for you. To apply the changes, sign it in your favorite app
       (usually called a wallet), then send it to the blockchain.
+    stale: The form changed after this transaction was prepared. It may no longer match the values on this page; consider preparing it again before signing.
     sep_07_button_name: Sunce (SEP-07)
     more_button_name: More
     secret_key_button_name: Sign by secret key
@@ -1487,7 +1488,6 @@ tools_payment:
     max_fee: "Maximum fee: %fee% XLM"
     memo: "Memo:"
     muxed_destination: "Exact muxed recipient address:"
-    stale: The form has changed. The previously prepared transaction is hidden; validate the values and build it again.
   memo:
     type:
       none: no memo

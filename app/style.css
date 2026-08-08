@@ -341,6 +341,29 @@
     width: 100%;
 }
 
+.signing-more > summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.signing-more > summary::-webkit-details-marker {
+    display: none;
+}
+
+.signing-more[open] > .dropdown-menu {
+    display: block;
+}
+
+.signing-more .dropdown-menu {
+    max-width: calc(100vw - 1.5rem);
+    width: max-content;
+}
+
+.signing-more .dropdown-item {
+    box-sizing: border-box;
+    white-space: normal;
+}
+
 @media screen and (max-width: 1023px) {
     .navbar-search-brand-item,
     .navbar-search-brand-item .dropdown {
