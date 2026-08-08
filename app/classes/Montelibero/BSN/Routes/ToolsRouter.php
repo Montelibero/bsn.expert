@@ -5,12 +5,14 @@ namespace Montelibero\BSN\Routes;
 use DI\Container;
 use Montelibero\BSN\Controllers\AssetSwapController;
 use Montelibero\BSN\Controllers\CloseTrustlinesController;
+use Montelibero\BSN\Controllers\CreateAccountController;
 use Montelibero\BSN\Controllers\EurmtlReportController;
 use Montelibero\BSN\Controllers\EurmtlReport2Controller;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MigrationController;
 use Montelibero\BSN\Controllers\MtlaRpExclusionController;
 use Montelibero\BSN\Controllers\OrdersController;
+use Montelibero\BSN\Controllers\OpenTrustlinesController;
 use Montelibero\BSN\Controllers\PaymentController;
 use Montelibero\BSN\Controllers\MultisigController;
 use Montelibero\BSN\Controllers\PercentPayController;
@@ -51,6 +53,14 @@ class ToolsRouter
         SimpleRouter::match(['get', 'post'], '/payment', function () use ($Container) {
             return $Container->get(PaymentController::class)->Payment();
         })->name('tool_payment');
+
+        SimpleRouter::match(['get', 'post'], '/create_account', function () use ($Container) {
+            return $Container->get(CreateAccountController::class)->CreateAccount();
+        })->name('tool_create_account');
+
+        SimpleRouter::match(['get', 'post'], '/open_trustlines', function () use ($Container) {
+            return $Container->get(OpenTrustlinesController::class)->OpenTrustlines();
+        })->name('tool_open_trustlines');
 
         SimpleRouter::match(['get', 'post'], '/migration', function () use ($Container) {
             return $Container->get(MigrationController::class)->Migration();

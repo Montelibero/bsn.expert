@@ -108,62 +108,13 @@
                 </div>
             </div>
 
-            <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link" href="/tools/">
-                    <i class="fa-solid fa-screwdriver"></i>
-                    {{ 'nav.tools.title'|trans }}
-                </a>
-                <div class="navbar-dropdown">
-                    <a class="navbar-item" href="/tools/multisig">
-                        {{ 'nav.tools.multisig'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/tools/asset_swap">
-                        {{ 'nav.tools.asset_swap'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/tools/swap">
-                        {{ 'nav.tools.swap'|trans }} [beta]
-                    </a>
-                    <a class="navbar-item" href="/tools/payment">
-                        {{ 'nav.tools.payment'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/tools/migration">
-                        {{ 'nav.tools.migration'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/tools/close_trustlines">
-                        {{ 'nav.tools.close_trustlines'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/tools/orders">
-                        {{ 'nav.tools.orders'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/tools/percent_pay">
-                        {{ 'nav.tools.percent_pay'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/tools/xdr2lab">
-                        {{ 'nav.tools.xdr2lab'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/tools/consolidate">
-                        {{ 'nav.tools.consolidate'|trans }}
-                    </a>
-                    {% if current_user.isImpactActivist %}
-                        <hr class="navbar-divider">
-                        <a class="navbar-item" href="/tools/mtla/membership_distribution">
-                            Выдача токенов участия
-                        </a>
-                        <a class="navbar-item" href="/tools/mtla/decision_transactions">
-                            Подготовка транзакций решения
-                        </a>
-                        <a class="navbar-item" href="/tools/mtla/send_time_tokens">
-                            Рассылка тайм-токенов
-                        </a>
-                        <a class="navbar-item" href="/tools/mtla/rp_exclusion">
-                            Исключение из РП
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
+            <a class="navbar-item" href="/tools/">
+                <i class="fa-solid fa-screwdriver"></i>
+                {{ 'nav.tools.title'|trans }}
+            </a>
 
             <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link" href="/mtla">
+                <a class="navbar-link" href="/mtla/">
                     <i class="fa-regular fa-building"></i>
                     {{ 'nav.mtla'|trans }}
                 </a>
@@ -182,15 +133,6 @@
                     <a class="navbar-item" href="/mtla/programs">
                         {{ 'nav.programs'|trans }}
                     </a>
-                    {% if current_user.isImpactActivist %}
-                    <hr class="navbar-divider">
-                    <a class="navbar-item" href="/tools/mtla/recommend_verification">
-                        {{ 'recommend_verification_page.title'|trans }}
-                    </a>
-                    <a class="navbar-item" href="/mtla/dm_report">
-                        {{ 'nav.tools.mtla_dm_report'|trans }}
-                    </a>
-                    {% endif %}
                 </div>
             </div>
         </div>

@@ -51,6 +51,9 @@
       "php tests/BsnManageDataSemanticServiceTest.php",
       "php tests/PaymentControllerValidationTest.php",
       "php tests/PaymentTransactionBuilderTest.php",
+      "php tests/CreateAccountTransactionBuilderTest.php",
+      "php tests/OpenTrustlinesTransactionBuilderTest.php",
+      "php tests/OpenTrustlinesControllerValidationTest.php",
       "php tests/TransactionConsolidatorTest.php"
     ],
     "test:session": [

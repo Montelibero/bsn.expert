@@ -934,11 +934,15 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-search-autocomplete-form]').forEach(initSearchAutocomplete);
 
     function initAccountAutocomplete(input) {
-        if (input.dataset.accountAutocompleteInitialized === 'true') {
+        const isTrustlineAsset = input.matches('[data-trustline-asset-autocomplete-input]');
+        const initializedKey = isTrustlineAsset
+            ? 'trustlineAssetAutocompleteInitialized'
+            : 'accountAutocompleteInitialized';
+        if (input.dataset[initializedKey] === 'true') {
             return;
         }
 
-        input.dataset.accountAutocompleteInitialized = 'true';
+        input.dataset[initializedKey] = 'true';
         const host = ensureAccountAutocompleteHost(input);
         const dropdown = document.createElement('div');
         const textsSource = document.querySelector('[data-search-autocomplete-dropdown]');
@@ -980,7 +984,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function fetchResults() {
             const query = input.value.trim();
-            if (query.length < 3) {
+            if (query.length < (isTrustlineAsset ? 1 : 3)) {
                 results = [];
                 closeDropdown();
                 return;
@@ -1004,7 +1008,8 @@ document.addEventListener('DOMContentLoaded', function () {
             renderStatus(loadingText);
             dropdown.classList.add('is-open');
 
-            fetch('/search/?format=json&types=accounts&limit=10&q=' + encodeURIComponent(query), {
+            const searchTypes = isTrustlineAsset ? 'tokens,accounts' : 'accounts';
+            fetch('/search/?format=json&types=' + encodeURIComponent(searchTypes) + '&limit=10&q=' + encodeURIComponent(query), {
                 headers: {
                     'Accept': 'application/json'
                 },
@@ -1045,11 +1050,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function selectResult(index) {
             const result = results[index];
-            if (!result || result.entity_type !== 'account' || !result.entity_id) {
+            if (!result) {
                 return false;
             }
 
-            input.value = result.entity_id;
+            let value = null;
+            if (result.entity_type === 'account' && result.entity_id) {
+                value = result.entity_id;
+            } else if (
+                isTrustlineAsset
+                && result.entity_type === 'token'
+                && typeof result.input_value === 'string'
+            ) {
+                value = result.input_value;
+            }
+            if (value === null) {
+                return false;
+            }
+
+            input.value = value;
             suppressNextInputFetch = true;
             input.dispatchEvent(new Event('input', {bubbles: true}));
             input.dispatchEvent(new Event('change', {bubbles: true}));
@@ -1066,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', function () {
             scheduleFetch();
         });
         input.addEventListener('focus', function () {
-            if (input.value.trim().length >= 3) {
+            if (input.value.trim().length >= (isTrustlineAsset ? 1 : 3)) {
                 scheduleFetch();
             }
         });
@@ -1506,6 +1525,15 @@ document.addEventListener('DOMContentLoaded', function () {
         root.querySelectorAll('[data-account-autocomplete-input]').forEach(initAccountAutocomplete);
     };
 
+    window.initTrustlineAssetAutocompletes = function (root) {
+        if (root.matches && root.matches('[data-trustline-asset-autocomplete-input]')) {
+            initAccountAutocomplete(root);
+        }
+
+        root.querySelectorAll('[data-trustline-asset-autocomplete-input]').forEach(initAccountAutocomplete);
+    };
+
     window.initAccountAutocompletes(document);
+    window.initTrustlineAssetAutocompletes(document);
     document.querySelectorAll('[data-account-insert-helper]').forEach(initAccountInsertHelper);
 });

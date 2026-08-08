@@ -11,23 +11,37 @@
 {% block content %}
     <h1 class="title">{{ 'nav.tools.title'|trans }}</h1>
 
-    <div class="menu">
-        <ul class="menu-list">
-            <li><a href="/tools/multisig">{{ 'nav.tools.multisig'|trans }}</a></li>
-            <li><a href="/tools/asset_swap">{{ 'nav.tools.asset_swap'|trans }}</a></li>
-            <li><a href="/tools/swap">{{ 'nav.tools.swap'|trans }} [beta]</a></li>
-            <li><a href="/tools/payment">{{ 'nav.tools.payment'|trans }}</a></li>
-            <li><a href="/tools/migration">{{ 'nav.tools.migration'|trans }}</a></li>
-            <li><a href="/tools/close_trustlines">{{ 'nav.tools.close_trustlines'|trans }}</a></li>
-            <li><a href="/tools/orders">{{ 'nav.tools.orders'|trans }}</a></li>
-            <li><a href="/tools/percent_pay">{{ 'nav.tools.percent_pay'|trans }}</a></li>
-            <li><a href="/tools/xdr2lab">{{ 'nav.tools.xdr2lab'|trans }}</a></li>
-            <li><a href="/tools/consolidate">{{ 'nav.tools.consolidate'|trans }}</a></li>
-            <li><a href="/tools/mtla/decision_transactions">MTLA Decision TX</a></li>
-            {% if current_user.isImpactActivist %}
-                <li><a href="/tools/mtla/rp_exclusion">Исключение из РП</a></li>
-            {% endif %}
-        </ul>
+    <div class="columns is-multiline">
+        <div class="column is-two-thirds">
+            <section class="box">
+                <h2 class="title is-5">{{ 'tools_page.main'|trans }}</h2>
+                <aside class="menu">
+                    <ul class="menu-list">
+                        <li><a href="/tools/payment">{{ 'nav.tools.payment'|trans }}</a></li>
+                        <li><a href="/tools/swap">{{ 'tools_page.swap'|trans }}</a></li>
+                        <li><a href="/tools/orders/new">{{ 'tools_page.create_order'|trans }}</a></li>
+                        <li><a href="/tools/orders">{{ 'tools_page.edit_orders'|trans }}</a></li>
+                        <li><a href="/tools/asset_swap">{{ 'nav.tools.asset_swap'|trans }}</a></li>
+                        <li><a href="/tools/open_trustlines">{{ 'nav.tools.open_trustlines'|trans }}</a></li>
+                        <li><a href="/tools/close_trustlines">{{ 'nav.tools.close_trustlines'|trans }}</a></li>
+                        <li><a href="/tools/create_account">{{ 'nav.tools.create_account'|trans }}</a></li>
+                        <li><a href="/tools/migration">{{ 'nav.tools.migration'|trans }}</a></li>
+                        <li><a href="/tools/percent_pay">{{ 'nav.tools.percent_pay'|trans }}</a></li>
+                    </ul>
+                </aside>
+            </section>
+        </div>
+        <div class="column is-one-third">
+            <section class="box">
+                <h2 class="title is-5">{{ 'tools_page.service'|trans }}</h2>
+                <aside class="menu">
+                    <ul class="menu-list">
+                        <li><a href="/tools/xdr2lab">{{ 'nav.tools.xdr2lab'|trans }}</a></li>
+                        <li><a href="/tools/consolidate">{{ 'nav.tools.consolidate'|trans }}</a></li>
+                    </ul>
+                </aside>
+            </section>
+        </div>
     </div>
 
 {% endblock %}

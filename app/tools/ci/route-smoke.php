@@ -18,6 +18,16 @@ $checks = [
         'location' => '/who_are_you?return_to=%2Ftools%2Fpayment',
     ],
     [
+        'path' => '/tools/create_account',
+        'status' => 302,
+        'location' => '/who_are_you?return_to=%2Ftools%2Fcreate_account',
+    ],
+    [
+        'path' => '/tools/open_trustlines',
+        'status' => 302,
+        'location' => '/who_are_you?return_to=%2Ftools%2Fopen_trustlines',
+    ],
+    [
         'path' => '/tools/consolidate',
         'status' => 200,
         'response_headers' => [

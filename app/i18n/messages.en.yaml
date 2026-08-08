@@ -25,6 +25,8 @@ nav:
     asset_swap: Private Asset Swap
     swap: Token Swap
     payment: Outgoing Payment
+    create_account: Create account
+    open_trustlines: Open trustlines
     migration: Migration
     close_trustlines: Close trustlines
     orders: Orders
@@ -846,6 +848,22 @@ mtla_page:
   title: Montelibero Association
   account: Account
   website: Website
+  documents: Documents
+  sections:
+    title: Sections
+  actions:
+    title: Tools
+    membership_distribution: Membership token distribution
+    decision_transactions: Prepare decision transactions
+    send_time_tokens: Send time tokens
+    rp_exclusion: Exclude from RP
+
+tools_page:
+  main: Main
+  service: Service
+  swap: Swap
+  create_order: Create order
+  edit_orders: Edit orders
 
 mtla_participants_page:
   title: Association Participants
@@ -1516,6 +1534,105 @@ tools_payment:
     receiver_limit: "The recipient cannot receive %asset%: the trustline limit is too low after the other payments."
     invalid_memo: "Invalid memo. Use text up to 28 bytes, an integer (ID), or 64 hex characters (a hash)."
     transaction_failed: Failed to prepare the outgoing payment transaction.
+
+tools_create_account:
+  title: Create account
+  description: Prepare one Stellar transaction that creates an account and optionally configures it immediately.
+  account: "Source account:"
+  form:
+    destination: New Stellar account
+    destination_help: Enter an unused ordinary G-address with a valid checksum.
+    starting_balance: Starting balance
+    starting_balance_help: One base reserve entry is currently %minimum% XLM.
+    sponsor: Sponsor the new account's reserves
+    sponsor_help: Allows a starting balance of 0 and takes over the frozen XLM base reserves.
+    build: Validate and prepare transaction
+  trustlines:
+    title: Trustlines
+    note: Every selected trustline adds one base reserve entry — currently %reserve% XLM.
+    empty: The current account has no token balances or already-issued tokens.
+  properties:
+    title: New account properties
+    full_ownership: Declare the account fully owned by the current account
+    full_ownership_help: Adds reciprocal Owner and OwnershipFullN BSN tags. That is two new data entries, %reserve% XLM each.
+    lock_master_key: Disable the master key and add the current account as a signer
+    lock_master_key_help: Adds a signer with weight 1 and one new reserve entry costing %reserve% XLM.
+    lock_master_key_warning: The signer is the current account's exact G master key, not its whole multisig configuration. Enable this only if that key remains under your control.
+    master_key_unavailable: Your account has no active master key.
+  preview:
+    title: Prepared transaction
+    destination: New account
+    starting_balance: Starting balance
+    operation_count: Operations
+    maximum_fee: Maximum fee
+    required_from_source: Total needed from current account
+    available: Available above current reserve
+    sponsor_reserve: "The current account sponsors %entries% new-account reserve entries: %reserve% XLM."
+    new_account_reserve: "The new account needs %entries% reserve entries: at least %reserve% XLM in its balance."
+    new_account_signature_required: "This XDR contains operations from the new account. Before submitting, collect sufficient signatures for the current account and the original master-key signature of the new account %account%."
+    lock_warning: The last operation disables the master key and sets every threshold to 1. The current account's G key added as a signer will control the new account.
+    operations: Exact operations
+    operation_source: Operation source account
+  signing:
+    title: Sign account creation
+    description: "Create account %destination% from %account%"
+  errors:
+    source_not_found: Source account was not found in Horizon.
+    tokens_not_loaded: The current account's tokens could not be loaded safely.
+    reserve_not_loaded: The current Stellar base reserve could not be fetched.
+    destination_invalid: Enter a valid ordinary G-address for the new account.
+    destination_is_source: The new account cannot be the current account.
+    destination_exists: This Stellar account already exists.
+    destination_not_checked: Horizon could not verify whether the new account already exists.
+    starting_balance_invalid: Enter a non-negative starting balance with at most 7 digits after the decimal point or comma.
+    starting_balance_low: "Without sponsorship, the starting balance must be at least %minimum% XLM."
+    too_many_operations: "A transaction can contain at most %maximum% operations."
+    source_funds_low: "This transaction needs %required% XLM above the current reserve, but only %available% XLM is available."
+    token_invalid: "Token %asset% is no longer available to open a trustline."
+    transaction_failed: Failed to prepare the account-creation transaction.
+
+tools_open_trustlines:
+  title: Open trustlines
+  description: Add one or more token trustlines to the current Stellar account.
+  account: "Current account:"
+  form:
+    trustline: "Trustline %number%"
+    trustline_js_prefix: "Trustline "
+    asset: Token
+    asset_help: Start typing a known token or issuer account. The completed value must be TOKEN_CODE-G… .
+    add: Add trustline
+    remove: "Remove trustline %number%"
+    remove_js_prefix: "Remove trustline "
+    operations_counter: "Operations: %number% / %maximum%"
+    operations_counter_js_prefix: "Operations: "
+    build: Check and prepare transaction
+  preview:
+    title: Prepared transaction
+    operations: "Operations: %number%"
+    reserve: "Reserve for new trustlines: %reserve% XLM"
+    max_fee: "Maximum fee: %fee% XLM"
+    required: "Total needed above the current reserve: %required% XLM; available: %available% XLM."
+  signing:
+    title: Sign trustline opening
+    description: "Open trustlines for %account%"
+  errors:
+    source_not_found: The current account was not found in Horizon.
+    form_truncated: The form was not submitted completely. Reduce the number of trustlines and try again.
+    no_operations: Add at least one trustline.
+    too_many_operations: "A transaction can contain at most %maximum% trustline operations."
+    invalid_row: This trustline row has an invalid structure.
+    asset_required: Enter a token in TOKEN_CODE-G… format.
+    issuer_without_code: You selected only the issuer account. Add the token code and a hyphen before it, for example TOKEN-G… .
+    asset_invalid: Enter a token in TOKEN_CODE-G… format with a valid issuer G-address.
+    issuer_is_source: The current account issues this token, so it cannot open a trustline to it.
+    duplicate: "Token %asset% is already listed above."
+    already_open: "The current account already has a trustline to %asset%."
+    anonymous_issuer_limit: "Without authorization, no more than %maximum% unique issuers can be checked at once. Sign in to prepare a larger batch."
+    issuer_not_found: "Issuer account %issuer% was not found in Horizon."
+    issuer_not_checked: "Could not verify issuer account %issuer% in Horizon."
+    reserve_not_checked: Could not load the current Stellar reserve, so the transaction was not prepared.
+    reserve_missing: "This transaction needs %required% XLM above the current reserve, but only %available% XLM is available."
+    transaction_failed: Failed to prepare the trustline transaction.
 
 tools_migration:
   title: Migration

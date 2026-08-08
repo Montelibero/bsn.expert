@@ -187,6 +187,7 @@ class SearchController
                 'entity_type' => 'token',
                 'entity_type_label' => $this->Translator->trans('search.types.token'),
                 'entity_id' => $token['code'],
+                'input_value' => $token['code'] . '-' . $token['issuer'],
                 'url' => SimpleRouter::getUrl('token_page', ['code' => $token['code']]),
                 'icon_class' => 'fa-solid fa-certificate',
                 'title' => $token['code'],

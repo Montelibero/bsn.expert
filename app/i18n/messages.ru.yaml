@@ -25,6 +25,8 @@ nav:
     asset_swap: Приватный обмен активами
     swap: Обмен токенов
     payment: Исходящий платёж
+    create_account: Создать аккаунт
+    open_trustlines: Открыть линии доверия
     migration: Переезд
     close_trustlines: Удалить линии доверия
     orders: Ордера
@@ -848,6 +850,22 @@ mtla_page:
   title: Ассоциация Монтелиберо
   account: Аккаунт
   website: Сайт
+  documents: Документы
+  sections:
+    title: Разделы
+  actions:
+    title: Инструменты
+    membership_distribution: Выдача токенов участия
+    decision_transactions: Подготовка транзакций решения
+    send_time_tokens: Рассылка тайм-токенов
+    rp_exclusion: Исключение из РП
+
+tools_page:
+  main: Основные
+  service: Служебные
+  swap: Обмен (своп)
+  create_order: Создать ордер
+  edit_orders: Редактировать ордера
 
 mtla_participants_page:
   title: Участники Ассоциации
@@ -1518,6 +1536,105 @@ tools_payment:
     receiver_limit: "Получатель не сможет принять %asset%: с учётом других платежей не хватает лимита линии доверия."
     invalid_memo: "Некорректное мемо. Используйте текст до 28 байт, целое число (ID) или 64 hex-символа (хеш)."
     transaction_failed: Не удалось подготовить транзакцию исходящего платежа.
+
+tools_create_account:
+  title: Создать аккаунт
+  description: Подготовьте одну Stellar-транзакцию, которая создаст аккаунт и при необходимости сразу настроит его.
+  account: "Аккаунт-источник:"
+  form:
+    destination: Новый Stellar-аккаунт
+    destination_help: Укажите ещё не существующий обычный G-адрес с корректной контрольной суммой.
+    starting_balance: Стартовый баланс
+    starting_balance_help: Одна базовая резервная запись сейчас равна %minimum% XLM.
+    sponsor: Спонсировать резервы нового аккаунта
+    sponsor_help: Позволяет создать аккаунт со стартовым балансом 0 а также взять на себя заморозки базовых резервов XLM.
+    build: Проверить и подготовить транзакцию
+  trustlines:
+    title: Линии доверия
+    note: Каждая выбранная линия добавляет одну базовую резервную запись — сейчас %reserve% XLM.
+    empty: На текущем аккаунте нет токенов с балансом или уже выпущенных им токенов.
+  properties:
+    title: Свойства нового аккаунта
+    full_ownership: Указать, что аккаунт полностью принадлежит текущему
+    full_ownership_help: Добавит взаимные BSN-теги Owner и OwnershipFullN. Это две новые data-записи, по %reserve% XLM каждая.
+    lock_master_key: Заморозить master key и добавить текущий аккаунт как signer
+    lock_master_key_help: Добавит signer с весом 1 и одну новую резервную запись на %reserve% XLM.
+    lock_master_key_warning: В signer попадёт именно G-ключ текущего аккаунта, а не весь его multisig-набор. Включайте опцию, только если этот ключ останется под вашим контролем.
+    master_key_unavailable: На вашем аккаунте нет действующего master key
+  preview:
+    title: Подготовленная транзакция
+    destination: Новый аккаунт
+    starting_balance: Стартовый баланс
+    operation_count: Операций
+    maximum_fee: Максимальная комиссия
+    required_from_source: Всего нужно с текущего аккаунта
+    available: Доступно сверх текущего резерва
+    sponsor_reserve: "Текущий аккаунт спонсирует %entries% резервных записей нового аккаунта: %reserve% XLM."
+    new_account_reserve: "Новому аккаунту нужно %entries% резервных записей: минимум %reserve% XLM на его балансе."
+    new_account_signature_required: "В этой XDR есть операции от нового аккаунта. До отправки соберите достаточные подписи текущего аккаунта и подпись исходного master key нового аккаунта %account%."
+    lock_warning: Последняя операция отключит master key и выставит все пороги в 1. Управлять новым аккаунтом сможет G-ключ текущего аккаунта, добавленный signer’ом.
+    operations: Точный состав операций
+    operation_source: Исходный аккаунт операции
+  signing:
+    title: Подписание создания аккаунта
+    description: "Создание аккаунта %destination% от имени %account%"
+  errors:
+    source_not_found: Аккаунт-источник не найден в Horizon.
+    tokens_not_loaded: Не удалось надёжно загрузить токены текущего аккаунта.
+    reserve_not_loaded: Не удалось получить актуальный базовый резерв Stellar.
+    destination_invalid: Укажите корректный обычный G-адрес нового аккаунта.
+    destination_is_source: Новый аккаунт не может совпадать с текущим аккаунтом.
+    destination_exists: Этот Stellar-аккаунт уже существует.
+    destination_not_checked: Не удалось проверить в Horizon, существует ли новый аккаунт.
+    starting_balance_invalid: Укажите неотрицательный стартовый баланс, максимум 7 знаков после точки или запятой.
+    starting_balance_low: "Без спонсирования стартовый баланс должен быть не меньше %minimum% XLM."
+    too_many_operations: "В одной транзакции может быть не больше %maximum% операций."
+    source_funds_low: "Для этой транзакции нужно %required% XLM сверх текущего резерва, а доступно %available% XLM."
+    token_invalid: "Токен %asset% больше недоступен для открытия линии доверия."
+    transaction_failed: Не удалось подготовить транзакцию создания аккаунта.
+
+tools_open_trustlines:
+  title: Открыть линии доверия
+  description: Добавьте одну или несколько линий доверия к токенам для текущего Stellar-аккаунта.
+  account: "Текущий аккаунт:"
+  form:
+    trustline: "Линия доверия № %number%"
+    trustline_js_prefix: "Линия доверия № "
+    asset: Токен
+    asset_help: Начните вводить известный токен или аккаунт эмитента. В итоге здесь должна быть пара TOKEN_CODE-G… .
+    add: Добавить линию доверия
+    remove: "Удалить линию доверия № %number%"
+    remove_js_prefix: "Удалить линию доверия № "
+    operations_counter: "Операций: %number% / %maximum%"
+    operations_counter_js_prefix: "Операций: "
+    build: Проверить и подготовить транзакцию
+  preview:
+    title: Подготовленная транзакция
+    operations: "Операций: %number%"
+    reserve: "Резерв под новые линии доверия: %reserve% XLM"
+    max_fee: "Максимальная комиссия: %fee% XLM"
+    required: "Всего нужно сверх текущего резерва: %required% XLM; доступно: %available% XLM."
+  signing:
+    title: Подписание открытия линий доверия
+    description: "Открытие линий доверия аккаунта %account%"
+  errors:
+    source_not_found: Текущий аккаунт не найден в Horizon.
+    form_truncated: Форма была передана не полностью. Уменьшите количество линий доверия и попробуйте снова.
+    no_operations: Добавьте хотя бы одну линию доверия.
+    too_many_operations: "В одной транзакции может быть не больше %maximum% операций открытия линий доверия."
+    invalid_row: Данные этой линии доверия имеют некорректную структуру.
+    asset_required: Укажите токен в формате TOKEN_CODE-G… .
+    issuer_without_code: Указан только аккаунт эмитента. Допишите перед ним код токена и дефис, например TOKEN-G… .
+    asset_invalid: Укажите токен в формате TOKEN_CODE-G… с корректным G-адресом эмитента.
+    issuer_is_source: Текущий аккаунт сам выпускает этот токен, поэтому открыть линию доверия к нему нельзя.
+    duplicate: "Токен %asset% уже указан выше."
+    already_open: "У текущего аккаунта уже есть линия доверия к %asset%."
+    anonymous_issuer_limit: "Без авторизации можно проверить не больше %maximum% уникальных эмитентов за раз. Войдите на сайт, чтобы подготовить большую пачку."
+    issuer_not_found: "Аккаунт эмитента %issuer% не найден в Horizon."
+    issuer_not_checked: "Не удалось проверить в Horizon аккаунт эмитента %issuer%."
+    reserve_not_checked: Не удалось получить актуальный Stellar-резерв, поэтому транзакция не подготовлена.
+    reserve_missing: "Для этой транзакции нужно %required% XLM сверх текущего резерва, а доступно %available% XLM."
+    transaction_failed: Не удалось подготовить транзакцию открытия линий доверия.
 
 tools_migration:
   title: Переезд

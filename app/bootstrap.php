@@ -17,6 +17,7 @@ use Montelibero\BSN\Controllers\AccountsController;
 use Montelibero\BSN\Controllers\ApiController;
 use Montelibero\BSN\Controllers\AssetSwapController;
 use Montelibero\BSN\Controllers\ContactsController;
+use Montelibero\BSN\Controllers\CreateAccountController;
 use Montelibero\BSN\Controllers\DocumentsController;
 use Montelibero\BSN\Controllers\Editor2Controller;
 use Montelibero\BSN\Controllers\EditorController;
@@ -32,6 +33,7 @@ use Montelibero\BSN\Controllers\MigrationController;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\MtlaDmReportController;
 use Montelibero\BSN\Controllers\MultisigController;
+use Montelibero\BSN\Controllers\OpenTrustlinesController;
 use Montelibero\BSN\Controllers\PercentPayController;
 use Montelibero\BSN\Controllers\PaymentController;
 use Montelibero\BSN\Controllers\ProfileEditorController;
@@ -62,6 +64,8 @@ use Montelibero\BSN\GristWebhookAccess;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
 use Montelibero\BSN\PaymentTransactionBuilder;
+use Montelibero\BSN\CreateAccountTransactionBuilder;
+use Montelibero\BSN\OpenTrustlinesTransactionBuilder;
 use Montelibero\BSN\RequestArrayView;
 use Montelibero\BSN\RequestLocale;
 use Montelibero\BSN\RequestSession;
@@ -269,6 +273,8 @@ $ContainerBuilder->addDefinitions([
     RequestSession::class => $RequestSession,
     RequestLocale::class => $RequestLocale,
     PaymentTransactionBuilder::class => autowire(),
+    CreateAccountTransactionBuilder::class => autowire(),
+    OpenTrustlinesTransactionBuilder::class => autowire(),
     KnownTagsCatalog::class => $KnownTagsCatalog,
     AccountReportBuilder::class => autowire(),
     AccountRichMessageRenderer::class => autowire(),
@@ -352,6 +358,8 @@ $ContainerBuilder->addDefinitions([
     MtlaDmReportController::class => autowire(),
     PercentPayController::class => autowire(),
     PaymentController::class => autowire(),
+    CreateAccountController::class => autowire(),
+    OpenTrustlinesController::class => autowire(),
     ProfileEditorController::class => autowire(),
     MultisigController::class => autowire(),
     VotesController::class => autowire(),

@@ -11,14 +11,45 @@
 {% block content %}
     <h1 class="title">{{ 'mtla_page.title'|trans }}</h1>
 
-    <ul class="block">
-        <li>{{ 'mtla_page.account'|trans }}: {{ include('account_link.twig', {data: mtla_account}, with_context = false) }}</li>
-        <li>{{ 'mtla_page.website'|trans }}: <a href="https://mtla.me/">mtla.me</a></li>
-        <li>./<a href="/mtla/council">{{ 'nav.council'|trans }}</a></li>
-        <li>./<a href="/mtla/participants">{{ 'nav.participants'|trans }}</a></li>
-        <li>./<a href="/mtla/programs">{{ 'nav.programs'|trans }}</a></li>
+    <div class="box content">
+        <ul>
+            <li>{{ 'mtla_page.account'|trans }}: {{ include('account_link.twig', {data: mtla_account}, with_context = false) }}</li>
+            <li>{{ 'mtla_page.website'|trans }}: <a href="https://mtla.me/">mtla.me</a></li>
+            <li>{{ 'mtla_page.documents'|trans }}: <a href="https://docs.mtla.me/">docs.mtla.me</a></li>
+        </ul>
+    </div>
+
+    <div class="columns is-multiline">
+        <div class="column is-half">
+            <section class="box">
+                <h2 class="title is-5">{{ 'mtla_page.sections.title'|trans }}</h2>
+                <aside class="menu">
+                    <ul class="menu-list">
+                        <li><a href="/mtla/crowd/">{{ 'nav.crowd'|trans }}</a></li>
+                        <li><a href="/mtla/council">{{ 'nav.council'|trans }}</a></li>
+                        <li><a href="/mtla/participants">{{ 'nav.participants'|trans }}</a></li>
+                        <li><a href="/mtla/programs">{{ 'nav.programs'|trans }}</a></li>
+                    </ul>
+                </aside>
+            </section>
+        </div>
         {% if current_user.isImpactActivist %}
-            <li>./<a href="/mtla/dm_report">{{ 'nav.tools.mtla_dm_report'|trans }}</a></li>
+            <div class="column is-half">
+                <section class="box">
+                    <h2 class="title is-5">{{ 'mtla_page.actions.title'|trans }}</h2>
+                    <aside class="menu">
+                        <ul class="menu-list">
+                            <li><a href="/tools/mtla/votes">{{ 'nav.tools.mtla_votes'|trans }}</a></li>
+                            <li><a href="/tools/mtla/membership_distribution">{{ 'mtla_page.actions.membership_distribution'|trans }}</a></li>
+                            <li><a href="/tools/mtla/decision_transactions">{{ 'mtla_page.actions.decision_transactions'|trans }}</a></li>
+                            <li><a href="/tools/mtla/send_time_tokens">{{ 'mtla_page.actions.send_time_tokens'|trans }}</a></li>
+                            <li><a href="/tools/mtla/rp_exclusion">{{ 'mtla_page.actions.rp_exclusion'|trans }}</a></li>
+                            <li><a href="/tools/mtla/recommend_verification">{{ 'recommend_verification_page.title'|trans }}</a></li>
+                            <li><a href="/mtla/dm_report">{{ 'nav.tools.mtla_dm_report'|trans }}</a></li>
+                        </ul>
+                    </aside>
+                </section>
+            </div>
         {% endif %}
-    </ul>
+    </div>
 {% endblock %}
