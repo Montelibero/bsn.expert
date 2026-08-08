@@ -18,6 +18,7 @@ use Soneso\StellarSDK\PathPaymentStrictReceiveOperationBuilder;
 use Soneso\StellarSDK\PathPaymentStrictSendOperationBuilder;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
+use Soneso\StellarSDK\Responses\Asset\AssetResponse;
 use Soneso\StellarSDK\Responses\PaymentPath\PathResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
@@ -29,6 +30,9 @@ final class SwapController
     private const SCALE = 7;
     private const FIX_SEND = 'send';
     private const FIX_RECEIVE = 'receive';
+
+    /** @var array<string, array<string, array>> */
+    private array $issuedTokensByAccount = [];
 
     public function __construct(
         private readonly BSN $BSN,
@@ -228,7 +232,7 @@ final class SwapController
         if ($values['fix'] === self::FIX_RECEIVE) {
             $source_amount = $this->decimal($path->getSourceAmount());
             $send_max = $this->addPercentCeil($source_amount, $slippage);
-            if (bccomp($send_max, $send['available'], self::SCALE) > 0) {
+            if ($this->sendAmountExceedsAvailable($send, $send_max)) {
                 $errors[] = $this->Translator->trans('tools_swap.errors.amount_exceeds_available', [
                     '%available%' => $send['available_label'],
                     '%asset%' => $send['code'] ?? '',
@@ -257,7 +261,7 @@ final class SwapController
             ];
         }
 
-        if (bccomp($amount, $send['available'], self::SCALE) > 0) {
+        if ($this->sendAmountExceedsAvailable($send, $amount)) {
             $errors[] = $this->Translator->trans('tools_swap.errors.amount_exceeds_available', [
                 '%available%' => $send['available_label'],
                 '%asset%' => $send['code'] ?? '',
@@ -393,9 +397,26 @@ final class SwapController
                 'balance' => $this->decimal($Balance->getBalance()),
                 'available' => $available,
                 'available_label' => $this->shortDecimal($available),
+                'available_unlimited' => false,
                 'disabled' => bccomp($available, '0', self::SCALE) <= 0,
             ];
             $token['option_label'] = ($token['code'] ?? $token['label'] ?? $key) . ' (' . $token['available_label'] . ')';
+            $tokens[$key] = $token;
+        }
+
+        foreach ($this->issuedTokenOptions($Account->getAccountId()) as $key => $token) {
+            if (isset($tokens[$key])) {
+                continue;
+            }
+
+            $token += [
+                'balance' => '0.0000000',
+                'available' => null,
+                'available_label' => '∞',
+                'available_unlimited' => true,
+                'disabled' => false,
+            ];
+            $token['option_label'] = ($token['code'] ?? $token['label'] ?? $key) . ' (∞)';
             $tokens[$key] = $token;
         }
 
@@ -430,7 +451,88 @@ final class SwapController
             $tokens[$key] = $token;
         }
 
+        foreach ($this->issuedTokenOptions($Account->getAccountId()) as $key => $token) {
+            if (isset($tokens[$key])) {
+                continue;
+            }
+
+            $token += [
+                'balance' => '0.0000000',
+                'buying_liabilities' => '0.0000000',
+                'limit' => null,
+                'option_label' => $token['code'] ?? $token['label'] ?? $key,
+            ];
+            $tokens[$key] = $token;
+        }
+
         return $this->sortTokens($tokens);
+    }
+
+    /**
+     * @return array<string, array>
+     */
+    private function issuedTokenOptions(string $issuer): array
+    {
+        if (isset($this->issuedTokensByAccount[$issuer])) {
+            return $this->issuedTokensByAccount[$issuer];
+        }
+
+        $tokens = [];
+        try {
+            $page = $this->Stellar->assets()->forAssetIssuer($issuer)->limit(200)->execute();
+            do {
+                foreach ($page->getAssets() as $AssetResponse) {
+                    if (!$AssetResponse instanceof AssetResponse) {
+                        continue;
+                    }
+
+                    $issued_amount = $this->issuedAmount($AssetResponse);
+                    if (bccomp($issued_amount, '0', self::SCALE) <= 0) {
+                        continue;
+                    }
+
+                    $code = $AssetResponse->getAssetCode();
+                    $asset_issuer = $AssetResponse->getAssetIssuer();
+                    if ($code === null || $asset_issuer === null) {
+                        continue;
+                    }
+
+                    $Asset = Asset::createNonNativeAsset($code, $asset_issuer);
+                    $token = $this->assetView($Asset);
+                    $key = $this->assetKey($token);
+                    $tokens[$key] = $token + [
+                        'key' => $key,
+                        'asset' => $Asset,
+                        'issued_amount' => $issued_amount,
+                        'is_issued_by_account' => true,
+                    ];
+                }
+                $page = $page->getNextPage();
+            } while ($page !== null && $page->getAssets()->count() > 0);
+        } catch (\Throwable) {
+            $tokens = [];
+        }
+
+        return $this->issuedTokensByAccount[$issuer] = $tokens;
+    }
+
+    private function issuedAmount(AssetResponse $AssetResponse): string
+    {
+        $Balances = $AssetResponse->getBalances();
+        $amount = '0.0000000';
+        foreach ([
+            $Balances->getAuthorized(),
+            $Balances->getAuthorizedToMaintainLiabilities(),
+            $Balances->getUnauthorized(),
+            $AssetResponse->getClaimableBalancesAmount(),
+            $AssetResponse->getLiquidityPoolsAmount(),
+            $AssetResponse->getContractsAmount() ?? '0',
+            $AssetResponse->getArchivedContractsAmount() ?? '0',
+        ] as $part) {
+            $amount = bcadd($amount, $part, self::SCALE);
+        }
+
+        return $amount;
     }
 
     private function sortTokens(array $tokens): array
@@ -454,6 +556,12 @@ final class SwapController
         }
 
         return bccomp($available, '0', self::SCALE) < 0 ? '0.0000000' : $this->decimal($available);
+    }
+
+    private function sendAmountExceedsAvailable(array $send, string $amount): bool
+    {
+        return !($send['available_unlimited'] ?? false)
+            && bccomp($amount, (string) $send['available'], self::SCALE) > 0;
     }
 
     private function validateReceiveCapacity(array $receive, string $amount, array &$errors): void
