@@ -982,6 +982,8 @@ final class TransactionConsolidationController
         $class = substr($operation['class'], (int) strrpos($operation['class'], '\\') + 1);
         $type = match ($class) {
             'PaymentOperation' => 'payment',
+            'PathPaymentStrictReceiveOperation' => 'path_payment_strict_receive',
+            'PathPaymentStrictSendOperation' => 'path_payment_strict_send',
             'CreateAccountOperation' => 'create_account',
             'ChangeTrustOperation' => 'change_trust',
             'ManageSellOfferOperation' => 'manage_sell_offer',
@@ -1006,6 +1008,23 @@ final class TransactionConsolidationController
                     'to' => $this->accountView($details['destination'] ?? null),
                     'amount' => (string) ($details['amount'] ?? ''),
                     'asset' => $this->assetView($details['asset'] ?? null),
+                ],
+            ]);
+        }
+        if ($class === 'PathPaymentStrictReceiveOperation' || $class === 'PathPaymentStrictSendOperation') {
+            $path = is_array($details['path'] ?? null) ? $details['path'] : [];
+            return array_replace($view, [
+                'template' => 'operations/path_payment.twig',
+                'data' => [
+                    'from' => $this->accountView($operation['effective_source']),
+                    'to' => $this->accountView($details['destination'] ?? null),
+                    'source_asset' => $this->assetView($details['source_asset'] ?? null),
+                    'dest_asset' => $this->assetView($details['destination_asset'] ?? null),
+                    'source_amount' => isset($details['source_amount']) ? (string) $details['source_amount'] : null,
+                    'source_max' => isset($details['source_max']) ? (string) $details['source_max'] : null,
+                    'dest_amount' => isset($details['destination_amount']) ? (string) $details['destination_amount'] : null,
+                    'destination_min' => isset($details['destination_min']) ? (string) $details['destination_min'] : null,
+                    'path' => array_map(fn(mixed $asset): array => $this->assetView($asset), $path),
                 ],
             ]);
         }

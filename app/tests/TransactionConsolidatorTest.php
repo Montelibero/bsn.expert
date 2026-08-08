@@ -11,6 +11,7 @@ use Soneso\StellarSDK\CreateClaimableBalanceOperation;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\Crypto\StrKey;
 use Soneso\StellarSDK\MuxedAccount;
+use Soneso\StellarSDK\PathPaymentStrictReceiveOperation;
 use Soneso\StellarSDK\PaymentOperation;
 use Soneso\StellarSDK\Xdr\XdrDataValue;
 use Soneso\StellarSDK\Xdr\XdrDecoratedSignature;
@@ -239,6 +240,33 @@ assertConsolidationSame(
     'CreateAccount summary must expose destination and starting balance.',
 );
 assertConsolidationSame($sourceC, $DescribedItem->operations[1]['details']['destination'], 'CreateAccount details must expose destination.');
+
+$pathAsset = Asset::createNonNativeAsset('PATH', $sourceC);
+$bridgeAsset = Asset::createNonNativeAsset('BRG', $sourceD);
+$PathItem = $Consolidator->parseEnvelope(consolidationV1Envelope(consolidationTransaction(
+    $sourceA,
+    [new XdrOperation((new PathPaymentStrictReceiveOperation(
+        Asset::native(),
+        '2.5000000',
+        new MuxedAccount($sourceB),
+        $pathAsset,
+        '1.2500000',
+        [$bridgeAsset],
+    ))->toOperationBody())],
+    TransactionConsolidationMemo::none()->toXdr(),
+    '134',
+)));
+assertConsolidationSame(
+    PathPaymentStrictReceiveOperation::class,
+    $PathItem->operations[0]['class'],
+    'Strict-receive path payment must be recognized.',
+);
+assertConsolidationSame($sourceB, $PathItem->operations[0]['details']['destination'], 'Path payment destination must be exposed.');
+assertConsolidationSame('native', $PathItem->operations[0]['details']['source_asset'], 'Path payment source asset must be exposed.');
+assertConsolidationSame('2.5000000', $PathItem->operations[0]['details']['source_max'], 'Strict-receive send maximum must be exposed.');
+assertConsolidationSame('PATH:' . $sourceC, $PathItem->operations[0]['details']['destination_asset'], 'Path payment destination asset must be exposed.');
+assertConsolidationSame('1.2500000', $PathItem->operations[0]['details']['destination_amount'], 'Strict-receive destination amount must be exposed.');
+assertConsolidationSame(['BRG:' . $sourceD], $PathItem->operations[0]['details']['path'], 'Path payment route must be exposed.');
 
 $ClaimableItem = $Consolidator->parseEnvelope(consolidationV1Envelope(consolidationTransaction(
     $sourceA,

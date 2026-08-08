@@ -24,7 +24,7 @@
         </div>
 
         {% if not authorized %}
-            <div class="notification is-info is-light py-3">
+            <div class="notification is-info py-3">
                 {{ 'tools_consolidate.draft.guest'|trans }}
                 <a href="/login?return_to=%2Ftools%2Fconsolidate">{{ 'tools_consolidate.draft.login'|trans }}</a>
             </div>
@@ -142,7 +142,7 @@
                             </div>
 
                             {% for item_warning in item.warnings %}
-                                <div class="notification is-warning is-light py-2 px-3">{{ item_warning }}</div>
+                                <div class="notification is-warning py-2 px-3">{{ item_warning }}</div>
                             {% endfor %}
 
                             <div class="consolidation-operations">
@@ -242,7 +242,7 @@
                     </div>
 
                     {% if has_preconditions %}
-                        <label class="checkbox notification is-warning is-light is-block">
+                        <label class="checkbox notification is-warning is-block">
                             <input type="checkbox" name="preconditions_ack" value="1" data-consolidation-dirty {% if preconditions_ack %}checked{% endif %}>
                             {{ 'tools_consolidate.preconditions.ack'|trans }}
                         </label>

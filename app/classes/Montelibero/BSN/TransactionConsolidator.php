@@ -21,6 +21,8 @@ use Soneso\StellarSDK\EndSponsoringFutureReservesOperation;
 use Soneso\StellarSDK\ManageDataOperation;
 use Soneso\StellarSDK\ManageBuyOfferOperation;
 use Soneso\StellarSDK\ManageSellOfferOperation;
+use Soneso\StellarSDK\PathPaymentStrictReceiveOperation;
+use Soneso\StellarSDK\PathPaymentStrictSendOperation;
 use Soneso\StellarSDK\PaymentOperation;
 use Soneso\StellarSDK\RevokeSponsorshipOperation;
 use Soneso\StellarSDK\SetOptionsOperation;
@@ -526,7 +528,7 @@ final class TransactionConsolidator
      *     source: ?string,
      *     effective_source: string,
      *     summary: string,
-     *     details: array<string, int|float|string|bool|null>
+     *     details: array<string, int|float|string|bool|null|list<string>>
      * }
      */
     private function describeOperation(
@@ -572,7 +574,7 @@ final class TransactionConsolidator
     }
 
     /**
-     * @return array{string, array<string, int|float|string|bool|null>}
+     * @return array{string, array<string, int|float|string|bool|null|list<string>>}
      */
     private function describeClassicOperation(
         AbstractOperation $Operation,
@@ -590,6 +592,62 @@ final class TransactionConsolidator
             return [
                 sprintf('Payment: %s %s to %s', $Operation->getAmount(), $this->assetName($Operation->getAsset(), true), $destination),
                 ['destination' => $destination, 'asset' => $asset, 'amount' => $Operation->getAmount()],
+            ];
+        }
+
+        if ($Operation instanceof PathPaymentStrictReceiveOperation) {
+            $destination = $Operation->getDestination()->getAccountId();
+            $XdrPathPayment = $XdrOperation->getBody()->getPathPaymentStrictReceiveOp();
+            if ($XdrPathPayment !== null) {
+                $destination = $this->formatSource($XdrPathPayment->getDestination());
+            }
+            $path = array_map(fn(Asset $Asset): string => $this->assetName($Asset), $Operation->getPath() ?? []);
+
+            return [
+                sprintf(
+                    'Path payment strict receive: receive %s %s at %s, send up to %s %s',
+                    $Operation->getDestAmount(),
+                    $this->assetName($Operation->getDestAsset(), true),
+                    $destination,
+                    $Operation->getSendMax(),
+                    $this->assetName($Operation->getSendAsset(), true),
+                ),
+                [
+                    'destination' => $destination,
+                    'source_asset' => $this->assetName($Operation->getSendAsset()),
+                    'source_max' => $Operation->getSendMax(),
+                    'destination_asset' => $this->assetName($Operation->getDestAsset()),
+                    'destination_amount' => $Operation->getDestAmount(),
+                    'path' => $path,
+                ],
+            ];
+        }
+
+        if ($Operation instanceof PathPaymentStrictSendOperation) {
+            $destination = $Operation->getDestination()->getAccountId();
+            $XdrPathPayment = $XdrOperation->getBody()->getPathPaymentStrictSendOp();
+            if ($XdrPathPayment !== null) {
+                $destination = $this->formatSource($XdrPathPayment->getDestination());
+            }
+            $path = array_map(fn(Asset $Asset): string => $this->assetName($Asset), $Operation->getPath() ?? []);
+
+            return [
+                sprintf(
+                    'Path payment strict send: send %s %s to %s, receive at least %s %s',
+                    $Operation->getSendAmount(),
+                    $this->assetName($Operation->getSendAsset(), true),
+                    $destination,
+                    $Operation->getDestMin(),
+                    $this->assetName($Operation->getDestAsset(), true),
+                ),
+                [
+                    'destination' => $destination,
+                    'source_asset' => $this->assetName($Operation->getSendAsset()),
+                    'source_amount' => $Operation->getSendAmount(),
+                    'destination_asset' => $this->assetName($Operation->getDestAsset()),
+                    'destination_min' => $Operation->getDestMin(),
+                    'path' => $path,
+                ],
             ];
         }
 
@@ -724,7 +782,7 @@ final class TransactionConsolidator
         return [$fallback, []];
     }
 
-    /** @return array{string, array<string, int|float|string|bool|null>} */
+    /** @return array{string, array<string, int|float|string|bool|null|list<string>>} */
     private function describeSetOptions(SetOptionsOperation $Operation): array
     {
         $details = [];

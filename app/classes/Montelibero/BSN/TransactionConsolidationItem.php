@@ -15,7 +15,7 @@ final readonly class TransactionConsolidationItem
      *     source: ?string,
      *     effective_source: string,
      *     summary: string,
-     *     details: array<string, int|float|string|bool|null>
+     *     details: array<string, int|float|string|bool|null|list<string>>
      * }> $operations
      */
     public function __construct(
