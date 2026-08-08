@@ -80,7 +80,7 @@
             <p class="help">{{ 'tools_payment.form.memo_help'|trans }}</p>
         </div>
 
-        <div data-payment-rows>
+        <div class="block" data-payment-rows>
             {% for payment in payments %}
                 {{ include('components/payment_row.twig', {
                     payment_index: loop.index0,
@@ -104,25 +104,29 @@
             }, with_context = false) }}
         </template>
 
-        <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-5" style="gap: 0.75rem;">
-            <button
-                class="button is-info is-outlined"
-                type="submit"
-                name="action"
-                value="add"
-                formnovalidate
-                data-payment-add
-                {% if payments|length >= max_operations %}disabled{% endif %}
-            >
-                <span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
-                <span>{{ 'tools_payment.form.add'|trans }}</span>
-            </button>
-            <span class="tag" data-payment-counter data-max-operations="{{ max_operations }}">
-                {{ 'tools_payment.form.operations_counter'|trans({
-                    '%number%': payments|length,
-                    '%maximum%': max_operations,
-                }) }}
-            </span>
+        <div class="field is-grouped is-grouped-multiline is-align-items-center mb-5">
+            <div class="control">
+                <button
+                    class="button is-info is-outlined"
+                    type="submit"
+                    name="action"
+                    value="add"
+                    formnovalidate
+                    data-payment-add
+                    {% if payments|length >= max_operations %}disabled{% endif %}
+                >
+                    <span class="icon"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+                    <span>{{ 'tools_payment.form.add'|trans }}</span>
+                </button>
+            </div>
+            <div class="control">
+                <span class="tag" data-payment-counter data-max-operations="{{ max_operations }}">
+                    {{ 'tools_payment.form.operations_counter'|trans({
+                        '%number%': payments|length,
+                        '%maximum%': max_operations,
+                    }) }}
+                </span>
+            </div>
         </div>
 
         <div class="field">
