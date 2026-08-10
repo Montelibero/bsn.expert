@@ -30,6 +30,29 @@
         $(function () {
             $(".table").tablesorter();
         });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('mtla-program-payments');
+            if (!form) {
+                return;
+            }
+
+            const inputs = form.querySelectorAll('[data-program-payment]');
+            const submit = form.querySelector('[data-program-payment-submit]');
+            const updateSubmitState = function () {
+                submit.disabled = !Array.from(inputs).some(function (input) {
+                    return input.value.trim() !== '';
+                });
+            };
+
+            inputs.forEach(function (input) {
+                input.addEventListener('input', updateSubmitState);
+            });
+            form.addEventListener('submit', function () {
+                submit.disabled = true;
+            });
+            updateSubmitState();
+        });
     </script>
 
     <style>
@@ -37,6 +60,10 @@
             display: flex;
             flex-wrap: wrap;
             gap: 0.35rem;
+        }
+
+        .mtla-program-payment-input {
+            max-width: 5rem;
         }
     </style>
 
@@ -57,6 +84,11 @@
         <h2 class="title is-4">{{ 'mtla_program_page.participants.title'|trans }}</h2>
         <p class="block">{{ 'mtla_program_page.participants.subtitle'|trans }}</p>
         {% if participants %}
+            {% if payment_action %}
+                <form id="mtla-program-payments" method="post" class="block">
+                    <input type="hidden" name="action" value="program_payments">
+                    <input type="hidden" name="csrf_token" value="{{ payment_action.csrf_token }}">
+            {% endif %}
             <div class="table-container block">
                 <table class="table is-fullwidth is-hoverable is-striped" data-sortlist="[[6,0],[4,1],[2,1]]">
                     <thead>
@@ -68,6 +100,9 @@
                         <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.program_balance'|trans }}</th>
                         <th data-sorter="digit" class="has-text-right">{{ 'mtla_program_page.participants.table.outgoing'|trans }}</th>
                         <th data-sorter="digit">{{ 'mtla_program_page.participants.table.status'|trans }}</th>
+                        {% if payment_action %}
+                            <th data-sorter="false">{{ 'mtla_program_page.participants.table.send'|trans }}</th>
+                        {% endif %}
                     </tr>
                     </thead>
                     <tbody>
@@ -122,11 +157,54 @@
                                     </span>
                                 </div>
                             </td>
+                            {% if payment_action %}
+                                <td>
+                                    {% if participant.timetoken.url %}
+                                        <input
+                                            class="input is-small mtla-program-payment-input"
+                                            type="text"
+                                            inputmode="decimal"
+                                            name="send_amounts[{{ participant.account.id }}]"
+                                            value="{{ payment_action.amounts[participant.account.id]|default('') }}"
+                                            data-program-payment
+                                        >
+                                    {% else %}
+                                        {{ 'mtla_snapshot_box.empty'|trans }}
+                                    {% endif %}
+                                </td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% if payment_action %}
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-primary" type="submit" data-program-payment-submit disabled>
+                            {{ 'mtla_program_page.payments.submit'|trans }}
+                        </button>
+                    </div>
+                </div>
+                </form>
+
+                {% if payment_action.errors %}
+                    <div class="notification is-danger">
+                        <ul>
+                            {% for error in payment_action.errors %}
+                                <li>{{ error.message|trans(error.parameters) }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if payment_action.signing_form %}
+                    <div class="box">
+                        <h2 class="title is-4">{{ 'mtla_program_page.payments.title'|trans }}</h2>
+                        {{ payment_action.signing_form|raw }}
+                    </div>
+                {% endif %}
+            {% endif %}
         {% else %}
             <p class="block">{{ 'mtla_programs_page.no_participants'|trans }}</p>
         {% endif %}

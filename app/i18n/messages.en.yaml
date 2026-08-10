@@ -992,6 +992,7 @@ mtla_program_page:
       incoming: Sent to MTLA
       status: Status
       outgoing: Left the program
+      send: Send
   status:
     missing_program_trustline: Missing trustline to TT
     missing_timetoken: Activist did not describe their TT
@@ -1002,6 +1003,22 @@ mtla_program_page:
   trustlines:
     title: Open missing trustlines to participants' TT
     tokens: "Add tokens:"
+  payments:
+    title: Send timetokens to program participants
+    submit: Send timetokens to participants
+    errors:
+      expired_form: This form has expired. Refresh the page and try again.
+      no_payments: Enter an amount for at least one participant.
+      invalid_amount: "Invalid amount for %account%."
+      missing_timetoken: "%account% has not described their timetoken."
+      too_many_payments: A transaction may contain no more than 100 timetoken payments.
+      program_unavailable: Could not load the program account.
+      recipient_unavailable: "Could not load %account%."
+      missing_recipient_trustline: "%account% has no trustline for %token%."
+      recipient_not_authorized: "%account% cannot receive %token% through this trustline."
+      recipient_limit: "%account% cannot receive this amount of %token%."
+      insufficient_balance: "The program account does not have enough %token%: %required% required, %available% available."
+      transaction_failed: Could not prepare the timetoken payment transaction.
 
 mtla_snapshot_box:
   empty: "—"

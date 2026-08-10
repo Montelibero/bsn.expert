@@ -994,6 +994,7 @@ mtla_program_page:
       incoming: Пришло на MTLA
       status: Статус
       outgoing: Ушло с программы
+      send: Отправить
   status:
     missing_program_trustline: Нет линии доверия к ТТ
     missing_timetoken: Активист не описал свои ТТ
@@ -1004,6 +1005,22 @@ mtla_program_page:
   trustlines:
     title: Открыть недостающие линии доверия к ТТ участников
     tokens: "Добавить токены:"
+  payments:
+    title: Отправить тайм-токены активистам
+    submit: Отправить тайм-токены активистам
+    errors:
+      expired_form: Форма устарела. Обновите страницу и повторите.
+      no_payments: Укажите сумму хотя бы для одного активиста.
+      invalid_amount: "Некорректная сумма для %account%."
+      missing_timetoken: "%account% не описал тайм-токен."
+      too_many_payments: В одной транзакции можно отправить не больше 100 тайм-токенов.
+      program_unavailable: Не удалось загрузить аккаунт программы.
+      recipient_unavailable: "Не удалось загрузить аккаунт %account%."
+      missing_recipient_trustline: "%account% не открыл линию доверия к %token%."
+      recipient_not_authorized: "%account% не может получать %token% по этой линии доверия."
+      recipient_limit: "%account% не может получить указанную сумму %token%."
+      insufficient_balance: "На счету программы недостаточно %token%: нужно %required%, доступно %available%."
+      transaction_failed: Не удалось собрать транзакцию для отправки тайм-токенов.
 
 mtla_snapshot_box:
   empty: "—"

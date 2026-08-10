@@ -7,12 +7,15 @@ use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MTLA\CalcDelegations\CalcVoices;
 use Montelibero\BSN\MTLA\MtlaProgramReportService;
+use Montelibero\BSN\PaymentDestination;
+use Montelibero\BSN\PaymentTransactionBuilder;
 use Montelibero\BSN\Relations\Member;
 use Montelibero\BSN\RequestLocale;
 use Montelibero\BSN\RequestSession;
 use Soneso\StellarSDK\ChangeTrustOperationBuilder;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
+use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
 use Soneso\StellarSDK\StellarSDK;
@@ -34,6 +37,7 @@ class MtlaController implements RefreshDataCodeInterface
     private const MTLA_COUNCIL_DELEGATIONS_CACHE_TTL = 259200;
     private const MTLA_COUNCIL_DELEGATIONS_FRESH_SECONDS = 60;
     private const MTLA_COUNCIL_DELEGATIONS_STALE_SECONDS = 86400;
+    private const PROGRAM_PAYMENT_MEMO = 'Time Tokens Distribution';
 
     private BSN $BSN;
     private Environment $Twig;
@@ -41,6 +45,7 @@ class MtlaController implements RefreshDataCodeInterface
     private MtlaProgramReportService $ReportService;
     private CurrentUser $CurrentUser;
     private SignController $SignController;
+    private PaymentTransactionBuilder $PaymentTransactionBuilder;
     private MongoCacheManager $CacheManager;
     private RequestLocale $RequestLocale;
     private RequestSession $RequestSession;
@@ -52,6 +57,7 @@ class MtlaController implements RefreshDataCodeInterface
         MtlaProgramReportService $ReportService,
         CurrentUser $CurrentUser,
         SignController $SignController,
+        PaymentTransactionBuilder $PaymentTransactionBuilder,
         MongoCacheManager $CacheManager,
         RequestLocale $RequestLocale,
         RequestSession $RequestSession,
@@ -64,6 +70,7 @@ class MtlaController implements RefreshDataCodeInterface
         $this->ReportService = $ReportService;
         $this->CurrentUser = $CurrentUser;
         $this->SignController = $SignController;
+        $this->PaymentTransactionBuilder = $PaymentTransactionBuilder;
         $this->CacheManager = $CacheManager;
         $this->RequestLocale = $RequestLocale;
         $this->RequestSession = $RequestSession;
@@ -592,6 +599,7 @@ class MtlaController implements RefreshDataCodeInterface
         $refresh = null;
         $participants = [];
         $trustline_action = null;
+        $payment_action = null;
 
         if ($program !== null) {
             $can_refresh = $this->ReportService->canRefreshSnapshot();
@@ -606,6 +614,7 @@ class MtlaController implements RefreshDataCodeInterface
             );
             $participants = $this->ReportService->buildProgramParticipantReport($program, $snapshot);
             $trustline_action = $this->buildProgramTrustlineAction($program, $participants);
+            $payment_action = $this->buildProgramPaymentAction($program, $participants);
             $refresh = $this->buildRefreshDataContext($refresh_scope, $can_refresh);
             $refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
 
@@ -627,6 +636,7 @@ class MtlaController implements RefreshDataCodeInterface
             'mtla_account' => $program !== null ? $this->ReportService->getMtlaAccountData() : null,
             'min_required_tt' => $this->ReportService->getMinRequiredTt(),
             'trustline_action' => $trustline_action,
+            'payment_action' => $payment_action,
         ]);
     }
 
@@ -708,6 +718,11 @@ class MtlaController implements RefreshDataCodeInterface
 
     private function canCurrentUserManageProgramTrustlines(array $program): bool
     {
+        return $this->isCurrentUserProgramCoordinator($program);
+    }
+
+    private function isCurrentUserProgramCoordinator(array $program): bool
+    {
         if (!$this->CurrentUser->isAuthorized()) {
             return false;
         }
@@ -717,12 +732,294 @@ class MtlaController implements RefreshDataCodeInterface
             return false;
         }
 
-        foreach ($program['participants'] as $participant) {
-            if (($participant['id'] ?? null) === $current_account_id) {
-                return true;
+        return $current_account_id === ($program['data']['id'] ?? null)
+            || $current_account_id === ($program['coordinator']['id'] ?? null);
+    }
+
+    /**
+     * Build the context for sending the participants' own time tokens from the program account.
+     *
+     * @param list<array> $participants
+     */
+    private function buildProgramPaymentAction(array $program, array $participants): ?array
+    {
+        if (!$this->isCurrentUserProgramCoordinator($program) || $participants === []) {
+            return null;
+        }
+
+        $csrf_token = $this->RequestSession->getOrCreateToken(
+            'csrf:mtla_program_payments:' . $program['data']['id']
+        );
+        $action = [
+            'csrf_token' => $csrf_token,
+            'amounts' => [],
+            'errors' => [],
+            'signing_form' => null,
+        ];
+
+        if (
+            ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST'
+            || ($_POST['action'] ?? null) !== 'program_payments'
+        ) {
+            return $action;
+        }
+
+        $submitted_token = $this->scalarString($_POST['csrf_token'] ?? null);
+        if (!hash_equals($csrf_token, $submitted_token)) {
+            $action['errors'][] = $this->programPaymentError('mtla_program_page.payments.errors.expired_form');
+            return $action;
+        }
+
+        $posted_amounts = is_array($_POST['send_amounts'] ?? null) ? $_POST['send_amounts'] : [];
+        $payments = [];
+        $required_by_asset = [];
+        $has_submitted_amount = false;
+
+        foreach ($participants as $participant) {
+            $account_id = $participant['account']['id'] ?? null;
+            if (!is_string($account_id)) {
+                continue;
+            }
+
+            $raw_amount = $posted_amounts[$account_id] ?? '';
+            if (is_string($raw_amount) || is_int($raw_amount)) {
+                $raw_amount = trim((string) $raw_amount);
+            } else {
+                $raw_amount = null;
+            }
+
+            if ($raw_amount === '') {
+                continue;
+            }
+
+            $has_submitted_amount = true;
+            if ($raw_amount !== null) {
+                $action['amounts'][$account_id] = $raw_amount;
+            }
+
+            $account_name = (string) ($participant['account']['display_name'] ?? $account_id);
+            $amount = PaymentTransactionBuilder::normalizeAmount($raw_amount);
+            if ($amount === null) {
+                $action['errors'][] = $this->programPaymentError(
+                    'mtla_program_page.payments.errors.invalid_amount',
+                    ['%account%' => $account_name]
+                );
+                continue;
+            }
+
+            $code = $participant['timetoken']['code'] ?? null;
+            $issuer = $participant['timetoken']['issuer'] ?? null;
+            if (!is_string($code) || !is_string($issuer) || $code === '' || $issuer === '') {
+                $action['errors'][] = $this->programPaymentError(
+                    'mtla_program_page.payments.errors.missing_timetoken',
+                    ['%account%' => $account_name]
+                );
+                continue;
+            }
+
+            $asset_key = $code . '-' . $issuer;
+            $payments[] = [
+                'account_id' => $account_id,
+                'account_name' => $account_name,
+                'asset_key' => $asset_key,
+                'token_code' => $code,
+                'token_issuer' => $issuer,
+                'amount' => $amount,
+            ];
+            $required_by_asset[$asset_key] = bcadd(
+                $required_by_asset[$asset_key] ?? '0.0000000',
+                $amount,
+                7,
+            );
+        }
+
+        if (!$has_submitted_amount) {
+            $action['errors'][] = $this->programPaymentError('mtla_program_page.payments.errors.no_payments');
+        }
+        if (count($payments) > PaymentTransactionBuilder::MAX_OPERATIONS) {
+            $action['errors'][] = $this->programPaymentError('mtla_program_page.payments.errors.too_many_payments');
+        }
+        if ($action['errors'] !== []) {
+            return $action;
+        }
+
+        try {
+            $ProgramAccount = $this->Stellar->requestAccount($program['data']['id']);
+        } catch (Throwable) {
+            $action['errors'][] = $this->programPaymentError('mtla_program_page.payments.errors.program_unavailable');
+            return $action;
+        }
+
+        $program_balances = $this->extractCreditBalances($ProgramAccount);
+        foreach ($required_by_asset as $asset_key => $required) {
+            $available = $program_balances[$asset_key] ?? '0.0000000';
+            if (bccomp($available, $required, 7) < 0) {
+                $action['errors'][] = $this->programPaymentError(
+                    'mtla_program_page.payments.errors.insufficient_balance',
+                    [
+                        '%token%' => explode('-', $asset_key, 2)[0],
+                        '%required%' => $required,
+                        '%available%' => $available,
+                    ]
+                );
             }
         }
 
-        return false;
+        /** @var array<string, AccountResponse> $recipient_accounts */
+        $recipient_accounts = [];
+        $recipient_capacities = [];
+        foreach ($payments as $payment) {
+            $recipient_id = $payment['account_id'];
+            if (!isset($recipient_accounts[$recipient_id])) {
+                try {
+                    $recipient_accounts[$recipient_id] = $recipient_id === $ProgramAccount->getAccountId()
+                        ? $ProgramAccount
+                        : $this->Stellar->requestAccount($recipient_id);
+                } catch (Throwable) {
+                    $action['errors'][] = $this->programPaymentError(
+                        'mtla_program_page.payments.errors.recipient_unavailable',
+                        ['%account%' => $payment['account_name']]
+                    );
+                    continue;
+                }
+            }
+
+            // The issuer accepts its own asset without a trustline; all other recipients need one.
+            if ($recipient_id === $payment['token_issuer']) {
+                continue;
+            }
+
+            $Balance = $this->findCreditBalance($recipient_accounts[$recipient_id], $payment['asset_key']);
+            if ($Balance === null) {
+                $action['errors'][] = $this->programPaymentError(
+                    'mtla_program_page.payments.errors.missing_recipient_trustline',
+                    [
+                        '%account%' => $payment['account_name'],
+                        '%token%' => $payment['token_code'],
+                    ]
+                );
+                continue;
+            }
+            if ($Balance->getIsAuthorized() === false) {
+                $action['errors'][] = $this->programPaymentError(
+                    'mtla_program_page.payments.errors.recipient_not_authorized',
+                    [
+                        '%account%' => $payment['account_name'],
+                        '%token%' => $payment['token_code'],
+                    ]
+                );
+                continue;
+            }
+
+            if ($recipient_id === $ProgramAccount->getAccountId()) {
+                continue;
+            }
+
+            $capacity_key = $recipient_id . '|' . $payment['asset_key'];
+            if (!isset($recipient_capacities[$capacity_key])) {
+                $limit = $Balance->getLimit();
+                $committed = bcadd($Balance->getBalance(), $Balance->getBuyingLiabilities() ?? '0.0000000', 7);
+                $capacity = $limit === null
+                    ? '0.0000000'
+                    : bcsub($limit, $committed, 7);
+                $recipient_capacities[$capacity_key] = bccomp($capacity, '0.0000000', 7) < 0
+                    ? '0.0000000'
+                    : $capacity;
+            }
+            if (bccomp($payment['amount'], $recipient_capacities[$capacity_key], 7) > 0) {
+                $action['errors'][] = $this->programPaymentError(
+                    'mtla_program_page.payments.errors.recipient_limit',
+                    [
+                        '%account%' => $payment['account_name'],
+                        '%token%' => $payment['token_code'],
+                    ]
+                );
+                continue;
+            }
+            $recipient_capacities[$capacity_key] = bcsub(
+                $recipient_capacities[$capacity_key],
+                $payment['amount'],
+                7,
+            );
+        }
+
+        if ($action['errors'] !== []) {
+            return $action;
+        }
+
+        try {
+            $operations = array_map(function (array $payment): array {
+                return [
+                    'destination' => PaymentDestination::fromAddress($payment['account_id']),
+                    'asset' => Asset::createNonNativeAsset($payment['token_code'], $payment['token_issuer']),
+                    'amount' => $payment['amount'],
+                ];
+            }, $payments);
+            $xdr = $this->PaymentTransactionBuilder->build(
+                $ProgramAccount,
+                $operations,
+                Memo::text(self::PROGRAM_PAYMENT_MEMO),
+            );
+            $action['signing_form'] = $this->SignController->SignTransaction(
+                $xdr,
+                null,
+                self::PROGRAM_PAYMENT_MEMO
+            );
+        } catch (Throwable) {
+            $action['errors'][] = $this->programPaymentError('mtla_program_page.payments.errors.transaction_failed');
+        }
+
+        return $action;
+    }
+
+    /** @return array<string, string> */
+    private function extractCreditBalances(AccountResponse $Account): array
+    {
+        $balances = [];
+        foreach ($Account->getBalances()->toArray() as $Balance) {
+            if (!$Balance instanceof AccountBalanceResponse || $Balance->getAssetType() === Asset::TYPE_NATIVE) {
+                continue;
+            }
+
+            $code = $Balance->getAssetCode();
+            $issuer = $Balance->getAssetIssuer();
+            if (!$code || !$issuer) {
+                continue;
+            }
+
+            $balances[$code . '-' . $issuer] = bcsub(
+                $Balance->getBalance(),
+                $Balance->getSellingLiabilities() ?? '0.0000000',
+                7,
+            );
+        }
+
+        return $balances;
+    }
+
+    private function findCreditBalance(AccountResponse $Account, string $asset_key): ?AccountBalanceResponse
+    {
+        foreach ($Account->getBalances()->toArray() as $Balance) {
+            if (!$Balance instanceof AccountBalanceResponse || $Balance->getAssetType() === Asset::TYPE_NATIVE) {
+                continue;
+            }
+
+            if ($Balance->getAssetCode() . '-' . $Balance->getAssetIssuer() === $asset_key) {
+                return $Balance;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return array{message: string, parameters: array<string, string>} */
+    private function programPaymentError(string $message, array $parameters = []): array
+    {
+        return ['message' => $message, 'parameters' => $parameters];
+    }
+
+    private function scalarString(mixed $value): string
+    {
+        return is_string($value) || is_int($value) ? (string) $value : '';
     }
 }
