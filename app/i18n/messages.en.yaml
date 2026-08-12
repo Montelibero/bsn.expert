@@ -445,6 +445,12 @@ error404:
   description: >
     There's some kind of error, but we don't have anything at the specified address :-(
 
+error405:
+  name: 405 Method Not Allowed
+  title: Method not allowed (405)
+  description: >
+    This address exists, but it does not support the request method used.
+
 accounts:
   description: >
     Here are all the accounts that are more or less known to the system. Primarily, these include members of 

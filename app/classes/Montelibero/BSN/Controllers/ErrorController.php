@@ -20,4 +20,16 @@ class ErrorController
         $Template = $this->Twig->load('404.twig');
         return $Template->render();
     }
+
+    /** @param list<string> $allowed_methods */
+    public function Error405(array $allowed_methods): ?string
+    {
+        $Response = SimpleRouter::response()->httpCode(405);
+        if ($allowed_methods !== []) {
+            $Response->header('Allow: ' . implode(', ', $allowed_methods));
+        }
+
+        $Template = $this->Twig->load('405.twig');
+        return $Template->render();
+    }
 }

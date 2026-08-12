@@ -3,7 +3,9 @@
 namespace Montelibero\BSN;
 
 use DI\Container;
+use Montelibero\BSN\Controllers\ErrorController;
 use Pecee\Http\Request;
+use Pecee\SimpleRouter\Exceptions\NotFoundHttpException;
 use Pecee\SimpleRouter\SimpleRouter;
 use ReflectionProperty;
 use Symfony\Component\Translation\Translator;
@@ -12,6 +14,7 @@ class ApplicationContext
 {
     private static ?ReflectionProperty $RouterRequestProperty = null;
     private static ?ReflectionProperty $RouterResponseProperty = null;
+    private bool $RouterRoutesLoaded = false;
 
     public function __construct(
         public readonly Container $Container,
@@ -41,7 +44,7 @@ class ApplicationContext
             $this->BSN->refreshFromJsonFileIfChanged($this->BsnJsonPath);
             $this->syncRequestContext();
             $this->refreshRouterRequest();
-            SimpleRouter::start();
+            $this->dispatchRouter();
         } finally {
             $this->logServerErrorStatus();
             $this->RequestSession->endRequest();
@@ -71,6 +74,71 @@ class ApplicationContext
         $ResponseProperty = self::$RouterResponseProperty ??= new ReflectionProperty(SimpleRouter::class, 'response');
         $ResponseProperty->setAccessible(true);
         $ResponseProperty->setValue(null, null);
+    }
+
+    private function dispatchRouter(): void
+    {
+        $Router = SimpleRouter::router();
+
+        try {
+            if (!$this->RouterRoutesLoaded) {
+                foreach ($Router->getRoutes() as $Route) {
+                    SimpleRouter::addDefaultNamespace($Route);
+                }
+
+                // Router::start() reloads and appends processed routes on every call.
+                // A FrankenPHP worker keeps the static route map and only replaces request state.
+                $Router->loadRoutes();
+                $this->RouterRoutesLoaded = true;
+            }
+
+            echo $Router->routeRequest();
+        } catch (NotFoundHttpException $Exception) {
+            $this->renderRoutingError($Exception);
+        }
+    }
+
+    private function renderRoutingError(NotFoundHttpException $Exception): void
+    {
+        $ErrorController = $this->Container->get(ErrorController::class);
+
+        if ($Exception->getCode() === 404) {
+            echo $ErrorController->Error404();
+            return;
+        }
+
+        // simple-router reports a matching path with an unsupported method as 403.
+        if ($Exception->getCode() === 403) {
+            $allowed_methods = $this->getAllowedMethodsForCurrentRequest();
+            $request_method = strtoupper(SimpleRouter::router()->getRequest()->getMethod());
+            if ($allowed_methods !== [] && !in_array($request_method, $allowed_methods, true)) {
+                echo $ErrorController->Error405($allowed_methods);
+                return;
+            }
+        }
+
+        throw $Exception;
+    }
+
+    /** @return list<string> */
+    private function getAllowedMethodsForCurrentRequest(): array
+    {
+        $Router = SimpleRouter::router();
+        $Request = $Router->getRequest();
+        $url = $Request->getUrl()->getPath();
+        $allowed_methods = [];
+
+        foreach ($Router->getProcessedRoutes() as $Route) {
+            if (!$Route->matchRoute($url, $Request)) {
+                continue;
+            }
+
+            foreach ($Route->getRequestMethods() as $method) {
+                $allowed_methods[strtoupper($method)] = true;
+            }
+        }
+
+        return array_keys($allowed_methods);
     }
 
     private function logServerErrorStatus(): void

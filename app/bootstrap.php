@@ -92,7 +92,6 @@ use Montelibero\BSN\TransactionConsolidationStore;
 use Montelibero\BSN\TwigExtension;
 use Montelibero\BSN\TwigPluralizeExtension;
 use Montelibero\BSN\WebApp;
-use Pecee\Http\Request;
 use Pecee\SimpleRouter\SimpleRouter;
 use MongoDB\Driver\Manager;
 use Soneso\StellarSDK\StellarSDK;
@@ -382,14 +381,6 @@ $Container = $ContainerBuilder->build();
 
 if (!IS_CLI_CONTEXT) {
     RootRoutes::register($Container, $BSN, $AccountsManager);
-
-    SimpleRouter::error(function (Request $Request, Exception $Exception) use ($Container) {
-        if ($Exception->getCode() === 404) {
-            $Request->setRewriteCallback(function () use ($Container) {
-                return $Container->get(ErrorController::class)->Error404();
-            });
-        }
-    });
 }
 
 function gristRequest($url, $method, $data = null)
