@@ -39,7 +39,6 @@ class CommonController
 
         $response = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
 
         if ($httpCode !== 201) {
             throw new \RuntimeException('Failed to push transaction to eurmtl.me. HTTP code: ' . $httpCode);

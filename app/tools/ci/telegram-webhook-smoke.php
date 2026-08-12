@@ -53,7 +53,6 @@ function postTelegramWebhook(string $url, string $secret, string $payload): arra
     $body = curl_exec($Curl);
     $status = curl_getinfo($Curl, CURLINFO_RESPONSE_CODE);
     $error = curl_error($Curl);
-    curl_close($Curl);
 
     if (!is_string($body)) {
         throw new RuntimeException('Webhook request failed: ' . $error);

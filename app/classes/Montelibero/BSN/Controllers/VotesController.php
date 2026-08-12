@@ -327,7 +327,6 @@ class VotesController
         $response = curl_exec($curl);
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $curl_error = curl_error($curl);
-        curl_close($curl);
 
         if (!is_string($response) || $response === '') {
             throw new RuntimeException(
