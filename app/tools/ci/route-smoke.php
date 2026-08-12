@@ -81,6 +81,10 @@ $checks = [
     ['path' => '/worker.php', 'status' => 404],
 ];
 
+foreach (['/.env.production', '/.git/config', '/wp-login.php', '/phpinfo.php', '/actuator/health', '/id_rsa', '/backup.sql'] as $path) {
+    $checks[] = ['path' => $path, 'status' => 404, 'body' => ''];
+}
+
 $errors = [];
 foreach ($checks as $check) {
     $headers = [];

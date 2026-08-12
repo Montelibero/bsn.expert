@@ -26,6 +26,10 @@
 		@mj12bot header User-Agent *http://mj12bot.com/*
 		respond @mj12bot 403
 
+		# Drop common secret, CMS, debug, key, and backup probes before PHP starts.
+		@scannerProbe path_regexp scannerProbe (?i)(?:^|/)(?:\.(?:env|git|svn|hg)(?:[./_-]|$)|wp-[^/]*(?:/|$)|actuator(?:/|$)|(?:id_(?:rsa|dsa|ecdsa|ed25519)|authorized_keys)(?:[./]|$)|[^/]*\.(?:php[0-9]?|phtml|phar|pem|key|sql|sqlite3?|bak|backup|old|orig|save|swp)(?:/|$))
+		respond @scannerProbe 404
+
 		@crowdHost host crowd.mtla.me
 		redir @crowdHost https://bsn.expert/crowd{uri} 301
 
