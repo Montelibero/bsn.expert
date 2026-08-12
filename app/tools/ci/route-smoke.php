@@ -40,7 +40,12 @@ $checks = [
     ['path' => '/documents/', 'status' => 200],
     ['path' => '/tokens/?format=json', 'status' => 200, 'json' => true],
     ['path' => '/graph', 'status' => 200],
-    ['path' => '/who_are_you', 'status' => 200],
+    [
+        'path' => '/who_are_you?return_to=%2Ftools%2Fpayment',
+        'status' => 200,
+        'body_contains' => 'href="/who_are_you?return_to=%2Ftools%2Fpayment"',
+        'body_not_contains' => '%2Fwho_are_you%3Freturn_to',
+    ],
     [
         'path' => '/telegram/webhook',
         'method' => 'POST',
@@ -151,6 +156,14 @@ foreach ($checks as $check) {
 
     if (array_key_exists('body', $check) && $body !== $check['body']) {
         $errors[] = sprintf('%s: expected an empty response body', $check['path']);
+    }
+
+    if (isset($check['body_contains']) && !str_contains($body, $check['body_contains'])) {
+        $errors[] = sprintf('%s: expected response body to contain %s', $check['path'], $check['body_contains']);
+    }
+
+    if (isset($check['body_not_contains']) && str_contains($body, $check['body_not_contains'])) {
+        $errors[] = sprintf('%s: response body must not contain %s', $check['path'], $check['body_not_contains']);
     }
 
     if (isset($check['location'])) {

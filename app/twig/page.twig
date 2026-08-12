@@ -31,12 +31,13 @@
             {{ 'common.short_name'|trans }}
         </a>
         {% set current_id = current_user.currentAccountId %}
+        {% set current_account_return_to = return_to|default(server.REQUEST_URI) %}
 
         <a
             class="navbar-item current-account-navbar-item"
-            href="/who_are_you?return_to={{ server.REQUEST_URI|url_encode }}"
+            href="/who_are_you?return_to={{ current_account_return_to|url_encode }}"
             data-current-account-modal-trigger
-            data-current-account-modal-url="/who_are_you/modal?return_to={{ server.REQUEST_URI|url_encode }}"
+            data-current-account-modal-url="/who_are_you/modal?return_to={{ current_account_return_to|url_encode }}"
         >
             {% if current_id %}
             <i class="fa-solid fa-user" aria-hidden="true"></i>
