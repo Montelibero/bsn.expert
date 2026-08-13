@@ -1,0 +1,19 @@
+{% extends "page.twig" %}
+
+{% block title %}{{ 'error405.name'|trans }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li><a href="/" aria-current="page">{{ 'common.short_name'|trans }}</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ 'error405.name'|trans }}</a></li>
+{% endblock %}
+
+{% block content %}
+<section class="hero is-warning">
+    <div class="hero-body">
+    <h1 class="title">{{ 'error405.title'|trans }}</h1>
+    <p class="block">
+        {{ 'error405.description'|trans }}
+    </p>
+    </div>
+</section>
+{% endblock %}
