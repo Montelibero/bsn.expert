@@ -75,6 +75,7 @@ use Montelibero\BSN\StellarTomlCrawler;
 use Montelibero\BSN\StellarTomlImageCrawler;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\StellarTomlManager;
+use Montelibero\BSN\TokenLabelFormatter;
 use Montelibero\BSN\Telegram\AccountRichMessageRenderer;
 use Montelibero\BSN\Telegram\TelegramBotApiClient;
 use Montelibero\BSN\Telegram\TelegramBotConfig;
@@ -261,6 +262,7 @@ $ContainerBuilder->addDefinitions([
     },
     CurrentUser::class => $CurrentUser,
     CurrentContacts::class => $CurrentContacts,
+    TokenLabelFormatter::class => autowire(),
     AssetVersions::class => $AssetVersions,
     CurrentAccountOptions::class => autowire(),
     CrowdConfig::class => autowire(),

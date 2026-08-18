@@ -13,6 +13,7 @@ use Montelibero\BSN\PaymentMemo;
 use Montelibero\BSN\PaymentTransactionBuilder;
 use Montelibero\BSN\StellarAccountReserveCalculator;
 use Montelibero\BSN\StellarTomlImageManager;
+use Montelibero\BSN\TokenLabelFormatter;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\AssetTypeCreditAlphanum;
@@ -35,6 +36,7 @@ final class PaymentController
         private readonly StellarSDK $Stellar,
         private readonly Translator $Translator,
         private readonly TokensController $TokensController,
+        private readonly TokenLabelFormatter $TokenLabelFormatter,
         private readonly StellarTomlImageManager $TomlImageManager,
         private readonly StellarAccountReserveCalculator $ReserveCalculator,
         private readonly PaymentTransactionBuilder $TransactionBuilder,
@@ -816,13 +818,8 @@ final class PaymentController
 
     private function tokenOptionLabel(array $token): string
     {
-        $label = (string) ($token['code'] ?? $token['label'] ?? $token['key'] ?? '');
-        if (!empty($token['issuer']) && !($token['is_known'] ?? false)) {
-            $issuer = (string) $token['issuer'];
-            $label .= '-' . substr($issuer, 0, 4) . '…' . substr($issuer, -4);
-        }
-
-        return $label . ' (' . ($token['available_label'] ?? '0') . ')';
+        return $this->TokenLabelFormatter->formatToken($token)
+            . ' (' . ($token['available_label'] ?? '0') . ')';
     }
 
     private function assetKey(array $asset): string

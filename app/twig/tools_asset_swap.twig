@@ -65,7 +65,7 @@
                                                 {% if checked %}checked{% endif %}
                                             >
                                         </label>
-                                        <a class="has-text-weight-semibold" href="{{ token.url }}">{{ token.code }}</a>
+                                        <a class="has-text-weight-semibold" href="{{ token.url }}">{{ token.label }}</a>
                                         <span>
                                             <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.balance'|trans }}:</span>
                                             {% include 'amount.twig' with {value: token.balance} only %}
@@ -131,7 +131,7 @@
                                                 {% if checked %}checked{% endif %}
                                             >
                                         </label>
-                                        <a class="has-text-weight-semibold" href="{{ token.url }}">{{ token.code }}</a>
+                                        <a class="has-text-weight-semibold" href="{{ token.url }}">{{ token.label }}</a>
                                         <span>
                                             <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.balance'|trans }}:</span>
                                             {% include 'amount.twig' with {value: token.balance} only %}

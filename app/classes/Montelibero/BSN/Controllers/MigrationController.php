@@ -8,6 +8,7 @@ use DI\Container;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\StellarAccountReserveCalculator;
+use Montelibero\BSN\TokenLabelFormatter;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\AssetTypeCreditAlphanum;
@@ -48,6 +49,7 @@ final class MigrationController
         private readonly Translator $Translator,
         private readonly Container $Container,
         private readonly StellarAccountReserveCalculator $ReserveCalculator,
+        private readonly TokenLabelFormatter $TokenLabelFormatter,
     ) {
     }
 
@@ -249,6 +251,7 @@ final class MigrationController
                 'key' => $key,
                 'code' => $Balance->getAssetCode(),
                 'issuer' => $issuer,
+                'label' => $this->TokenLabelFormatter->format((string) $Balance->getAssetCode(), $issuer),
                 'url' => '/tokens/' . rawurlencode($Balance->getAssetCode() . '-' . $issuer),
                 'balance' => $Balance->getBalance(),
                 'target_has_trustline' => $has_target_trustline,
@@ -261,7 +264,13 @@ final class MigrationController
             ];
         }
 
-        uasort($tokens, static fn (array $a, array $b): int => strcmp($a['code'], $b['code']));
+        uasort(
+            $tokens,
+            static fn (array $a, array $b): int => strcmp(
+                $a['code'] . '-' . $a['issuer'],
+                $b['code'] . '-' . $b['issuer'],
+            ),
+        );
 
         return $tokens;
     }
@@ -630,7 +639,7 @@ final class MigrationController
         }
 
         return [
-            'label' => $Asset->getCode(),
+            'label' => $this->TokenLabelFormatter->format($Asset->getCode(), $Asset->getIssuer()),
             'url' => '/tokens/' . rawurlencode($Asset->getCode() . '-' . $Asset->getIssuer()),
             'issuer' => $Asset->getIssuer(),
         ];

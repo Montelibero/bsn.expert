@@ -254,7 +254,7 @@
                     <select id="new_order_buying" name="buying" required data-new-order-buying>
                         {% for token in tokens %}
                             <option value="{{ token.key|e('html_attr') }}" {% if token.key == values.buying %}selected{% endif %}>
-                                {{ token.code|default(token.label) }}
+                                {{ token.display_label|default(token.code|default(token.label)) }}
                             </option>
                         {% endfor %}
                     </select>

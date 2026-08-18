@@ -10,6 +10,7 @@ use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\StellarAccountReserveCalculator;
 use Montelibero\BSN\StellarTomlImageManager;
+use Montelibero\BSN\TokenLabelFormatter;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\AssetTypeCreditAlphanum;
@@ -42,6 +43,7 @@ final class SwapController
         private readonly StellarSDK $Stellar,
         private readonly Translator $Translator,
         private readonly TokensController $TokensController,
+        private readonly TokenLabelFormatter $TokenLabelFormatter,
         private readonly StellarTomlImageManager $TomlImageManager,
         private readonly StellarAccountReserveCalculator $ReserveCalculator,
         private readonly Container $Container,
@@ -400,7 +402,8 @@ final class SwapController
                 'available_unlimited' => false,
                 'disabled' => bccomp($available, '0', self::SCALE) <= 0,
             ];
-            $token['option_label'] = ($token['code'] ?? $token['label'] ?? $key) . ' (' . $token['available_label'] . ')';
+            $token['option_label'] = $this->TokenLabelFormatter->formatToken($token)
+                . ' (' . $token['available_label'] . ')';
             $tokens[$key] = $token;
         }
 
@@ -416,7 +419,7 @@ final class SwapController
                 'available_unlimited' => true,
                 'disabled' => false,
             ];
-            $token['option_label'] = ($token['code'] ?? $token['label'] ?? $key) . ' (∞)';
+            $token['option_label'] = $this->TokenLabelFormatter->formatToken($token) . ' (∞)';
             $tokens[$key] = $token;
         }
 
@@ -446,7 +449,7 @@ final class SwapController
                 'balance' => $this->decimal($Balance->getBalance()),
                 'buying_liabilities' => $this->decimal($Balance->getBuyingLiabilities() ?? '0'),
                 'limit' => $Balance->getLimit(),
-                'option_label' => $token['code'] ?? $token['label'] ?? $key,
+                'option_label' => $this->TokenLabelFormatter->formatToken($token),
             ];
             $tokens[$key] = $token;
         }
@@ -460,7 +463,7 @@ final class SwapController
                 'balance' => '0.0000000',
                 'buying_liabilities' => '0.0000000',
                 'limit' => null,
-                'option_label' => $token['code'] ?? $token['label'] ?? $key,
+                'option_label' => $this->TokenLabelFormatter->formatToken($token),
             ];
             $tokens[$key] = $token;
         }

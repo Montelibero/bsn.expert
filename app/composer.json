@@ -49,6 +49,7 @@
     "test:bsn": [
       "php tests/BsnAtomicReloadTest.php",
       "php tests/BsnManageDataSemanticServiceTest.php",
+      "php tests/TokenLabelFormatterTest.php",
       "php tests/PaymentControllerValidationTest.php",
       "php tests/PaymentTransactionBuilderTest.php",
       "php tests/CreateAccountTransactionBuilderTest.php",

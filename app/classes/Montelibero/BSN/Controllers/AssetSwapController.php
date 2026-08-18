@@ -9,6 +9,7 @@ use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\StellarAccountReserveCalculator;
+use Montelibero\BSN\TokenLabelFormatter;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\ChangeTrustOperationBuilder;
@@ -35,6 +36,7 @@ final class AssetSwapController
         private readonly Translator $Translator,
         private readonly Container $Container,
         private readonly StellarAccountReserveCalculator $ReserveCalculator,
+        private readonly TokenLabelFormatter $TokenLabelFormatter,
     ) {
     }
 
@@ -152,6 +154,7 @@ final class AssetSwapController
                 'key' => $key,
                 'code' => $code,
                 'issuer' => $issuer,
+                'label' => $this->TokenLabelFormatter->format($code, $issuer),
                 'issuer_account' => $this->CurrentContacts->serialize($this->BSN->makeAccountById($issuer)),
                 'url' => '/tokens/' . rawurlencode($key),
                 'balance' => $Balance->getBalance(),

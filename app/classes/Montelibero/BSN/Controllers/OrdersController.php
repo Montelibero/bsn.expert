@@ -10,6 +10,7 @@ use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\StellarAccountReserveCalculator;
 use Montelibero\BSN\StellarTomlImageManager;
+use Montelibero\BSN\TokenLabelFormatter;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\AssetTypeCreditAlphanum;
@@ -33,6 +34,7 @@ final class OrdersController
         private readonly StellarSDK $Stellar,
         private readonly Translator $Translator,
         private readonly TokensController $TokensController,
+        private readonly TokenLabelFormatter $TokenLabelFormatter,
         private readonly StellarTomlImageManager $TomlImageManager,
         private readonly StellarAccountReserveCalculator $ReserveCalculator,
         private readonly Container $Container,
@@ -189,7 +191,8 @@ final class OrdersController
                 'available_unlimited' => false,
                 'selling_disabled' => bccomp($available, '0', 7) <= 0,
             ];
-            $token['option_label'] = ($token['code'] ?? $token['label'] ?? $key) . ' (' . $token['available_label'] . ')';
+            $token['display_label'] = $this->TokenLabelFormatter->formatToken($token);
+            $token['option_label'] = $token['display_label'] . ' (' . $token['available_label'] . ')';
             $tokens[$key] = $token;
         }
 
@@ -240,7 +243,8 @@ final class OrdersController
                         'selling_disabled' => false,
                         'is_issued_by_current_account' => true,
                     ];
-                    $token['option_label'] = ($token['code'] ?? $token['label'] ?? $key) . ' (∞)';
+                    $token['display_label'] = $this->TokenLabelFormatter->formatToken($token);
+                    $token['option_label'] = $token['display_label'] . ' (∞)';
                     $tokens[$key] = $token;
                 }
                 $page = $page->getNextPage();
