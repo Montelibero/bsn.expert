@@ -30,6 +30,8 @@
     <div class="box">
         <h2 class="subtitle">{{ 'preferences.api.new_key.title'|trans }}</h2>
         <form action="/preferences/api" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
+            <input type="hidden" name="create_nonce" value="{{ create_nonce|e('html_attr') }}">
             <div class="field">
                 <label class="label" for="api_key_name">{{ 'preferences.api.new_key.name'|trans }}</label>
                 <div class="control">
@@ -83,6 +85,7 @@
                     <p>{{ key.name }}</p>
 
                     <form action="/preferences/api" method="post" onsubmit="return confirm('{{ 'preferences.api.list.delete_confirm'|trans }}');" style="margin: 0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token|e('html_attr') }}">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="key_id" value="{{ key.id }}">
                         <button class="delete" type="submit" aria-label="delete" title="{{ 'preferences.api.list.delete'|trans }}"></button>

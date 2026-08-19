@@ -16,6 +16,8 @@
 	log {
 		output stdout
 		format filter {
+			request>headers>Authorization hash
+			request>headers>Proxy-Authorization delete
 			request>headers>X-Telegram-Bot-Api-Secret-Token delete
 			wrap json
 		}

@@ -139,6 +139,8 @@ jobs:
                   account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
                   name: "CI contacts writer",
                   key: "111111111111111111111111111111111111111111111111",
+                  key_digest: "2f7a94061bcae6ad71b715e98292ad4f73539c949f7a533031ab02b0bd460fce",
+                  key_digest_algorithm: "sha256",
                   permissions: {
                     contacts: {read: false, create: true, update: false, delete: false}
                   },
@@ -214,6 +216,16 @@ jobs:
           php app/tools/ci/telegram-webhook-smoke.php
           php app/tools/ci/contacts-sync-smoke.php
           docker exec bsn-route-app php tools/ci/contacts-cas-smoke.php
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php tools/ci/api-key-digest-smoke.php seed
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php cli/migrate-api-key-digests.php --dry-run
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php cli/migrate-api-key-digests.php --apply
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php cli/migrate-api-key-digests.php --dry-run
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php tools/ci/api-key-digest-smoke.php verify
 
       - name: Show smoke environment logs
         if: failure()

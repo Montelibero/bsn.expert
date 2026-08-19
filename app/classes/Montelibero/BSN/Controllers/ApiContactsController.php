@@ -4,7 +4,10 @@ namespace Montelibero\BSN\Controllers;
 
 use JsonException;
 use MongoDB\BSON\UTCDateTime;
+use Montelibero\BSN\ApiAuthenticationException;
 use Montelibero\BSN\ApiKeysManager;
+use Montelibero\BSN\ApiPrincipal;
+use Montelibero\BSN\ApiTokenAuthenticator;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\ContactsManager;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -16,53 +19,55 @@ class ApiContactsController
     private const CORS_ALLOWED_HEADERS = 'Authorization, Content-Type';
     private const CORS_MAX_AGE_SECONDS = 86400;
     private ApiKeysManager $ApiKeysManager;
+    private ApiTokenAuthenticator $ApiTokenAuthenticator;
     private ContactsManager $ContactsManager;
 
-    public function __construct(ApiKeysManager $ApiKeysManager, ContactsManager $ContactsManager)
-    {
+    public function __construct(
+        ApiKeysManager $ApiKeysManager,
+        ApiTokenAuthenticator $ApiTokenAuthenticator,
+        ContactsManager $ContactsManager,
+    ) {
         $this->ApiKeysManager = $ApiKeysManager;
+        $this->ApiTokenAuthenticator = $ApiTokenAuthenticator;
         $this->ContactsManager = $ContactsManager;
     }
 
-    private function checkAuth(): array|string
+    private function checkAuth(): ApiPrincipal|string
     {
-        $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
-        if (!$auth_header || stripos($auth_header, 'Bearer ') !== 0) {
+        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
+        $ip = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
+        try {
+            $Principal = $this->ApiTokenAuthenticator->authenticate(
+                is_string($header) ? $header : null,
+                $ip,
+            );
+        } catch (ApiAuthenticationException $Exception) {
             SimpleRouter::response()->httpCode(401);
-            return $this->jsonResponse(['status' => 'error', 'message' => 'Missing Bearer token']);
+            SimpleRouter::response()->header('WWW-Authenticate: Bearer realm="bsn"');
+            return $this->jsonResponse(['status' => 'error', 'message' => $Exception->getMessage()]);
         }
 
-        $token = trim(substr($auth_header, 7));
-        if ($token === '') {
-            SimpleRouter::response()->httpCode(401);
-            return $this->jsonResponse(['status' => 'error', 'message' => 'Missing Bearer token']);
-        }
-
-        $key = $this->ApiKeysManager->findByKey($token);
-        if (!$key) {
-            SimpleRouter::response()->httpCode(401);
-            return $this->jsonResponse(['status' => 'error', 'message' => 'Invalid API key']);
-        }
-
-        $this->ApiKeysManager->markUsed($key["id"], $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-
-        if (!is_array($key['permissions']['contacts'] ?? null)) {
+        if (!is_array($Principal->permissions()['contacts'] ?? null)) {
             SimpleRouter::response()->httpCode(403);
+            SimpleRouter::response()->header(
+                'WWW-Authenticate: Bearer realm="bsn", error="insufficient_scope", '
+                . 'scope="contacts:read contacts:create contacts:update contacts:delete"'
+            );
             return $this->jsonResponse(['status' => 'error', 'message' => 'API key does not have contacts permissions']);
         }
 
-        return $key;
+        return $Principal;
     }
 
     public function Sync(): string
     {
-        $key = $this->checkAuth();
-        if (is_string($key)) {
-            return $key;
+        $Principal = $this->checkAuth();
+        if (is_string($Principal)) {
+            return $Principal;
         }
 
-        $account_id = $key['account_id'];
-        $permissions = $key['permissions']['contacts'];
+        $account_id = $Principal->accountId();
+        $permissions = $Principal->permissions()['contacts'];
 
         $request = file_get_contents('php://input');
         try {
@@ -235,7 +240,7 @@ class ApiContactsController
         // Tell new data to the client
         $last_sync_revision = $has_explicit_cursor
             ? $request_cursor
-            : $key['last_succeed_contacts_sync_revision'];
+            : $Principal->lastSuccessfulContactsSyncRevision();
 
         $response = [
             'status' => 'OK',
@@ -254,7 +259,7 @@ class ApiContactsController
         }
 
         if (!$has_explicit_cursor) {
-            $this->updateLastSyncRevision($key, $sync_snapshot['revision']);
+            $this->updateLastSyncRevision($Principal, $sync_snapshot['revision']);
         }
 
         return $this->jsonResponse($response);
@@ -271,7 +276,10 @@ class ApiContactsController
     private function jsonResponse(array $data): string
     {
         $this->setCorsHeaders();
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
         header('Content-Type: application/json');
+        header('X-Content-Type-Options: nosniff');
 
         return json_encode(
             $data,
@@ -314,9 +322,9 @@ class ApiContactsController
         return true;
     }
 
-    private function updateLastSyncRevision(array $key, int $revision): void
+    private function updateLastSyncRevision(ApiPrincipal $Principal, int $revision): void
     {
-        $this->ApiKeysManager->updateKey($key['id'], [
+        $this->ApiKeysManager->updateKey($Principal->keyId(), [
             'last_succeed_contacts_sync_revision' => $revision,
         ]);
     }

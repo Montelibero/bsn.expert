@@ -101,6 +101,12 @@ function ensureApiKeysIndexes(Manager $manager, string $database, string $collec
             'createIndexes' => $collection,
             'indexes' => [
                 ['key' => ['key' => 1], 'name' => 'uniq_key', 'unique' => true],
+                [
+                    'key' => ['key_digest' => 1],
+                    'name' => 'uniq_key_digest',
+                    'unique' => true,
+                    'sparse' => true,
+                ],
                 ['key' => ['account_id' => 1], 'name' => 'account_idx'],
             ],
         ])

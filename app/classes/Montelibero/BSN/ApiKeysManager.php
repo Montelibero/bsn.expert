@@ -31,6 +31,8 @@ class ApiKeysManager
             'account_id' => $account_id,
             'name' => $name,
             'key' => $key,
+            'key_digest' => ApiTokenDigest::fromToken($key),
+            'key_digest_algorithm' => ApiTokenDigest::ALGORITHM,
             'permissions' => $normalized_permissions,
             'created_at' => $Now,
         ];
@@ -103,9 +105,19 @@ class ApiKeysManager
 
     public function findByKey(string $key): ?array
     {
-        $Query = new Query(['key' => $key], ['limit' => 1]);
+        $Query = new Query(
+            [
+                'key_digest' => ApiTokenDigest::fromToken($key),
+                'key_digest_algorithm' => ApiTokenDigest::ALGORITHM,
+            ],
+            ['limit' => 1]
+        );
         $Cursor = $this->Mongo->executeQuery($this->namespace(), $Query);
         $Doc = current($Cursor->toArray());
+
+        if (!$Doc) {
+            $Doc = $this->findByKeyRaw($key);
+        }
 
         return $Doc ? $this->formatKeyDoc($Doc) : null;
     }

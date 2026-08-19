@@ -222,7 +222,7 @@ preferences:
     description: >
       Create and manage personal API keys to integrate BSN contacts with other tools.
     instructions:
-      use_key_once: Full key is visible until the first use—copy it and store securely.
+      use_key_once: The full key is shown only once, immediately after creation—copy it and store it securely.
       permissions: Choose granular permissions; only Contacts scope is available for now.
       keep_secret: Keep your key secret. If it leaks, delete and create a new one.
     new_key:
@@ -241,7 +241,7 @@ preferences:
       contacts: Contacts
     list:
       title: Your API keys
-      show_full_hint: Full key is shown while it has never been used.
+      show_full_hint: Copy this key now. For security, it cannot be shown again after you leave or refresh this page.
       created_at: Created
       last_used_at: Last used
       last_ip: Last IP
@@ -252,6 +252,9 @@ preferences:
     errors:
       delete_failed: Could not delete the key.
       name_required: Please set a key name.
+      csrf_invalid: The form expired or changed in another tab or session. Reload the page and try again.
+      create_expired: This key creation request has already been used or has expired. Reload the page and try again.
+      unknown_action: Unknown API key action.
 
 who_are_you:
   title: Who are you acting as?

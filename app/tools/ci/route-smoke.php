@@ -41,6 +41,15 @@ $checks = [
     ['path' => '/tokens/?format=json', 'status' => 200, 'json' => true],
     ['path' => '/graph', 'status' => 200],
     [
+        'path' => '/api/',
+        'status' => 401,
+        'json' => true,
+        'response_headers' => [
+            'www-authenticate' => 'Bearer realm="bsn"',
+            'cache-control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        ],
+    ],
+    [
         'path' => '/who_are_you?return_to=%2Ftools%2Fpayment',
         'status' => 200,
         'body_contains' => 'href="/who_are_you?return_to=%2Ftools%2Fpayment"',
