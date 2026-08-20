@@ -42,6 +42,7 @@
       "@test:session",
       "@test:auth",
       "@test:api",
+      "@test:mcp",
       "@test:crowd",
       "@test:markdown",
       "@test:grist",
@@ -71,6 +72,9 @@
     "test:api": [
       "php tests/ApiTokenAuthenticatorTest.php",
       "php tests/ApiKeyManagementSecurityTest.php"
+    ],
+    "test:mcp": [
+      "php tests/McpServerTest.php"
     ],
     "test:crowd": [
       "php tests/CrowdAccessTest.php",

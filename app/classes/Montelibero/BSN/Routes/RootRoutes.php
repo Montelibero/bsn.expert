@@ -11,6 +11,7 @@ use Montelibero\BSN\Controllers\ApiContactsController;
 use Montelibero\BSN\Controllers\FederationController;
 use Montelibero\BSN\Controllers\GraphController;
 use Montelibero\BSN\Controllers\HomeController;
+use Montelibero\BSN\Controllers\McpController;
 use Montelibero\BSN\Controllers\SearchController;
 use Montelibero\BSN\Controllers\SignController;
 use Montelibero\BSN\Controllers\SingleAccountEditTagsController;
@@ -117,6 +118,12 @@ class RootRoutes
         });
         SimpleRouter::group(['prefix' => '/api'], function () use ($Container) {
             ApiRoutes::register($Container);
+        });
+        SimpleRouter::post('/mcp', function () use ($Container) {
+            return $Container->get(McpController::class)->Handle();
+        })->name('mcp');
+        SimpleRouter::get('/mcp', function () use ($Container) {
+            return $Container->get(McpController::class)->MethodNotAllowed();
         });
         SimpleRouter::get('/{username}/operations', function($username) use ($Container, $BSN, $AccountsManager) {
             $has_at = str_starts_with($username, '@');

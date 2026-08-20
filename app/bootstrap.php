@@ -28,6 +28,7 @@ use Montelibero\BSN\Controllers\GraphController;
 use Montelibero\BSN\Controllers\GristWebhookController;
 use Montelibero\BSN\Controllers\HomeController;
 use Montelibero\BSN\Controllers\LoginController;
+use Montelibero\BSN\Controllers\McpController;
 use Montelibero\BSN\Controllers\MembershipDistributionController;
 use Montelibero\BSN\Controllers\MigrationController;
 use Montelibero\BSN\Controllers\MtlaController;
@@ -345,6 +346,7 @@ $ContainerBuilder->addDefinitions([
 
     AdminController::class => autowire(),
     LoginController::class => autowire(),
+    McpController::class => autowire(),
     AccountsController::class => autowire(),
     ApiController::class => autowire(),
     Editor2Controller::class => autowire(),

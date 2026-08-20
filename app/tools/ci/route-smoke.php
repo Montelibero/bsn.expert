@@ -50,6 +50,79 @@ $checks = [
         ],
     ],
     [
+        'path' => '/mcp',
+        'status' => 405,
+        'response_headers' => ['allow' => 'POST'],
+    ],
+    [
+        'path' => '/mcp',
+        'method' => 'POST',
+        'status' => 200,
+        'request_headers' => [
+            'Content-Type: application/json',
+            'Accept: application/json, text/event-stream',
+        ],
+        'request_body' => json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+            'params' => [
+                'protocolVersion' => '2025-11-25',
+                'capabilities' => [],
+                'clientInfo' => ['name' => 'route-smoke', 'version' => '1'],
+            ],
+        ], JSON_THROW_ON_ERROR),
+        'response_headers' => [
+            'content-type' => 'application/json; charset=utf-8',
+            'cache-control' => 'no-store',
+            'x-content-type-options' => 'nosniff',
+        ],
+        'body_contains' => '"name":"bsn-expert"',
+        'json' => true,
+    ],
+    [
+        'path' => '/mcp',
+        'method' => 'POST',
+        'status' => 200,
+        'request_headers' => [
+            'Content-Type: application/json',
+            'Accept: application/json, text/event-stream',
+            'MCP-Protocol-Version: 2026-07-28',
+            'Mcp-Method: tools/list',
+        ],
+        'request_body' => json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'method' => 'tools/list',
+            'params' => [
+                '_meta' => [
+                    'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+                    'io.modelcontextprotocol/clientInfo' => ['name' => 'route-smoke', 'version' => '1'],
+                    'io.modelcontextprotocol/clientCapabilities' => [],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR),
+        'body_contains' => '"name":"bsn.account.get"',
+        'json' => true,
+    ],
+    [
+        'path' => '/mcp',
+        'method' => 'POST',
+        'status' => 403,
+        'request_headers' => [
+            'Content-Type: application/json',
+            'Origin: https://attacker.example',
+        ],
+        'request_body' => json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'method' => 'tools/list',
+            'params' => [],
+        ], JSON_THROW_ON_ERROR),
+        'body_contains' => 'Forbidden Origin',
+        'json' => true,
+    ],
+    [
         'path' => '/who_are_you?return_to=%2Ftools%2Fpayment',
         'status' => 200,
         'body_contains' => 'href="/who_are_you?return_to=%2Ftools%2Fpayment"',
@@ -135,6 +208,9 @@ foreach ($checks as $check) {
             return $length;
         },
     ]);
+    if (array_key_exists('request_body', $check)) {
+        curl_setopt($Curl, CURLOPT_POSTFIELDS, $check['request_body']);
+    }
 
     $body = curl_exec($Curl);
     $status = curl_getinfo($Curl, CURLINFO_RESPONSE_CODE);

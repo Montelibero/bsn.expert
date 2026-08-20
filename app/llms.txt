@@ -61,6 +61,8 @@ Agent guidance:
   Known token issuers keyed by asset code. Also available with Accept: application/json.
 - GET /health
   Health check.
+- POST /mcp
+  Anonymous read-only MCP endpoint. General account lookup includes a compact known-tag summary and points to a separate tool for full account tag relations; the tag catalog is also available. Prefer this over scraping pages when an MCP client is available.
 
 ## Authenticated or Sensitive Areas
 
