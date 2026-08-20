@@ -53,6 +53,12 @@ $controller_source = file_get_contents(dirname(__DIR__) . '/classes/Montelibero/
 assertApiKeyManagement(true, is_string($controller_source), 'The API controller source must be readable.');
 assertApiKeyManagement(false, str_contains($controller_source, 'SESSION_API_KEY_FLASH'), 'Raw API tokens must not be placed in session flash storage.');
 assertApiKeyManagement(false, str_contains($controller_source, "last_used_at'] === null"), 'Unused keys must not be revealed again.');
+assertApiKeyManagement(false, str_contains($controller_source, '$stored_token'), 'Stored raw API tokens must not be used to render the key list.');
+
+$manager_source = file_get_contents(dirname(__DIR__) . '/classes/Montelibero/BSN/ApiKeysManager.php');
+assertApiKeyManagement(true, is_string($manager_source), 'The API key manager source must be readable.');
+assertApiKeyManagement(false, str_contains($manager_source, 'findByKeyRaw'), 'Authentication must not fall back to raw-key lookup.');
+assertApiKeyManagement(false, str_contains($manager_source, "'key' => \$doc->key"), 'Stored API key documents must not expose raw tokens.');
 
 $caddyfile = file_get_contents(dirname(__DIR__) . '/Caddyfile');
 assertApiKeyManagement(true, is_string($caddyfile), 'The Caddyfile must be readable.');

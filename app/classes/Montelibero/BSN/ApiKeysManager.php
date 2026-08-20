@@ -24,14 +24,14 @@ class ApiKeysManager
     {
         $Now = new UTCDateTime(time() * 1000);
         $key = $this->generateUniqueKey();
+        $key_digest = ApiTokenDigest::fromToken($key);
         $normalized_permissions = $this->normalizePermissions($permissions);
 
         $Bulk = new BulkWrite();
         $insertData = [
             'account_id' => $account_id,
             'name' => $name,
-            'key' => $key,
-            'key_digest' => ApiTokenDigest::fromToken($key),
+            'key_digest' => $key_digest,
             'key_digest_algorithm' => ApiTokenDigest::ALGORITHM,
             'permissions' => $normalized_permissions,
             'created_at' => $Now,
@@ -45,7 +45,10 @@ class ApiKeysManager
         $insertedDoc = (object) $insertData;
         $insertedDoc->_id = $insertedId;
 
-        return $this->formatKeyDoc($insertedDoc);
+        $created_key = $this->formatKeyDoc($insertedDoc);
+        $created_key['key'] = $key;
+
+        return $created_key;
     }
 
     public function getKeysByAccount(string $account_id): array
@@ -105,19 +108,7 @@ class ApiKeysManager
 
     public function findByKey(string $key): ?array
     {
-        $Query = new Query(
-            [
-                'key_digest' => ApiTokenDigest::fromToken($key),
-                'key_digest_algorithm' => ApiTokenDigest::ALGORITHM,
-            ],
-            ['limit' => 1]
-        );
-        $Cursor = $this->Mongo->executeQuery($this->namespace(), $Query);
-        $Doc = current($Cursor->toArray());
-
-        if (!$Doc) {
-            $Doc = $this->findByKeyRaw($key);
-        }
+        $Doc = $this->findByDigest(ApiTokenDigest::fromToken($key));
 
         return $Doc ? $this->formatKeyDoc($Doc) : null;
     }
@@ -149,7 +140,7 @@ class ApiKeysManager
         $attempts = 0;
         do {
             $key = bin2hex(random_bytes(24));
-            $exists = $this->findByKeyRaw($key);
+            $exists = $this->findByDigest(ApiTokenDigest::fromToken($key));
             $attempts++;
         } while ($exists && $attempts < 5);
 
@@ -160,9 +151,15 @@ class ApiKeysManager
         return $key;
     }
 
-    private function findByKeyRaw(string $key): ?object
+    private function findByDigest(string $digest): ?object
     {
-        $Query = new Query(['key' => $key], ['limit' => 1]);
+        $Query = new Query(
+            [
+                'key_digest' => $digest,
+                'key_digest_algorithm' => ApiTokenDigest::ALGORITHM,
+            ],
+            ['limit' => 1]
+        );
         $Cursor = $this->Mongo->executeQuery($this->namespace(), $Query);
         return current($Cursor->toArray()) ?: null;
     }
@@ -184,7 +181,7 @@ class ApiKeysManager
             'id' => (string) $doc->_id,
             'account_id' => $doc->account_id ?? null,
             'name' => $doc->name ?? '',
-            'key' => $doc->key ?? null,
+            'key_fingerprint' => ApiTokenDigest::fingerprintFromDigest($doc->key_digest ?? null),
             'permissions' => $permissions,
             'created_at' => $created_dt ? $created_dt->format('Y-m-d H:i:s') : null,
             'created_at_ts' => $created_dt?->getTimestamp(),

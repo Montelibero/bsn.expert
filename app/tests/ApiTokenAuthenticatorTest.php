@@ -66,6 +66,8 @@ assertApiToken($expected_digest, ApiTokenDigest::fromToken($token), 'The stored 
 assertApiToken(true, ApiTokenDigest::isValid($expected_digest), 'A lowercase SHA-256 digest must validate.');
 assertApiToken(false, ApiTokenDigest::isValid(strtoupper($expected_digest)), 'Digest storage must use one canonical lowercase form.');
 assertApiToken(false, ApiTokenDigest::isValid($token), 'A token is not itself a digest.');
+assertApiToken('sha256:' . substr($expected_digest, 0, 12), ApiTokenDigest::fingerprintFromDigest($expected_digest), 'The UI fingerprint must be stable and must not expose token characters.');
+assertApiToken('', ApiTokenDigest::fingerprintFromDigest('invalid'), 'An invalid digest must not produce a fingerprint.');
 
 $MissingManager = new FakeApiKeysManager(null);
 $MissingAuthenticator = new ApiTokenAuthenticator($MissingManager);
@@ -81,7 +83,7 @@ assertApiToken([], $MissingManager->usage_updates, 'Failed authentication must n
 $key = [
     'id' => '507f1f77bcf86cd799439011',
     'account_id' => 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-    'key' => $token,
+    'key_fingerprint' => ApiTokenDigest::fingerprintFromDigest($expected_digest),
     'permissions' => ['contacts' => ['read' => true]],
 ];
 $ValidManager = new FakeApiKeysManager($key);

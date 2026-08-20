@@ -62,6 +62,7 @@ class ApiController
         $form_permissions = $default_permissions;
         $form_name = '';
         $created_token = null;
+        $created_key_id = null;
         $csrf_token = $this->csrfToken();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -104,6 +105,7 @@ class ApiController
                 if (!$errors) {
                     $key = $this->ApiKeysManager->createKey($account_id, $name, $form_permissions);
                     $created_token = $key['key'];
+                    $created_key_id = $key['id'];
                 }
             } else {
                 SimpleRouter::response()->httpCode(400);
@@ -111,21 +113,19 @@ class ApiController
             }
         }
 
-        $keys = array_map(function ($key) use ($created_token, $default_permissions) {
+        $keys = array_map(function ($key) use ($created_key_id, $created_token, $default_permissions) {
             $key['permissions']['contacts'] = array_merge(
                 $default_permissions['contacts'],
                 (array) ($key['permissions']['contacts'] ?? [])
             );
-            $stored_token = is_string($key['key'] ?? null) ? $key['key'] : null;
             $is_new = $created_token !== null
-                && $stored_token !== null
-                && hash_equals($created_token, $stored_token);
+                && $created_key_id !== null
+                && hash_equals($created_key_id, (string) ($key['id'] ?? ''));
             $key['is_new'] = $is_new;
             $key['display_key'] = $is_new
                 ? $created_token
-                : ApiTokenAuthenticator::maskToken($stored_token);
+                : ($key['key_fingerprint'] ?? '');
             $key['show_full'] = $is_new;
-            unset($key['key']);
 
             return $key;
         }, $this->ApiKeysManager->getKeysByAccount($account_id));

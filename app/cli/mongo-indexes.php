@@ -18,14 +18,21 @@ if (empty($_ENV['MONGO_HOST']) && is_file(dirname(__DIR__, 2) . '/.env')) {
     Dotenv::createImmutable(dirname(__DIR__, 2))->safeLoad();
 }
 
-$mongoUri = sprintf(
-    'mongodb://%s:%s@%s:%s/?authSource=%s',
-    $_ENV['MONGO_ROOT_USERNAME'] ?? 'mongo',
-    $_ENV['MONGO_ROOT_PASSWORD'] ?? 'mongo_pass',
-    $_ENV['MONGO_HOST'] ?? 'mongo',
-    $_ENV['MONGO_PORT'] ?? '27017',
-    $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin'
-);
+$mongoUsername = $_ENV['MONGO_ROOT_USERNAME'] ?? 'mongo';
+$mongoPassword = $_ENV['MONGO_ROOT_PASSWORD'] ?? 'mongo_pass';
+$mongoHost = $_ENV['MONGO_HOST'] ?? 'mongo';
+$mongoPort = $_ENV['MONGO_PORT'] ?? '27017';
+$mongoAuthSource = $_ENV['MONGO_AUTH_SOURCE'] ?? 'admin';
+$mongoUri = $mongoUsername === ''
+    ? sprintf('mongodb://%s:%s/', $mongoHost, $mongoPort)
+    : sprintf(
+        'mongodb://%s:%s@%s:%s/?authSource=%s',
+        $mongoUsername,
+        $mongoPassword,
+        $mongoHost,
+        $mongoPort,
+        $mongoAuthSource
+    );
 $database = $_ENV['MONGO_BASENAME'] ?? 'app_db';
 
 $manager = new Manager($mongoUri);
@@ -100,7 +107,6 @@ function ensureApiKeysIndexes(Manager $manager, string $database, string $collec
         new Command([
             'createIndexes' => $collection,
             'indexes' => [
-                ['key' => ['key' => 1], 'name' => 'uniq_key', 'unique' => true],
                 [
                     'key' => ['key_digest' => 1],
                     'name' => 'uniq_key_digest',

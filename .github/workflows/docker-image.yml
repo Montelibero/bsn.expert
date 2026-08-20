@@ -138,7 +138,6 @@ jobs:
                 {
                   account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
                   name: "CI contacts writer",
-                  key: "111111111111111111111111111111111111111111111111",
                   key_digest: "2f7a94061bcae6ad71b715e98292ad4f73539c949f7a533031ab02b0bd460fce",
                   key_digest_algorithm: "sha256",
                   permissions: {
@@ -149,7 +148,8 @@ jobs:
                 {
                   account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
                   name: "CI contacts reader",
-                  key: "222222222222222222222222222222222222222222222222",
+                  key_digest: "8ec6f8d21dddcc30758f1ce69a0de3c536e6b9a795cc54f9c61a53adf12288d6",
+                  key_digest_algorithm: "sha256",
                   permissions: {
                     contacts: {read: true, create: false, update: false, delete: false}
                   },
@@ -158,7 +158,8 @@ jobs:
                 {
                   account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
                   name: "CI contacts updater",
-                  key: "333333333333333333333333333333333333333333333333",
+                  key_digest: "f8300e97ac14843c50965f2334e0ef11e743565f780386a69b7cff9fa7886888",
+                  key_digest_algorithm: "sha256",
                   permissions: {
                     contacts: {read: true, create: false, update: true, delete: false}
                   },
@@ -167,7 +168,8 @@ jobs:
                 {
                   account_id: "GBAFR44OY2EXAVZ6TL3ENEWEATKLHCKVGKQAZLZFWKUDYXVCLKOMZEIU",
                   name: "CI contacts deleter",
-                  key: "444444444444444444444444444444444444444444444444",
+                  key_digest: "71f38211876fbd219b32555699a2e01f57c37bfd8e6490b7ae1f04d831efb87c",
+                  key_digest_algorithm: "sha256",
                   permissions: {
                     contacts: {read: true, create: false, update: false, delete: true}
                   },
@@ -225,7 +227,24 @@ jobs:
           docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
             php cli/migrate-api-key-digests.php --dry-run
           docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php cli/purge-api-key-raw-secrets.php --dry-run
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php cli/purge-api-key-raw-secrets.php --apply
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php cli/mongo-indexes.php
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
+            php cli/purge-api-key-raw-secrets.php --dry-run
+          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
             php tools/ci/api-key-digest-smoke.php verify
+          docker exec -e MONGO_BASENAME=api_key_purge_guard_ci bsn-route-app \
+            php tools/ci/api-key-digest-smoke.php seed-invalid
+          if docker exec -e MONGO_BASENAME=api_key_purge_guard_ci bsn-route-app \
+            php cli/purge-api-key-raw-secrets.php --apply; then
+              echo 'Raw-secret purge unexpectedly accepted mismatched data.' >&2
+              exit 1
+          fi
+          docker exec -e MONGO_BASENAME=api_key_purge_guard_ci bsn-route-app \
+            php tools/ci/api-key-digest-smoke.php verify-invalid
 
       - name: Show smoke environment logs
         if: failure()
