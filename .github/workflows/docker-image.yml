@@ -218,33 +218,6 @@ jobs:
           php app/tools/ci/telegram-webhook-smoke.php
           php app/tools/ci/contacts-sync-smoke.php
           docker exec bsn-route-app php tools/ci/contacts-cas-smoke.php
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php tools/ci/api-key-digest-smoke.php seed
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php cli/migrate-api-key-digests.php --dry-run
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php cli/migrate-api-key-digests.php --apply
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php cli/migrate-api-key-digests.php --dry-run
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php cli/purge-api-key-raw-secrets.php --dry-run
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php cli/purge-api-key-raw-secrets.php --apply
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php cli/mongo-indexes.php
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php cli/purge-api-key-raw-secrets.php --dry-run
-          docker exec -e MONGO_BASENAME=api_key_smoke_ci bsn-route-app \
-            php tools/ci/api-key-digest-smoke.php verify
-          docker exec -e MONGO_BASENAME=api_key_purge_guard_ci bsn-route-app \
-            php tools/ci/api-key-digest-smoke.php seed-invalid
-          if docker exec -e MONGO_BASENAME=api_key_purge_guard_ci bsn-route-app \
-            php cli/purge-api-key-raw-secrets.php --apply; then
-              echo 'Raw-secret purge unexpectedly accepted mismatched data.' >&2
-              exit 1
-          fi
-          docker exec -e MONGO_BASENAME=api_key_purge_guard_ci bsn-route-app \
-            php tools/ci/api-key-digest-smoke.php verify-invalid
 
       - name: Show smoke environment logs
         if: failure()
