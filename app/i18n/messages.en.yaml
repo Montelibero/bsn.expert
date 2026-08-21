@@ -1815,36 +1815,54 @@ tools_orders:
 tools_orders_new:
   title: Create new order
   instruction: Here you can place an offer to exchange a token you choose for any other token. Mind the price.
+  direction:
+    sell: Sell
+    buy: Buy
   form:
-    selling: What you sell
-    selling_help: Which tokens are you offering for exchange?
     amount: Amount
-    amount_help: Tokens in the order will be locked and unavailable for other spending.
     amount_max: "Maximum:"
-    buying: What you want
-    buying_help: Which tokens do you want to receive?
     price: Price
-    price_help: Amount of received tokens per one sold token.
     reverse_price: Reverse price
-    reverse_price_help: Amount of sold tokens per one received token.
     reverse_price_help_extra: This is a calculated approximate value; the created order will use the main price.
-    total: Total
-    total_help: How many tokens you can receive in total.
     save: Create transaction
+    sell:
+      selling: What you sell
+      selling_help: Which tokens are you offering for exchange?
+      buying: What you want to receive
+      buying_help: Which tokens do you want to receive?
+      amount_help: Tokens in the order will be locked and unavailable for other spending.
+      price_help: Amount of received tokens per one sold token.
+      reverse_price_help: Amount of sold tokens per one received token.
+      total: Total
+      total_help: How many tokens you can receive in total.
+    buy:
+      selling: What you pay with
+      selling_help: Which tokens are you offering as payment?
+      buying: What you buy
+      buying_help: Which tokens do you want to buy?
+      amount_help: Amount of tokens you want to buy.
+      price_help: Amount of paid tokens per one bought token.
+      reverse_price_help: Amount of bought tokens per one paid token.
+      total: Maximum payment
+      total_help: How many tokens may be spent in total.
   preview:
-    create: Creating an order to exchange
-    for: for
+    create_sell: Creating an order to exchange
+    for_sell: for
+    create_buy: Creating an order to buy
+    for_buy: for no more than
     price: "price %price%, reverse ≈ %reverse%"
   signing:
     title: Sign new order
     description: New exchange order
   errors:
+    invalid_direction: Choose whether you are selling or buying tokens.
     invalid_selling: Choose the token you are selling.
     invalid_buying: Choose the token you want to receive.
     same_assets: You cannot create an order exchanging a token for itself.
     invalid_amount: Enter a valid amount greater than zero.
     invalid_price: Enter a valid price greater than zero.
     amount_too_big: "You cannot offer more than %available% %asset%: this is the currently available amount."
+    amount_too_big_buy: "There is not enough %asset% for this purchase: %available% is available."
     transaction_failed: Failed to prepare the order creation transaction.
 
 eurmtl_report_page:

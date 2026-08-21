@@ -12,8 +12,10 @@ use Montelibero\BSN\StellarAccountReserveCalculator;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\TokenLabelFormatter;
 use Pecee\SimpleRouter\SimpleRouter;
+use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
 use Soneso\StellarSDK\AssetTypeCreditAlphanum;
+use Soneso\StellarSDK\ManageBuyOfferOperationBuilder;
 use Soneso\StellarSDK\ManageSellOfferOperationBuilder;
 use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
@@ -26,6 +28,9 @@ use Twig\Environment;
 
 final class OrdersController
 {
+    private const DIRECTION_BUY = 'buy';
+    private const DIRECTION_SELL = 'sell';
+
     public function __construct(
         private readonly BSN $BSN,
         private readonly CurrentUser $CurrentUser,
@@ -106,6 +111,8 @@ final class OrdersController
         $preview = null;
         $Account = null;
         $tokens = [];
+        $is_post = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+        $direction = $this->resolveNewOrderDirection($is_post ? $_POST : $_GET);
 
         try {
             $Account = $this->Stellar->requestAccount($account_id);
@@ -114,9 +121,8 @@ final class OrdersController
             $errors[] = $this->Translator->trans('tools_orders.errors.account_not_found');
         }
 
-        $is_post = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
         $values = $this->defaultNewOrderValues($tokens);
-        if (!$is_post) {
+        if (!$is_post && $direction !== null) {
             $values = $this->applyNewOrderGetParams($values, $tokens);
         }
 
@@ -127,7 +133,12 @@ final class OrdersController
                 'amount' => trim((string) ($_POST['amount'] ?? '')),
                 'price' => trim((string) ($_POST['price'] ?? '')),
             ];
-            $prepared = $this->prepareNewOrder($Account, $tokens, $values, $errors);
+            if ($direction === null) {
+                $errors[] = $this->Translator->trans('tools_orders_new.errors.invalid_direction');
+            }
+            $prepared = $direction === null
+                ? null
+                : $this->prepareNewOrder($Account, $tokens, $values, $direction, $errors);
             if ($prepared !== null && !$errors) {
                 $preview = $prepared['preview'];
                 $signing_form = $this->buildNewOrderSigningForm($Account, $prepared, $errors);
@@ -136,12 +147,34 @@ final class OrdersController
 
         return $this->Twig->render('tools_orders_new.twig', [
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
+            'direction' => $direction,
             'tokens' => $tokens,
             'values' => $values,
             'errors' => $errors,
             'preview' => $preview,
             'signing_form' => $signing_form,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     */
+    private function resolveNewOrderDirection(array $params): ?string
+    {
+        if (array_key_exists('direction', $params)) {
+            $direction = is_string($params['direction']) ? $params['direction'] : null;
+            return in_array($direction, [self::DIRECTION_SELL, self::DIRECTION_BUY], true)
+                ? $direction
+                : null;
+        }
+
+        foreach (['sell', 'buy', 'amount', 'price'] as $legacy_param) {
+            if (array_key_exists($legacy_param, $params)) {
+                return self::DIRECTION_SELL;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -346,7 +379,13 @@ final class OrdersController
     /**
      * @param array<string, array> $tokens
      */
-    private function prepareNewOrder(?AccountResponse $Account, array $tokens, array $values, array &$errors): ?array
+    private function prepareNewOrder(
+        ?AccountResponse $Account,
+        array $tokens,
+        array $values,
+        string $direction,
+        array &$errors,
+    ): ?array
     {
         if ($Account === null) {
             return null;
@@ -377,8 +416,18 @@ final class OrdersController
             $errors[] = $this->Translator->trans('tools_orders_new.errors.invalid_price');
         }
 
-        if ($Selling !== null && $amount !== null && isset($Selling['available']) && bccomp($amount, $Selling['available'], 7) > 0) {
-            $errors[] = $this->Translator->trans('tools_orders_new.errors.amount_too_big', [
+        $total_exact = $amount !== null && $price !== null ? bcmul($amount, $price, 14) : null;
+        $spending_amount = $direction === self::DIRECTION_BUY ? $total_exact : $amount;
+        if (
+            $Selling !== null
+            && $spending_amount !== null
+            && isset($Selling['available'])
+            && bccomp($spending_amount, $Selling['available'], 14) > 0
+        ) {
+            $error_key = $direction === self::DIRECTION_BUY
+                ? 'tools_orders_new.errors.amount_too_big_buy'
+                : 'tools_orders_new.errors.amount_too_big';
+            $errors[] = $this->Translator->trans($error_key, [
                 '%available%' => $Selling['available_label'],
                 '%asset%' => $Selling['code'] ?? $Selling['label'] ?? '',
             ]);
@@ -397,10 +446,17 @@ final class OrdersController
         }
 
         $total = $this->stellarDecimal(bcmul($amount, $price, 7));
-        $selling_summary = $this->summaryToken($Selling, $amount);
-        $buying_summary = $this->summaryToken($Buying, $total);
+        $selling_summary = $this->summaryToken(
+            $Selling,
+            $direction === self::DIRECTION_BUY ? $total : $amount,
+        );
+        $buying_summary = $this->summaryToken(
+            $Buying,
+            $direction === self::DIRECTION_BUY ? $amount : $total,
+        );
 
         return [
+            'direction' => $direction,
             'selling' => $Selling,
             'buying' => $Buying,
             'amount' => $amount,
@@ -408,6 +464,7 @@ final class OrdersController
             'total' => $total,
             'reverse_price' => $this->reversePrice($price),
             'preview' => [
+                'direction' => $direction,
                 'selling' => $selling_summary,
                 'buying' => $buying_summary,
                 'price' => $this->shortDecimal($price),
@@ -422,14 +479,7 @@ final class OrdersController
             $Transaction = new TransactionBuilder($Account);
             $Transaction->setMaxOperationFee(10000);
             $Transaction->addMemo(Memo::text('New order'));
-            $Transaction->addOperation(
-                (new ManageSellOfferOperationBuilder(
-                    $prepared['selling']['asset'],
-                    $prepared['buying']['asset'],
-                    $prepared['amount'],
-                    $prepared['price']
-                ))->setOfferId(0)->build()
-            );
+            $Transaction->addOperation($this->buildNewOrderOperation($prepared));
             $xdr = $Transaction->build()->toEnvelopeXdrBase64();
         } catch (\Throwable) {
             $errors[] = $this->Translator->trans('tools_orders_new.errors.transaction_failed');
@@ -442,6 +492,25 @@ final class OrdersController
             $this->Translator->trans('tools_orders_new.signing.description'),
             $this->Translator->trans('tools_orders_new.signing.title')
         );
+    }
+
+    private function buildNewOrderOperation(array $prepared): AbstractOperation
+    {
+        if ($prepared['direction'] === self::DIRECTION_BUY) {
+            return (new ManageBuyOfferOperationBuilder(
+                $prepared['selling']['asset'],
+                $prepared['buying']['asset'],
+                $prepared['amount'],
+                $prepared['price']
+            ))->setOfferId(0)->build();
+        }
+
+        return (new ManageSellOfferOperationBuilder(
+            $prepared['selling']['asset'],
+            $prepared['buying']['asset'],
+            $prepared['amount'],
+            $prepared['price']
+        ))->setOfferId(0)->build();
     }
 
     /**
