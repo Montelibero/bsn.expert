@@ -39,6 +39,7 @@ final class TransactionConsolidationStore
      *         memo_choice: string,
      *         custom_memo: string,
      *         seq_num: string,
+     *         sponsor_reserves: bool,
      *         preconditions_ack: bool
      *     },
      *     created_at: ?int,
@@ -204,6 +205,7 @@ final class TransactionConsolidationStore
      *         memo_choice: string,
      *         custom_memo: string,
      *         seq_num: string,
+     *         sponsor_reserves: bool,
      *         preconditions_ack: bool
      *     }
      * }
@@ -320,6 +322,7 @@ final class TransactionConsolidationStore
      *     memo_choice: string,
      *     custom_memo: string,
      *     seq_num: string,
+     *     sponsor_reserves: bool,
      *     preconditions_ack: bool
      * }
      */
@@ -338,6 +341,7 @@ final class TransactionConsolidationStore
             'memo_choice' => $this->scalarString($raw_settings['memo_choice'] ?? 'custom', true),
             'custom_memo' => $this->scalarString($raw_settings['custom_memo'] ?? ''),
             'seq_num' => $this->scalarString($raw_settings['seq_num'] ?? '', true),
+            'sponsor_reserves' => $this->normalizeBool($raw_settings['sponsor_reserves'] ?? false),
             'preconditions_ack' => $this->normalizeBool($raw_settings['preconditions_ack'] ?? false),
         ];
     }
@@ -448,6 +452,7 @@ final class TransactionConsolidationStore
      *         memo_choice: string,
      *         custom_memo: string,
      *         seq_num: string,
+     *         sponsor_reserves: bool,
      *         preconditions_ack: bool
      *     }
      * }

@@ -5,14 +5,20 @@ declare(strict_types=1);
 use Montelibero\BSN\TransactionConsolidationMemo;
 use Montelibero\BSN\TransactionConsolidator;
 use Soneso\StellarSDK\Asset;
+use Soneso\StellarSDK\BeginSponsoringFutureReservesOperation;
+use Soneso\StellarSDK\ChangeTrustOperation;
 use Soneso\StellarSDK\Claimant;
 use Soneso\StellarSDK\CreateAccountOperation;
 use Soneso\StellarSDK\CreateClaimableBalanceOperation;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Soneso\StellarSDK\Crypto\StrKey;
+use Soneso\StellarSDK\EndSponsoringFutureReservesOperation;
+use Soneso\StellarSDK\ManageSellOfferOperation;
 use Soneso\StellarSDK\MuxedAccount;
 use Soneso\StellarSDK\PathPaymentStrictReceiveOperation;
 use Soneso\StellarSDK\PaymentOperation;
+use Soneso\StellarSDK\Price;
+use Soneso\StellarSDK\SetOptionsOperation;
 use Soneso\StellarSDK\Xdr\XdrDataValue;
 use Soneso\StellarSDK\Xdr\XdrDecoratedSignature;
 use Soneso\StellarSDK\Xdr\XdrEncoder;
@@ -33,6 +39,8 @@ use Soneso\StellarSDK\Xdr\XdrPreconditions;
 use Soneso\StellarSDK\Xdr\XdrPreconditionType;
 use Soneso\StellarSDK\Xdr\XdrRestoreFootprintOp;
 use Soneso\StellarSDK\Xdr\XdrSequenceNumber;
+use Soneso\StellarSDK\Xdr\XdrSignerKey;
+use Soneso\StellarSDK\Xdr\XdrSignerKeyType;
 use Soneso\StellarSDK\Xdr\XdrTransaction;
 use Soneso\StellarSDK\Xdr\XdrTransactionEnvelope;
 use Soneso\StellarSDK\Xdr\XdrTransactionV1Envelope;
@@ -321,6 +329,108 @@ $sameSourceBuilt = $Consolidator->parseEnvelope($Consolidator->build(
 assertConsolidationSame(null, $sameSourceBuilt->operations[0]['source'], 'Operation source equal to transaction source must be omitted.');
 assertConsolidationSame($sourceB, $sameSourceBuilt->operations[1]['source'], 'A different operation source must remain explicit.');
 
+$SignerKey = new XdrSignerKey();
+$SignerKey->setType(new XdrSignerKeyType(XdrSignerKeyType::ED25519));
+$SignerKey->setEd25519(StrKey::decodeAccountId($sourceC));
+$sponsorableOperations = [
+    new XdrOperation((new ChangeTrustOperation(
+        Asset::createNonNativeAsset('SPONSOR', $sourceC),
+        '100.0000000',
+    ))->toOperationBody()),
+    new XdrOperation((new SetOptionsOperation(signerKey: $SignerKey, signerWeight: 1))->toOperationBody()),
+    new XdrOperation((new ManageSellOfferOperation(
+        Asset::native(),
+        Asset::createNonNativeAsset('SPONSOR', $sourceC),
+        '1.0000000',
+        new Price(1, 1),
+        0,
+    ))->toOperationBody()),
+    consolidationManageData('sponsored-data', 'value'),
+];
+$SponsorableItem = $Consolidator->parseEnvelope(consolidationV1Envelope(consolidationTransaction(
+    $sourceB,
+    $sponsorableOperations,
+    TransactionConsolidationMemo::none()->toXdr(),
+    '135',
+)));
+$sponsorshipSelection = [$SponsorableItem->id => range(0, 3)];
+assertConsolidationSame(
+    6,
+    $Consolidator->resultOperationCount([$SponsorableItem], $sponsorshipSelection, $sourceA, true),
+    'Consecutive eligible operations by one foreign account must share a sponsorship wrapper.',
+);
+$SponsoredBuilt = $Consolidator->parseEnvelope($Consolidator->build(
+    [$SponsorableItem],
+    $sponsorshipSelection,
+    $sourceA,
+    TransactionConsolidationMemo::none(),
+    136,
+    sponsorReserves: true,
+));
+assertConsolidationSame(6, $SponsoredBuilt->operation_count, 'Sponsorship wrappers must be present in the result.');
+assertConsolidationSame(
+    BeginSponsoringFutureReservesOperation::class,
+    $SponsoredBuilt->operations[0]['class'],
+    'The sponsorship sandwich must begin with the primary account.',
+);
+assertConsolidationSame(
+    $sourceB,
+    $SponsoredBuilt->operations[0]['details']['sponsored_account'],
+    'The effective operation source must be sponsored.',
+);
+for ($index = 0; $index < 4; $index++) {
+    assertConsolidationSame(
+        $sourceB,
+        $SponsoredBuilt->operations[$index + 1]['source'],
+        'The sponsored operation must retain its effective source.',
+    );
+}
+assertConsolidationSame(
+    EndSponsoringFutureReservesOperation::class,
+    $SponsoredBuilt->operations[5]['class'],
+    'The sponsorship sandwich must end after the sponsored operations.',
+);
+assertConsolidationSame(
+    $sourceB,
+    $SponsoredBuilt->operations[5]['source'],
+    'The sponsored account must end its sponsorship sandwich.',
+);
+assertConsolidationSame(
+    4,
+    $Consolidator->resultOperationCount([$SponsorableItem], $sponsorshipSelection, $sourceB, true),
+    'Operations by the primary account must not be wrapped.',
+);
+$IneligibleItem = $Consolidator->parseEnvelope(consolidationV1Envelope(consolidationTransaction(
+    $sourceB,
+    [
+        new XdrOperation((new ChangeTrustOperation(
+            Asset::createNonNativeAsset('SPONSOR', $sourceC),
+            '0',
+        ))->toOperationBody()),
+        new XdrOperation((new SetOptionsOperation(signerKey: $SignerKey, signerWeight: 0))->toOperationBody()),
+        new XdrOperation((new ManageSellOfferOperation(
+            Asset::native(),
+            Asset::createNonNativeAsset('SPONSOR', $sourceC),
+            '1.0000000',
+            new Price(1, 1),
+            1,
+        ))->toOperationBody()),
+        consolidationManageData('deleted-data', null),
+    ],
+    TransactionConsolidationMemo::none()->toXdr(),
+    '139',
+)));
+assertConsolidationSame(
+    4,
+    $Consolidator->resultOperationCount(
+        [$IneligibleItem],
+        [$IneligibleItem->id => range(0, 3)],
+        $sourceA,
+        true,
+    ),
+    'Removing reserves or updating an existing offer must not add sponsorship wrappers.',
+);
+
 $muxed = new XdrMuxedAccountMed25519(0, StrKey::decodeAccountId($sourceD));
 $muxedSource = StrKey::encodeMuxedAccountId($muxed->encodeInverted());
 $muxedXdr = $Consolidator->build([$Item], [$Item->id => [0]], $muxedSource, TransactionConsolidationMemo::none(), 126);
@@ -445,6 +555,28 @@ assertConsolidationThrows(
         130,
     ),
     'Build must reject a 101-operation result.',
+);
+
+$sponsorshipLimitOperations = [];
+for ($index = 0; $index < 99; $index++) {
+    $sponsorshipLimitOperations[] = consolidationManageData('sponsored-' . $index, 'value');
+}
+$SponsorshipLimitItem = $Consolidator->parseEnvelope(consolidationV1Envelope(consolidationTransaction(
+    $sourceB,
+    $sponsorshipLimitOperations,
+    TransactionConsolidationMemo::none()->toXdr(),
+    '137',
+)));
+assertConsolidationThrows(
+    static fn () => $Consolidator->build(
+        [$SponsorshipLimitItem],
+        [$SponsorshipLimitItem->id => range(0, 98)],
+        $sourceA,
+        TransactionConsolidationMemo::none(),
+        138,
+        sponsorReserves: true,
+    ),
+    'Sponsorship wrappers must count toward the 100-operation protocol limit.',
 );
 
 fwrite(STDOUT, "Transaction consolidator regression test passed.\n");

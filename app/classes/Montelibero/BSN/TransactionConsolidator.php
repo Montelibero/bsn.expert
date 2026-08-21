@@ -15,6 +15,7 @@ use Soneso\StellarSDK\Claimant;
 use Soneso\StellarSDK\ClaimClaimableBalanceOperation;
 use Soneso\StellarSDK\CreateAccountOperation;
 use Soneso\StellarSDK\CreateClaimableBalanceOperation;
+use Soneso\StellarSDK\CreatePassiveSellOfferOperation;
 use Soneso\StellarSDK\Crypto\CryptoKeyType;
 use Soneso\StellarSDK\Crypto\StrKey;
 use Soneso\StellarSDK\EndSponsoringFutureReservesOperation;
@@ -194,11 +195,80 @@ final class TransactionConsolidator
         TransactionConsolidationMemo $Memo,
         string|int $sequenceNumber,
         int $maxOperationFee = self::DEFAULT_MAX_OPERATION_FEE,
+        bool $sponsorReserves = false,
     ): string {
         if ($maxOperationFee < 1) {
             throw new \InvalidArgumentException('Maximum operation fee must be positive.');
         }
 
+        $Source = $this->parseSource($source);
+        $selectedOperations = $this->prepareOperations($items, $selectedIndexes, $Source, $sponsorReserves);
+        $operationCount = count($selectedOperations);
+        if ($operationCount < 1) {
+            throw new \InvalidArgumentException('At least one operation must be selected.');
+        }
+        if ($operationCount > self::MAX_OPERATIONS) {
+            throw new \InvalidArgumentException('A transaction cannot contain more than 100 operations.');
+        }
+
+        $fee = $operationCount * $maxOperationFee;
+        if ($fee > 0xffff_ffff) {
+            throw new \InvalidArgumentException('Transaction fee exceeds the uint32 limit.');
+        }
+
+        $Sequence = $this->parseSequence($sequenceNumber);
+
+        $bytes = XdrEncoder::integer32(XdrEnvelopeType::ENVELOPE_TYPE_TX);
+        $bytes .= $Source->encode();
+        $bytes .= XdrEncoder::unsignedInteger32($fee);
+        $bytes .= (new XdrSequenceNumber($Sequence))->encode();
+        $bytes .= XdrEncoder::integer32(XdrPreconditionType::NONE);
+        $bytes .= $Memo->toXdr()->encode();
+        $bytes .= XdrEncoder::integer32($operationCount);
+        foreach ($selectedOperations as $Operation) {
+            $bytes .= $this->encodeOperation($Operation);
+        }
+        $bytes .= XdrEncoder::integer32(0); // TransactionExt v0.
+        $bytes .= XdrEncoder::integer32(0); // No signatures.
+
+        $result = base64_encode($bytes);
+        $this->parseEnvelope($result);
+
+        return $result;
+    }
+
+    /**
+     * Returns the number of operations in the resulting transaction, including
+     * sponsorship wrappers when requested.
+     *
+     * @param list<TransactionConsolidationItem> $items
+     * @param array<string, list<int>> $selectedIndexes
+     */
+    public function resultOperationCount(
+        array $items,
+        array $selectedIndexes,
+        string $source,
+        bool $sponsorReserves = false,
+    ): int {
+        return count($this->prepareOperations(
+            $items,
+            $selectedIndexes,
+            $this->parseSource($source),
+            $sponsorReserves,
+        ));
+    }
+
+    /**
+     * @param list<TransactionConsolidationItem> $items
+     * @param array<string, list<int>> $selectedIndexes
+     * @return list<XdrOperation>
+     */
+    private function prepareOperations(
+        array $items,
+        array $selectedIndexes,
+        XdrMuxedAccount $Source,
+        bool $sponsorReserves,
+    ): array {
         $knownItems = [];
         foreach ($items as $Item) {
             if (!$Item instanceof TransactionConsolidationItem) {
@@ -216,6 +286,9 @@ final class TransactionConsolidator
         }
 
         $selectedOperations = [];
+        $primaryKey = $this->baseAccountKey($Source);
+        $primarySource = $this->formatSource($Source);
+        $activeSponsoredKey = null;
         foreach ($items as $Item) {
             $indexes = $selectedIndexes[$Item->id] ?? [];
             if (!is_array($indexes)) {
@@ -254,46 +327,85 @@ final class TransactionConsolidator
                 }
 
                 $effectiveSource = $Operation->getSourceAccount() ?? $decoded['source'];
-                $selectedOperations[] = new XdrOperation(
+                $resultOperation = new XdrOperation(
                     $Operation->getBody(),
-                    hash_equals($source, $this->formatSource($effectiveSource)) ? null : $effectiveSource,
+                    hash_equals($primarySource, $this->formatSource($effectiveSource))
+                        ? null
+                        : $effectiveSource,
                 );
+                $effectiveKey = $this->baseAccountKey($effectiveSource);
+                $sponsoredKey = (
+                    $sponsorReserves
+                    && !hash_equals($primaryKey, $effectiveKey)
+                    && $this->canRequireReserveSponsorship($Operation)
+                ) ? $effectiveKey : null;
+
+                if (
+                    $activeSponsoredKey !== null
+                    && ($sponsoredKey === null || !hash_equals($activeSponsoredKey, $sponsoredKey))
+                ) {
+                    $selectedOperations[] = $this->endSponsorshipOperation($activeSponsoredKey);
+                    $activeSponsoredKey = null;
+                }
+                if ($sponsoredKey !== null && $activeSponsoredKey === null) {
+                    $selectedOperations[] = new XdrOperation(
+                        (new BeginSponsoringFutureReservesOperation(
+                            StrKey::encodeAccountId($sponsoredKey),
+                        ))->toOperationBody(),
+                    );
+                    $activeSponsoredKey = $sponsoredKey;
+                }
+
+                $selectedOperations[] = $resultOperation;
             }
         }
-
-        $operationCount = count($selectedOperations);
-        if ($operationCount < 1) {
-            throw new \InvalidArgumentException('At least one operation must be selected.');
-        }
-        if ($operationCount > self::MAX_OPERATIONS) {
-            throw new \InvalidArgumentException('A transaction cannot contain more than 100 operations.');
+        if ($activeSponsoredKey !== null) {
+            $selectedOperations[] = $this->endSponsorshipOperation($activeSponsoredKey);
         }
 
-        $fee = $operationCount * $maxOperationFee;
-        if ($fee > 0xffff_ffff) {
-            throw new \InvalidArgumentException('Transaction fee exceeds the uint32 limit.');
+        return $selectedOperations;
+    }
+
+    private function endSponsorshipOperation(string $sponsoredKey): XdrOperation
+    {
+        return new XdrOperation(
+            (new EndSponsoringFutureReservesOperation())->toOperationBody(),
+            new XdrMuxedAccount($sponsoredKey),
+        );
+    }
+
+    private function canRequireReserveSponsorship(XdrOperation $Operation): bool
+    {
+        try {
+            $HighLevel = AbstractOperation::fromXdr($Operation);
+        } catch (\Throwable) {
+            return false;
         }
 
-        $Source = $this->parseSource($source);
-        $Sequence = $this->parseSequence($sequenceNumber);
+        return match (true) {
+            $HighLevel instanceof ChangeTrustOperation => !$this->isZeroDecimal($HighLevel->getLimit()),
+            $HighLevel instanceof SetOptionsOperation => $HighLevel->getSignerKey() !== null
+                && ($HighLevel->getSignerWeight() ?? 0) > 0,
+            $HighLevel instanceof ManageSellOfferOperation,
+            $HighLevel instanceof ManageBuyOfferOperation => $HighLevel->getOfferId() === 0
+                && !$this->isZeroDecimal($HighLevel->getAmount()),
+            $HighLevel instanceof CreatePassiveSellOfferOperation => !$this->isZeroDecimal($HighLevel->getAmount()),
+            $HighLevel instanceof ManageDataOperation => ($HighLevel->getValue() ?? '') !== '',
+            default => false,
+        };
+    }
 
-        $bytes = XdrEncoder::integer32(XdrEnvelopeType::ENVELOPE_TYPE_TX);
-        $bytes .= $Source->encode();
-        $bytes .= XdrEncoder::unsignedInteger32($fee);
-        $bytes .= (new XdrSequenceNumber($Sequence))->encode();
-        $bytes .= XdrEncoder::integer32(XdrPreconditionType::NONE);
-        $bytes .= $Memo->toXdr()->encode();
-        $bytes .= XdrEncoder::integer32($operationCount);
-        foreach ($selectedOperations as $Operation) {
-            $bytes .= $this->encodeOperation($Operation);
+    private function baseAccountKey(XdrMuxedAccount $Source): string
+    {
+        if ($Source->getDiscriminant() === CryptoKeyType::KEY_TYPE_ED25519) {
+            return $Source->getEd25519() ?? throw new \InvalidArgumentException('Missing Ed25519 account key.');
         }
-        $bytes .= XdrEncoder::integer32(0); // TransactionExt v0.
-        $bytes .= XdrEncoder::integer32(0); // No signatures.
+        if ($Source->getDiscriminant() === CryptoKeyType::KEY_TYPE_MUXED_ED25519) {
+            return $Source->getMed25519()?->getEd25519()
+                ?? throw new \InvalidArgumentException('Missing muxed account key.');
+        }
 
-        $result = base64_encode($bytes);
-        $this->parseEnvelope($result);
-
-        return $result;
+        throw new \InvalidArgumentException('Unsupported transaction source type.');
     }
 
     /**
@@ -527,6 +639,7 @@ final class TransactionConsolidator
      *     class: class-string|string,
      *     source: ?string,
      *     effective_source: string,
+     *     sponsorship_eligible: bool,
      *     summary: string,
      *     details: array<string, int|float|string|bool|null|list<string>>
      * }
@@ -568,6 +681,7 @@ final class TransactionConsolidator
             'class' => $class,
             'source' => $source,
             'effective_source' => $effectiveSource,
+            'sponsorship_eligible' => $this->canRequireReserveSponsorship($Operation),
             'summary' => $summary,
             'details' => $details,
         ];

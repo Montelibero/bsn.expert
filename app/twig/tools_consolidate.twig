@@ -17,6 +17,8 @@
         data-status-unsaved="{{ 'tools_consolidate.draft.unsaved'|trans|e('html_attr') }}"
         data-status-conflict="{{ 'tools_consolidate.draft.conflict'|trans|e('html_attr') }}"
         data-initial-conflict="{{ draft_conflict ? '1' : '0' }}"
+        data-max-operation-fee="{{ max_operation_fee|default(10000) }}"
+        data-max-fee-template="{{ 'tools_consolidate.settings.max_fee'|trans({'%fee%': '__FEE__'})|e('html_attr') }}"
     >
         <h1 class="title">{{ 'tools_consolidate.title'|trans }}</h1>
         <div class="content">
@@ -148,7 +150,12 @@
                             <div class="consolidation-operations">
                                 {% for operation in item.operations %}
                                     {% set operation_checkbox_id = 'consolidation-op-' ~ item.id ~ '-' ~ operation.index %}
-                                    <div class="consolidation-operation" data-consolidation-operation>
+                                    <div
+                                        class="consolidation-operation"
+                                        data-consolidation-operation
+                                        data-sponsorship-eligible="{{ operation.sponsorship_eligible ? '1' : '0' }}"
+                                        data-effective-source-account-id="{{ operation.effective_source_account_id|e('html_attr') }}"
+                                    >
                                         <input
                                             id="{{ operation_checkbox_id|e('html_attr') }}"
                                             type="checkbox"
@@ -186,7 +193,7 @@
 
                 <section class="box">
                     <h2 class="title is-4">{{ 'tools_consolidate.settings.title'|trans }}</h2>
-                    <p class="block is-size-7">
+                    <p class="block is-size-7" data-consolidation-max-fee>
                         {{ 'tools_consolidate.settings.max_fee'|trans({'%fee%': max_fee_xlm}) }}
                     </p>
 
@@ -194,14 +201,14 @@
                         <legend class="label">{{ 'tools_consolidate.source.title'|trans }}</legend>
                         {% if current_source %}
                             <label class="radio is-block mb-2">
-                                <input type="radio" name="source_choice" value="current" data-consolidation-dirty {% if source_choice == 'current' %}checked{% endif %}>
+                                <input type="radio" name="source_choice" value="current" data-source-account-id="{{ current_source.account_id|e('html_attr') }}" data-consolidation-dirty {% if source_choice == 'current' %}checked{% endif %}>
                                 {{ 'tools_consolidate.source.current'|trans }} —
                                 {{ include('account_link.twig', {data: {id: current_source.account_id}}, with_context = false) }}
                             </label>
                         {% endif %}
                         {% for source in source_candidates %}
                             <label class="radio is-block mb-2">
-                                <input type="radio" name="source_choice" value="source:{{ source.address|e('html_attr') }}" data-consolidation-dirty {% if source_choice == 'source:' ~ source.address %}checked{% endif %}>
+                                <input type="radio" name="source_choice" value="source:{{ source.address|e('html_attr') }}" data-source-account-id="{{ source.account_id|e('html_attr') }}" data-consolidation-dirty {% if source_choice == 'source:' ~ source.address %}checked{% endif %}>
                                 {{ include('account_link.twig', {data: {id: source.account_id}}, with_context = false) }}
                                 {% if source.account_id != source.address %}<code>{{ source.address }}</code>{% endif %}
                             </label>
@@ -214,6 +221,14 @@
                             <input class="input is-family-monospace" type="text" name="custom_source" value="{{ custom_source|e('html_attr') }}" placeholder="G…" autocomplete="off" data-account-autocomplete-input data-consolidation-dirty>
                         </div>
                     </fieldset>
+
+                    <div class="field mt-4">
+                        <label class="checkbox">
+                            <input type="checkbox" name="sponsor_reserves" value="1" data-consolidation-sponsor-reserves data-consolidation-dirty {% if sponsor_reserves %}checked{% endif %}>
+                            {{ 'tools_consolidate.sponsorship.label'|trans }}
+                        </label>
+                        <p class="help">{{ 'tools_consolidate.sponsorship.help'|trans }}</p>
+                    </div>
 
                     <fieldset class="field mt-5">
                         <legend class="label">{{ 'tools_consolidate.memo.title'|trans }}</legend>

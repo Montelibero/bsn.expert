@@ -270,6 +270,7 @@ final class TransactionConsolidationController
                 'memo_choice' => 'custom',
                 'custom_memo' => '',
                 'seq_num' => '',
+                'sponsor_reserves' => false,
                 'preconditions_ack' => false,
             ],
         ];
@@ -424,6 +425,7 @@ final class TransactionConsolidationController
                 'memo_choice' => $this->postedString('memo_choice', true) ?: 'custom',
                 'custom_memo' => $this->postedString('custom_memo'),
                 'seq_num' => $this->postedString('seq_num', true),
+                'sponsor_reserves' => (string) ($_POST['sponsor_reserves'] ?? '') === '1',
                 'preconditions_ack' => (string) ($_POST['preconditions_ack'] ?? '') === '1',
             ],
         ];
@@ -578,6 +580,7 @@ final class TransactionConsolidationController
         $settings['seq_num'] = is_string($settings['seq_num'] ?? null)
             ? trim($settings['seq_num'])
             : '';
+        $settings['sponsor_reserves'] = (bool) ($settings['sponsor_reserves'] ?? false);
         $settings['preconditions_ack'] = (bool) ($settings['preconditions_ack'] ?? false);
     }
 
@@ -609,16 +612,34 @@ final class TransactionConsolidationController
 
         try {
             $source = $this->resolveSource($state);
+            $sponsorReserves = (bool) ($state['settings']['sponsor_reserves'] ?? false);
+            $resultOperationCount = $this->Consolidator->resultOperationCount(
+                $Items,
+                $selected,
+                $source,
+                $sponsorReserves,
+            );
+            if ($resultOperationCount > TransactionConsolidator::MAX_OPERATIONS) {
+                $errors[] = $this->trans('tools_consolidate.errors.too_many_operations');
+                return null;
+            }
             $Memo = $this->resolveMemo($state, $Items);
             $sequence = $this->resolveSequence($source, $state['settings']['seq_num'] ?? '', $warnings);
             $maxFeeXlm = bcdiv(
-                (string) ($selectedCount * TransactionConsolidator::DEFAULT_MAX_OPERATION_FEE),
+                (string) ($resultOperationCount * TransactionConsolidator::DEFAULT_MAX_OPERATION_FEE),
                 '10000000',
                 7,
             );
             $this->checkFeeBalance($source, $maxFeeXlm, $warnings);
 
-            $xdr = $this->Consolidator->build($Items, $selected, $source, $Memo, $sequence);
+            $xdr = $this->Consolidator->build(
+                $Items,
+                $selected,
+                $source,
+                $Memo,
+                $sequence,
+                sponsorReserves: $sponsorReserves,
+            );
             return $this->SignController->SignTransaction(
                 $xdr,
                 null,
@@ -764,6 +785,7 @@ final class TransactionConsolidationController
         $objects = [];
         $sourceAddresses = [];
         $selectedCount = 0;
+        $selected = [];
         $hasPreconditions = false;
         foreach ($state['items'] as $stored) {
             try {
@@ -801,6 +823,9 @@ final class TransactionConsolidationController
             ];
             if ($view['enabled']) {
                 $selectedCount += count($view['enabled_operations']);
+                if ($view['enabled_operations'] !== []) {
+                    $selected[$Item->id] = $view['enabled_operations'];
+                }
                 if (in_array('preconditions_discarded', $Item->warnings, true)) {
                     $hasPreconditions = true;
                 }
@@ -833,12 +858,27 @@ final class TransactionConsolidationController
             $sourceChoice = 'custom';
         }
 
+        $resultOperationCount = $selectedCount;
+        if ($selectedCount > 0) {
+            try {
+                $resultOperationCount = $this->Consolidator->resultOperationCount(
+                    $objects,
+                    $selected,
+                    $this->resolveSource($state),
+                    (bool) ($settings['sponsor_reserves'] ?? false),
+                );
+            } catch (\Throwable) {
+                // Keep the basic count until the source setting becomes valid.
+            }
+        }
+
         return [
             'revision' => (int) ($state['revision'] ?? 0),
             'items' => $items,
-            'selected_operation_count' => $selectedCount,
+            'selected_operation_count' => $resultOperationCount,
+            'max_operation_fee' => TransactionConsolidator::DEFAULT_MAX_OPERATION_FEE,
             'max_fee_xlm' => bcdiv(
-                (string) ($selectedCount * TransactionConsolidator::DEFAULT_MAX_OPERATION_FEE),
+                (string) ($resultOperationCount * TransactionConsolidator::DEFAULT_MAX_OPERATION_FEE),
                 '10000000',
                 7,
             ),
@@ -854,6 +894,7 @@ final class TransactionConsolidationController
             'memo_choice' => (string) ($settings['memo_choice'] ?? 'custom'),
             'custom_memo' => (string) ($settings['custom_memo'] ?? ''),
             'seq_num' => (string) ($settings['seq_num'] ?? ''),
+            'sponsor_reserves' => (bool) ($settings['sponsor_reserves'] ?? false),
             'has_preconditions' => $hasPreconditions,
             'preconditions_ack' => (bool) ($settings['preconditions_ack'] ?? false),
         ];

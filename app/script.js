@@ -72,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const revisionInput = form ? form.querySelector('[data-consolidation-revision]') : null;
     const status = root.querySelector('[data-consolidation-save-status]');
     const selectedCount = root.querySelector('[data-consolidation-selected-count]');
+    const maxFeeDisplay = root.querySelector('[data-consolidation-max-fee]');
     let timer = null;
     let saving = false;
     let dirty = false;
@@ -117,13 +118,50 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (selectedCount) {
-            const count = Array.from(form.querySelectorAll('[data-consolidation-operation] input[type="checkbox"]'))
+            const selectedOperations = Array.from(form.querySelectorAll('[data-consolidation-operation] input[type="checkbox"]'))
                 .filter(function (checkbox) {
                     const card = checkbox.closest('[data-consolidation-item]');
                     const parentEnabled = card ? card.querySelector('input[name$="[enabled]"]') : null;
                     return checkbox.checked && (!parentEnabled || parentEnabled.checked);
-                }).length;
+                });
+            let count = selectedOperations.length;
+            const sponsorship = form.querySelector('[data-consolidation-sponsor-reserves]');
+            const sourceChoice = form.querySelector('input[name="source_choice"]:checked');
+            let primaryAccount = sourceChoice ? (sourceChoice.dataset.sourceAccountId || '') : '';
+            if (sourceChoice && sourceChoice.value === 'custom') {
+                const customSource = form.elements.custom_source;
+                const customValue = customSource ? String(customSource.value).trim().toUpperCase() : '';
+                primaryAccount = customValue.startsWith('G') ? customValue : '';
+            }
+            if (sponsorship && sponsorship.checked && primaryAccount !== '') {
+                let activeSponsoredAccount = '';
+                selectedOperations.forEach(function (checkbox) {
+                    const operation = checkbox.closest('[data-consolidation-operation]');
+                    const effectiveSource = operation ? operation.dataset.effectiveSourceAccountId || '' : '';
+                    const sponsoredAccount = operation
+                        && operation.dataset.sponsorshipEligible === '1'
+                        && effectiveSource !== primaryAccount
+                        ? effectiveSource
+                        : '';
+                    if (activeSponsoredAccount !== '' && activeSponsoredAccount !== sponsoredAccount) {
+                        count += 1;
+                        activeSponsoredAccount = '';
+                    }
+                    if (sponsoredAccount !== '' && activeSponsoredAccount === '') {
+                        count += 1;
+                        activeSponsoredAccount = sponsoredAccount;
+                    }
+                });
+                if (activeSponsoredAccount !== '') {
+                    count += 1;
+                }
+            }
             selectedCount.textContent = String(count);
+            if (maxFeeDisplay) {
+                const maxOperationFee = Number(root.dataset.maxOperationFee || 0);
+                const fee = ((count * maxOperationFee) / 10000000).toFixed(7);
+                maxFeeDisplay.textContent = (root.dataset.maxFeeTemplate || '__FEE__').replace('__FEE__', fee);
+            }
         }
     }
 
@@ -246,6 +284,7 @@ document.addEventListener('DOMContentLoaded', function () {
         customSource.addEventListener('input', function () {
             const customChoice = form.querySelector('input[name="source_choice"][value="custom"]');
             if (customChoice) customChoice.checked = true;
+            refreshCards();
         });
     }
     const customMemo = form.elements.custom_memo;

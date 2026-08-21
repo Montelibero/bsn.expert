@@ -2147,6 +2147,9 @@ tools_consolidate:
     title: Primary account (fee payer)
     current: Current account
     custom: Another account
+  sponsorship:
+    label: Sponsor reserves for other accounts
+    help: Eligible operations by other accounts will be wrapped with the start and end of reserve sponsorship.
   memo:
     title: Memo
     custom: Custom

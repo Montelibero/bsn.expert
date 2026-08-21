@@ -14,6 +14,7 @@ final readonly class TransactionConsolidationItem
      *     class: class-string|string,
      *     source: ?string,
      *     effective_source: string,
+     *     sponsorship_eligible: bool,
      *     summary: string,
      *     details: array<string, int|float|string|bool|null|list<string>>
      * }> $operations
