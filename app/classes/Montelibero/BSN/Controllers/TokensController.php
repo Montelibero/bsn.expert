@@ -132,10 +132,7 @@ class TokensController
                     'tokens' => [],
                 ];
             }
-            $asset['has_offer_text'] = $this->hasDisplayableAssetOfferDocument(
-                $this->BSN->makeAccountById($asset['issuer']),
-                $asset['code']
-            );
+            $this->applyTokenLinkMetadata($asset);
             $tokens[$asset['category']]['tokens'][$asset['code']] = $asset;
         }
         foreach ($tokens as &$category) {
@@ -364,6 +361,21 @@ class TokensController
         $Contract = $this->findAssetOfferContract($Issuer, $code);
 
         return $this->displayable_asset_offer_by_token[$cache_key] = $this->isDisplayableOfferContract($Contract);
+    }
+
+    public function applyTokenLinkMetadata(array &$token): void
+    {
+        $code = (string) ($token['code'] ?? '');
+        $issuer = (string) ($token['issuer'] ?? '');
+        if ($code === '' || $issuer === '') {
+            return;
+        }
+
+        $token['is_known'] = $this->getKnownToken($code . '-' . $issuer) !== null;
+        $token['has_offer_text'] = $this->hasDisplayableAssetOfferDocument(
+            $this->BSN->makeAccountById($issuer),
+            $code
+        );
     }
 
     private function findAssetOfferContract(Account $Issuer, string $code): ?Contract

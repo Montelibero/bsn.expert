@@ -217,10 +217,12 @@ class AccountsController implements RefreshDataCodeInterface
             && $this->isRefreshDataRequested($issued_tokens_refresh_scope);
         $issued_tokens_snapshot = $this->fetchIssuedTokensSnapshot(
             $Account->getId(),
-            $TokensController,
             $force_issued_tokens_refresh
         );
-        $issued_tokens = $issued_tokens_snapshot['items'];
+        $issued_tokens = $this->applyIssuedTokenLinkMetadata(
+            $issued_tokens_snapshot['items'],
+            $TokensController
+        );
         $this->TomlImageManager->applyTokenImages($issued_tokens);
 
         if ($force_issued_tokens_refresh) {
@@ -645,12 +647,14 @@ class AccountsController implements RefreshDataCodeInterface
 
     public function fetchIssuedTokens(string $account_id, TokensController $TokensController): array
     {
-        return $this->fetchIssuedTokensSnapshot($account_id, $TokensController, false)['items'];
+        return $this->applyIssuedTokenLinkMetadata(
+            $this->fetchIssuedTokensSnapshot($account_id, false)['items'],
+            $TokensController
+        );
     }
 
     private function fetchIssuedTokensSnapshot(
         string $account_id,
-        TokensController $TokensController,
         bool $force_refresh
     ): array
     {
@@ -681,12 +685,10 @@ class AccountsController implements RefreshDataCodeInterface
                 if (!$amount) {
                     continue;
                 }
-                $known_token = $TokensController->getKnownTokenByCode($Asset->getAssetCode());
                 $issued_tokens[] = [
                     'code' => $Asset->getAssetCode(),
                     'issuer' => $Asset->getAssetIssuer(),
                     'amount' => $amount,
-                    'is_known' => $known_token && $known_token['issuer'] === $account_id,
                 ];
             }
             usort($issued_tokens, function($a, $b) {
@@ -718,6 +720,18 @@ class AccountsController implements RefreshDataCodeInterface
                 'warning' => $E->getMessage(),
             ]);
         }
+    }
+
+    private function applyIssuedTokenLinkMetadata(
+        array $issued_tokens,
+        TokensController $TokensController
+    ): array {
+        foreach ($issued_tokens as &$issued_token) {
+            $TokensController->applyTokenLinkMetadata($issued_token);
+        }
+        unset($issued_token);
+
+        return $issued_tokens;
     }
 
     private function finalizeIssuedTokensSnapshot(array $snapshot): array
