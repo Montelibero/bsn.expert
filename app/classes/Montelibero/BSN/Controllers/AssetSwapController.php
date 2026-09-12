@@ -17,6 +17,7 @@ use Soneso\StellarSDK\Memo;
 use Soneso\StellarSDK\PaymentOperationBuilder;
 use Soneso\StellarSDK\Responses\Account\AccountBalanceResponse;
 use Soneso\StellarSDK\Responses\Account\AccountResponse;
+use Soneso\StellarSDK\Responses\Asset\AssetResponse;
 use Soneso\StellarSDK\StellarSDK;
 use Soneso\StellarSDK\TransactionBuilder;
 use Symfony\Component\Translation\Translator;
@@ -37,6 +38,7 @@ final class AssetSwapController
         private readonly Container $Container,
         private readonly StellarAccountReserveCalculator $ReserveCalculator,
         private readonly TokenLabelFormatter $TokenLabelFormatter,
+        private readonly TokensController $TokensController,
     ) {
     }
 
@@ -126,6 +128,13 @@ final class AssetSwapController
         $state['account'] = $this->CurrentContacts->serialize($this->BSN->makeAccountById($account_id));
         $state['account_response'] = $Account;
         $state['tokens'] = $this->buildTokenRows($Account);
+        try {
+            $state['tokens'] += $this->buildIssuedTokenRows($account_id);
+        } catch (\Throwable) {
+            $errors[] = $this->Translator->trans('tools_asset_swap.errors.issued_assets_not_loaded', [
+                '%side%' => $this->sideLabel($side),
+            ]);
+        }
         $state['loaded'] = true;
 
         return $state;
@@ -150,19 +159,21 @@ final class AssetSwapController
 
             $issuer = (string) $Balance->getAssetIssuer();
             $code = (string) $Balance->getAssetCode();
-            $tokens[$key] = [
+            $token = [
                 'key' => $key,
                 'code' => $code,
                 'issuer' => $issuer,
                 'label' => $this->TokenLabelFormatter->format($code, $issuer),
-                'issuer_account' => $this->CurrentContacts->serialize($this->BSN->makeAccountById($issuer)),
-                'url' => '/tokens/' . rawurlencode($key),
                 'balance' => $Balance->getBalance(),
                 'available' => $available,
+                'available_unlimited' => false,
+                'without_emission' => false,
                 'has_locked_balance' => bccomp($available, $Balance->getBalance(), 7) !== 0,
                 'selling_liabilities' => $Balance->getSellingLiabilities() ?? '0.0000000',
                 'balance_response' => $Balance,
             ];
+            $this->TokensController->applyTokenLinkMetadata($token);
+            $tokens[$key] = $token;
         }
 
         uasort($tokens, static function (array $a, array $b): int {
@@ -170,6 +181,57 @@ final class AssetSwapController
         });
 
         return $tokens;
+    }
+
+    private function buildIssuedTokenRows(string $issuer): array
+    {
+        $tokens = [];
+        $page = $this->Stellar->assets()->forAssetIssuer($issuer)->limit(200)->execute();
+        do {
+            foreach ($page->getAssets() as $AssetResponse) {
+                $code = $AssetResponse->getAssetCode();
+                if ($code === null || $AssetResponse->getAssetIssuer() !== $issuer) {
+                    continue;
+                }
+                $key = $code . '-' . $issuer;
+                $token = [
+                    'key' => $key,
+                    'code' => $code,
+                    'issuer' => $issuer,
+                    'label' => $this->TokenLabelFormatter->format($code, $issuer),
+                    'available' => null,
+                    'available_unlimited' => true,
+                    'without_emission' => !$this->hasOutstandingSupply($AssetResponse),
+                    'has_locked_balance' => false,
+                    'selling_liabilities' => '0.0000000',
+                ];
+                $this->TokensController->applyTokenLinkMetadata($token);
+                $tokens[$key] = $token;
+            }
+            $page = $page->getNextPage();
+        } while ($page !== null && $page->getAssets()->count() > 0);
+
+        uasort($tokens, static fn (array $a, array $b): int => strcasecmp($a['code'], $b['code']));
+        return $tokens;
+    }
+
+    private function hasOutstandingSupply(AssetResponse $AssetResponse): bool
+    {
+        $Balances = $AssetResponse->getBalances();
+        foreach ([
+            $Balances->getAuthorized(),
+            $Balances->getAuthorizedToMaintainLiabilities(),
+            $Balances->getUnauthorized(),
+            $AssetResponse->getClaimableBalancesAmount(),
+            $AssetResponse->getLiquidityPoolsAmount(),
+            $AssetResponse->getContractsAmount() ?? '0',
+            $AssetResponse->getArchivedContractsAmount() ?? '0',
+        ] as $amount) {
+            if (bccomp($amount, '0', 7) > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function buildSigningForm(array $side_a_state, array $side_b_state, array $selected, array &$errors): ?string
@@ -238,6 +300,12 @@ final class AssetSwapController
             ]);
             return null;
         }
+        if (bccomp($amount, '922337203685.4775807', 7) > 0) {
+            $errors[] = $this->Translator->trans('tools_asset_swap.errors.invalid_amount', [
+                '%side%' => $this->sideLabel($side),
+            ]);
+            return null;
+        }
         if (bccomp($amount, '0', 7) <= 0) {
             $errors[] = $this->Translator->trans('tools_asset_swap.errors.amount_positive', [
                 '%side%' => $this->sideLabel($side),
@@ -269,7 +337,7 @@ final class AssetSwapController
 
     private function validateSendAmount(array $token, string $amount, string $side, array &$errors): void
     {
-        if (bccomp($amount, $token['available'], 7) > 0) {
+        if (!($token['available_unlimited'] ?? false) && bccomp($amount, $token['available'], 7) > 0) {
             $errors[] = $this->Translator->trans('tools_asset_swap.errors.amount_exceeds_available', [
                 '%side%' => $this->sideLabel($side),
                 '%asset%' => $token['code'],

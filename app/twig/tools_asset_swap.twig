@@ -53,31 +53,7 @@
                         {% if side_a_state.tokens %}
                             <div class="field">
                                 <label class="label">{{ 'tools_asset_swap.form.asset'|trans }}</label>
-                                {% for token in side_a_state.tokens %}
-                                    {% set checked = selected.a_asset == token.key %}
-                                    <div class="field mb-3">
-                                        <label class="radio" for="side_a_asset_{{ loop.index }}">
-                                            <input
-                                                type="radio"
-                                                id="side_a_asset_{{ loop.index }}"
-                                                name="side_a_asset"
-                                                value="{{ token.key|e('html_attr') }}"
-                                                {% if checked %}checked{% endif %}
-                                            >
-                                        </label>
-                                        <a class="has-text-weight-semibold" href="{{ token.url }}">{{ token.label }}</a>
-                                        <span>
-                                            <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.balance'|trans }}:</span>
-                                            {% include 'amount.twig' with {value: token.balance} only %}
-                                        </span>
-                                        {% if token.has_locked_balance %}
-                                            <span>
-                                                <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.available'|trans }}:</span>
-                                                {% include 'amount.twig' with {value: token.available} only %}
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
+                                {% include 'components/asset_swap_tokens.twig' with {tokens: side_a_state.tokens, side: 'a', selected_asset: selected.a_asset} only %}
                             </div>
                             <div class="field">
                                 <label class="label" for="side_a_amount">{{ 'tools_asset_swap.form.amount_to_send'|trans }}</label>
@@ -119,31 +95,7 @@
                         {% if side_b_state.tokens %}
                             <div class="field">
                                 <label class="label">{{ 'tools_asset_swap.form.asset'|trans }}</label>
-                                {% for token in side_b_state.tokens %}
-                                    {% set checked = selected.b_asset == token.key %}
-                                    <div class="field mb-3">
-                                        <label class="radio" for="side_b_asset_{{ loop.index }}">
-                                            <input
-                                                type="radio"
-                                                id="side_b_asset_{{ loop.index }}"
-                                                name="side_b_asset"
-                                                value="{{ token.key|e('html_attr') }}"
-                                                {% if checked %}checked{% endif %}
-                                            >
-                                        </label>
-                                        <a class="has-text-weight-semibold" href="{{ token.url }}">{{ token.label }}</a>
-                                        <span>
-                                            <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.balance'|trans }}:</span>
-                                            {% include 'amount.twig' with {value: token.balance} only %}
-                                        </span>
-                                        {% if token.has_locked_balance %}
-                                            <span>
-                                                <span class="has-text-weight-semibold">{{ 'tools_asset_swap.asset.available'|trans }}:</span>
-                                                {% include 'amount.twig' with {value: token.available} only %}
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
+                                {% include 'components/asset_swap_tokens.twig' with {tokens: side_b_state.tokens, side: 'b', selected_asset: selected.b_asset} only %}
                             </div>
                             <div class="field">
                                 <label class="label" for="side_b_amount">{{ 'tools_asset_swap.form.amount_to_send'|trans }}</label>

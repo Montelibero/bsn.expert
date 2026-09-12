@@ -1441,12 +1441,15 @@ tools_asset_swap:
   asset:
     balance: Balance
     available: Available
+    in_orders: In orders
+    without_emission: No issuance
   signing:
     title: Signing
     multisig_notice: The final transaction requires signatures from both accounts. The multisig collection button is recommended.
   errors:
     invalid_account: "Provide a valid Stellar account: %side%."
     account_not_found: "Account was not found in Horizon: %side%."
+    issued_assets_not_loaded: "Failed to load issued assets: %side%."
     side_a_required: Provide Side A account.
     side_b_required: Provide Side B account.
     same_accounts: Swap sides must be different accounts.

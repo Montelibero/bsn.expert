@@ -1443,12 +1443,15 @@ tools_asset_swap:
   asset:
     balance: Баланс
     available: Доступно
+    in_orders: В ордерах
+    without_emission: Без эмиссии
   signing:
     title: Подписание
     multisig_notice: Итоговая транзакция требует подписи обоих аккаунтов. Рекомендуется воспользоваться кнопкой сбора мультиподписи.
   errors:
     invalid_account: "Укажите корректный Stellar-аккаунт: %side%."
     account_not_found: "Аккаунт не найден в Horizon: %side%."
+    issued_assets_not_loaded: "Не удалось загрузить эмитируемые активы: %side%."
     side_a_required: Укажите аккаунт стороны А.
     side_b_required: Укажите аккаунт стороны Б.
     same_accounts: Стороны обмена должны быть разными аккаунтами.

@@ -1,0 +1,33 @@
+{% macro rows(tokens, side, selected_asset) %}
+    {% for token in tokens %}
+        {% set id = 'side_' ~ side ~ '_asset_' ~ token.key %}
+        <div class="field mb-3">
+            <input type="radio" id="{{ id }}" name="side_{{ side }}_asset" value="{{ token.key }}"
+                aria-label="{{ token.label }}" {% if selected_asset == token.key %}checked{% endif %}>
+            {% include 'token_link.twig' with {token: token, title: token.label} only %}
+            <label class="radio" for="{{ id }}">
+                {{ 'tools_asset_swap.asset.available'|trans }}:
+                {% if token.available_unlimited %}
+                    &infin;
+                {% else %}
+                    {% include 'amount.twig' with {value: token.available} only %}
+                {% endif %}
+                {% if token.has_locked_balance %}
+                    <span class="has-text-grey">
+                        ({{ 'tools_asset_swap.asset.in_orders'|trans }}
+                        {% include 'amount.twig' with {value: token.selling_liabilities} only %})
+                    </span>
+                {% endif %}
+            </label>
+        </div>
+    {% endfor %}
+{% endmacro %}
+
+{{ _self.rows(tokens|filter(token => not token.without_emission), side, selected_asset) }}
+{% set without_emission = tokens|filter(token => token.without_emission) %}
+{% if without_emission %}
+    <details class="block" {% if selected_asset in without_emission|keys %}open{% endif %}>
+        <summary>{{ 'tools_asset_swap.asset.without_emission'|trans }}</summary>
+        <div class="mt-3">{{ _self.rows(without_emission, side, selected_asset) }}</div>
+    </details>
+{% endif %}
