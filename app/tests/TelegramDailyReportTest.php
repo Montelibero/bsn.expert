@@ -404,7 +404,7 @@ assertTelegramDaily('2026-07-13', $admin_rows[13]['day_utc'], 'Admin statistics 
 assertTelegramDaily(false, $admin_rows[0]['finalized'], 'Today must remain live and unfinalized.');
 assertTelegramDaily(true, $admin_rows[1]['finalized'], 'A stored previous-day summary must be marked finalized.');
 
-$day_details = $Service->adminDayDetails($day_utc);
+$day_details = $Service->adminDayDetails($day_utc, $refresh_time);
 assertTelegramDaily(true, $day_details['details_available'], 'Recent raw daily details must be available.');
 assertTelegramDaily(2, count($day_details['aggregate']['accounts']), 'Chosen-day details must expose account rows.');
 
