@@ -28,9 +28,6 @@ use Twig\Environment;
 
 final class OrdersController
 {
-    private const DIRECTION_BUY = 'buy';
-    private const DIRECTION_SELL = 'sell';
-
     public function __construct(
         private readonly BSN $BSN,
         private readonly CurrentUser $CurrentUser,
@@ -112,7 +109,6 @@ final class OrdersController
         $Account = null;
         $tokens = [];
         $is_post = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
-        $direction = $this->resolveNewOrderDirection($is_post ? $_POST : $_GET);
 
         try {
             $Account = $this->Stellar->requestAccount($account_id);
@@ -122,59 +118,45 @@ final class OrdersController
         }
 
         $values = $this->defaultNewOrderValues($tokens);
-        if (!$is_post && $direction !== null) {
-            $values = $this->applyNewOrderGetParams($values, $tokens);
+        if (!$is_post) {
+            $values = $this->completeNewOrderValues(
+                $this->applyNewOrderGetParams($values, $tokens, $_GET)
+            );
         }
 
         if ($is_post) {
             $values = [
                 'selling' => (string) ($_POST['selling'] ?? ''),
                 'buying' => (string) ($_POST['buying'] ?? ''),
-                'amount' => trim((string) ($_POST['amount'] ?? '')),
-                'price' => trim((string) ($_POST['price'] ?? '')),
+                'selling_amount' => trim((string) ($_POST['selling_amount'] ?? '')),
+                'buying_amount' => trim((string) ($_POST['buying_amount'] ?? '')),
+                'selling_rate' => trim((string) ($_POST['selling_rate'] ?? '')),
+                'buying_rate' => trim((string) ($_POST['buying_rate'] ?? '')),
+                'amount_source' => (string) ($_POST['amount_source'] ?? ''),
+                'rate_source' => (string) ($_POST['rate_source'] ?? ''),
+                'source_order' => (string) ($_POST['source_order'] ?? ''),
             ];
-            if ($direction === null) {
-                $errors[] = $this->Translator->trans('tools_orders_new.errors.invalid_direction');
-            }
-            $prepared = $direction === null
-                ? null
-                : $this->prepareNewOrder($Account, $tokens, $values, $direction, $errors);
-            if ($prepared !== null && !$errors) {
-                $preview = $prepared['preview'];
-                $signing_form = $this->buildNewOrderSigningForm($Account, $prepared, $errors);
+            if (($_POST['action'] ?? '') === 'swap') {
+                $values = $this->swapNewOrderValues($values);
+            } else {
+                $values = $this->completeNewOrderValues($values);
+                $prepared = $this->prepareNewOrder($Account, $tokens, $values, $errors);
+                if ($prepared !== null && !$errors) {
+                    $values = $prepared['form_values'];
+                    $preview = $prepared['preview'];
+                    $signing_form = $this->buildNewOrderSigningForm($Account, $prepared, $errors);
+                }
             }
         }
 
         return $this->Twig->render('tools_orders_new.twig', [
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
-            'direction' => $direction,
             'tokens' => $tokens,
             'values' => $values,
             'errors' => $errors,
             'preview' => $preview,
             'signing_form' => $signing_form,
         ]);
-    }
-
-    /**
-     * @param array<string, mixed> $params
-     */
-    private function resolveNewOrderDirection(array $params): ?string
-    {
-        if (array_key_exists('direction', $params)) {
-            $direction = is_string($params['direction']) ? $params['direction'] : null;
-            return in_array($direction, [self::DIRECTION_SELL, self::DIRECTION_BUY], true)
-                ? $direction
-                : null;
-        }
-
-        foreach (['sell', 'buy', 'amount', 'price'] as $legacy_param) {
-            if (array_key_exists($legacy_param, $params)) {
-                return self::DIRECTION_SELL;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -294,6 +276,22 @@ final class OrdersController
     }
 
     /**
+     * @param array<string, string> $values
+     * @return array<string, string>
+     */
+    private function swapNewOrderValues(array $values): array
+    {
+        foreach ([['selling', 'buying'], ['selling_amount', 'buying_amount'], ['selling_rate', 'buying_rate']] as [$left, $right]) {
+            [$values[$left], $values[$right]] = [$values[$right], $values[$left]];
+        }
+        foreach (['amount_source', 'rate_source', 'source_order'] as $field) {
+            $values[$field] = strtr($values[$field], ['selling' => 'buying', 'buying' => 'selling']);
+        }
+
+        return $values;
+    }
+
+    /**
      * @param array<string, array> $tokens
      */
     private function defaultNewOrderValues(array $tokens): array
@@ -317,30 +315,70 @@ final class OrdersController
         return [
             'selling' => $selling,
             'buying' => $buying,
-            'amount' => '',
-            'price' => '',
+            'selling_amount' => '',
+            'buying_amount' => '',
+            'selling_rate' => '',
+            'buying_rate' => '',
+            'amount_source' => '',
+            'rate_source' => '',
+            'source_order' => '',
         ];
     }
 
     /**
      * @param array<string, array> $tokens
+     * @param array<string, mixed> $params
      */
-    private function applyNewOrderGetParams(array $values, array $tokens): array
+    private function applyNewOrderGetParams(array $values, array $tokens, array $params): array
     {
-        $sell = $this->resolveTokenParam($_GET['sell'] ?? null, $tokens, true);
+        $sell = $this->resolveTokenParam($params['sell'] ?? null, $tokens, true);
         if ($sell !== null) {
             $values['selling'] = $sell;
         }
 
-        $buy = $this->resolveTokenParam($_GET['buy'] ?? null, $tokens, false);
+        $buy = $this->resolveTokenParam($params['buy'] ?? null, $tokens, false);
         if ($buy !== null) {
             $values['buying'] = $buy;
         }
 
-        foreach (['amount', 'price'] as $field) {
-            if (isset($_GET[$field]) && is_scalar($_GET[$field])) {
-                $values[$field] = trim((string) $_GET[$field]);
+        $field_params = [
+            'selling_amount' => 'sell_amount',
+            'buying_amount' => 'buy_amount',
+            'selling_rate' => 'sell_rate',
+            'buying_rate' => 'buy_rate',
+        ];
+        foreach ($field_params as $field => $param) {
+            if (isset($params[$param]) && is_scalar($params[$param])) {
+                $values[$field] = trim((string) $params[$param]);
             }
+        }
+
+        if ($values['selling_amount'] === '' && isset($params['amount']) && is_scalar($params['amount'])) {
+            $values['selling_amount'] = trim((string) $params['amount']);
+        }
+        if (
+            $values['selling_rate'] === ''
+            && $values['buying_rate'] === ''
+            && isset($params['price'])
+            && is_scalar($params['price'])
+        ) {
+            $values['selling_rate'] = '1';
+            $values['buying_rate'] = trim((string) $params['price']);
+            $values['rate_source'] = 'buying';
+        }
+
+        $has_selling_amount = $values['selling_amount'] !== '';
+        $has_buying_amount = $values['buying_amount'] !== '';
+        $values['amount_source'] = $has_selling_amount && $has_buying_amount
+            ? 'both'
+            : ($has_selling_amount ? 'selling' : ($has_buying_amount ? 'buying' : ''));
+
+        if ($values['rate_source'] === '') {
+            $has_selling_rate = $values['selling_rate'] !== '';
+            $has_buying_rate = $values['buying_rate'] !== '';
+            $values['rate_source'] = $has_selling_rate && $has_buying_rate
+                ? 'both'
+                : ($has_selling_rate ? 'selling' : ($has_buying_rate ? 'buying' : ''));
         }
 
         return $values;
@@ -377,13 +415,368 @@ final class OrdersController
     }
 
     /**
+     * @param array<string, string> $values
+     * @return array<string, string>
+     */
+    private function completeNewOrderValues(array $values): array
+    {
+        $ignored_errors = [];
+        return $this->resolveNewOrderNumbers($values, $ignored_errors, false) ?? $values;
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function resolveNewOrderNumbers(array $values, array &$errors, bool $require_complete): ?array
+    {
+        $fields = ['selling_amount', 'buying_amount', 'selling_rate', 'buying_rate'];
+        $raw = [];
+        $normalized = [];
+        $form_values = $values;
+        $invalid = false;
+
+        foreach ($fields as $field) {
+            $raw[$field] = trim((string) ($values[$field] ?? ''));
+            $normalized[$field] = $raw[$field] === '' ? null : $this->normalizePostedDecimal($raw[$field]);
+            if (
+                $raw[$field] !== ''
+                && ($normalized[$field] === null || bccomp($normalized[$field], '0', 7) <= 0)
+            ) {
+                $invalid = true;
+                if ($require_complete) {
+                    $error_key = str_contains($field, 'rate')
+                        ? 'tools_orders_new.errors.invalid_rate'
+                        : 'tools_orders_new.errors.invalid_amount';
+                    $errors[] = $this->Translator->trans($error_key);
+                }
+                continue;
+            }
+
+            if ($normalized[$field] !== null) {
+                $form_values[$field] = $this->shortDecimal($normalized[$field]);
+            }
+        }
+
+        if ($invalid) {
+            return $require_complete ? null : $form_values;
+        }
+
+        $selling_amount = $normalized['selling_amount'];
+        $buying_amount = $normalized['buying_amount'];
+        $selling_rate = $normalized['selling_rate'];
+        $buying_rate = $normalized['buying_rate'];
+
+        $source_order = $this->normalizeNewOrderSourceOrder(
+            (string) ($values['source_order'] ?? ''),
+            $normalized,
+        );
+        if ($source_order !== []) {
+            $normalized = $this->resolveNewOrderSourceValues($normalized, $source_order);
+            $selling_amount = $normalized['selling_amount'];
+            $buying_amount = $normalized['buying_amount'];
+            $selling_rate = $normalized['selling_rate'];
+            $buying_rate = $normalized['buying_rate'];
+
+            foreach ($fields as $field) {
+                $form_values[$field] = $normalized[$field] === null
+                    ? ''
+                    : $this->shortDecimal($normalized[$field]);
+            }
+        }
+
+        $amount_source = (string) ($values['amount_source'] ?? '');
+        if ($source_order !== []) {
+            $amount_source = $this->newOrderGroupSource($source_order, 'selling_amount', 'buying_amount');
+        } elseif (!in_array($amount_source, ['selling', 'buying', 'both'], true)) {
+            $amount_source = $selling_amount !== null && $buying_amount !== null
+                ? 'both'
+                : ($selling_amount !== null ? 'selling' : ($buying_amount !== null ? 'buying' : ''));
+        }
+        if ($amount_source === 'selling' && $selling_amount === null) {
+            $amount_source = $buying_amount !== null ? 'buying' : '';
+        } elseif ($amount_source === 'buying' && $buying_amount === null) {
+            $amount_source = $selling_amount !== null ? 'selling' : '';
+        } elseif ($amount_source === 'both' && ($selling_amount === null || $buying_amount === null)) {
+            $amount_source = $selling_amount !== null ? 'selling' : ($buying_amount !== null ? 'buying' : '');
+        }
+
+        $rate_source = (string) ($values['rate_source'] ?? '');
+        if ($source_order !== []) {
+            $rate_source = $this->newOrderGroupSource($source_order, 'selling_rate', 'buying_rate');
+            if ($rate_source === '' && $amount_source === 'both') {
+                $rate_source = 'calculated';
+            }
+        } elseif (!in_array($rate_source, ['selling', 'buying', 'both', 'calculated'], true)) {
+            $rate_source = $selling_rate !== null && $buying_rate !== null
+                ? 'both'
+                : ($selling_rate !== null ? 'selling' : ($buying_rate !== null ? 'buying' : ''));
+        }
+
+        $form_values['amount_source'] = $amount_source;
+        $form_values['rate_source'] = $rate_source;
+        $form_values['source_order'] = implode(',', $source_order);
+
+        if ($amount_source === '') {
+            if ($require_complete) {
+                $errors[] = $this->Translator->trans('tools_orders_new.errors.not_enough_values');
+                return null;
+            }
+            return $form_values;
+        }
+
+        $has_rate = $selling_rate !== null && $buying_rate !== null;
+        $has_partial_rate = ($selling_rate !== null) !== ($buying_rate !== null);
+
+        if (
+            $amount_source === 'both'
+            && $selling_amount !== null
+            && $buying_amount !== null
+            && !$has_rate
+            && !$has_partial_rate
+        ) {
+            [$selling_rate, $buying_rate] = $this->newOrderRatePair($selling_amount, $buying_amount);
+            $rate_source = 'calculated';
+        } elseif (!$has_rate) {
+            if ($require_complete) {
+                $errors[] = $this->Translator->trans('tools_orders_new.errors.not_enough_values');
+                return null;
+            }
+            return $form_values;
+        }
+
+        if ($amount_source === 'selling' && $selling_amount !== null) {
+            $buying_amount = $this->newOrderBuyingAmount($selling_amount, $selling_rate, $buying_rate);
+        } elseif ($amount_source === 'buying' && $buying_amount !== null) {
+            $selling_amount = $this->newOrderSellingAmount($buying_amount, $selling_rate, $buying_rate);
+        } elseif ($selling_amount !== null && $buying_amount !== null) {
+            $expected_buying_amount = $this->newOrderBuyingAmount($selling_amount, $selling_rate, $buying_rate);
+            if (
+                $rate_source !== 'calculated'
+                && $this->newOrderDecimalsDiffer($buying_amount, $expected_buying_amount)
+            ) {
+                if ($require_complete) {
+                    $errors[] = $this->Translator->trans('tools_orders_new.errors.inconsistent_values');
+                    return null;
+                }
+                return $form_values;
+            }
+        } else {
+            if ($require_complete) {
+                $errors[] = $this->Translator->trans('tools_orders_new.errors.not_enough_values');
+                return null;
+            }
+            return $form_values;
+        }
+
+        if (
+            $selling_amount === null
+            || $buying_amount === null
+            || $selling_rate === null
+            || $buying_rate === null
+            || bccomp($selling_amount, '0', 7) <= 0
+            || bccomp($buying_amount, '0', 7) <= 0
+            || bccomp($selling_rate, '0', 7) <= 0
+            || bccomp($buying_rate, '0', 7) <= 0
+        ) {
+            if ($require_complete) {
+                $errors[] = $this->Translator->trans('tools_orders_new.errors.invalid_amount');
+                return null;
+            }
+            return $form_values;
+        }
+
+        return array_merge($form_values, [
+            'selling' => (string) ($values['selling'] ?? ''),
+            'buying' => (string) ($values['buying'] ?? ''),
+            'selling_amount' => $this->shortDecimal($selling_amount),
+            'buying_amount' => $this->shortDecimal($buying_amount),
+            'selling_rate' => $this->shortDecimal($selling_rate),
+            'buying_rate' => $this->shortDecimal($buying_rate),
+            'amount_source' => $amount_source,
+            'rate_source' => $rate_source,
+            'source_order' => implode(',', $source_order),
+        ]);
+    }
+
+    /**
+     * @param array<string, string|null> $values
+     * @return list<string>
+     */
+    private function normalizeNewOrderSourceOrder(string $value, array $values): array
+    {
+        $allowed = ['selling_amount', 'buying_amount', 'selling_rate', 'buying_rate'];
+        $order = [];
+
+        foreach (explode(',', $value) as $field) {
+            $field = trim($field);
+            if (!in_array($field, $allowed, true) || ($values[$field] ?? null) === null) {
+                continue;
+            }
+
+            $order = array_values(array_filter($order, static fn (string $item): bool => $item !== $field));
+            $order[] = $field;
+        }
+
+        return array_slice($order, -3);
+    }
+
+    /**
+     * @param array<string, string|null> $values
+     * @param list<string> $source_order
+     * @return array<string, string|null>
+     */
+    private function resolveNewOrderSourceValues(array $values, array $source_order): array
+    {
+        $source_values = [];
+        foreach ($source_order as $field) {
+            $source_values[$field] = $values[$field];
+        }
+
+        $values = [
+            'selling_amount' => $source_values['selling_amount'] ?? null,
+            'buying_amount' => $source_values['buying_amount'] ?? null,
+            'selling_rate' => $source_values['selling_rate'] ?? null,
+            'buying_rate' => $source_values['buying_rate'] ?? null,
+        ];
+
+        if (count($source_order) === 1) {
+            if (isset($source_values['selling_rate'])) {
+                $values['buying_rate'] = '1.0000000';
+            } elseif (isset($source_values['buying_rate'])) {
+                $values['selling_rate'] = '1.0000000';
+            }
+
+            return $values;
+        }
+
+        if (count($source_order) === 2) {
+            if ($values['selling_amount'] !== null && $values['buying_amount'] !== null) {
+                [$values['selling_rate'], $values['buying_rate']] = $this->newOrderRatePair(
+                    $values['selling_amount'],
+                    $values['buying_amount'],
+                );
+                return $values;
+            }
+
+            if ($values['selling_rate'] !== null && $values['buying_rate'] !== null) {
+                return $values;
+            }
+
+            if ($values['selling_rate'] !== null) {
+                $values['buying_rate'] = '1.0000000';
+            } elseif ($values['buying_rate'] !== null) {
+                $values['selling_rate'] = '1.0000000';
+            }
+        }
+
+        if (
+            $values['selling_amount'] !== null
+            && $values['selling_rate'] !== null
+            && $values['buying_rate'] !== null
+        ) {
+            $values['buying_amount'] = $this->newOrderBuyingAmount(
+                $values['selling_amount'],
+                $values['selling_rate'],
+                $values['buying_rate'],
+            );
+        } elseif (
+            $values['buying_amount'] !== null
+            && $values['selling_rate'] !== null
+            && $values['buying_rate'] !== null
+        ) {
+            $values['selling_amount'] = $this->newOrderSellingAmount(
+                $values['buying_amount'],
+                $values['selling_rate'],
+                $values['buying_rate'],
+            );
+        } elseif (
+            $values['selling_amount'] !== null
+            && $values['buying_amount'] !== null
+            && $values['selling_rate'] !== null
+        ) {
+            $values['buying_rate'] = $this->stellarDecimal(bcdiv(
+                bcmul($values['buying_amount'], $values['selling_rate'], 14),
+                $values['selling_amount'],
+                14,
+            ));
+        } elseif (
+            $values['selling_amount'] !== null
+            && $values['buying_amount'] !== null
+            && $values['buying_rate'] !== null
+        ) {
+            $values['selling_rate'] = $this->stellarDecimal(bcdiv(
+                bcmul($values['selling_amount'], $values['buying_rate'], 14),
+                $values['buying_amount'],
+                14,
+            ));
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param list<string> $source_order
+     */
+    private function newOrderGroupSource(
+        array $source_order,
+        string $selling_field,
+        string $buying_field,
+    ): string {
+        $has_selling = in_array($selling_field, $source_order, true);
+        $has_buying = in_array($buying_field, $source_order, true);
+
+        if ($has_selling && $has_buying) {
+            return 'both';
+        }
+        if ($has_selling) {
+            return 'selling';
+        }
+        if ($has_buying) {
+            return 'buying';
+        }
+
+        return '';
+    }
+
+    private function newOrderBuyingAmount(string $selling_amount, string $selling_rate, string $buying_rate): string
+    {
+        return $this->stellarDecimal(bcdiv(bcmul($selling_amount, $buying_rate, 14), $selling_rate, 14));
+    }
+
+    private function newOrderSellingAmount(string $buying_amount, string $selling_rate, string $buying_rate): string
+    {
+        return $this->stellarDecimal(bcdiv(bcmul($buying_amount, $selling_rate, 14), $buying_rate, 14));
+    }
+
+    /**
+     * @return array{string, string}
+     */
+    private function newOrderRatePair(string $selling_amount, string $buying_amount): array
+    {
+        if (bccomp($selling_amount, $buying_amount, 7) >= 0) {
+            return [$this->stellarDecimal(bcdiv($selling_amount, $buying_amount, 14)), '1.0000000'];
+        }
+
+        return ['1.0000000', $this->stellarDecimal(bcdiv($buying_amount, $selling_amount, 14))];
+    }
+
+    private function newOrderDecimalsDiffer(string $left, string $right): bool
+    {
+        $difference = bcsub($left, $right, 7);
+        if (str_starts_with($difference, '-')) {
+            $difference = substr($difference, 1);
+        }
+
+        return bccomp($difference, '0.0000001', 7) > 0;
+    }
+
+    /**
      * @param array<string, array> $tokens
      */
     private function prepareNewOrder(
         ?AccountResponse $Account,
         array $tokens,
         array $values,
-        string $direction,
         array &$errors,
     ): ?array
     {
@@ -405,70 +798,56 @@ final class OrdersController
             $errors[] = $this->Translator->trans('tools_orders_new.errors.same_assets');
         }
 
-        $amount_raw = trim((string) ($values['amount'] ?? ''));
-        $price_raw = trim((string) ($values['price'] ?? ''));
-        $amount = $this->normalizePostedDecimal($amount_raw);
-        $price = $this->normalizePostedDecimal($price_raw);
-        if ($amount_raw !== '' && ($amount === null || bccomp($amount, '0', 7) <= 0)) {
-            $errors[] = $this->Translator->trans('tools_orders_new.errors.invalid_amount');
-        }
-        if ($price_raw !== '' && ($price === null || bccomp($price, '0', 7) <= 0)) {
-            $errors[] = $this->Translator->trans('tools_orders_new.errors.invalid_price');
-        }
-
-        $total_exact = $amount !== null && $price !== null ? bcmul($amount, $price, 14) : null;
-        $spending_amount = $direction === self::DIRECTION_BUY ? $total_exact : $amount;
+        $form_values = $this->resolveNewOrderNumbers($values, $errors, true);
+        $selling_amount = $form_values !== null
+            ? $this->normalizePostedDecimal($form_values['selling_amount'])
+            : null;
         if (
             $Selling !== null
-            && $spending_amount !== null
+            && $selling_amount !== null
             && isset($Selling['available'])
-            && bccomp($spending_amount, $Selling['available'], 14) > 0
+            && bccomp($selling_amount, $Selling['available'], 7) > 0
         ) {
-            $error_key = $direction === self::DIRECTION_BUY
-                ? 'tools_orders_new.errors.amount_too_big_buy'
-                : 'tools_orders_new.errors.amount_too_big';
-            $errors[] = $this->Translator->trans($error_key, [
+            $errors[] = $this->Translator->trans('tools_orders_new.errors.amount_too_big', [
                 '%available%' => $Selling['available_label'],
                 '%asset%' => $Selling['code'] ?? $Selling['label'] ?? '',
             ]);
         }
 
-        if (
-            $errors
-            || $Selling === null
-            || $Buying === null
-            || $amount === null
-            || $price === null
-            || bccomp($amount, '0', 7) <= 0
-            || bccomp($price, '0', 7) <= 0
-        ) {
+        if ($errors || $Selling === null || $Buying === null || $form_values === null) {
             return null;
         }
 
-        $total = $this->stellarDecimal(bcmul($amount, $price, 7));
-        $selling_summary = $this->summaryToken(
-            $Selling,
-            $direction === self::DIRECTION_BUY ? $total : $amount,
-        );
-        $buying_summary = $this->summaryToken(
-            $Buying,
-            $direction === self::DIRECTION_BUY ? $amount : $total,
-        );
+        $selling_amount = $this->normalizePostedDecimal($form_values['selling_amount']);
+        $buying_amount = $this->normalizePostedDecimal($form_values['buying_amount']);
+        $selling_rate = $this->normalizePostedDecimal($form_values['selling_rate']);
+        $buying_rate = $this->normalizePostedDecimal($form_values['buying_rate']);
+        if ($selling_amount === null || $buying_amount === null || $selling_rate === null || $buying_rate === null) {
+            return null;
+        }
+
+        $uses_buy_operation = $form_values['amount_source'] === 'buying';
+        $operation_price = $form_values['amount_source'] === 'both'
+            && $form_values['rate_source'] === 'calculated'
+            ? bcdiv($buying_amount, $selling_amount, 14)
+            : bcdiv(
+                $uses_buy_operation ? $selling_rate : $buying_rate,
+                $uses_buy_operation ? $buying_rate : $selling_rate,
+                14,
+            );
 
         return [
-            'direction' => $direction,
             'selling' => $Selling,
             'buying' => $Buying,
-            'amount' => $amount,
-            'price' => $price,
-            'total' => $total,
-            'reverse_price' => $this->reversePrice($price),
+            'uses_buy_operation' => $uses_buy_operation,
+            'operation_amount' => $uses_buy_operation ? $buying_amount : $selling_amount,
+            'operation_price' => $operation_price,
+            'form_values' => $form_values,
             'preview' => [
-                'direction' => $direction,
-                'selling' => $selling_summary,
-                'buying' => $buying_summary,
-                'price' => $this->shortDecimal($price),
-                'reverse_price' => $this->reversePrice($price),
+                'selling' => $this->summaryToken($Selling, $selling_amount),
+                'buying' => $this->summaryToken($Buying, $buying_amount),
+                'selling_rate' => $this->shortDecimal($selling_rate),
+                'buying_rate' => $this->shortDecimal($buying_rate),
             ],
         ];
     }
@@ -496,20 +875,20 @@ final class OrdersController
 
     private function buildNewOrderOperation(array $prepared): AbstractOperation
     {
-        if ($prepared['direction'] === self::DIRECTION_BUY) {
+        if ($prepared['uses_buy_operation']) {
             return (new ManageBuyOfferOperationBuilder(
                 $prepared['selling']['asset'],
                 $prepared['buying']['asset'],
-                $prepared['amount'],
-                $prepared['price']
+                $prepared['operation_amount'],
+                $prepared['operation_price']
             ))->setOfferId(0)->build();
         }
 
         return (new ManageSellOfferOperationBuilder(
             $prepared['selling']['asset'],
             $prepared['buying']['asset'],
-            $prepared['amount'],
-            $prepared['price']
+            $prepared['operation_amount'],
+            $prepared['operation_price']
         ))->setOfferId(0)->build();
     }
 

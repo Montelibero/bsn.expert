@@ -10,28 +10,270 @@
 {% endblock %}
 
 {% block content %}
+    {% set selling_amount_class = '' %}
+    {% set buying_amount_class = '' %}
+    {% if values.selling_amount is not empty %}
+        {% if values.amount_source == 'selling' or values.amount_source == 'both' %}
+            {% set selling_amount_class = ' is-link' %}
+        {% elseif values.amount_source == 'buying' %}
+            {% set selling_amount_class = ' has-text-grey' %}
+        {% endif %}
+    {% endif %}
+    {% if values.buying_amount is not empty %}
+        {% if values.amount_source == 'buying' or values.amount_source == 'both' %}
+            {% set buying_amount_class = ' is-link' %}
+        {% elseif values.amount_source == 'selling' %}
+            {% set buying_amount_class = ' has-text-grey' %}
+        {% endif %}
+    {% endif %}
+
+    {% set selling_rate_class = '' %}
+    {% set buying_rate_class = '' %}
+    {% if values.selling_rate is not empty %}
+        {% if values.rate_source == 'selling' or values.rate_source == 'both' %}
+            {% set selling_rate_class = ' is-link' %}
+        {% elseif values.rate_source == 'buying' or values.rate_source == 'calculated' %}
+            {% set selling_rate_class = ' has-text-grey' %}
+        {% endif %}
+    {% endif %}
+    {% if values.buying_rate is not empty %}
+        {% if values.rate_source == 'buying' or values.rate_source == 'both' %}
+            {% set buying_rate_class = ' is-link' %}
+        {% elseif values.rate_source == 'selling' or values.rate_source == 'calculated' %}
+            {% set buying_rate_class = ' has-text-grey' %}
+        {% endif %}
+    {% endif %}
+
     <h1 class="title">{{ 'tools_orders_new.title'|trans }}</h1>
 
-    <p class="block">{{ 'tools_orders_new.instruction'|trans }}</p>
+    <p class="block" data-no-js-only>{{ 'tools_orders_new.instruction_no_js'|trans }}</p>
+    <p class="block is-hidden" data-js-only>{{ 'tools_orders_new.instruction_js'|trans }}</p>
 
-    <div class="tabs is-toggle">
-        <ul>
-            <li{% if direction == 'sell' %} class="is-active"{% endif %}>
-                <a href="/tools/orders/new?direction=sell{% if current_account_param %}&amp;current_account={{ current_account_param|url_encode }}{% endif %}">
-                    {{ 'tools_orders_new.direction.sell'|trans }}
-                </a>
-            </li>
-            <li{% if direction == 'buy' %} class="is-active"{% endif %}>
-                <a href="/tools/orders/new?direction=buy{% if current_account_param %}&amp;current_account={{ current_account_param|url_encode }}{% endif %}">
-                    {{ 'tools_orders_new.direction.buy'|trans }}
-                </a>
-            </li>
-        </ul>
+    {% for error in errors %}
+        <div class="notification is-danger">{{ error }}</div>
+    {% endfor %}
+
+    {% if preview %}
+        <p class="block">
+            {{ 'tools_orders_new.preview.create'|trans }}
+            {{ include('token_link.twig', {token: preview.selling}, with_context = false) }}
+            {{ 'tools_orders_new.preview.for'|trans }}
+            {{ include('token_link.twig', {token: preview.buying}, with_context = false) }}
+            ({{ 'tools_orders_new.preview.rate'|trans }}
+            {{ preview.selling_rate }} {{ preview.selling.code|default(preview.selling.label) }}
+            = {{ preview.buying_rate }} {{ preview.buying.code|default(preview.buying.label) }}).
+        </p>
+    {% endif %}
+
+    {% if signing_form %}
+        {{ signing_form|raw }}
+    {% endif %}
+
+    <div class="columns">
+        <div class="column is-two-thirds-tablet is-half-widescreen">
+            <form method="post" action="/tools/orders/new" data-new-order-form>
+                {% if current_account_param %}
+                    <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
+                {% endif %}
+                <input type="hidden" name="amount_source" value="{{ values.amount_source|e('html_attr') }}" data-new-order-amount-source>
+                <input type="hidden" name="rate_source" value="{{ values.rate_source|e('html_attr') }}" data-new-order-rate-source>
+                <input type="hidden" name="source_order" value="{{ values.source_order|default('')|e('html_attr') }}" data-new-order-source-order>
+                {# Keep Enter on numeric fields bound to creation, not swapping. #}
+                <button type="submit" name="action" value="save" class="is-hidden" tabindex="-1" aria-hidden="true" data-new-order-default-submit></button>
+
+                <div class="block">
+                    <div class="columns is-mobile mb-0">
+                        <div class="column">
+                            <div class="field">
+                                <label class="label" for="new_order_selling">{{ 'tools_orders_new.form.selling'|trans }}</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select id="new_order_selling" name="selling" required data-new-order-selling>
+                                            {% for token in tokens %}
+                                                <option
+                                                    value="{{ token.key|e('html_attr') }}"
+                                                    data-available="{{ token.available|default('')|e('html_attr') }}"
+                                                    data-available-label="{{ token.available_label|e('html_attr') }}"
+                                                    data-unlimited="{% if token.available_unlimited|default(false) %}1{% else %}0{% endif %}"
+                                                    data-selling-disabled="{% if token.selling_disabled %}1{% else %}0{% endif %}"
+                                                    {% if token.key == values.selling %}selected{% endif %}
+                                                    {% if token.selling_disabled and token.key != values.selling %}disabled{% endif %}
+                                                >
+                                                    {{ token.option_label }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-2 px-0 is-flex is-align-items-flex-end is-justify-content-center">
+                            <button type="submit" name="action" value="swap" formnovalidate class="button" title="{{ 'tools_orders_new.form.swap'|trans }}" aria-label="{{ 'tools_orders_new.form.swap'|trans }}" data-new-order-swap>
+                                <span class="icon"><i class="fa-solid fa-right-left" aria-hidden="true"></i></span>
+                            </button>
+                        </div>
+                        <div class="column">
+                            <div class="field">
+                                <label class="label" for="new_order_buying">{{ 'tools_orders_new.form.buying'|trans }}</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select id="new_order_buying" name="buying" required data-new-order-buying>
+                                            {% for token in tokens %}
+                                                <option value="{{ token.key|e('html_attr') }}" {% if token.key == values.buying %}selected{% endif %}>
+                                                    {{ token.display_label|default(token.code|default(token.label)) }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="columns is-mobile mb-0">
+                        <div class="column">
+                            <div class="field">
+                                <label class="label" for="new_order_selling_amount">{{ 'tools_orders_new.form.amounts'|trans }}</label>
+                                <div class="control">
+                                    <input
+                                        class="input{{ selling_amount_class }}"
+                                        id="new_order_selling_amount"
+                                        type="text"
+                                        inputmode="decimal"
+                                        autocomplete="off"
+                                        name="selling_amount"
+                                        value="{{ values.selling_amount|e('html_attr') }}"
+                                        size="13"
+                                        data-new-order-selling-amount
+                                    >
+                                </div>
+                                <p class="help is-hidden" data-js-only>
+                                    {{ 'tools_orders_new.form.amount_max'|trans }}
+                                    <span class="pseudo-link" role="button" tabindex="0" data-new-order-max-value></span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="column is-2 px-0 has-text-grey" aria-hidden="true">
+                            <div class="label">&nbsp;</div>
+                            <div class="control is-flex is-justify-content-center py-2">
+                                <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="field">
+                                <label class="label" for="new_order_buying_amount">{{ 'tools_orders_new.form.amounts'|trans }}</label>
+                                <div class="control">
+                                    <input
+                                        class="input{{ buying_amount_class }}"
+                                        id="new_order_buying_amount"
+                                        type="text"
+                                        inputmode="decimal"
+                                        autocomplete="off"
+                                        name="buying_amount"
+                                        value="{{ values.buying_amount|e('html_attr') }}"
+                                        size="13"
+                                        data-new-order-buying-amount
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="columns is-mobile mb-0">
+                        <div class="column">
+                            <div class="field">
+                                <label class="label" for="new_order_selling_rate">{{ 'tools_orders_new.form.rate'|trans }}</label>
+                                <div class="control">
+                                    <input
+                                        class="input{{ selling_rate_class }}"
+                                        id="new_order_selling_rate"
+                                        type="text"
+                                        inputmode="decimal"
+                                        autocomplete="off"
+                                        name="selling_rate"
+                                        value="{{ values.selling_rate|e('html_attr') }}"
+                                        size="13"
+                                        data-new-order-selling-rate
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-2 px-0 has-text-grey" aria-hidden="true">
+                            <div class="label">&nbsp;</div>
+                            <div class="control is-flex is-justify-content-center py-2">
+                                <span class="icon"><i class="fa-solid fa-equals"></i></span>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="field">
+                                <label class="label" for="new_order_buying_rate">{{ 'tools_orders_new.form.rate'|trans }}</label>
+                                <div class="control">
+                                    <input
+                                        class="input{{ buying_rate_class }}"
+                                        id="new_order_buying_rate"
+                                        type="text"
+                                        inputmode="decimal"
+                                        autocomplete="off"
+                                        name="buying_rate"
+                                        value="{{ values.buying_rate|e('html_attr') }}"
+                                        size="13"
+                                        data-new-order-buying-rate
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="control">
+                        <button type="submit" name="action" value="save" class="button is-link" data-new-order-submit>
+                            <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
+                            <span>{{ 'tools_orders_new.form.save'|trans }}</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const scale = 10000000n;
+            const form = document.querySelector('[data-new-order-form]');
+
+            document.querySelectorAll('[data-no-js-only]').forEach(function (element) {
+                element.classList.add('is-hidden');
+            });
+            document.querySelectorAll('[data-js-only]').forEach(function (element) {
+                element.classList.remove('is-hidden');
+            });
+
+            if (!form) {
+                return;
+            }
+
+            const selling = form.querySelector('[data-new-order-selling]');
+            const buying = form.querySelector('[data-new-order-buying]');
+            const sellingAmount = form.querySelector('[data-new-order-selling-amount]');
+            const buyingAmount = form.querySelector('[data-new-order-buying-amount]');
+            const sellingRate = form.querySelector('[data-new-order-selling-rate]');
+            const buyingRate = form.querySelector('[data-new-order-buying-rate]');
+            const amountSourceInput = form.querySelector('[data-new-order-amount-source]');
+            const rateSourceInput = form.querySelector('[data-new-order-rate-source]');
+            const sourceOrderInput = form.querySelector('[data-new-order-source-order]');
+            const maxValue = form.querySelector('[data-new-order-max-value]');
+            const submit = form.querySelector('[data-new-order-submit]');
+            const defaultSubmit = form.querySelector('[data-new-order-default-submit]');
+            const fields = {
+                selling_amount: sellingAmount,
+                buying_amount: buyingAmount,
+                selling_rate: sellingRate,
+                buying_rate: buyingRate,
+            };
+            const fieldNames = Object.keys(fields);
+            const numericInputs = Object.values(fields);
+            let sourceOrder = [];
+
+            submit.disabled = true;
 
             function normalizeDecimal(value) {
                 const normalized = String(value || '').trim().replace(',', '.');
@@ -51,189 +293,341 @@
                 return BigInt(parts[0]) * scale + BigInt(parts[1]);
             }
 
-            function formatScaled(value) {
+            function shortScaled(value) {
                 const integer = value / scale;
-                const fraction = String(value % scale).padStart(7, '0');
-                return integer + '.' + fraction;
+                const fraction = String(value % scale).padStart(7, '0').replace(/0+$/, '');
+                return fraction === '' ? String(integer) : integer + '.' + fraction;
             }
 
-            function shortDecimal(value) {
-                const normalized = normalizeDecimal(value);
-                if (normalized === null) {
-                    return null;
-                }
-                const parts = normalized.split('.');
-                const trimmed = parts[1].replace(/0+$/, '');
-                return trimmed === '' ? parts[0] : parts[0] + '.' + trimmed;
+            function positiveValue(input) {
+                const value = decimalToScaled(input.value);
+                return value !== null && value > 0n ? value : null;
             }
 
-            function reverseScaled(value) {
-                if (value === null || value <= 0n) {
-                    return null;
-                }
-                return ((scale * scale) + (value / 2n)) / value;
+            function selectedOption(select) {
+                return select.selectedOptions.length > 0 ? select.selectedOptions[0] : null;
             }
-
-            document.querySelectorAll('[data-js-only]').forEach(function (element) {
-                element.classList.remove('is-hidden');
-            });
-
-            const form = document.querySelector('[data-new-order-form]');
-            if (!form) {
-                return;
-            }
-
-            const selling = form.querySelector('[data-new-order-selling]');
-            const buying = form.querySelector('[data-new-order-buying]');
-            const amount = form.querySelector('[data-new-order-amount]');
-            const price = form.querySelector('[data-new-order-price]');
-            const reverse = form.querySelector('[data-new-order-reverse]');
-            const total = form.querySelector('[data-new-order-total]');
-            const maxValue = form.querySelector('[data-new-order-max-value]');
-            const submit = form.querySelector('[data-new-order-submit]');
-            const direction = form.dataset.newOrderDirection;
-            submit.disabled = true;
 
             function selectedSellingOption() {
-                return selling.selectedOptions.length > 0 ? selling.selectedOptions[0] : null;
+                return selectedOption(selling);
             }
 
-            function sellingAvailableScaled() {
-                const option = selectedSellingOption();
-                return option ? decimalToScaled(option.dataset.available || '') : null;
+            function setCalculatedValue(input, value) {
+                input.value = value === null || value <= 0n ? '' : shortScaled(value);
             }
 
-            function sellingAvailableIsUnlimited() {
-                const option = selectedSellingOption();
-                return option ? option.dataset.unlimited === '1' : false;
-            }
-
-            function maximumAmountScaled(priceScaled) {
-                const option = selectedSellingOption();
-                if (!option || option.dataset.unlimited === '1') {
+            function multiplyDivide(value, multiplier, divisor) {
+                if (value === null || multiplier === null || divisor === null || divisor <= 0n) {
                     return null;
                 }
-
-                const availableScaled = sellingAvailableScaled();
-                if (availableScaled === null) {
-                    return null;
-                }
-
-                if (direction === 'buy') {
-                    return priceScaled === null || priceScaled <= 0n
-                        ? null
-                        : (availableScaled * scale) / priceScaled;
-                }
-
-                return availableScaled;
+                return (value * multiplier) / divisor;
             }
 
-            function updateMaxHelp(priceScaled) {
+            function addSource(name) {
+                sourceOrder = sourceOrder.filter(function (source) {
+                    return source !== name;
+                });
+                sourceOrder.push(name);
+            }
+
+            function parseSourceOrder(value) {
+                const order = [];
+                String(value || '').split(',').forEach(function (name) {
+                    if (!fieldNames.includes(name) || fields[name].value.trim() === '') {
+                        return;
+                    }
+                    const previous = order.indexOf(name);
+                    if (previous !== -1) {
+                        order.splice(previous, 1);
+                    }
+                    order.push(name);
+                });
+                return order.slice(-3);
+            }
+
+            function deriveInitialSourceOrder() {
+                function addGroup(source, sellingName, buyingName) {
+                    if (source === 'selling' || source === 'both') {
+                        addSource(sellingName);
+                    }
+                    if (source === 'buying' || source === 'both') {
+                        addSource(buyingName);
+                    }
+                }
+
+                addGroup(amountSourceInput.value, 'selling_amount', 'buying_amount');
+                if (rateSourceInput.value !== 'calculated') {
+                    addGroup(rateSourceInput.value, 'selling_rate', 'buying_rate');
+                }
+
+                if (sourceOrder.length === 0) {
+                    fieldNames.forEach(function (name) {
+                        if (fields[name].value.trim() !== '') {
+                            addSource(name);
+                        }
+                    });
+                }
+                sourceOrder = sourceOrder.slice(-3);
+            }
+
+            function recalculate() {
+                const sources = new Set(sourceOrder);
+                fieldNames.forEach(function (name) {
+                    if (!sources.has(name)) {
+                        fields[name].value = '';
+                    }
+                });
+
+                if (sourceOrder.length === 0) {
+                    return;
+                }
+
+                if (sourceOrder.length === 1) {
+                    if (sources.has('selling_rate') && positiveValue(sellingRate) !== null) {
+                        setCalculatedValue(buyingRate, scale);
+                    } else if (sources.has('buying_rate') && positiveValue(buyingRate) !== null) {
+                        setCalculatedValue(sellingRate, scale);
+                    }
+                    return;
+                }
+
+                if (
+                    sourceOrder.length === 2
+                    && sources.has('selling_amount')
+                    && sources.has('buying_amount')
+                ) {
+                    const sellingValue = positiveValue(sellingAmount);
+                    const buyingValue = positiveValue(buyingAmount);
+                    if (sellingValue === null || buyingValue === null) {
+                        return;
+                    }
+                    if (sellingValue >= buyingValue) {
+                        setCalculatedValue(sellingRate, multiplyDivide(sellingValue, scale, buyingValue));
+                        setCalculatedValue(buyingRate, scale);
+                    } else {
+                        setCalculatedValue(sellingRate, scale);
+                        setCalculatedValue(buyingRate, multiplyDivide(buyingValue, scale, sellingValue));
+                    }
+                    return;
+                }
+
+                if (
+                    sourceOrder.length === 2
+                    && sources.has('selling_rate')
+                    && sources.has('buying_rate')
+                ) {
+                    return;
+                }
+
+                if (sourceOrder.length === 2) {
+                    if (sources.has('selling_rate') && positiveValue(sellingRate) !== null) {
+                        setCalculatedValue(buyingRate, scale);
+                    } else if (sources.has('buying_rate') && positiveValue(buyingRate) !== null) {
+                        setCalculatedValue(sellingRate, scale);
+                    }
+                }
+
+                const sellingAmountValue = positiveValue(sellingAmount);
+                const buyingAmountValue = positiveValue(buyingAmount);
+                const sellingRateValue = positiveValue(sellingRate);
+                const buyingRateValue = positiveValue(buyingRate);
+
+                if (!sources.has('buying_amount')) {
+                    setCalculatedValue(
+                        buyingAmount,
+                        multiplyDivide(sellingAmountValue, buyingRateValue, sellingRateValue)
+                    );
+                } else if (!sources.has('selling_amount')) {
+                    setCalculatedValue(
+                        sellingAmount,
+                        multiplyDivide(buyingAmountValue, sellingRateValue, buyingRateValue)
+                    );
+                } else if (!sources.has('buying_rate')) {
+                    setCalculatedValue(
+                        buyingRate,
+                        multiplyDivide(buyingAmountValue, sellingRateValue, sellingAmountValue)
+                    );
+                } else if (!sources.has('selling_rate')) {
+                    setCalculatedValue(
+                        sellingRate,
+                        multiplyDivide(sellingAmountValue, buyingRateValue, buyingAmountValue)
+                    );
+                }
+            }
+
+            function groupSource(sellingName, buyingName) {
+                const hasSelling = sourceOrder.includes(sellingName);
+                const hasBuying = sourceOrder.includes(buyingName);
+                if (hasSelling && hasBuying) {
+                    return 'both';
+                }
+                if (hasSelling) {
+                    return 'selling';
+                }
+                if (hasBuying) {
+                    return 'buying';
+                }
+                return '';
+            }
+
+            function updateSourceInputs() {
+                const amountSource = groupSource('selling_amount', 'buying_amount');
+                let rateSource = groupSource('selling_rate', 'buying_rate');
+                if (rateSource === '' && amountSource === 'both') {
+                    rateSource = 'calculated';
+                }
+
+                amountSourceInput.value = amountSource;
+                rateSourceInput.value = rateSource;
+                sourceOrderInput.value = sourceOrder.join(',');
+            }
+
+            function updateFieldPresentation() {
+                fieldNames.forEach(function (name) {
+                    const input = fields[name];
+                    input.classList.remove('is-link', 'has-text-grey');
+                    if (input.value.trim() === '') {
+                        return;
+                    }
+                    input.classList.add(sourceOrder.includes(name) ? 'is-link' : 'has-text-grey');
+                });
+            }
+
+            function updateMaximum() {
+                Array.from(selling.options).forEach(function (option) {
+                    option.disabled = option.dataset.sellingDisabled === '1' && !option.selected;
+                });
                 const option = selectedSellingOption();
                 if (!option || !maxValue) {
                     return;
                 }
-                if (option.dataset.unlimited === '1') {
-                    maxValue.textContent = option.dataset.availableLabel || '∞';
+                maxValue.textContent = option.dataset.availableLabel || '—';
+            }
+
+            function validate() {
+                numericInputs.forEach(function (input) {
+                    const filled = input.value.trim() !== '';
+                    input.classList.toggle('is-danger', filled && positiveValue(input) === null);
+                });
+
+                const sellingValue = positiveValue(sellingAmount);
+                const option = selectedSellingOption();
+                let amountWithinAvailable = false;
+                if (sellingValue !== null && option) {
+                    if (option.dataset.unlimited === '1') {
+                        amountWithinAvailable = true;
+                    } else {
+                        const available = decimalToScaled(option.dataset.available || '');
+                        amountWithinAvailable = available !== null && sellingValue <= available;
+                    }
+                }
+                sellingAmount.classList.toggle(
+                    'is-danger',
+                    sellingAmount.value.trim() !== '' && (sellingValue === null || !amountWithinAvailable)
+                );
+
+                const sameAssets = selling.value !== '' && selling.value === buying.value;
+                const sellingSelect = selling.parentElement;
+                const buyingSelect = buying.parentElement;
+                sellingSelect.classList.toggle('is-danger', sameAssets);
+                buyingSelect.classList.toggle('is-danger', sameAssets);
+
+                submit.disabled = !(
+                    selling.value !== ''
+                    && buying.value !== ''
+                    && !sameAssets
+                    && amountWithinAvailable
+                    && positiveValue(buyingAmount) !== null
+                    && positiveValue(sellingRate) !== null
+                    && positiveValue(buyingRate) !== null
+                );
+                defaultSubmit.disabled = submit.disabled;
+            }
+
+            function render() {
+                updateSourceInputs();
+                updateFieldPresentation();
+                updateMaximum();
+                validate();
+            }
+
+            function handleNumericInput(name) {
+                const input = fields[name];
+                addSource(name);
+
+                if (input.value.trim() === '') {
+                    sourceOrder = sourceOrder.filter(function (source) {
+                        return source !== name;
+                    });
+                    render();
                     return;
                 }
 
-                const maximumScaled = maximumAmountScaled(priceScaled);
-                maxValue.textContent = maximumScaled === null
-                    ? '—'
-                    : shortDecimal(formatScaled(maximumScaled));
+                if (positiveValue(input) !== null) {
+                    sourceOrder = sourceOrder.slice(-3);
+                    recalculate();
+                }
+                render();
             }
 
-            function syncCalculated(updateReverse, updateTotal) {
-                const amountScaled = decimalToScaled(amount.value);
-                const priceScaled = decimalToScaled(price.value);
-                const availableScaled = sellingAvailableScaled();
-                const availableUnlimited = sellingAvailableIsUnlimited();
-                const amountFilled = amount.value.trim() !== '';
-                const priceFilled = price.value.trim() !== '';
-                const amountPositive = amountScaled !== null && amountScaled > 0n;
-                const priceValid = priceScaled !== null && priceScaled > 0n;
-                let amountWithinAvailable = availableUnlimited;
-                if (!availableUnlimited && amountPositive && availableScaled !== null) {
-                    amountWithinAvailable = direction === 'buy'
-                        ? priceValid && amountScaled * priceScaled <= availableScaled * scale
-                        : amountScaled <= availableScaled;
+            function normalizeInput(input) {
+                const value = decimalToScaled(input.value);
+                if (value !== null) {
+                    input.value = shortScaled(value);
                 }
-                const amountValid = amountPositive && amountWithinAvailable;
-                const sameAssets = selling.value !== '' && selling.value === buying.value;
+            }
 
-                price.classList.toggle('is-danger', priceFilled && !priceValid);
-                amount.classList.toggle(
-                    'is-danger',
-                    amountFilled && (!amountPositive || (priceValid && !amountWithinAvailable))
-                );
-                submit.disabled = !(selling.value !== '' && buying.value !== '' && !sameAssets && amountValid && priceValid);
-                updateMaxHelp(priceScaled);
-
-                if (updateReverse) {
-                    const reversePrice = reverseScaled(priceScaled);
-                    reverse.value = reversePrice === null ? '—' : shortDecimal(formatScaled(reversePrice));
-                }
-
-                if (updateTotal) {
-                    if (amountScaled === null || amountScaled <= 0n || priceScaled === null || priceScaled <= 0n) {
-                        total.value = '—';
+            fieldNames.forEach(function (name) {
+                fields[name].addEventListener('input', function () {
+                    handleNumericInput(name);
+                });
+                fields[name].addEventListener('blur', function () {
+                    normalizeInput(fields[name]);
+                    if (fields[name].value.trim() === '') {
+                        sourceOrder = sourceOrder.filter(function (source) {
+                            return source !== name;
+                        });
+                        recalculate();
+                        render();
                         return;
                     }
-                    total.value = shortDecimal(formatScaled((amountScaled * priceScaled) / scale)) || '—';
-                }
-            }
-
-            function syncFromPrice() {
-                syncCalculated(true, true);
-            }
-
-            function syncFromReverse() {
-                const reversePriceScaled = decimalToScaled(reverse.value);
-                const priceScaled = reverseScaled(reversePriceScaled);
-                if (priceScaled === null) {
-                    price.value = '';
-                    syncCalculated(false, true);
-                    return;
-                }
-                price.value = shortDecimal(formatScaled(priceScaled));
-                syncCalculated(false, true);
-            }
-
-            function syncFromTotal() {
-                const amountScaled = decimalToScaled(amount.value);
-                const totalScaled = decimalToScaled(total.value);
-                if (amountScaled === null || amountScaled <= 0n || totalScaled === null || totalScaled < 0n) {
-                    price.value = '';
-                    syncCalculated(true, false);
-                    return;
-                }
-                price.value = shortDecimal(formatScaled((totalScaled * scale) / amountScaled));
-                syncCalculated(true, false);
-            }
-
-            amount.addEventListener('input', syncFromPrice);
-            price.addEventListener('input', syncFromPrice);
-            selling.addEventListener('change', function () {
-                syncFromPrice();
+                    if (positiveValue(fields[name]) !== null) {
+                        recalculate();
+                    }
+                    render();
+                });
             });
-            buying.addEventListener('change', syncFromPrice);
-            reverse.addEventListener('input', syncFromReverse);
-            reverse.addEventListener('blur', syncFromPrice);
-            total.addEventListener('input', syncFromTotal);
-            total.addEventListener('blur', syncFromPrice);
+
+            selling.addEventListener('change', function () {
+                updateMaximum();
+                validate();
+            });
+            buying.addEventListener('change', function () {
+                validate();
+            });
+
+            form.querySelector('[data-new-order-swap]').addEventListener('click', function (event) {
+                event.preventDefault();
+                [[selling, buying], [sellingAmount, buyingAmount], [sellingRate, buyingRate]].forEach(function (pair) {
+                    [pair[0].value, pair[1].value] = [pair[1].value, pair[0].value];
+                });
+                const opposite = {
+                    selling_amount: 'buying_amount', buying_amount: 'selling_amount',
+                    selling_rate: 'buying_rate', buying_rate: 'selling_rate',
+                };
+                sourceOrder = sourceOrder.map(function (name) { return opposite[name]; });
+                render();
+            });
+
             if (maxValue) {
                 maxValue.addEventListener('click', function () {
                     const option = selectedSellingOption();
                     if (!option || option.dataset.unlimited === '1') {
                         return;
                     }
-                    const maximumScaled = maximumAmountScaled(decimalToScaled(price.value));
-                    if (maximumScaled === null) {
-                        return;
-                    }
-                    amount.value = shortDecimal(formatScaled(maximumScaled));
-                    syncFromPrice();
+                    sellingAmount.value = option.dataset.availableLabel || '';
+                    handleNumericInput('selling_amount');
+                    sellingAmount.focus();
                 });
                 maxValue.addEventListener('keydown', function (event) {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -242,129 +636,13 @@
                     }
                 });
             }
-            syncFromPrice();
+
+            sourceOrder = parseSourceOrder(sourceOrderInput.value);
+            if (sourceOrder.length === 0) {
+                deriveInitialSourceOrder();
+            }
+            recalculate();
+            render();
         });
     </script>
-
-    {% for error in errors %}
-        <div class="notification is-danger">{{ error }}</div>
-    {% endfor %}
-
-    {% if preview %}
-        <p class="block">
-            {% if preview.direction == 'buy' %}
-                {{ 'tools_orders_new.preview.create_buy'|trans }}
-                {{ include('token_link.twig', {token: preview.buying}, with_context = false) }}
-                {{ 'tools_orders_new.preview.for_buy'|trans }}
-                {{ include('token_link.twig', {token: preview.selling}, with_context = false) }}
-            {% else %}
-                {{ 'tools_orders_new.preview.create_sell'|trans }}
-                {{ include('token_link.twig', {token: preview.selling}, with_context = false) }}
-                {{ 'tools_orders_new.preview.for_sell'|trans }}
-                {{ include('token_link.twig', {token: preview.buying}, with_context = false) }}
-            {% endif %}
-            ({{ 'tools_orders_new.preview.price'|trans({
-                '%price%': preview.price,
-                '%reverse%': preview.reverse_price,
-            }) }})
-        </p>
-    {% endif %}
-
-    {% if signing_form %}
-        {{ signing_form|raw }}
-    {% endif %}
-
-    {% if direction %}
-    {% set form_key = 'tools_orders_new.form.' ~ direction %}
-    <form method="post" action="/tools/orders/new" data-new-order-form data-new-order-direction="{{ direction }}">
-        {% if current_account_param %}
-            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
-        {% endif %}
-        <input type="hidden" name="direction" value="{{ direction }}">
-
-        <div class="field">
-            <label class="label" for="new_order_selling">{{ (form_key ~ '.selling')|trans }}</label>
-            <div class="control">
-                <div class="select">
-                    <select id="new_order_selling" name="selling" required data-new-order-selling>
-                        {% for token in tokens %}
-                            <option
-                                value="{{ token.key|e('html_attr') }}"
-                                data-available="{{ token.available|e('html_attr') }}"
-                                data-available-label="{{ token.available_label|e('html_attr') }}"
-                                data-unlimited="{% if token.available_unlimited|default(false) %}1{% else %}0{% endif %}"
-                                {% if token.key == values.selling %}selected{% endif %}
-                                {% if token.selling_disabled %}disabled{% endif %}
-                            >
-                                {{ token.option_label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <p class="help">{{ (form_key ~ '.selling_help')|trans }}</p>
-        </div>
-
-        <div class="field">
-            <label class="label" for="new_order_buying">{{ (form_key ~ '.buying')|trans }}</label>
-            <div class="control">
-                <div class="select">
-                    <select id="new_order_buying" name="buying" required data-new-order-buying>
-                        {% for token in tokens %}
-                            <option value="{{ token.key|e('html_attr') }}" {% if token.key == values.buying %}selected{% endif %}>
-                                {{ token.display_label|default(token.code|default(token.label)) }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <p class="help">{{ (form_key ~ '.buying_help')|trans }}</p>
-        </div>
-
-        <div class="field">
-            <label class="label" for="new_order_amount">{{ 'tools_orders_new.form.amount'|trans }}</label>
-            <div class="control">
-                <input class="input" id="new_order_amount" type="text" name="amount" value="{{ values.amount|e('html_attr') }}" size="13" required data-new-order-amount>
-            </div>
-            <p class="help">{{ (form_key ~ '.amount_help')|trans }}</p>
-            <p class="help is-hidden" data-js-only>{{ 'tools_orders_new.form.amount_max'|trans }} <span class="pseudo-link" role="button" tabindex="0" data-new-order-max-value></span></p>
-        </div>
-
-        <div class="field">
-            <label class="label" for="new_order_price">{{ 'tools_orders_new.form.price'|trans }}</label>
-            <div class="control">
-                <input class="input" id="new_order_price" type="text" name="price" value="{{ values.price|e('html_attr') }}" size="13" required data-new-order-price>
-            </div>
-            <p class="help">{{ (form_key ~ '.price_help')|trans }}</p>
-        </div>
-
-        <div class="field is-hidden" data-js-only>
-            <label class="label" for="new_order_reverse">{{ 'tools_orders_new.form.reverse_price'|trans }}</label>
-            <div class="control">
-                <input class="input" id="new_order_reverse" type="text" size="13" data-new-order-reverse>
-            </div>
-            <p class="help">
-                {{ (form_key ~ '.reverse_price_help')|trans }}<br>
-                {{ 'tools_orders_new.form.reverse_price_help_extra'|trans }}
-            </p>
-        </div>
-
-        <div class="field is-hidden" data-js-only>
-            <label class="label" for="new_order_total">{{ (form_key ~ '.total')|trans }}</label>
-            <div class="control">
-                <input class="input" id="new_order_total" type="text" size="13" data-new-order-total>
-            </div>
-            <p class="help">{{ (form_key ~ '.total_help')|trans }}</p>
-        </div>
-
-        <div class="field">
-            <div class="control">
-                <button type="submit" name="action" value="save" class="button is-link" data-new-order-submit>
-                    <span class="icon"><i class="fa-regular fa-floppy-disk"></i></span>
-                    <span>{{ 'tools_orders_new.form.save'|trans }}</span>
-                </button>
-            </div>
-        </div>
-    </form>
-    {% endif %}
 {% endblock %}
