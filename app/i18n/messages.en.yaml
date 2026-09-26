@@ -868,7 +868,9 @@ mtla_page:
     rp_exclusion: Exclude from RP
 
 tools_page:
-  main: Main
+  wallet: Wallet
+  token_exchange: Token exchange
+  other: Other
   service: Service
   swap: Swap
   create_order: Create order

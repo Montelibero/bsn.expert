@@ -870,7 +870,9 @@ mtla_page:
     rp_exclusion: Исключение из РП
 
 tools_page:
-  main: Основные
+  wallet: Кошелёк
+  token_exchange: Обмен токенов
+  other: Прочее
   service: Служебные
   swap: Обмен (своп)
   create_order: Создать ордер
