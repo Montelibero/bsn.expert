@@ -41,6 +41,28 @@
     </div>
 </div>
 
+{% if show_add_trustline_form %}
+    <div class="box">
+        <h2 class="title">{{ 'token_page.add_trustline.header'|trans }}</h2>
+        {% if trustline_already_open %}
+            <p class="block">
+                {{ 'token_page.add_trustline.already_open'|trans({
+                    '%here%': '<a href="/tools/close_trustlines">' ~ ('token_page.add_trustline.here'|trans) ~ '</a>'
+                })|raw }}
+            </p>
+        {% else %}
+            <p class="block">{{ 'token_page.add_trustline.description'|trans }}</p>
+            {% if current_account %}
+                <p class="block">
+                    {{ 'token_page.add_trustline.account'|trans }}:
+                    {{ include('account_link.twig', {data: current_account}, with_context = false) }}
+                </p>
+            {% endif %}
+            {{ add_trustline_form|raw }}
+        {% endif %}
+    </div>
+{% endif %}
+
 <div class="dropdown is-hoverable is-hidden-tablet mb-4">
     <div class="dropdown-trigger">
         <button class="button is-small" type="button" aria-haspopup="true" aria-controls="token-alternative-viewers-mobile">
@@ -129,28 +151,6 @@
                 </button>
             </p>
         </div>
-    </div>
-{% endif %}
-
-{% if show_add_trustline_form %}
-    <div class="box">
-        <h2 class="title">{{ 'token_page.add_trustline.header'|trans }}</h2>
-        {% if trustline_already_open %}
-            <p class="block">
-                {{ 'token_page.add_trustline.already_open'|trans({
-                    '%here%': '<a href="/tools/close_trustlines">' ~ ('token_page.add_trustline.here'|trans) ~ '</a>'
-                })|raw }}
-            </p>
-        {% else %}
-            <p class="block">{{ 'token_page.add_trustline.description'|trans }}</p>
-            {% if current_account %}
-                <p class="block">
-                    {{ 'token_page.add_trustline.account'|trans }}:
-                    {{ include('account_link.twig', {data: current_account}, with_context = false) }}
-                </p>
-            {% endif %}
-            {{ add_trustline_form|raw }}
-        {% endif %}
     </div>
 {% endif %}
 
