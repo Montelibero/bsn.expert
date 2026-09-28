@@ -1396,6 +1396,8 @@ editor2:
     unset: снять
     set_tag: Установить тег
     unset_tag: Снять тег
+    on_account: на
+    from_account: с
     clear_tag: Очистить тег
   add_accounts:
     title: Добавить контрагентов

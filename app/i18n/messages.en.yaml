@@ -1394,6 +1394,8 @@ editor2:
     unset: remove
     set_tag: Set tag
     unset_tag: Remove tag
+    on_account: on
+    from_account: from
     clear_tag: Clear tag
   add_accounts:
     title: Add counterparties

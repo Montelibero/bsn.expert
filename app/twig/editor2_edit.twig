@@ -42,7 +42,23 @@
     {% if transaction_summary.report %}
         <p class="has-text-weight-semibold mb-2">{{ 'editor2.transaction_report.title'|trans }}</p>
 
-        {% if transaction_summary.report.mode == 'accounts' %}
+        {% if transaction_summary.report.accounts|length == 1
+            and transaction_summary.report.clear_tags is empty
+            and (transaction_summary.report.accounts[0].add|length + transaction_summary.report.accounts[0].remove|length) == 1 %}
+            {% set item = transaction_summary.report.accounts[0] %}
+            <p class="block">
+                {% if item.add %}
+                    {{ 'editor2.transaction_report.set_tag'|trans }}
+                    <span class="tag is-info">{{ item.add[0] }}</span>
+                    {{ 'editor2.transaction_report.on_account'|trans }}
+                {% else %}
+                    {{ 'editor2.transaction_report.unset_tag'|trans }}
+                    <span class="tag is-info">{{ item.remove[0] }}</span>
+                    {{ 'editor2.transaction_report.from_account'|trans }}
+                {% endif %}
+                {{ include('account_link.twig', {data: item.account}, with_context = false) }}
+            </p>
+        {% elseif transaction_summary.report.mode == 'accounts' %}
             {% for item in transaction_summary.report.accounts %}
                 <p class="block">
                     {{ include('account_link.twig', {data: item.account}, with_context = false) }}:
