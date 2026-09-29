@@ -23,7 +23,7 @@ use Throwable;
 class MtlaProgramReportService
 {
     private const MTLA_ACCOUNT = MtlaController::MTLA_ACCOUNT;
-    private const CACHE_KEY_PREFIX = 'mtla_dm_report_snapshot:v5';
+    private const CACHE_KEY_PREFIX = 'mtla_dm_report_snapshot:v6';
     private const CACHE_TTL = 604800;
     private const LOOKBACK_DAYS = 90;
     private const ACTIVIST_MIN_MTLAP = 4;
@@ -663,8 +663,16 @@ class MtlaProgramReportService
         }
 
         $asset_key = $this->makeAssetKey($asset['code'], $asset['issuer']);
-        if ($asset_key === null || $to !== $asset['issuer']) {
+        if ($asset_key === null) {
             return null;
+        }
+
+        if ($to !== $asset['issuer']) {
+            $Recipient = $this->BSN->getAccountById($to);
+            $time_token = $Recipient ? $this->resolveTimeToken($Recipient) : null;
+            if (($time_token['asset_key'] ?? null) !== $asset_key) {
+                return null;
+            }
         }
 
         return [

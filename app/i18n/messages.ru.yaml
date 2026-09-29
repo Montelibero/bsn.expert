@@ -1011,7 +1011,7 @@ mtla_program_page:
     missing_timetoken: Активист не описал свои ТТ
     no_incoming: Активист не присылал свои ТТ в MTLA
     low_incoming: Пришло меньше %amount% ТТ
-    no_program_outgoing: Со счёта программы не сжигались ТТ
+    no_program_outgoing: Со счёта программы не отправлялись ТТ эмитенту или владельцу
     ideal: Всё отлично
   trustlines:
     title: Открыть недостающие линии доверия к ТТ участников

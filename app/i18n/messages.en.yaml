@@ -1009,7 +1009,7 @@ mtla_program_page:
     missing_timetoken: Activist did not describe their TT
     no_incoming: Activist did not send their TT to MTLA
     low_incoming: Less than %amount% TT arrived
-    no_program_outgoing: No TT were burned from the program account
+    no_program_outgoing: No TT were sent from the program account to the issuer or owner
     ideal: Everything is OK
   trustlines:
     title: Open missing trustlines to participants' TT
