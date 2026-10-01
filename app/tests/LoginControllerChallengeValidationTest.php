@@ -1,11 +1,13 @@
 <?php
 declare(strict_types=1);
 
+use GuzzleHttp\Psr7\Response;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\Controllers\LoginController;
 use Montelibero\BSN\RequestSession;
 use phpseclib3\Math\BigInteger;
 use Soneso\StellarSDK\Crypto\KeyPair;
+use Soneso\StellarSDK\Exceptions\HorizonRequestException;
 use Soneso\StellarSDK\ManageDataOperation;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\Memo;
@@ -57,13 +59,25 @@ final class ChallengeMemcached extends Memcached
 
 final class ChallengeStellarSDK extends StellarSDK
 {
-    public function __construct(private readonly AccountResponse $AccountResponse)
+    public int $requestAttempts = 0;
+
+    public function __construct(private readonly ?AccountResponse $AccountResponse)
     {
         parent::__construct('http://127.0.0.1');
     }
 
     public function requestAccount(string $accountId): AccountResponse
     {
+        $this->requestAttempts++;
+        if ($this->AccountResponse === null) {
+            throw HorizonRequestException::fromOtherException(
+                'https://horizon.stellar.org/accounts/' . $accountId,
+                'GET',
+                new RuntimeException('Resource Missing'),
+                new Response(404)
+            );
+        }
+
         return $this->AccountResponse;
     }
 }
@@ -312,6 +326,27 @@ assertChallengeValidation(
     'The SEP-07 challenge must start with the replaceable server source.'
 );
 assertChallengeValidation(1, count($BuiltSep07Transaction->getSignatures()), 'The SEP-07 challenge must retain its server signature.');
+assertChallengeValidation(
+    false,
+    $Matches->invoke($Controller, $BuiltSep07Transaction, $BuiltSep07['data'], 'sep07'),
+    'SEP-07 must reject the unchanged server-signed challenge.'
+);
+
+$Memcached = new ChallengeMemcached([
+    'login_nonce_' . $BuiltSep07['nonce'] => $BuiltSep07['data'],
+    'login_nonce_' . $BuiltManual['nonce'] => $BuiltManual['data'],
+]);
+$ControllerReflection->getProperty('Memcached')->setValue($Controller, $Memcached);
+$MissingServerAccount = new ChallengeStellarSDK(null);
+$ControllerReflection->getProperty('Stellar')->setValue($Controller, $MissingServerAccount);
+$Verify = $ControllerReflection->getMethod('verifyLoginChallenge');
+$UnchangedResult = $Verify->invoke($Controller, $BuiltSep07['xdr'], 'sep07');
+assertChallengeValidation(
+    'invalid_challenge',
+    $UnchangedResult['status'],
+    'The server signature alone must not authenticate its own account.'
+);
+assertChallengeValidation(0, $MissingServerAccount->requestAttempts, 'The rejected challenge must not query Horizon.');
 
 $AccountResponse = AccountResponse::fromJson([
     'account_id' => $ClientKeypair->getAccountId(),
@@ -327,13 +362,24 @@ $AccountResponse = AccountResponse::fromJson([
         'weight' => 1,
     ]],
 ]);
-$Memcached = new ChallengeMemcached([
-    'login_nonce_' . $BuiltManual['nonce'] => $BuiltManual['data'],
-]);
-$ControllerReflection->getProperty('Memcached')->setValue($Controller, $Memcached);
 $ControllerReflection->getProperty('Stellar')->setValue($Controller, new ChallengeStellarSDK($AccountResponse));
+$ClientSep07 = new Transaction(
+    MuxedAccount::fromAccountId($ClientKeypair->getAccountId()),
+    new BigInteger(42),
+    $BuiltSep07Transaction->getOperations(),
+    $BuiltSep07Transaction->getMemo(),
+    $BuiltSep07Transaction->getPreconditions(),
+    $BuiltSep07Transaction->getFee(),
+);
+$ClientSep07->sign($ClientKeypair, Network::public());
+$Sep07Result = $Verify->invoke($Controller, $ClientSep07->toEnvelopeXdrBase64(), 'sep07');
+assertChallengeValidation('OK', $Sep07Result['status'], 'A client-signed SEP-07 challenge must authenticate.');
+assertChallengeValidation(
+    $ClientKeypair->getAccountId(),
+    $Sep07Result['account_id'],
+    'SEP-07 must authenticate the replacement source account.'
+);
 $BuiltTransaction->sign($ClientKeypair, Network::public());
-$Verify = $ControllerReflection->getMethod('verifyLoginChallenge');
 $ManualResult = $Verify->invoke($Controller, $BuiltTransaction->toEnvelopeXdrBase64(), 'manual');
 assertChallengeValidation('OK', $ManualResult['status'], 'The shared verifier must accept the manual challenge in its browser session.');
 assertChallengeValidation(

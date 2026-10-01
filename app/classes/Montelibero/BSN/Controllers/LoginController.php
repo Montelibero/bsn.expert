@@ -347,6 +347,10 @@ class LoginController
         if ($mode !== self::MODE_SEP07) {
             return false;
         }
+        if ($Submitted->getSourceAccount()->getAccountId() === $Expected->getSourceAccount()->getAccountId()) {
+            // The original challenge already carries a valid server signature.
+            return false;
+        }
 
         try {
             // SEP-07 replacement may update these three fields. Signatures are
