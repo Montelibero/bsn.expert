@@ -1352,6 +1352,7 @@ editor_profile:
   signing_notice: Транзакция подготовлена по свежим данным аккаунта из блокчейна.
   errors:
     value_too_long: "Строка %row% в %tag% занимает %bytes% байт из %limit%."
+    website_url_invalid: "В строке %row% поля Website нужен полный URL с http:// или https://."
     key_too_long: "Для строки %row% в %tag% получается слишком длинное имя DATA."
     too_many_operations: Слишком много изменений для одной транзакции. Сохраните часть изменений отдельно.
     protected_key_conflict: "DATA %key% уже используется в формате, который редактор профиля не обрабатывает. Этот ключ не будет перезаписан."

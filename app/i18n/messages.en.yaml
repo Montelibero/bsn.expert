@@ -1350,6 +1350,7 @@ editor_profile:
   signing_notice: The transaction was prepared against fresh account data from the blockchain.
   errors:
     value_too_long: "Row %row% in %tag% uses %bytes% bytes out of %limit%."
+    website_url_invalid: "Row %row% in Website must contain a full http:// or https:// URL."
     key_too_long: "Row %row% in %tag% produces a DATA name that is too long."
     too_many_operations: Too many changes for one transaction. Save part of the changes separately.
     protected_key_conflict: "DATA %key% is already used in a format the profile editor does not handle. This key will not be overwritten."

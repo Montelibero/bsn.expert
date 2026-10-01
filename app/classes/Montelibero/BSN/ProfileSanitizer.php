@@ -2,6 +2,8 @@
 
 namespace Montelibero\BSN;
 
+use League\Uri\Exceptions\SyntaxError;
+use League\Uri\Http;
 use Normalizer;
 use Spoofchecker;
 use Throwable;
@@ -66,9 +68,29 @@ final class ProfileSanitizer
 
     public static function sanitizeWebsite(string $value): string
     {
-        return self::removeUnsafePercentEncodedCodepoints(
+        $value = self::removeUnsafePercentEncodedCodepoints(
             self::sanitizeText($value, self::MAX_WEBSITE_GRAPHEMES)
         );
+
+        return self::normalizeWebsiteUrl($value) === null ? '' : $value;
+    }
+
+    public static function normalizeWebsiteUrl(string $url): ?string
+    {
+        if (!preg_match('~\Ahttps?://~i', $url)) {
+            return null;
+        }
+
+        try {
+            $uri = Http::new($url);
+            if (!in_array(strtolower((string) $uri->getScheme()), ['http', 'https'], true) || !$uri->getHost()) {
+                return null;
+            }
+
+            return (string) $uri;
+        } catch (SyntaxError) {
+            return null;
+        }
     }
 
     public static function sanitizeWebsiteDisplay(string $value): string

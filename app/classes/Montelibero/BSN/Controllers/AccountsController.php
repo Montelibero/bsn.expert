@@ -3,14 +3,13 @@
 namespace Montelibero\BSN\Controllers;
 
 use DI\Container;
-use League\Uri\Exceptions\SyntaxError;
-use League\Uri\Http;
 use Montelibero\BSN\Account;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\KnownTagsCatalog;
 use Montelibero\BSN\MongoCacheManager;
+use Montelibero\BSN\ProfileSanitizer;
 use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\Tag;
@@ -72,26 +71,7 @@ class AccountsController implements RefreshDataCodeInterface
      */
     public static function normalizeURL(string $url): ?string
     {
-        try {
-            // Пробуем создать объект URL из строки
-            $uri = Http::new($url);
-//            var_dump($uri);
-
-            // Проверяем, содержит ли URL хотя бы хост
-            if (!$uri->getHost()) {
-                return null;
-            }
-
-            // Нормализуем URL (например, добавляем протокол, если отсутствует)
-            if (!$uri->getScheme()) {
-                $uri = $uri->withScheme('http');
-            }
-
-            return $uri->__toString();
-        } catch (SyntaxError $e) {
-            // Возвращаем null для некорректных ссылок
-            return null;
-        }
+        return ProfileSanitizer::normalizeWebsiteUrl($url);
     }
 
     public function getAdopters(): array

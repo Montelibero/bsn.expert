@@ -5,6 +5,7 @@ namespace Montelibero\BSN\Controllers;
 use DI\Container;
 use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\ProfileSanitizer;
 use Pecee\SimpleRouter\SimpleRouter;
 use Soneso\StellarSDK\ManageDataOperationBuilder;
 use Soneso\StellarSDK\Memo;
@@ -243,6 +244,12 @@ class ProfileEditorController
                         '%row%' => (string) ($index + 1),
                         '%bytes%' => (string) $bytes,
                         '%limit%' => (string) self::MAX_DATA_VALUE_BYTES,
+                    ]);
+                }
+
+                if ($tag_name === 'Website' && ProfileSanitizer::normalizeWebsiteUrl((string) $value) === null) {
+                    $errors[] = $this->Translator->trans('editor_profile.errors.website_url_invalid', [
+                        '%row%' => (string) ($index + 1),
                     ]);
                 }
 
