@@ -4,6 +4,7 @@ namespace Montelibero\BSN;
 
 use Montelibero\BSN\Relations\Known;
 use Montelibero\BSN\Relations\Member;
+use Soneso\StellarSDK\Crypto\StrKey;
 
 class BSN
 {
@@ -533,11 +534,15 @@ class BSN
 
     public static function validateStellarAccountIdFormat(?string $account_id): bool
     {
-        if (!$account_id) {
+        if (!$account_id || !preg_match('/\AG[A-Z2-7]{55}\z/', $account_id)) {
             return false;
         }
 
-        return preg_match('/\AG[A-Z2-7]{55}\Z/', $account_id);
+        try {
+            return strlen(StrKey::decodeAccountId($account_id)) === 32;
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
     }
 
     public static function validateTagNameFormat(?string $name): bool
@@ -555,7 +560,7 @@ class BSN
             return false;
         }
 
-        return preg_match('/^[a-z0-9]{1,12}}?$/i', $name);
+        return preg_match('/\A[a-z0-9]{1,12}\z/i', $name);
     }
 
     public static function validateTransactionHashFormat(?string $hash): bool

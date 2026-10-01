@@ -262,10 +262,10 @@
             }) }}</p>
     {% endif %}
     <p class="block">{{ 'tools_percent_pay.calculation.description'|trans({
-            '%asset_code%': asset_code,
-            '%asset_issuer%': asset_issuer,
-            '%payment_token_code%': payment_token.code,
-            '%payment_token_issuer%': payment_token.issuer,
+            '%asset_code%': asset_code|e('html'),
+            '%asset_issuer%': asset_issuer|e('html'),
+            '%payment_token_code%': payment_token.code|e('html'),
+            '%payment_token_issuer%': payment_token.issuer|e('html'),
         })|raw }}</p>
     <table class="table" id="holders" data-sortlist="[[1,1]]">
         <thead>

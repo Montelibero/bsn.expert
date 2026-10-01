@@ -44,7 +44,7 @@ class PercentPayController
             $asset_issuer = null;
         }
         $asset_code = $_GET['asset_code'] ?? null;
-        if ($asset_code && !preg_match('/[0-1a-zA-Z]{1,12}/', $asset_code)) {
+        if (!is_string($asset_code) || !BSN::validateTokenNameFormat($asset_code)) {
             $asset_code = null;
         }
         $calc_mode = $_GET['calc_mode'] ?? 'percent';
@@ -92,11 +92,11 @@ class PercentPayController
             ],
         ];
         $payment_token = $payment_token_options[0];
-        if ($_GET['payment_token'] ?? null) {
+        if (is_string($_GET['payment_token'] ?? null) && $_GET['payment_token'] !== '') {
             $pt_code = $_GET['payment_token'];
             $pt_issuer = null;
             if (str_contains($_GET['payment_token'], "-")) {
-                [$pt_code, $pt_issuer] = explode('-', $_GET['payment_token']);
+                [$pt_code, $pt_issuer] = explode('-', $_GET['payment_token'], 2);
             }
             if ($this->BSN::validateTokenNameFormat($pt_code)) {
                 if (
@@ -105,12 +105,12 @@ class PercentPayController
                 ) {
                     $pt_issuer = $pt['issuer'];
                 }
-            }
-            if ($pt_code && $pt_issuer) {
-                $payment_token = [
-                    'code' => $pt_code,
-                    'issuer' => $pt_issuer,
-                ];
+                if (is_string($pt_issuer) && BSN::validateStellarAccountIdFormat($pt_issuer)) {
+                    $payment_token = [
+                        'code' => $pt_code,
+                        'issuer' => $pt_issuer,
+                    ];
+                }
             }
         }
         foreach ($payment_token_options as $pt_option) {
