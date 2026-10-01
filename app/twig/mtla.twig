@@ -33,19 +33,21 @@
                 </aside>
             </section>
         </div>
-        {% if current_user.isImpactActivist %}
+        {% if current_user.memberLevel >= 1 %}
             <div class="column is-half">
                 <section class="box">
                     <h2 class="title is-5">{{ 'mtla_page.actions.title'|trans }}</h2>
                     <aside class="menu">
                         <ul class="menu-list">
                             <li><a href="/tools/mtla/votes">{{ 'nav.tools.mtla_votes'|trans }}</a></li>
-                            <li><a href="/tools/mtla/membership_distribution">{{ 'mtla_page.actions.membership_distribution'|trans }}</a></li>
-                            <li><a href="/tools/mtla/decision_transactions">{{ 'mtla_page.actions.decision_transactions'|trans }}</a></li>
-                            <li><a href="/tools/mtla/send_time_tokens">{{ 'mtla_page.actions.send_time_tokens'|trans }}</a></li>
-                            <li><a href="/tools/mtla/rp_exclusion">{{ 'mtla_page.actions.rp_exclusion'|trans }}</a></li>
-                            <li><a href="/tools/mtla/recommend_verification">{{ 'recommend_verification_page.title'|trans }}</a></li>
-                            <li><a href="/mtla/dm_report">{{ 'nav.tools.mtla_dm_report'|trans }}</a></li>
+                            {% if current_user.isImpactActivist %}
+                                <li><a href="/tools/mtla/membership_distribution">{{ 'mtla_page.actions.membership_distribution'|trans }}</a></li>
+                                <li><a href="/tools/mtla/decision_transactions">{{ 'mtla_page.actions.decision_transactions'|trans }}</a></li>
+                                <li><a href="/tools/mtla/send_time_tokens">{{ 'mtla_page.actions.send_time_tokens'|trans }}</a></li>
+                                <li><a href="/tools/mtla/rp_exclusion">{{ 'mtla_page.actions.rp_exclusion'|trans }}</a></li>
+                                <li><a href="/tools/mtla/recommend_verification">{{ 'recommend_verification_page.title'|trans }}</a></li>
+                                <li><a href="/mtla/dm_report">{{ 'nav.tools.mtla_dm_report'|trans }}</a></li>
+                            {% endif %}
                         </ul>
                     </aside>
                 </section>

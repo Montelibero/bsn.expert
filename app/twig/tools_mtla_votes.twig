@@ -26,6 +26,9 @@
 {% block content %}
     <h1 class="title">{{ 'mtla_votes_page.title'|trans }}</h1>
 
+    {% if access_denied|default(false) %}
+        <div class="notification is-warning">{{ 'mtla_votes_page.members_only'|trans }}</div>
+    {% else %}
     {% if error %}
         <div class="notification is-danger">
             {{ error|e|nl2br }}
@@ -128,4 +131,5 @@
             </div>
         </div>
     </form>
+    {% endif %}
 {% endblock %}

@@ -5,6 +5,8 @@ namespace Montelibero\BSN\Controllers;
 use DateTimeImmutable;
 use Exception;
 use Montelibero\BSN\BSN;
+use Montelibero\BSN\CurrentUser;
+use Pecee\SimpleRouter\SimpleRouter;
 use RuntimeException;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
@@ -18,16 +20,23 @@ class VotesController
     private BSN $BSN;
     private Environment $Twig;
     private Translator $Translator;
+    private CurrentUser $CurrentUser;
 
-    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator)
+    public function __construct(BSN $BSN, Environment $Twig, Translator $Translator, CurrentUser $CurrentUser)
     {
         $this->BSN = $BSN;
         $this->Twig = $Twig;
         $this->Translator = $Translator;
+        $this->CurrentUser = $CurrentUser;
     }
 
     public function MtlaVotes(): string
     {
+        if ($this->CurrentUser->getMemberLevel() < 1) {
+            SimpleRouter::response()->httpCode(403);
+            return $this->Twig->render('tools_mtla_votes.twig', ['access_denied' => true]);
+        }
+
         $links_input = '';
         $error = '';
         $summary = null;

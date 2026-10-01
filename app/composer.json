@@ -54,6 +54,7 @@
       "php tests/TokenLabelFormatterTest.php",
       "php tests/TokenLinkMetadataTest.php",
       "php tests/ProfileWebsiteUrlTest.php",
+      "php tests/MtlaVotesAccessTest.php",
       "php tests/PercentPaySecurityTest.php",
       "php tests/MtlaProgramOutgoingPaymentTest.php",
       "php tests/AssetSwapTokensTest.php",

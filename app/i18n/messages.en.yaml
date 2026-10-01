@@ -705,6 +705,7 @@ recommend_verification_page:
 
 mtla_votes_page:
   title: MTLA Votes
+  members_only: This tool is available only to authenticated Association members.
   no_date: no date
   no_title: untitled
   empty: None found.
