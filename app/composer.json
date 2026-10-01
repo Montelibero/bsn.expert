@@ -15,7 +15,7 @@
     "twig/twig": "^3.10",
     "pecee/simple-router": "^5.4",
     "guzzlehttp/guzzle": "^7.12.1",
-    "phpseclib/phpseclib": "^3.0.54",
+    "phpseclib/phpseclib": "^3.0.57",
     "soneso/stellar-php-sdk": "^1.7.1",
     "splitbrain/php-qrcode": "^0.1.0",
     "league/uri": "^7.4",
