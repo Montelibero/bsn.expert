@@ -43,9 +43,7 @@
     {% endif %}
 
     <form action="/tools/multisig" method="post">
-        {% if current_account_param %}
-            <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
-        {% endif %}
+        <input type="hidden" name="current_account" value="{{ account_id|e('html_attr') }}">
 
         <h2 class="title is-4">{{ 'tools_multisig.thresholds.title'|trans }}</h2>
         <p class="block">{{ 'tools_multisig.thresholds.description'|trans }}</p>

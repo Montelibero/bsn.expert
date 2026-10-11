@@ -1145,6 +1145,7 @@ tools_multisig:
     calculate: Create transaction
   errors:
     title: Errors found
+    account_context_required: The account for the submitted form could not be determined. Reopen the multisig editor, check the selected account and enter your changes again.
     wrong_low_threshold: The low threshold must be a normal number from 0 to 255
     low_threshold_more_than_med_threshold: The low threshold cannot be greater than the medium threshold
     wrong_med_threshold: The medium threshold must be a normal number from 0 to 255
@@ -1155,7 +1156,7 @@ tools_multisig:
     wrong_signer_account: The signer account is not a valid Stellar address
     wrong_signer_weight: The signer weight must be a normal number from 0 (removed) to 255
     doubled_signer_account: The signer account is duplicated
-    impossible_to_collect_signers: The sum of the weights of all signers is not enough to overcome the high threshold
+    impossible_to_collect_signers: The high threshold must be reachable with at most 20 signatures. At least one key must have a positive weight, even when thresholds are zero.
     no_changes_to_save: No changes to save
 
 tools_timetoken:

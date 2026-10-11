@@ -51,6 +51,14 @@ class MultisigController
 
     public function Multisig(): ?string
     {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+            $posted_account_id = $_POST['current_account'] ?? null;
+            if (!is_string($posted_account_id) || !BSN::validateStellarAccountIdFormat($posted_account_id)) {
+                SimpleRouter::response()->httpCode(400);
+                return $this->Translator->trans('tools_multisig.errors.account_context_required');
+            }
+        }
+
         if (isset($_GET['account']) && !isset($_GET['current_account'])) {
             $legacy_account_id = strtoupper(trim((string) $_GET['account']));
             if (BSN::validateStellarAccountIdFormat($legacy_account_id)) {
@@ -75,7 +83,7 @@ class MultisigController
 
         $Account = $this->Stellar->requestAccount($account_id);
 
-        $multisig = [];
+        $multisig = [0 => ['account' => $account_id, 'weight' => 0]];
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['weight_0'])) {
             $multisig[0] = ['account' => $account_id, 'weight' => $_POST['weight_0']];
             for ($i = 1; $i <= 20; $i++) {
@@ -172,7 +180,7 @@ class MultisigController
                         );
                 }
                 if (!empty($_POST['account_' . $i]) && BSN::validateStellarAccountIdFormat($_POST['account_' . $i])) {
-                    if (array_key_exists($_POST['account_' . $i], $signers)) {
+                    if ($_POST['account_' . $i] === $account_id || array_key_exists($_POST['account_' . $i], $signers)) {
                         $errors[] = $item_name
                             . ': '
                             . $this->Translator->trans(
@@ -184,11 +192,12 @@ class MultisigController
                 }
             }
             // Possibility to collect signers
-            $weight_sum = (int) $_POST['weight_0'];
-            foreach ($signers as $weight) {
-                $weight_sum += (int) $weight;
-            }
-            if ($weight_sum < $_POST['high_threshold']) {
+            // A transaction can carry at most 20 signatures, including the master key.
+            $weights = array_merge([(int) $_POST['weight_0']], array_map('intval', $signers));
+            rsort($weights, SORT_NUMERIC);
+            $weight_sum = array_sum(array_slice($weights, 0, 20));
+            // Even a zero threshold requires an enabled signer.
+            if ($weight_sum < max(1, (int) $_POST['high_threshold'])) {
                 $errors[] = $this->Translator->trans(
                     'tools_multisig.errors.impossible_to_collect_signers'
                 );
@@ -196,7 +205,7 @@ class MultisigController
 
             // Transaction
             if (!$errors) {
-                $StellarAccount = $this->Stellar->requestAccount($account_id);
+                $StellarAccount = $Account;
                 $Transaction = new TransactionBuilder($StellarAccount);
                 $Transaction->setMaxOperationFee(10000);
                 $operations = [];
@@ -242,15 +251,15 @@ class MultisigController
                     return $SetOptions;
                 };
                 // Removes
-                foreach ($current_signers as $account_id => $weight) {
-                    if (!array_key_exists($account_id, $signers)) {
-                        $operations[] = $make_signer_operation($account_id, 0)->build();
+                foreach ($current_signers as $signer_account_id => $weight) {
+                    if (!array_key_exists($signer_account_id, $signers)) {
+                        $operations[] = $make_signer_operation($signer_account_id, 0)->build();
                     }
                 }
                 // Add & updates
-                foreach ($signers as $account_id => $weight) {
-                    if (!array_key_exists($account_id, $current_signers) || (int) $current_signers[$account_id] !== (int) $weight) {
-                        $operations[] = $make_signer_operation($account_id, (int) $weight)->build();
+                foreach ($signers as $signer_account_id => $weight) {
+                    if (!array_key_exists($signer_account_id, $current_signers) || (int) $current_signers[$signer_account_id] !== (int) $weight) {
+                        $operations[] = $make_signer_operation($signer_account_id, (int) $weight)->build();
                     }
                 }
                 if ($operations) {
@@ -270,7 +279,6 @@ class MultisigController
         return $this->Twig->render('tools_multisig.twig', [
             'account' => $this->CurrentContacts->serialize($this->BSN->makeAccountById($account_id)),
             'account_id' => $account_id,
-            'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'current_multisig' => $this->buildMultisigSummaryFromHorizon($Account),
             'signer_reserve_xlm' => $this->baseReserveHint(),
             'low_threshold' => $_POST['low_threshold'] ?? $Account?->getThresholds()?->getLowThreshold(),

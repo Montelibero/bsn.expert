@@ -64,6 +64,7 @@
       "php tests/OpenTrustlinesTransactionBuilderTest.php",
       "php tests/OpenTrustlinesControllerValidationTest.php",
       "php tests/OrdersControllerNewOrderTest.php",
+      "php tests/MultisigControllerTest.php",
       "php tests/TransactionConsolidatorTest.php"
     ],
     "test:session": [
