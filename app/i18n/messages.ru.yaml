@@ -2002,6 +2002,11 @@ eurmtl_report2_page:
 crowd_page:
   title: Сборы
   header: Сборы проектов
+  platform_notice:
+    title: Основная платформа сборов теперь на crowd.mtla.me
+    description: Эта версия сборов больше не совместима с актуальной платформой.
+    index_action: Открыть сборы на crowd.mtla.me
+    project_action: Открыть этот сбор на crowd.mtla.me
   warning: Данные загружены не полностью.
   empty: Проекты не найдены.
   supporters: "Участников: %cnt%"

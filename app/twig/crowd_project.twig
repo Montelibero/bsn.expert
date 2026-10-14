@@ -55,6 +55,8 @@
         </div>
     </div>
 
+    {% include 'crowd_platform_notice.twig' with {project_code: project.code} only %}
+
     {% if can_manage %}
         <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-4">
             {% if admin_actions.primary %}

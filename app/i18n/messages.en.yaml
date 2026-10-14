@@ -2000,6 +2000,11 @@ eurmtl_report2_page:
 crowd_page:
   title: Crowd
   header: Project Crowdfunding
+  platform_notice:
+    title: The main crowdfunding platform is now at crowd.mtla.me
+    description: This version is no longer compatible with the current platform.
+    index_action: Open campaigns on crowd.mtla.me
+    project_action: Open this campaign on crowd.mtla.me
   warning: Data was loaded partially.
   empty: No projects found.
   supporters: "Supporters: %cnt%"

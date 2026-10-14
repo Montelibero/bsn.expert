@@ -1,0 +1,12 @@
+{% set external_url = project_code is defined
+    ? 'https://crowd.mtla.me/' ~ (project_code|lower|url_encode)
+    : 'https://crowd.mtla.me/' %}
+<section class="hero is-warning mb-5">
+    <div class="hero-body">
+        <h2 class="title is-4">{{ 'crowd_page.platform_notice.title'|trans }}</h2>
+        <p class="block">{{ 'crowd_page.platform_notice.description'|trans }}</p>
+        <a class="button is-dark" href="{{ external_url }}">
+            {{ (project_code is defined ? 'crowd_page.platform_notice.project_action' : 'crowd_page.platform_notice.index_action')|trans }}
+        </a>
+    </div>
+</section>

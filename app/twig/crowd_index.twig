@@ -62,6 +62,8 @@
         {% endif %}
     </div>
 
+    {% include 'crowd_platform_notice.twig' only %}
+
     {% if snapshot.warning %}
         <div class="notification is-warning">
             {{ 'crowd_page.warning'|trans }}<br>
