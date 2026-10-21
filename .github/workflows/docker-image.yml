@@ -84,6 +84,7 @@ jobs:
           target: prod
           load: true
           push: false
+          pull: true
           tags: bsn-viewer:route-smoke
           cache-from: type=gha,scope=bsn-app
           cache-to: type=gha,scope=bsn-app,mode=max
@@ -264,6 +265,7 @@ jobs:
           file: app/Dockerfile
           target: prod
           push: true
+          pull: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_APP_NAME }}:latest
           labels: |
             org.opencontainers.image.source=${{ env.OCI_SOURCE }}

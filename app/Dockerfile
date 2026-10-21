@@ -17,6 +17,9 @@ RUN npm run fa_build
 
 FROM dunglas/frankenphp:1-php8.5-bookworm AS base
 
+# Require the fixes for CVE-2026-109618 and CVE-2026-109619.
+RUN php -v && php -r 'exit(PHP_VERSION_ID >= 80512 ? 0 : 1);'
+
 WORKDIR /var/www/html
 
 RUN apt-get update \
