@@ -20,6 +20,9 @@
       "category": "reputation",
       "standard": true
     },
+    "BlackList": {
+      "category": "mtla"
+    },
     "C": {
       "category": "reputation",
       "standard": true

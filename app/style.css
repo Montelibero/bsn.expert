@@ -73,6 +73,26 @@
 }
 
 /* Tokens */
+.swap-form {
+    max-width: 48rem;
+}
+
+.swap-side,
+.swap-side .select select {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.swap-recipient summary {
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+
+.swap-slippage {
+    width: 7rem;
+    max-width: 100%;
+}
+
 .token-tag-link {
     align-items: stretch;
 }
