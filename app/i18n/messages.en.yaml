@@ -993,6 +993,7 @@ mtla_program_page:
   open_account: Open account page
   account: Account
   coordinator: Coordinator
+  balance: Balance
   participants:
     title: Program participants
     subtitle: Data for the last 90 days.
@@ -1004,7 +1005,8 @@ mtla_program_page:
       incoming: Sent to MTLA
       status: Status
       outgoing: Left the program
-      send: Send
+      send: Send TT
+      send_labr: Send LABR
   status:
     missing_program_trustline: Missing trustline to TT
     missing_timetoken: Activist did not describe their TT
@@ -1016,8 +1018,8 @@ mtla_program_page:
     title: Open missing trustlines to participants' TT
     tokens: "Add tokens:"
   payments:
-    title: Send timetokens to program participants
-    submit: Send timetokens to participants
+    title: Send tokens to program participants
+    submit: Send tokens to participants
     errors:
       expired_form: This form has expired. Refresh the page and try again.
       no_payments: Enter an amount for at least one participant.
@@ -1030,7 +1032,7 @@ mtla_program_page:
       recipient_not_authorized: "%account% cannot receive %token% through this trustline."
       recipient_limit: "%account% cannot receive this amount of %token%."
       insufficient_balance: "The program account does not have enough %token%: %required% required, %available% available."
-      transaction_failed: Could not prepare the timetoken payment transaction.
+      transaction_failed: Could not prepare the token payment transaction.
 
 mtla_snapshot_box:
   empty: "—"

@@ -263,6 +263,21 @@ class MtlaProgramReportService
         return $items;
     }
 
+    public function buildProgramLabrReport(string $program_id, array $snapshot): array
+    {
+        $token = $this->TokensController->getKnownTokenByCode('LABR');
+        $trustlines = $snapshot['program_trustlines'][$program_id] ?? null;
+
+        return [
+            'code' => 'LABR',
+            'issuer' => $token['issuer'] ?? null,
+            'is_known' => $token !== null,
+            'balance' => $token !== null && $trustlines !== null
+                ? ($trustlines['LABR-' . $token['issuer']]['amount'] ?? null)
+                : null,
+        ];
+    }
+
     public function buildProgramParticipantReport(array $program, array $snapshot): array
     {
         $program_id = $program['data']['id'];
@@ -284,6 +299,7 @@ class MtlaProgramReportService
                 'program_tt_balance' => $asset_key && $has_program_trustline
                     ? (float) ($snapshot['program_trustlines'][$program_id][$asset_key]['amount'] ?? 0.0)
                     : null,
+                'has_labr_trustline' => array_key_exists('LABR', $Participant->getBalances()),
                 'incoming_tt_90d' => $incoming_tt,
                 'program_outgoing_tt_90d' => $program_outgoing_tt,
                 'status' => $status,

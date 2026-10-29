@@ -600,6 +600,7 @@ class MtlaController implements RefreshDataCodeInterface
         $participants = [];
         $trustline_action = null;
         $payment_action = null;
+        $program_labr = null;
 
         if ($program !== null) {
             $can_refresh = $this->ReportService->canRefreshSnapshot();
@@ -613,8 +614,9 @@ class MtlaController implements RefreshDataCodeInterface
                 $force_refresh
             );
             $participants = $this->ReportService->buildProgramParticipantReport($program, $snapshot);
+            $program_labr = $this->ReportService->buildProgramLabrReport($account_id, $snapshot);
             $trustline_action = $this->buildProgramTrustlineAction($program, $participants);
-            $payment_action = $this->buildProgramPaymentAction($program, $participants);
+            $payment_action = $this->buildProgramPaymentAction($program, $participants, $program_labr);
             $refresh = $this->buildRefreshDataContext($refresh_scope, $can_refresh);
             $refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
 
@@ -637,6 +639,7 @@ class MtlaController implements RefreshDataCodeInterface
             'min_required_tt' => $this->ReportService->getMinRequiredTt(),
             'trustline_action' => $trustline_action,
             'payment_action' => $payment_action,
+            'program_labr' => $program_labr,
         ]);
     }
 
@@ -723,10 +726,6 @@ class MtlaController implements RefreshDataCodeInterface
 
     private function isCurrentUserProgramCoordinator(array $program): bool
     {
-        if (!$this->CurrentUser->isAuthorized()) {
-            return false;
-        }
-
         $current_account_id = $this->CurrentUser->getCurrentAccountId();
         if (!$current_account_id) {
             return false;
@@ -737,11 +736,11 @@ class MtlaController implements RefreshDataCodeInterface
     }
 
     /**
-     * Build the context for sending the participants' own time tokens from the program account.
+     * Build the context for sending participants' time tokens and LABR from the program account.
      *
      * @param list<array> $participants
      */
-    private function buildProgramPaymentAction(array $program, array $participants): ?array
+    private function buildProgramPaymentAction(array $program, array $participants, array $labr): ?array
     {
         if (!$this->isCurrentUserProgramCoordinator($program) || $participants === []) {
             return null;
@@ -753,6 +752,7 @@ class MtlaController implements RefreshDataCodeInterface
         $action = [
             'csrf_token' => $csrf_token,
             'amounts' => [],
+            'labr_amounts' => [],
             'errors' => [],
             'signing_form' => null,
         ];
@@ -770,7 +770,10 @@ class MtlaController implements RefreshDataCodeInterface
             return $action;
         }
 
-        $posted_amounts = is_array($_POST['send_amounts'] ?? null) ? $_POST['send_amounts'] : [];
+        $posted_amounts = [
+            'amounts' => is_array($_POST['send_amounts'] ?? null) ? $_POST['send_amounts'] : [],
+            'labr_amounts' => is_array($_POST['send_labr_amounts'] ?? null) ? $_POST['send_labr_amounts'] : [],
+        ];
         $payments = [];
         $required_by_asset = [];
         $has_submitted_amount = false;
@@ -781,56 +784,60 @@ class MtlaController implements RefreshDataCodeInterface
                 continue;
             }
 
-            $raw_amount = $posted_amounts[$account_id] ?? '';
-            if (is_string($raw_amount) || is_int($raw_amount)) {
-                $raw_amount = trim((string) $raw_amount);
-            } else {
-                $raw_amount = null;
-            }
+            foreach (['amounts' => $participant['timetoken'], 'labr_amounts' => $labr] as $field => $token) {
+                $raw_amount = $posted_amounts[$field][$account_id] ?? '';
+                if (is_string($raw_amount) || is_int($raw_amount)) {
+                    $raw_amount = trim((string) $raw_amount);
+                } else {
+                    $raw_amount = null;
+                }
 
-            if ($raw_amount === '') {
-                continue;
-            }
+                if ($raw_amount === '') {
+                    continue;
+                }
 
-            $has_submitted_amount = true;
-            if ($raw_amount !== null) {
-                $action['amounts'][$account_id] = $raw_amount;
-            }
+                $has_submitted_amount = true;
+                if ($raw_amount !== null) {
+                    $action[$field][$account_id] = $raw_amount;
+                }
 
-            $account_name = (string) ($participant['account']['display_name'] ?? $account_id);
-            $amount = PaymentTransactionBuilder::normalizeAmount($raw_amount);
-            if ($amount === null) {
-                $action['errors'][] = $this->programPaymentError(
-                    'mtla_program_page.payments.errors.invalid_amount',
-                    ['%account%' => $account_name]
+                $account_name = (string) ($participant['account']['display_name'] ?? $account_id);
+                $amount = PaymentTransactionBuilder::normalizeAmount($raw_amount);
+                if ($amount === null) {
+                    $action['errors'][] = $this->programPaymentError(
+                        'mtla_program_page.payments.errors.invalid_amount',
+                        ['%account%' => $account_name]
+                    );
+                    continue;
+                }
+
+                $code = $token['code'] ?? null;
+                $issuer = $token['issuer'] ?? null;
+                if (!is_string($code) || !is_string($issuer) || $code === '' || $issuer === '') {
+                    $action['errors'][] = $this->programPaymentError(
+                        $field === 'labr_amounts'
+                            ? 'mtla_program_page.payments.errors.labr_unavailable'
+                            : 'mtla_program_page.payments.errors.missing_timetoken',
+                        ['%account%' => $account_name]
+                    );
+                    continue;
+                }
+
+                $asset_key = $code . '-' . $issuer;
+                $payments[] = [
+                    'account_id' => $account_id,
+                    'account_name' => $account_name,
+                    'asset_key' => $asset_key,
+                    'token_code' => $code,
+                    'token_issuer' => $issuer,
+                    'amount' => $amount,
+                ];
+                $required_by_asset[$asset_key] = bcadd(
+                    $required_by_asset[$asset_key] ?? '0.0000000',
+                    $amount,
+                    7,
                 );
-                continue;
             }
-
-            $code = $participant['timetoken']['code'] ?? null;
-            $issuer = $participant['timetoken']['issuer'] ?? null;
-            if (!is_string($code) || !is_string($issuer) || $code === '' || $issuer === '') {
-                $action['errors'][] = $this->programPaymentError(
-                    'mtla_program_page.payments.errors.missing_timetoken',
-                    ['%account%' => $account_name]
-                );
-                continue;
-            }
-
-            $asset_key = $code . '-' . $issuer;
-            $payments[] = [
-                'account_id' => $account_id,
-                'account_name' => $account_name,
-                'asset_key' => $asset_key,
-                'token_code' => $code,
-                'token_issuer' => $issuer,
-                'amount' => $amount,
-            ];
-            $required_by_asset[$asset_key] = bcadd(
-                $required_by_asset[$asset_key] ?? '0.0000000',
-                $amount,
-                7,
-            );
         }
 
         if (!$has_submitted_amount) {
@@ -987,7 +994,7 @@ class MtlaController implements RefreshDataCodeInterface
                 continue;
             }
 
-            $balances[$code . '-' . $issuer] = bcsub(
+            $balances[$code . '-' . $issuer] = $Balance->getIsAuthorized() === false ? '0.0000000' : bcsub(
                 $Balance->getBalance(),
                 $Balance->getSellingLiabilities() ?? '0.0000000',
                 7,

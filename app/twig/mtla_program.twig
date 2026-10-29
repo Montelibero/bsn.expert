@@ -41,7 +41,7 @@
             const submit = form.querySelector('[data-program-payment-submit]');
             const updateSubmitState = function () {
                 submit.disabled = !Array.from(inputs).some(function (input) {
-                    return input.value.trim() !== '';
+                    return !input.disabled && input.value.trim() !== '';
                 });
             };
 
@@ -79,6 +79,13 @@
             {% else %}
                 {{ 'mtla_programs_page.coordinator_unknown'|trans }}
             {% endif %}
+            <br><strong>{{ 'mtla_program_page.balance'|trans }}:</strong>
+            {% if program_labr.balance is not null %}
+                {{ include('amount.twig', {value: program_labr.balance}, with_context = false) }}
+            {% else %}
+                {{ 'mtla_snapshot_box.empty'|trans }}
+            {% endif %}
+            {{ include('token_link.twig', {token: program_labr}, with_context = false) }}
         </p>
 
         <h2 class="title is-4">{{ 'mtla_program_page.participants.title'|trans }}</h2>
@@ -102,6 +109,7 @@
                         <th data-sorter="digit">{{ 'mtla_program_page.participants.table.status'|trans }}</th>
                         {% if payment_action %}
                             <th data-sorter="false">{{ 'mtla_program_page.participants.table.send'|trans }}</th>
+                            <th data-sorter="false">{{ 'mtla_program_page.participants.table.send_labr'|trans }}</th>
                         {% endif %}
                     </tr>
                     </thead>
@@ -166,11 +174,24 @@
                                             inputmode="decimal"
                                             name="send_amounts[{{ participant.account.id }}]"
                                             value="{{ payment_action.amounts[participant.account.id]|default('') }}"
+                                            aria-label="{{ 'mtla_program_page.participants.table.send'|trans }}: {{ participant.account.display_name }}"
                                             data-program-payment
                                         >
                                     {% else %}
                                         {{ 'mtla_snapshot_box.empty'|trans }}
                                     {% endif %}
+                                </td>
+                                <td>
+                                    <input
+                                        class="input is-small mtla-program-payment-input"
+                                        type="text"
+                                        inputmode="decimal"
+                                        name="send_labr_amounts[{{ participant.account.id }}]"
+                                        value="{{ payment_action.labr_amounts[participant.account.id]|default('') }}"
+                                        aria-label="{{ 'mtla_program_page.participants.table.send_labr'|trans }}: {{ participant.account.display_name }}"
+                                        {% if not participant.has_labr_trustline or not program_labr.issuer %}disabled{% endif %}
+                                        data-program-payment
+                                    >
                                 </td>
                             {% endif %}
                         </tr>
