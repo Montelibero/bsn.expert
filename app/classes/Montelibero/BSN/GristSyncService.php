@@ -48,7 +48,7 @@ class GristSyncService
     public function syncKnownTokens(): array
     {
         $records = $this->fetchRecords(
-            'https://montelibero.getgrist.com/api/docs/gxZer88w3TotbWzkQCzvyw/tables/Assets/records'
+            'https://grist.eurmtl.me/api/docs/3Fk4hjCv847GBx8ZTCPN2Y/tables/Assets/records'
         );
         $known_tokens = [];
         $known_codes = [];
@@ -124,7 +124,7 @@ class GristSyncService
     public function syncMtlaMembers(): array
     {
         $records = $this->fetchRecords(
-            'https://montelibero.getgrist.com/api/docs/aYk6cpKAp9CDPJe51sP3AT/tables/Users/records'
+            'https://grist.eurmtl.me/api/docs/cXhBLiv8T918dMMZGJmB1j/tables/Users/records'
         );
         $members = [];
 

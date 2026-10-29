@@ -38,7 +38,7 @@ class DocumentsManager
     public function refreshFromGrist(): array
     {
         $grist_response = gristRequest(
-            'https://montelibero.getgrist.com/api/docs/4ZvHAqR5wB33KedcdjQC1r/tables/Hashes/records',
+            'https://grist.eurmtl.me/api/docs/9BHFba3Gcs5iKeYZDbkVFK/tables/Hashes/records',
             'GET'
         );
         if (!is_array($grist_response) || !is_array($grist_response['records'] ?? null)) {

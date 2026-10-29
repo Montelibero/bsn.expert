@@ -199,7 +199,7 @@ class SendTimeTokensController
     private function fetchTimeTokensDetails(): array
     {
         $grist_response = \gristRequest(
-            'https://montelibero.getgrist.com/api/docs/aYk6cpKAp9CDPJe51sP3AT/tables/Users/records',
+            'https://grist.eurmtl.me/api/docs/cXhBLiv8T918dMMZGJmB1j/tables/Users/records',
             'GET'
         );
         $data = [
