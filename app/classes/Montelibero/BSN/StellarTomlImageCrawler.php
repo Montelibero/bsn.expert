@@ -2,18 +2,11 @@
 
 namespace Montelibero\BSN;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\RequestException;
-use Throwable;
-
 class StellarTomlImageCrawler
 {
     private const MAX_IMAGE_BYTES = 1048576;
     private const MAX_IMAGE_PIXELS = 16000000;
     private const MAX_OUTPUT_SIDE = 600;
-    private const HTTP_TIMEOUT_SECONDS = 10;
     private const SUCCESS_RECHECK_SECONDS = 86400;
     private const ERROR_RECHECK_SECONDS = 21600;
 
@@ -27,6 +20,7 @@ class StellarTomlImageCrawler
 
     public function __construct(
         private StellarTomlImageManager $ImageManager,
+        private StellarTomlHttpClient $HttpClient = new StellarTomlHttpClient(),
     ) {
     }
 
@@ -241,11 +235,6 @@ class StellarTomlImageCrawler
 
     private function fetchImage(string $source_url, ?array $existing): array
     {
-        $host = parse_url($source_url, PHP_URL_HOST);
-        if (!is_string($host) || ($dns_error = $this->validateDomainDns($host)) !== null) {
-            return ['status' => 'error', 'error' => $dns_error ?? ['code' => 'invalid_url', 'message' => 'Invalid image host']];
-        }
-
         $headers = ['User-Agent' => 'BSN Viewer stellar.toml image crawler'];
         if (is_array($existing)) {
             if (is_string($existing['etag'] ?? null) && $existing['etag'] !== '') {
@@ -256,23 +245,11 @@ class StellarTomlImageCrawler
             }
         }
 
-        $client = new Client([
-            'timeout' => self::HTTP_TIMEOUT_SECONDS,
-            'connect_timeout' => self::HTTP_TIMEOUT_SECONDS,
-            'http_errors' => false,
-            'allow_redirects' => false,
-            'headers' => $headers,
-        ]);
-
-        try {
-            $response = $client->request('GET', $source_url, ['stream' => true]);
-        } catch (ConnectException $e) {
-            return ['status' => 'error', 'error' => $this->classifyGuzzleError($e, 'connect_error')];
-        } catch (RequestException $e) {
-            return ['status' => 'error', 'error' => $this->classifyGuzzleError($e, 'server_error')];
-        } catch (GuzzleException $e) {
-            return ['status' => 'error', 'error' => ['code' => 'server_error', 'message' => $e->getMessage()]];
+        $fetch = $this->HttpClient->get($source_url, self::MAX_IMAGE_BYTES, $headers);
+        if (isset($fetch['error'])) {
+            return $fetch;
         }
+        $response = $fetch['response'];
 
         $status_code = $response->getStatusCode();
         if ($status_code === 304) {
@@ -462,41 +439,6 @@ class StellarTomlImageCrawler
         }
 
         return $url;
-    }
-
-    private function validateDomainDns(string $host): ?array
-    {
-        $home_domain = StellarTomlManager::normalizeHomeDomain($host);
-        if ($home_domain === null) {
-            return ['code' => 'invalid_domain', 'message' => 'Invalid image domain'];
-        }
-
-        $records = @dns_get_record($home_domain, DNS_A + DNS_AAAA);
-        if (!$records) {
-            return ['code' => 'dns_error', 'message' => 'Image domain does not resolve'];
-        }
-
-        foreach ($records as $record) {
-            $ip = $record['ip'] ?? $record['ipv6'] ?? null;
-            if ($ip === null) {
-                continue;
-            }
-            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                return ['code' => 'invalid_domain', 'message' => 'Image domain resolves to private or reserved IP'];
-            }
-        }
-
-        return null;
-    }
-
-    private function classifyGuzzleError(Throwable $e, string $fallback_code): array
-    {
-        $message = $e->getMessage();
-        $code = str_contains(strtolower($message), 'timed out') || str_contains(strtolower($message), 'timeout')
-            ? 'timeout'
-            : $fallback_code;
-
-        return ['code' => $code, 'message' => $message];
     }
 
     private function writeFile(string $file_path, string $content): void

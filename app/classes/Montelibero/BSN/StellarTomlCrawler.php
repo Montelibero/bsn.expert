@@ -2,10 +2,6 @@
 
 namespace Montelibero\BSN;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\RequestException;
 use Montelibero\BSN\Controllers\MtlaController;
 use Montelibero\BSN\Controllers\TokensController;
 use Soneso\StellarSDK\Asset;
@@ -19,13 +15,13 @@ use Yosymfony\Toml\Toml;
 class StellarTomlCrawler
 {
     private const MAX_TOML_BYTES = 102400;
-    private const HTTP_TIMEOUT_SECONDS = 10;
 
     public function __construct(
         private StellarSDK $Stellar,
         private TokensController $TokensController,
         private StellarTomlManager $TomlManager,
         private StellarTomlImageCrawler $ImageCrawler,
+        private StellarTomlHttpClient $HttpClient = new StellarTomlHttpClient(),
     ) {
     }
 
@@ -392,30 +388,15 @@ class StellarTomlCrawler
 
     private function fetchToml(string $home_domain): array
     {
-        $dns_error = $this->validateDomainDns($home_domain);
-        if ($dns_error !== null) {
-            return ['status' => 'error', 'error' => $dns_error];
+        $fetch = $this->HttpClient->get(
+            'https://' . $home_domain . '/.well-known/stellar.toml',
+            self::MAX_TOML_BYTES,
+            ['User-Agent' => 'BSN Viewer stellar.toml crawler']
+        );
+        if (isset($fetch['error'])) {
+            return $fetch;
         }
-
-        $client = new Client([
-            'timeout' => self::HTTP_TIMEOUT_SECONDS,
-            'connect_timeout' => self::HTTP_TIMEOUT_SECONDS,
-            'http_errors' => false,
-            'allow_redirects' => false,
-            'headers' => ['User-Agent' => 'BSN Viewer stellar.toml crawler'],
-        ]);
-
-        try {
-            $response = $client->request('GET', 'https://' . $home_domain . '/.well-known/stellar.toml', [
-                'stream' => true,
-            ]);
-        } catch (ConnectException $e) {
-            return ['status' => 'error', 'error' => $this->classifyGuzzleError($e, 'connect_error')];
-        } catch (RequestException $e) {
-            return ['status' => 'error', 'error' => $this->classifyGuzzleError($e, 'server_error')];
-        } catch (GuzzleException $e) {
-            return ['status' => 'error', 'error' => ['code' => 'server_error', 'message' => $e->getMessage()]];
-        }
+        $response = $fetch['response'];
 
         $status_code = $response->getStatusCode();
         if ($status_code !== 200) {
@@ -458,36 +439,6 @@ class StellarTomlCrawler
             'content' => $content,
             'content_size' => strlen($content),
         ];
-    }
-
-    private function validateDomainDns(string $home_domain): ?array
-    {
-        $records = @dns_get_record($home_domain, DNS_A + DNS_AAAA);
-        if (!$records) {
-            return ['code' => 'dns_error', 'message' => 'Domain does not resolve'];
-        }
-
-        foreach ($records as $record) {
-            $ip = $record['ip'] ?? $record['ipv6'] ?? null;
-            if ($ip === null) {
-                continue;
-            }
-            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                return ['code' => 'invalid_domain', 'message' => 'Domain resolves to private or reserved IP'];
-            }
-        }
-
-        return null;
-    }
-
-    private function classifyGuzzleError(Throwable $e, string $fallback_code): array
-    {
-        $message = $e->getMessage();
-        $code = str_contains(strtolower($message), 'timed out') || str_contains(strtolower($message), 'timeout')
-            ? 'timeout'
-            : $fallback_code;
-
-        return ['code' => $code, 'message' => $message];
     }
 
     private function recordIgnoredDomain(string $home_domain, array $observed_accounts): void
