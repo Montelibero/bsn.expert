@@ -1450,8 +1450,11 @@ tools_asset_swap:
   asset:
     balance: Balance
     available: Available
-    in_orders: In orders
+    in_orders: in orders
     without_emission: No issuance
+    manage_orders: Manage orders
+  warnings:
+    funds_in_orders: "%side%: to send %amount% %asset%, release %locked% %asset% from orders. The network will reject the swap while these funds remain locked."
   signing:
     title: Signing
     multisig_notice: The final transaction requires signatures from both accounts. The multisig collection button is recommended.
@@ -1466,6 +1469,7 @@ tools_asset_swap:
     invalid_amount: "Provide a valid amount: %side%."
     amount_positive: "Amount must be greater than zero: %side%."
     amount_exceeds_available: "%side% cannot send %asset%: %available% available."
+    amount_exceeds_balance: "%side% cannot send %asset%: total balance is %balance%."
     memo_too_long: Text memo must be at most 28 bytes. For a SHA-256 hash, paste 64 hex characters.
     receiver_needs_issuer_approval: "%side% cannot receive %asset% without issuer approval."
     receiver_not_authorized: "%side% is not authorized to receive %asset%."

@@ -1453,8 +1453,11 @@ tools_asset_swap:
   asset:
     balance: Баланс
     available: Доступно
-    in_orders: В ордерах
+    in_orders: в ордерах
     without_emission: Без эмиссии
+    manage_orders: Управлять ордерами
+  warnings:
+    funds_in_orders: "%side%: для отправки %amount% %asset% нужно освободить %locked% %asset% из ордеров. Пока средства заморожены, сеть отклонит обмен."
   signing:
     title: Подписание
     multisig_notice: Итоговая транзакция требует подписи обоих аккаунтов. Рекомендуется воспользоваться кнопкой сбора мультиподписи.
@@ -1469,6 +1472,7 @@ tools_asset_swap:
     invalid_amount: "Укажите корректную сумму: %side%."
     amount_positive: "Сумма должна быть больше нуля: %side%."
     amount_exceeds_available: "%side% не может отправить %asset%: доступно %available%."
+    amount_exceeds_balance: "%side% не может отправить %asset%: общий баланс %balance%."
     memo_too_long: Текстовое memo должно быть не длиннее 28 байт. Для SHA-256 hash вставьте 64 hex-символа.
     receiver_needs_issuer_approval: "%side% не сможет принять %asset% без одобрения эмитента."
     receiver_not_authorized: "%side% не авторизована для получения %asset%."

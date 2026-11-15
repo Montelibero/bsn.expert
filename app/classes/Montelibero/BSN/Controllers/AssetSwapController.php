@@ -9,6 +9,7 @@ use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentContacts;
 use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\StellarAccountReserveCalculator;
+use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\TokenLabelFormatter;
 use Soneso\StellarSDK\AbstractOperation;
 use Soneso\StellarSDK\Asset;
@@ -39,6 +40,7 @@ final class AssetSwapController
         private readonly StellarAccountReserveCalculator $ReserveCalculator,
         private readonly TokenLabelFormatter $TokenLabelFormatter,
         private readonly TokensController $TokensController,
+        private readonly StellarTomlImageManager $TomlImageManager,
     ) {
     }
 
@@ -61,6 +63,7 @@ final class AssetSwapController
         ];
 
         $errors = [];
+        $warnings = [];
         $signing_form = null;
         $side_a_state = $this->buildSideState(
             'a',
@@ -79,7 +82,7 @@ final class AssetSwapController
             }
 
             if (!$errors && $side_a_state['account_response'] && $side_b_state['account_response']) {
-                $signing_form = $this->buildSigningForm($side_a_state, $side_b_state, $selected, $errors);
+                $signing_form = $this->buildSigningForm($side_a_state, $side_b_state, $selected, $errors, $warnings);
             }
         }
 
@@ -90,6 +93,7 @@ final class AssetSwapController
             'side_b_state' => $side_b_state,
             'selected' => $selected,
             'errors' => $errors,
+            'warnings' => $warnings,
             'signing_form' => $signing_form,
         ]);
     }
@@ -135,6 +139,7 @@ final class AssetSwapController
                 '%side%' => $this->sideLabel($side),
             ]);
         }
+        $this->TomlImageManager->applyTokenImages($state['tokens']);
         $state['loaded'] = true;
 
         return $state;
@@ -153,10 +158,6 @@ final class AssetSwapController
             }
 
             $available = bcsub($Balance->getBalance(), $Balance->getSellingLiabilities() ?? '0.0000000', 7);
-            if (bccomp($available, '0', 7) <= 0) {
-                continue;
-            }
-
             $issuer = (string) $Balance->getAssetIssuer();
             $code = (string) $Balance->getAssetCode();
             $token = [
@@ -234,7 +235,7 @@ final class AssetSwapController
         return false;
     }
 
-    private function buildSigningForm(array $side_a_state, array $side_b_state, array $selected, array &$errors): ?string
+    private function buildSigningForm(array $side_a_state, array $side_b_state, array $selected, array &$errors, array &$warnings): ?string
     {
         /** @var AccountResponse $SideAAccount */
         $SideAAccount = $side_a_state['account_response'];
@@ -258,8 +259,8 @@ final class AssetSwapController
             return null;
         }
 
-        $this->validateSendAmount($a_token, $a_amount, 'a', $errors);
-        $this->validateSendAmount($b_token, $b_amount, 'b', $errors);
+        $this->validateSendAmount($a_token, $a_amount, 'a', $errors, $warnings);
+        $this->validateSendAmount($b_token, $b_amount, 'b', $errors, $warnings);
         $a_receives = $this->analyzeReceiver($SideAAccount, $side_a, $b_token, $b_amount, 'a', $errors);
         $b_receives = $this->analyzeReceiver($SideBAccount, $side_b, $a_token, $a_amount, 'b', $errors);
         $this->validateReserve($SideAAccount, $a_receives['needs_trustline'] ? 1 : 0, 'a', $errors);
@@ -335,13 +336,23 @@ final class AssetSwapController
         return Memo::text($memo);
     }
 
-    private function validateSendAmount(array $token, string $amount, string $side, array &$errors): void
+    private function validateSendAmount(array $token, string $amount, string $side, array &$errors, array &$warnings): void
     {
-        if (!($token['available_unlimited'] ?? false) && bccomp($amount, $token['available'], 7) > 0) {
-            $errors[] = $this->Translator->trans('tools_asset_swap.errors.amount_exceeds_available', [
+        if ($token['available_unlimited'] ?? false) {
+            return;
+        }
+        if (bccomp($amount, $token['balance'], 7) > 0) {
+            $errors[] = $this->Translator->trans('tools_asset_swap.errors.amount_exceeds_balance', [
                 '%side%' => $this->sideLabel($side),
                 '%asset%' => $token['code'],
-                '%available%' => $this->shortAmount($token['available']),
+                '%balance%' => $this->shortAmount($token['balance']),
+            ]);
+        } elseif (bccomp($amount, $token['available'], 7) > 0) {
+            $warnings[$side] = $this->Translator->trans('tools_asset_swap.warnings.funds_in_orders', [
+                '%side%' => $this->sideLabel($side),
+                '%asset%' => $token['code'],
+                '%amount%' => $this->shortAmount($amount),
+                '%locked%' => $this->shortAmount(bcsub($amount, $token['available'], 7)),
             ]);
         }
     }
@@ -488,7 +499,7 @@ final class AssetSwapController
 
     private function shortAmount(string $amount): string
     {
-        return (string) (float) $amount;
+        return str_contains($amount, '.') ? rtrim(rtrim($amount, '0'), '.') : $amount;
     }
 
     private function formatXlmShort(string $value): string

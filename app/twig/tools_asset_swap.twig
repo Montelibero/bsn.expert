@@ -16,6 +16,13 @@
         <div class="notification is-danger">{{ error }}</div>
     {% endfor %}
 
+    {% for side, warning in warnings %}
+        <div class="notification is-warning">
+            {{ warning }}
+            <a href="/tools/orders?current_account={{ (side == 'a' ? side_a : side_b)|url_encode }}">{{ 'tools_asset_swap.asset.manage_orders'|trans }}</a>
+        </div>
+    {% endfor %}
+
     {% if signing_form %}
         <h2 class="title is-3">{{ 'tools_asset_swap.signing.title'|trans }}</h2>
         <div class="notification is-info">{{ 'tools_asset_swap.signing.multisig_notice'|trans }}</div>

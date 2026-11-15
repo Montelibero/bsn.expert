@@ -5,18 +5,18 @@
             <input type="radio" id="{{ id }}" name="side_{{ side }}_asset" value="{{ token.key }}"
                 aria-label="{{ token.label }}" {% if selected_asset == token.key %}checked{% endif %}>
             {% include 'token_link.twig' with {token: token, title: token.label} only %}
+            {% if token.has_offer_text %}
+                <span class="tag is-success is-light">{{ 'token_page.offer_document'|trans }}</span>
+            {% endif %}
             <label class="radio" for="{{ id }}">
                 {{ 'tools_asset_swap.asset.available'|trans }}:
                 {% if token.available_unlimited %}
                     &infin;
                 {% else %}
-                    {% include 'amount.twig' with {value: token.available} only %}
-                {% endif %}
-                {% if token.has_locked_balance %}
-                    <span class="has-text-grey">
-                        ({{ 'tools_asset_swap.asset.in_orders'|trans }}
-                        {% include 'amount.twig' with {value: token.selling_liabilities} only %})
-                    </span>
+                    {{ include('amount.twig', {value: token.available}, with_context = false)|trim|raw }}
+                {%- endif -%}
+                {% if token.has_locked_balance %}, {{ 'tools_asset_swap.asset.in_orders'|trans }}
+                    {% include 'amount.twig' with {value: token.selling_liabilities} only %}
                 {% endif %}
             </label>
         </div>
