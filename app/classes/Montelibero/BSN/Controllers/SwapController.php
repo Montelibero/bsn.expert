@@ -102,7 +102,12 @@ final class SwapController
         $selected_send = $source_tokens[$values['send_asset']] ?? null;
         $selected_receive = $destination_tokens[$values['receive_asset']] ?? null;
 
-        if ($this->hasEnoughForQuote($values) && $SourceAccount !== null && $DestinationAccount !== null) {
+        if (
+            ($_GET['action'] ?? '') !== 'recipient'
+            && $this->hasEnoughForQuote($values)
+            && $SourceAccount !== null
+            && $DestinationAccount !== null
+        ) {
             $prepared = $this->prepareSwap(
                 $SourceAccount,
                 $destination_account_id,
@@ -113,6 +118,10 @@ final class SwapController
             );
             if ($prepared !== null && !$errors) {
                 $preview = $prepared['preview'];
+                $calculated_side = $values['fix'] === self::FIX_SEND ? 'receive' : 'send';
+                $values[$calculated_side . '_amount'] = $preview[
+                    $calculated_side === 'send' ? 'source_amount' : 'destination_amount'
+                ];
                 $signing_form = $this->buildSigningForm($SourceAccount, $destination_account_id, $prepared, $errors);
             }
         }
@@ -122,6 +131,9 @@ final class SwapController
             'source_account_id' => $source_account_id,
             'current_account_param' => $this->CurrentUser->getCurrentAccountRequestParam(),
             'destination_account_id' => $destination_account_id,
+            'destination_account' => $DestinationAccount !== null
+                ? $this->CurrentContacts->serialize($this->BSN->makeAccountById($destination_account_id))
+                : null,
             'source_tokens' => $source_tokens,
             'destination_tokens' => $destination_tokens,
             'selected_send' => $selected_send,
@@ -135,17 +147,29 @@ final class SwapController
 
     private function requestValues(string $source_account_id): array
     {
-        $fix = (string) ($_GET['fix'] ?? self::FIX_SEND);
+        $fix = (string) ($_GET['fix'] ?? (
+            trim((string) ($_GET['receive_amount'] ?? '')) !== ''
+            && trim((string) ($_GET['send_amount'] ?? '')) === ''
+                ? self::FIX_RECEIVE
+                : self::FIX_SEND
+        ));
         if (!in_array($fix, [self::FIX_SEND, self::FIX_RECEIVE], true)) {
             $fix = self::FIX_SEND;
         }
 
+        // An explicitly empty side must not fall back to an old amount in a shared URL.
+        $amount = trim((string) ($_GET[$fix . '_amount'] ?? $_GET['amount'] ?? ''));
+
         return [
-            'destination' => strtoupper(trim((string) ($_GET['destination'] ?? ''))),
+            'destination' => ($_GET['action'] ?? '') === 'self'
+                ? ''
+                : strtoupper(trim((string) ($_GET['destination'] ?? ''))),
             'send_asset' => (string) ($_GET['send_asset'] ?? $_GET['send'] ?? ''),
             'receive_asset' => (string) ($_GET['receive_asset'] ?? $_GET['receive'] ?? ''),
             'fix' => $fix,
-            'amount' => trim((string) ($_GET['amount'] ?? '')),
+            'amount' => $amount,
+            'send_amount' => $fix === self::FIX_SEND ? $amount : '',
+            'receive_amount' => $fix === self::FIX_RECEIVE ? $amount : '',
             'slippage' => trim((string) ($_GET['slippage'] ?? '5')),
             'source_account' => $source_account_id,
         ];
@@ -153,7 +177,9 @@ final class SwapController
 
     private function applyDefaults(array $values, array $source_tokens, array $destination_tokens): array
     {
-        if ($values['send_asset'] === '' || !isset($source_tokens[$values['send_asset']])) {
+        if ($values['send_asset'] !== '' && !isset($source_tokens[$values['send_asset']])) {
+            $values['send_asset'] = '';
+        } elseif ($values['send_asset'] === '' && $values['amount'] === '') {
             $values['send_asset'] = '';
             foreach ($source_tokens as $key => $token) {
                 if (!$token['disabled']) {
@@ -163,7 +189,9 @@ final class SwapController
             }
         }
 
-        if ($values['receive_asset'] === '' || !isset($destination_tokens[$values['receive_asset']])) {
+        if ($values['receive_asset'] !== '' && !isset($destination_tokens[$values['receive_asset']])) {
+            $values['receive_asset'] = '';
+        } elseif ($values['receive_asset'] === '' && $values['amount'] === '') {
             $values['receive_asset'] = '';
             foreach ($destination_tokens as $key => $token) {
                 if ($key !== $values['send_asset']) {
@@ -613,30 +641,29 @@ final class SwapController
 
     private function addPercentCeil(string $amount, string $percent): string
     {
-        $multiplier = bcadd('1', bcdiv($percent, '100', self::SCALE), self::SCALE);
-        $value = bcmul($amount, $multiplier, self::SCALE + 1);
+        $value = bcdiv(bcmul($amount, bcadd('100', $percent, self::SCALE), self::SCALE * 2), '100', self::SCALE * 2 + 2);
 
         return $this->ceilStellar($value);
     }
 
     private function subtractPercentFloor(string $amount, string $percent): string
     {
-        $multiplier = bcsub('1', bcdiv($percent, '100', self::SCALE), self::SCALE);
-        $value = bcmul($amount, $multiplier, self::SCALE + 1);
+        $value = bcdiv(bcmul($amount, bcsub('100', $percent, self::SCALE), self::SCALE * 2), '100', self::SCALE * 2 + 2);
 
         return $this->floorStellar($value);
     }
 
     private function ceilStellar(string $value): string
     {
-        $factor = 10 ** self::SCALE;
-        return number_format(ceil((float) $value * $factor) / $factor, self::SCALE, '.', '');
+        $floor = $this->floorStellar($value);
+        return bccomp($value, $floor, self::SCALE * 2 + 2) > 0
+            ? bcadd($floor, '0.0000001', self::SCALE)
+            : $floor;
     }
 
     private function floorStellar(string $value): string
     {
-        $factor = 10 ** self::SCALE;
-        return number_format(floor((float) $value * $factor) / $factor, self::SCALE, '.', '');
+        return bcadd($value, '0', self::SCALE);
     }
 
     private function summaryToken(array $token, string $amount): array

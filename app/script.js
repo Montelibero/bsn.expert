@@ -1112,6 +1112,7 @@ document.addEventListener('DOMContentLoaded', function () {
             input.dispatchEvent(new Event('input', {bubbles: true}));
             input.dispatchEvent(new Event('change', {bubbles: true}));
             closeDropdown();
+            input.dispatchEvent(new Event('account-autocomplete-select', {bubbles: true}));
             return true;
         }
 

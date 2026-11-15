@@ -1484,16 +1484,26 @@ tools_swap:
   title: Обмен токенов
   account: "Аккаунт:"
   form:
-    send_asset: Какие токены отправлять
+    send_asset: Отдаёте
     destination: Кому отправить
-    destination_help: По умолчанию отправляем самому себе. Можно указать другой Stellar-аккаунт.
-    receive_asset: Какие токены прислать
-    receive_asset_help: Список строится по линиям доверия получателя.
-    fix: Что фиксируем, отправляемое или получаемое?
-    amount: Сколько
-    slippage: Проскальзывание, в процентах
-    slippage_help: Допустимое отклонение изменяемой части платежа по сравнению с расчётной.
-    apply: Применить
+    destination_help: Оставьте пустым, чтобы получить токены на этот же аккаунт.
+    receive_asset: Получаете
+    recipient_receives: Получатель получит
+    choose_asset: Выберите токен
+    exact_send: Отдать ровно
+    exact_receive: Получить ровно
+    send_amount: Сумма отправки
+    receive_amount: Сумма получения
+    exact: Точная сумма
+    estimated: Примерно
+    recipient: "Получатель:"
+    same_account: этот же аккаунт
+    change_recipient: Изменить
+    apply_recipient: Применить
+    receive_self: Получить на этот же аккаунт
+    slippage: Допуск при обмене, %
+    slippage_help: Если получите меньше минимума или потребуется больше максимума, обмен не выполнится.
+    apply: Рассчитать обмен
   preview:
     strict_send_prefix: Обменять
     strict_send_middle: примерно на

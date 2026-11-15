@@ -1482,16 +1482,26 @@ tools_swap:
   title: Token Swap
   account: "Account:"
   form:
-    send_asset: Tokens to send
+    send_asset: You send
     destination: Send to
-    destination_help: By default, send to yourself. You can enter another Stellar account.
-    receive_asset: Tokens to receive
-    receive_asset_help: The list is built from the recipient trustlines.
-    fix: Which side is fixed, sent or received?
-    amount: Amount
-    slippage: Slippage, percent
-    slippage_help: Allowed deviation of the changing payment side compared with the quote.
-    apply: Apply
+    destination_help: Leave empty to receive tokens in the same account.
+    receive_asset: You receive
+    recipient_receives: Recipient receives
+    choose_asset: Choose a token
+    exact_send: Send exactly
+    exact_receive: Receive exactly
+    send_amount: Amount to send
+    receive_amount: Amount to receive
+    exact: Exact amount
+    estimated: Approximately
+    recipient: "Recipient:"
+    same_account: the same account
+    change_recipient: Change
+    apply_recipient: Apply
+    receive_self: Receive in the same account
+    slippage: Swap tolerance, %
+    slippage_help: The swap will not execute below the minimum received or above the maximum spent.
+    apply: Calculate swap
   preview:
     strict_send_prefix: Swap
     strict_send_middle: approximately for

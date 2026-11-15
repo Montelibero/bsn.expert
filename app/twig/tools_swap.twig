@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block content %}
+    {% set is_self = destination_account_id == source_account_id %}
     <h1 class="title">{{ 'tools_swap.title'|trans }}</h1>
 
     <p class="block">
@@ -17,120 +18,156 @@
     </p>
 
     {% for error in errors %}
-        <div class="notification is-danger">{{ error }}</div>
+        <div class="notification is-danger" data-swap-result>{{ error }}</div>
     {% endfor %}
 
     {% if preview %}
-        <p class="block">
-            {% if preview.mode == 'send' %}
-                {{ 'tools_swap.preview.strict_send_prefix'|trans }}
-                {{ include('token_link.twig', {token: preview.send, amount: preview.source_amount}, with_context = false) }}
-                {{ 'tools_swap.preview.strict_send_middle'|trans }}
-                {{ include('token_link.twig', {token: preview.receive, amount: preview.destination_amount}, with_context = false) }}
-                {{ 'tools_swap.preview.strict_send_suffix'|trans({'%min_amount%': preview.dest_min}) }}
-            {% else %}
-                {{ 'tools_swap.preview.strict_receive_prefix'|trans }}
-                {{ include('token_link.twig', {token: preview.send, amount: preview.source_amount}, with_context = false) }}
-                {{ 'tools_swap.preview.strict_receive_middle'|trans({'%max_amount%': preview.send_max}) }}
-                {{ include('token_link.twig', {token: preview.receive, amount: preview.destination_amount}, with_context = false) }}
+        <div class="block" data-swap-result>
+            <p class="block">
+                {% if preview.mode == 'send' %}
+                    {{ 'tools_swap.preview.strict_send_prefix'|trans }}
+                    {{ include('token_link.twig', {token: preview.send, amount: preview.source_amount}, with_context = false) }}
+                    {{ 'tools_swap.preview.strict_send_middle'|trans }}
+                    {{ include('token_link.twig', {token: preview.receive, amount: preview.destination_amount}, with_context = false) }}
+                    {{ 'tools_swap.preview.strict_send_suffix'|trans({'%min_amount%': preview.dest_min}) }}
+                {% else %}
+                    {{ 'tools_swap.preview.strict_receive_prefix'|trans }}
+                    {{ include('token_link.twig', {token: preview.send, amount: preview.source_amount}, with_context = false) }}
+                    {{ 'tools_swap.preview.strict_receive_middle'|trans({'%max_amount%': preview.send_max}) }}
+                    {{ include('token_link.twig', {token: preview.receive, amount: preview.destination_amount}, with_context = false) }}
+                {% endif %}
+                {% if not is_self %}
+                    {{ 'tools_swap.form.recipient'|trans }}
+                    {{ include('account_link.twig', {data: destination_account}, with_context = false) }}
+                {% endif %}
+            </p>
+            {% if signing_form %}
+                {{ signing_form|raw }}
             {% endif %}
-        </p>
+        </div>
     {% endif %}
 
-    {% if signing_form %}
-        {{ signing_form|raw }}
-    {% endif %}
-
-    <form method="get" action="/tools/swap" data-swap-form>
+    <form method="get" action="/tools/swap" class="swap-form block" data-swap-form>
         {% if current_account_param %}
             <input type="hidden" name="current_account" value="{{ current_account_param|e('html_attr') }}">
         {% endif %}
+        {# Enter calculates the exchange, never resets the recipient. #}
+        <button type="submit" name="action" value="apply" class="is-hidden" tabindex="-1" aria-hidden="true"></button>
 
-        <div class="field">
-            <label class="label" for="swap_send_asset">{{ 'tools_swap.form.send_asset'|trans }}</label>
-            <div class="control">
-                <div class="select">
-                    <select id="swap_send_asset" name="send_asset" required data-swap-submit-on-change>
-                        {% for token in source_tokens %}
-                            <option
-                                value="{{ token.key|e('html_attr') }}"
-                                {% if token.key == values.send_asset %}selected{% endif %}
-                                {% if token.disabled %}disabled{% endif %}
+        <div class="columns">
+            {% for side in ['send', 'receive'] %}
+                {% set is_send = side == 'send' %}
+                {% set is_exact = values.fix == side %}
+                {% set tokens = is_send ? source_tokens : destination_tokens %}
+                <div class="column swap-side">
+                    <div class="field">
+                        <label class="label" for="swap_{{ side }}_asset">
+                            {% if is_send %}
+                                {{ 'tools_swap.form.send_asset'|trans }}
+                            {% else %}
+                                <span data-swap-self-label {% if not is_self %}hidden{% endif %}>{{ 'tools_swap.form.receive_asset'|trans }}</span>
+                                <span data-swap-other-label {% if is_self %}hidden{% endif %}>{{ 'tools_swap.form.recipient_receives'|trans }}</span>
+                            {% endif %}
+                        </label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select id="swap_{{ side }}_asset" name="{{ side }}_asset">
+                                    <option value="">{{ 'tools_swap.form.choose_asset'|trans }}</option>
+                                    {% for token in tokens %}
+                                        <option
+                                            value="{{ token.key|e('html_attr') }}"
+                                            {% if token.key == values[side ~ '_asset'] %}selected{% endif %}
+                                            {% if is_send and token.disabled %}disabled{% endif %}
+                                        >{{ token.option_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="control mb-2">
+                            <label class="radio">
+                                <input type="radio" name="fix" value="{{ side }}" {% if is_exact %}checked{% endif %}>
+                                {{ ('tools_swap.form.exact_' ~ side)|trans }}
+                            </label>
+                        </div>
+                        <label class="is-sr-only" for="swap_{{ side }}_amount">{{ ('tools_swap.form.' ~ side ~ '_amount')|trans }}</label>
+                        <div class="control">
+                            <input
+                                class="input{% if is_exact %} is-link{% else %} has-text-grey{% endif %}"
+                                id="swap_{{ side }}_amount"
+                                name="{{ side }}_amount"
+                                value="{{ values[side ~ '_amount']|e('html_attr') }}"
+                                inputmode="decimal"
+                                autocomplete="off"
+                                aria-describedby="swap_{{ side }}_status"
+                                data-swap-amount="{{ side }}"
                             >
-                                {{ token.option_label }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                        </div>
+                        <p class="help" id="swap_{{ side }}_status" aria-live="polite">
+                            <span data-swap-exact="{{ side }}" {% if not is_exact %}hidden{% endif %}>{{ 'tools_swap.form.exact'|trans }}</span>
+                            <span data-swap-estimate="{{ side }}" {% if is_exact %}hidden{% endif %}>{{ 'tools_swap.form.estimated'|trans }}</span>
+                        </p>
+                    </div>
                 </div>
-            </div>
+            {% endfor %}
         </div>
+
+        <details class="block swap-recipient" {% if not is_self %}open{% endif %}>
+            <summary>
+                {{ 'tools_swap.form.recipient'|trans }}
+                <span data-swap-self-recipient {% if not is_self %}hidden{% endif %}>{{ 'tools_swap.form.same_account'|trans }}</span>
+                <span data-swap-other-recipient {% if is_self %}hidden{% endif %}>
+                    {% if destination_account %}
+                        {{ include('account_link.twig', {data: destination_account}, with_context = false) }}
+                    {% else %}
+                        {{ values.destination }}
+                    {% endif %}
+                </span>
+                <span class="pseudo-link ml-2">{{ 'tools_swap.form.change_recipient'|trans }}</span>
+            </summary>
+            <div class="field mt-3">
+                <label class="label" for="swap_destination">{{ 'tools_swap.form.destination'|trans }}</label>
+                <div class="field has-addons">
+                    <div class="control is-expanded">
+                        <input
+                            class="input is-family-monospace"
+                            id="swap_destination"
+                            name="destination"
+                            value="{{ values.destination|e('html_attr') }}"
+                            placeholder="{{ source_account_id }}"
+                            data-source-account="{{ source_account_id }}"
+                            data-account-autocomplete-input
+                        >
+                    </div>
+                    <div class="control">
+                        <button type="submit" name="action" value="recipient" class="button" data-swap-apply-recipient>
+                            <span class="icon"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+                            <span>{{ 'tools_swap.form.apply_recipient'|trans }}</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="help">{{ 'tools_swap.form.destination_help'|trans }}</p>
+            </div>
+            <button type="submit" name="action" value="self" class="button is-small">
+                <span class="icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+                <span>{{ 'tools_swap.form.receive_self'|trans }}</span>
+            </button>
+        </details>
 
         <div class="field">
-            <label class="label" for="swap_destination">{{ 'tools_swap.form.destination'|trans }}</label>
-            <div class="control">
-                <input
-                    class="input is-family-monospace"
-                    id="swap_destination"
-                    name="destination"
-                    value="{{ values.destination|e('html_attr') }}"
-                    placeholder="{{ source_account_id }}"
-                    data-account-autocomplete-input
-                >
+            <label class="label" for="swap_slippage">{{ 'tools_swap.form.slippage'|trans }}</label>
+            <div class="control swap-slippage">
+                <input class="input" id="swap_slippage" name="slippage" value="{{ values.slippage|e('html_attr') }}" inputmode="decimal" aria-describedby="swap_slippage_help">
             </div>
-            <p class="help">{{ 'tools_swap.form.destination_help'|trans }}</p>
+            <p class="help" id="swap_slippage_help">{{ 'tools_swap.form.slippage_help'|trans }}</p>
         </div>
-
-        <div class="field">
-            <label class="label" for="swap_receive_asset">{{ 'tools_swap.form.receive_asset'|trans }}</label>
-            <div class="control">
-                <div class="select">
-                    <select id="swap_receive_asset" name="receive_asset" required data-swap-submit-on-change>
-                        {% for token in destination_tokens %}
-                            <option value="{{ token.key|e('html_attr') }}" {% if token.key == values.receive_asset %}selected{% endif %}>
-                                {{ token.option_label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <p class="help">{{ 'tools_swap.form.receive_asset_help'|trans }}</p>
-        </div>
-
-        {% if selected_send and selected_receive %}
-            <div class="field">
-                <label class="label">{{ 'tools_swap.form.fix'|trans }}</label>
-                <div class="control">
-                    <label class="radio">
-                        <input type="radio" name="fix" value="send" {% if values.fix == 'send' %}checked{% endif %}>
-                        {{ include('token_link.twig', {token: selected_send}, with_context = false) }}
-                    </label>
-                    <label class="radio">
-                        <input type="radio" name="fix" value="receive" {% if values.fix == 'receive' %}checked{% endif %}>
-                        {{ include('token_link.twig', {token: selected_receive}, with_context = false) }}
-                    </label>
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label" for="swap_amount">{{ 'tools_swap.form.amount'|trans }}</label>
-                <div class="control">
-                    <input class="input" id="swap_amount" name="amount" value="{{ values.amount|e('html_attr') }}" inputmode="decimal">
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label" for="swap_slippage">{{ 'tools_swap.form.slippage'|trans }}</label>
-                <div class="control">
-                    <input class="input" id="swap_slippage" name="slippage" value="{{ values.slippage|e('html_attr') }}" inputmode="decimal">
-                </div>
-                <p class="help">{{ 'tools_swap.form.slippage_help'|trans }}</p>
-            </div>
-        {% endif %}
 
         <div class="field">
             <div class="control">
                 <button type="submit" name="action" value="apply" class="button is-link">
-                    <span class="icon"><i class="fa-solid fa-check"></i></span>
+                    <span class="icon"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
                     <span>{{ 'tools_swap.form.apply'|trans }}</span>
                 </button>
             </div>
@@ -140,13 +177,48 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.querySelector('[data-swap-form]');
-            if (!form) {
-                return;
-            }
-            form.querySelectorAll('[data-swap-submit-on-change]').forEach(function (control) {
-                control.addEventListener('change', function () {
-                    form.requestSubmit();
+            const amounts = form.querySelectorAll('[data-swap-amount]');
+            const destination = form.elements.destination;
+
+            function invalidateQuote() {
+                document.querySelectorAll('[data-swap-result]').forEach(function (result) {
+                    result.remove();
                 });
+                const exact = form.elements.fix.value;
+                amounts.forEach(function (input) {
+                    const side = input.dataset.swapAmount;
+                    const isExact = side === exact;
+                    if (!isExact) {
+                        input.value = '';
+                    }
+                    input.classList.toggle('is-link', isExact);
+                    input.classList.toggle('has-text-grey', !isExact);
+                    form.querySelector('[data-swap-exact="' + side + '"]').hidden = !isExact;
+                    form.querySelector('[data-swap-estimate="' + side + '"]').hidden = isExact;
+                });
+            }
+
+            amounts.forEach(function (input) {
+                input.addEventListener('input', function () {
+                    form.elements.fix.value = input.dataset.swapAmount;
+                });
+            });
+            form.addEventListener('input', invalidateQuote);
+            form.addEventListener('change', invalidateQuote);
+
+            destination.addEventListener('account-autocomplete-select', function () {
+                form.requestSubmit(form.querySelector('[data-swap-apply-recipient]'));
+            });
+
+            destination.addEventListener('input', function () {
+                const address = destination.value.trim().toUpperCase();
+                const isSelf = address === '' || address === destination.dataset.sourceAccount;
+                form.querySelector('[data-swap-self-label]').hidden = !isSelf;
+                form.querySelector('[data-swap-other-label]').hidden = isSelf;
+                form.querySelector('[data-swap-self-recipient]').hidden = !isSelf;
+                const other = form.querySelector('[data-swap-other-recipient]');
+                other.hidden = isSelf;
+                other.textContent = address;
             });
         });
     </script>
