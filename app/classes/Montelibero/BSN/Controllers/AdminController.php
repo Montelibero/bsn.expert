@@ -17,6 +17,7 @@ use Montelibero\BSN\Telegram\TelegramBotConfig;
 use Montelibero\BSN\Telegram\TelegramDailyReportService;
 use Montelibero\BSN\Telegram\TelegramUsageStore;
 use Pecee\SimpleRouter\SimpleRouter;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 class AdminController
@@ -34,6 +35,7 @@ class AdminController
         private TelegramBotConfig $TelegramConfig,
         private TelegramBotApiClient $TelegramBotApi,
         private TelegramDailyReportService $TelegramReports,
+        private Translator $Translator,
     ) {
     }
 
@@ -77,6 +79,19 @@ class AdminController
                 $notice = [
                     'type' => ($result['status'] ?? null) === 'ok' ? 'success' : (($result['status'] ?? null) === 'ignored' ? 'warning' : 'danger'),
                     'text' => $this->formatRefreshResult($result),
+                ];
+            } elseif ($action === 'add_neighbor' || $action === 'remove_neighbor') {
+                $doc = $this->TomlManager->setDomainNeighbor(
+                    (string) ($_POST['home_domain'] ?? ''),
+                    $action === 'add_neighbor',
+                    $this->CurrentUser->getAccountId()
+                );
+                $notice = [
+                    'type' => $doc === null ? 'danger' : 'success',
+                    'text' => $this->Translator->trans(
+                        'admin_tomls.neighbors.' . ($doc === null ? 'invalid_domain' : ($action === 'add_neighbor' ? 'added' : 'removed')),
+                        ['%domain%' => $doc['home_domain'] ?? '']
+                    ),
                 ];
             } elseif ($action === 'ignore_domain') {
                 $home_domain = trim((string) ($_POST['home_domain'] ?? ''));

@@ -113,6 +113,44 @@ class StellarTomlManager
         return (bool) ($doc['ignored'] ?? false);
     }
 
+    public function setDomainNeighbor(string $home_domain, bool $neighbor, ?string $admin_account_id = null): ?array
+    {
+        $home_domain = self::normalizeHomeDomain($home_domain);
+        if ($home_domain === null || preg_match('~\A(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+)){0,3}\z~i', $home_domain)) {
+            return null;
+        }
+
+        $now = self::now();
+        $bulk = new BulkWrite();
+        $bulk->update(
+            ['home_domain' => $home_domain],
+            [
+                '$set' => [
+                    'neighbor' => $neighbor,
+                    'neighbor_updated_at' => $now,
+                    'neighbor_updated_by' => $admin_account_id,
+                    'updated_at' => $now,
+                ],
+                '$setOnInsert' => [
+                    'created_at' => $now,
+                    'status' => 'pending',
+                    'observed_accounts' => [],
+                    'declared_accounts' => [],
+                    'currencies' => [],
+                ],
+            ],
+            ['upsert' => true]
+        );
+        $this->Mongo->executeBulkWrite($this->tomlsNamespace(), $bulk);
+
+        return $this->fetchDomain($home_domain);
+    }
+
+    public function isDomainNeighbor(string $home_domain): bool
+    {
+        return ($this->fetchDomainRaw($home_domain)['neighbor'] ?? false) === true;
+    }
+
     public function recordRun(array $summary): void
     {
         $summary['created_at'] = self::now();
@@ -143,10 +181,14 @@ class StellarTomlManager
         $error_domains_count = 0;
         $ignored_domains_count = 0;
         $ignored_domains = [];
+        $neighbor_domains = [];
 
         foreach ($docs as $doc) {
             $doc = $this->normalizeMongoValue($doc);
             $domains[] = $doc;
+            if (($doc['neighbor'] ?? false) === true) {
+                $neighbor_domains[] = $doc;
+            }
             $has_account_problem = false;
 
             foreach (($doc['observed_accounts'] ?? []) as $account) {
@@ -187,6 +229,7 @@ class StellarTomlManager
             'accounts_with_problem_count' => count($accounts_with_problem),
             'problem_domains' => $problem_domains,
             'ignored_domains' => $ignored_domains,
+            'neighbor_domains' => $neighbor_domains,
         ];
     }
 

@@ -158,6 +158,55 @@
     </div>
 {% endif %}
 
+<div class="box">
+    <h2 class="title is-4">{{ 'admin_tomls.neighbors.title'|trans }}</h2>
+    <p class="block">{{ 'admin_tomls.neighbors.help'|trans }}</p>
+    <form method="post" class="block">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="action" value="add_neighbor">
+        <label class="label" for="neighbor_home_domain">{{ 'admin_tomls.neighbors.add_label'|trans }}</label>
+        <div class="field has-addons">
+            <div class="control is-expanded">
+                <input class="input" id="neighbor_home_domain" name="home_domain" placeholder="example.org" maxlength="253" required>
+            </div>
+            <div class="control">
+                <button class="button is-link" type="submit">{{ 'admin_tomls.neighbors.add'|trans }}</button>
+            </div>
+        </div>
+    </form>
+    {% if dashboard.neighbor_domains %}
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                <tr>
+                    <th>{{ 'admin_tomls.neighbors.domain'|trans }}</th>
+                    <th>{{ 'admin_tomls.neighbors.since'|trans }}</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for domain in dashboard.neighbor_domains %}
+                    <tr>
+                        <td><code>{{ domain.home_domain }}</code></td>
+                        <td>{{ domain.neighbor_updated_at.iso ?? '—' }}</td>
+                        <td class="has-text-right">
+                            <form method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="action" value="remove_neighbor">
+                                <input type="hidden" name="home_domain" value="{{ domain.home_domain|e('html_attr') }}">
+                                <button class="button is-small" type="submit">{{ 'admin_tomls.neighbors.remove'|trans }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>{{ 'admin_tomls.neighbors.empty'|trans }}</p>
+    {% endif %}
+</div>
+
 <h2 class="title is-4">Проблемные домены</h2>
 
 {% if dashboard.problem_domains %}
@@ -199,6 +248,16 @@
                         {% endfor %}
                     </td>
                     <td class="has-text-right">
+                        {% if domain.neighbor ?? false %}
+                            <span class="tag is-info mb-2">{{ 'admin_tomls.neighbors.badge'|trans }}</span>
+                        {% else %}
+                            <form method="post" class="mb-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="action" value="add_neighbor">
+                                <input type="hidden" name="home_domain" value="{{ domain.home_domain|e('html_attr') }}">
+                                <button class="button is-small is-info" type="submit">{{ 'admin_tomls.neighbors.add'|trans }}</button>
+                            </form>
+                        {% endif %}
                         <form method="post">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <input type="hidden" name="action" value="ignore_domain">

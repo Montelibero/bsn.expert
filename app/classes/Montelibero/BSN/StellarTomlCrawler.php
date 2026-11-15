@@ -21,7 +21,7 @@ class StellarTomlCrawler
         private TokensController $TokensController,
         private StellarTomlManager $TomlManager,
         private StellarTomlImageCrawler $ImageCrawler,
-        private StellarTomlHttpClient $HttpClient = new StellarTomlHttpClient(),
+        private StellarTomlHttpClient $HttpClient,
     ) {
     }
 

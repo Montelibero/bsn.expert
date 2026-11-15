@@ -15,7 +15,7 @@ use GuzzleHttp\Psr7\Utils;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 
-/** Fetch public TOML resources independently of Docker aliases and split DNS. */
+/** Use public DNS unless an administrator explicitly trusts a neighbouring domain. */
 final class StellarTomlHttpClient
 {
     private const RESOLVERS = [
@@ -26,7 +26,7 @@ final class StellarTomlHttpClient
     private ClientInterface $HttpClient;
     private array $resolved = [];
 
-    public function __construct(?ClientInterface $HttpClient = null)
+    public function __construct(private StellarTomlManager $TomlManager, ?ClientInterface $HttpClient = null)
     {
         // The stream handler ignores CURLOPT_RESOLVE. Always use cURL here.
         $this->HttpClient = $HttpClient ?? new Client([
@@ -50,7 +50,12 @@ final class StellarTomlHttpClient
             return $this->error('invalid_domain', 'Resource host must be a domain name');
         }
 
-        $resolved = $this->resolve($host);
+        // Read the policy on every request: workers must observe removals immediately.
+        $neighbor = $this->TomlManager->isDomainNeighbor($host);
+        if ($neighbor && ($uri->getPort() ?? 443) !== 443) {
+            return $this->error('invalid_domain', 'Neighbour domains require HTTPS port 443');
+        }
+        $resolved = $neighbor ? $this->resolveNeighbor($host) : $this->resolve($host);
         if (isset($resolved['error'])) {
             return $resolved;
         }
@@ -62,6 +67,38 @@ final class StellarTomlHttpClient
 
         // Keep the hostname in the URL for Host, SNI and certificate verification.
         return $this->request((string) $uri->withHost($host), $pin, $max_bytes, $headers, 10);
+    }
+
+    private function resolveNeighbor(string $host): array
+    {
+        $records = @dns_get_record($host, DNS_A + DNS_AAAA);
+        $addresses = [];
+        foreach ($records ?: [] as $record) {
+            $ip = $record['ip'] ?? $record['ipv6'] ?? null;
+            if ($ip === null) {
+                continue;
+            }
+            if (!is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $this->error('invalid_domain', 'Invalid resource address');
+            }
+            $packed = inet_pton($ip);
+            $type = str_contains($ip, ':') ? 28 : 1;
+            // Permit RFC1918 and IPv6 ULA, but not loopback, link-local or metadata endpoints.
+            $private = $type === 1
+                ? ord($packed[0]) === 10
+                    || (ord($packed[0]) === 172 && (ord($packed[1]) & 0xf0) === 16)
+                    || (ord($packed[0]) === 192 && ord($packed[1]) === 168)
+                : (ord($packed[0]) & 0xfe) === 0xfc;
+            if (!$private && !$this->isPublicAddress($ip, $type)) {
+                return $this->error('invalid_domain', 'Invalid resource address');
+            }
+            $addresses[] = $ip;
+        }
+        if ($addresses === []) {
+            return $this->error('dns_error', 'Domain does not resolve');
+        }
+
+        return ['addresses' => array_values(array_unique($addresses))];
     }
 
     private function resolve(string $host): array

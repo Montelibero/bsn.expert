@@ -2242,6 +2242,21 @@ tools_consolidate:
     fee_balance: "The maximum fee needs %fee% XLM; approximately %available% XLM is available above reserve."
     fee_not_verified: Available XLM for the fee could not be checked.
 
+admin_tomls:
+  neighbors:
+    title: Neighbour domains
+    help: "Only for trusted sites on the shared internal network. TOML files and logos on these domains are fetched through their internal addresses with HTTPS verification. Add subdomains separately. Ignored domains are still excluded from crawling."
+    add_label: Add a neighbour domain
+    add: Add as neighbour
+    remove: Remove from neighbours
+    domain: Domain
+    since: Added
+    badge: Neighbour
+    empty: No neighbour domains added.
+    invalid_domain: Enter a domain name without a scheme, path, port or IP address.
+    added: "%domain% added as a neighbour. Refresh the domain to retry the download."
+    removed: "%domain% removed from neighbours. Subsequent downloads use the public address."
+
 bsn_manage_data_semantics:
   label: "BSN:"
   sets_tag: sets tag

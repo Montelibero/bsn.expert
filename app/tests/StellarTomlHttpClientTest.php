@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Montelibero\BSN {
     // Production used this lookup and received the neighbouring service's IP.
-    function dns_get_record(string $host, int $type): array
+    function dns_get_record(string $host, int $type): array|false
     {
+        if (array_key_exists($host, $GLOBALS['toml_neighbor_dns'] ?? [])) {
+            return $GLOBALS['toml_neighbor_dns'][$host];
+        }
         throw new \RuntimeException('The crawler must not consult internal DNS');
     }
 }
@@ -18,8 +21,19 @@ namespace {
     use Montelibero\BSN\StellarTomlCrawler;
     use Montelibero\BSN\StellarTomlHttpClient;
     use Montelibero\BSN\StellarTomlImageCrawler;
+    use Montelibero\BSN\StellarTomlManager;
 
     require dirname(__DIR__) . '/vendor/autoload.php';
+
+    class TestTomlNeighborManager extends StellarTomlManager
+    {
+        public array $domains = [];
+        public function __construct() {}
+        public function fetchDomainRaw(string $home_domain): ?array
+        {
+            return $this->domains[$home_domain] ?? null;
+        }
+    }
 
     function assertPublicFetch(bool $condition, string $message): void
     {
@@ -38,7 +52,7 @@ namespace {
         ], JSON_THROW_ON_ERROR));
     }
 
-    function publicFetcher(array $responses, array &$requests): StellarTomlHttpClient
+    function publicFetcher(array $responses, array &$requests, ?TestTomlNeighborManager $manager = null): StellarTomlHttpClient
     {
         $handler = static function ($request, array $options) use (&$responses, &$requests) {
             $requests[] = ['request' => $request, 'options' => $options];
@@ -57,7 +71,7 @@ namespace {
             $options['sink']->rewind();
             return Create::promiseFor($response->withBody($options['sink']));
         };
-        return new StellarTomlHttpClient(new Client(['handler' => HandlerStack::create($handler)]));
+        return new StellarTomlHttpClient($manager ?? new TestTomlNeighborManager(), new Client(['handler' => HandlerStack::create($handler)]));
     }
 
     $requests = [];
@@ -169,8 +183,62 @@ namespace {
     assertPublicFetch($result['content'] === 'image' && $result['etag'] === 'new', 'Preserve image data and validators.');
     assertPublicFetch($fetch->invoke($crawler, 'https://eurmtl.me/logo.png', null)['error']['code'] === 'too_large', 'Keep the 1 MB image limit.');
 
-    // PHP-DI must construct the real client with its cURL-only transport.
-    $container = new DI\Container();
+    // Changing policy in a long-lived client must switch DNS immediately, including cached public DNS.
+    $manager = new TestTomlNeighborManager();
+    $GLOBALS['toml_neighbor_dns']['eurmtl.me'] = [['ip' => '10.0.1.9'], ['ipv6' => 'fd00::9']];
+    $requests = [];
+    $client = publicFetcher([
+        dnsAnswer(['93.184.215.14']), dnsAnswer([], 28), new Response(200, [], 'public'),
+        new Response(200, [], 'neighbor TOML'), new Response(200, [], 'neighbor logo'),
+        new Response(200, [], 'public again'),
+    ], $requests, $manager);
+    $client->get('https://eurmtl.me/file', 100);
+    $manager->domains['eurmtl.me'] = ['neighbor' => true];
+    $result = $client->get('https://EURMTL.ME/.well-known/stellar.toml', 100);
+    assertPublicFetch((string) $result['response']->getBody() === 'neighbor TOML', 'A neighbour must bypass public DNS immediately.');
+    $client->get('https://eurmtl.me/logo.png', 100);
+    foreach (array_slice($requests, 3, 2) as $request) {
+        assertPublicFetch($request['options']['curl'][CURLOPT_RESOLVE] === ['eurmtl.me:443:10.0.1.9,[fd00::9]'], 'Pin internal addresses for TOML and logos.');
+        assertPublicFetch($request['options']['verify'] === true && $request['request']->getHeaderLine('Host') === 'eurmtl.me', 'Internal requests retain TLS verification and the domain name.');
+        assertPublicFetch($request['options']['proxy'] === '' && $request['options']['allow_redirects'] === false, 'Internal requests cannot use a proxy or follow redirects.');
+    }
+    $manager->domains['eurmtl.me']['neighbor'] = false;
+    $client->get('https://eurmtl.me/logo.png', 100);
+    assertPublicFetch(count($requests) === 6 && $requests[5]['options']['curl'][CURLOPT_RESOLVE] === ['eurmtl.me:443:93.184.215.14'], 'Removing a neighbour immediately restores public DNS.');
+
+    $manager->domains['eurmtl.me']['neighbor'] = true;
+    foreach (['10.0.1.9', '172.16.0.1', '172.31.255.254', '192.168.1.9', 'fd00::9', '93.184.215.14'] as $ip) {
+        $GLOBALS['toml_neighbor_dns']['eurmtl.me'] = [[str_contains($ip, ':') ? 'ipv6' : 'ip' => $ip]];
+        $requests = [];
+        $result = publicFetcher([new Response(200)], $requests, $manager)->get('https://eurmtl.me/file', 100);
+        assertPublicFetch(($result['status'] ?? null) === 'ok' && count($requests) === 1, 'Permit public and private unicast neighbours: ' . $ip);
+    }
+    foreach (['127.0.0.1', '169.254.169.254', '100.64.0.1', '0.0.0.0', '224.0.0.1', '::1', 'fe80::1', 'ff02::1', '::ffff:10.0.1.9', '64:ff9b::a00:109', '2001:db8::1', 'invalid'] as $ip) {
+        $GLOBALS['toml_neighbor_dns']['eurmtl.me'] = [['ip' => '10.0.1.9'], [str_contains($ip, ':') ? 'ipv6' : 'ip' => $ip]];
+        $requests = [];
+        $result = publicFetcher([], $requests, $manager)->get('https://eurmtl.me/file', 100);
+        assertPublicFetch(($result['error']['code'] ?? null) === 'invalid_domain' && $requests === [], 'Neighbour permission must not expose special-purpose addresses: ' . $ip);
+    }
+    foreach ([false, [], [['type' => 'CNAME', 'target' => 'missing.test']]] as $records) {
+        $GLOBALS['toml_neighbor_dns']['eurmtl.me'] = $records;
+        $requests = [];
+        $result = publicFetcher([], $requests, $manager)->get('https://eurmtl.me/file', 100);
+        assertPublicFetch(($result['error']['code'] ?? null) === 'dns_error' && $requests === [], 'Unresolved neighbours must fail without an unpinned request.');
+    }
+    $requests = [];
+    $result = publicFetcher([], $requests, $manager)->get('https://eurmtl.me:8443/file', 100);
+    assertPublicFetch(($result['error']['code'] ?? null) === 'invalid_domain' && $requests === [], 'Neighbour permission only covers port 443.');
+    foreach (['sub.eurmtl.me', 'eurmtl.me.attacker.test'] as $host) {
+        $requests = [];
+        $result = publicFetcher([dnsAnswer(['10.0.1.9'])], $requests, $manager)->get('https://' . $host . '/file', 100);
+        assertPublicFetch(($result['error']['code'] ?? null) === 'invalid_domain', 'Neighbour permission must match the exact hostname: ' . $host);
+    }
+    foreach (['https://eurmtl.me', 'eurmtl.me/path', 'eurmtl.me:443', '*.eurmtl.me', '127.0.0.1', '0x7f.1'] as $host) {
+        assertPublicFetch($manager->setDomainNeighbor($host, true) === null, 'Reject invalid neighbour entries before writing: ' . $host);
+    }
+
+    // PHP-DI must supply the shared policy store and use cURL for both crawlers.
+    $container = new DI\Container([StellarTomlManager::class => $manager]);
     assertPublicFetch($container->get(StellarTomlHttpClient::class) instanceof StellarTomlHttpClient, 'Public HTTP client must autowire.');
 
     fwrite(STDOUT, "Stellar TOML public HTTP client tests passed.\n");

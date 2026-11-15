@@ -20,7 +20,7 @@ class StellarTomlImageCrawler
 
     public function __construct(
         private StellarTomlImageManager $ImageManager,
-        private StellarTomlHttpClient $HttpClient = new StellarTomlHttpClient(),
+        private StellarTomlHttpClient $HttpClient,
     ) {
     }
 
