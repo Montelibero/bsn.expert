@@ -1,5 +1,25 @@
 document.documentElement.classList.add('has-js');
 
+document.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-cache-refresh]');
+    if (!button || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+        return;
+    }
+    if (button.getAttribute('aria-disabled') === 'true') {
+        event.preventDefault();
+        return;
+    }
+    button.setAttribute('aria-disabled', 'true');
+    button.setAttribute('aria-busy', 'true');
+});
+
+window.addEventListener('pageshow', function () {
+    document.querySelectorAll('[data-cache-refresh]').forEach(function (button) {
+        button.removeAttribute('aria-disabled');
+        button.removeAttribute('aria-busy');
+    });
+});
+
 /*
  * A tool opts in by placing its form and rendered signing form in one transaction scope.
  * `data-signing-stale-watch` reacts to input/change; dynamic form controls can dispatch

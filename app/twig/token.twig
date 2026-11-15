@@ -109,12 +109,32 @@
             {% endif %}
             <dt class="title is-4">{{ 'token_page.holders_count'|trans }}</dt>
             <dd class="subtitle is-4">
-                {{ holders_count }}
+                {{ holders_count ?? '—' }}
             </dd>
-            <dt class="title is-4">{{ 'token_page.issued'|trans }}</dt>
+            <dt class="title is-4">
+                {{ 'token_page.issued'|trans }}
+                {% if token_snapshot %}
+                    <span class="tags has-addons are-small account-title-tags">
+                        {% if token_refresh.can_refresh and token_refresh.action and token_refresh.code_param_name and token_refresh.code %}
+                            {% set refresh_url = token_refresh.action ~ ('?' in token_refresh.action ? '&' : '?') ~ token_refresh.code_param_name|url_encode ~ '=' ~ token_refresh.code|url_encode %}
+                            <a class="tag" href="{{ refresh_url }}" title="{{ 'common.refresh'|trans }}" aria-label="{{ 'common.refresh'|trans }}" data-cache-refresh>
+                                <span class="icon is-small"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i></span>
+                            </a>
+                        {% endif %}
+                        <span class="tag" data-cache-age title="{% if token_snapshot.fetched_at %}{{ 'cache_status.collected_at'|trans }}: {{ token_snapshot.fetched_at|date('d.m.Y H:i', 'UTC') }} UTC{% else %}{{ 'cache_status.unavailable'|trans }}{% endif %}">
+                            {{ token_snapshot.fetched_at|period }}
+                        </span>
+                    </span>
+                {% endif %}
+            </dt>
             <dd class="subtitle is-4">
-                {{ issued }}
+                {{ issued ?? '—' }}
             </dd>
+            {% if token_snapshot.warning or token_refresh.status == 'failed' %}
+                <dd class="has-text-warning mt-2" role="status">
+                    {{ (token_snapshot.fetched_at ? 'cache_status.fallback' : 'cache_status.failed')|trans }}
+                </dd>
+            {% endif %}
         </dl>
     </div>
 

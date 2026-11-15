@@ -53,6 +53,7 @@
       "php tests/BsnManageDataSemanticServiceTest.php",
       "php tests/TokenLabelFormatterTest.php",
       "php tests/TokenLinkMetadataTest.php",
+      "php tests/TokenDataCacheTest.php",
       "php tests/StellarTomlHttpClientTest.php",
       "php tests/StellarTomlNeighborsTest.php",
       "php tests/ProfileWebsiteUrlTest.php",

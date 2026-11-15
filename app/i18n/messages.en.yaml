@@ -646,6 +646,12 @@ tokens:
       name: Other
       description: Tokens so original that they have not yet found a place in other categories.
 
+cache_status:
+  unavailable: Data unavailable
+  collected_at: Fetched
+  fallback: Could not refresh the data. Showing previously fetched values.
+  failed: Could not load the data. Please try refreshing later.
+
 token_page:
   issued: Issued
   holders_count: Holders count

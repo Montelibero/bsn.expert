@@ -9,7 +9,9 @@ use Montelibero\BSN\CurrentUser;
 use Montelibero\BSN\GristSnapshotStore;
 use Montelibero\BSN\GristSyncService;
 use Montelibero\BSN\MarkdownRenderer;
+use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\Relations\Member;
+use Montelibero\BSN\RequestSession;
 use Montelibero\BSN\StellarTomlImageManager;
 use Montelibero\BSN\WebApp;
 use Pecee\SimpleRouter\SimpleRouter;
@@ -25,8 +27,10 @@ use Soneso\StellarSDK\TransactionBuilder;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
-class TokensController
+class TokensController implements RefreshDataCodeInterface
 {
+    use RefreshDataCodeTrait;
+
     private const ASSET_OFFER_SIGNATURE_NAME_PATTERNS = [
         'TokenOffer:%s',
         'AssetOfferHash%s',
@@ -39,6 +43,9 @@ class TokensController
     ];
     private const KNOWN_TOKENS_REFRESH_INTERVAL = 60;
     private const TOKEN_TRUSTLINE_FORM_CACHE_TTL = 604800; // week
+    private const TOKEN_DATA_CACHE_TTL = 3600;
+    private const TOKEN_DATA_MISSING_TTL = 300;
+    private const TOKEN_DATA_RETENTION_TTL = 604800;
 
     private BSN $BSN;
     private Environment $Twig;
@@ -54,6 +61,8 @@ class TokensController
     private MarkdownRenderer $MarkdownRenderer;
     private GristSnapshotStore $GristSnapshotStore;
     private GristSyncService $GristSyncService;
+    private MongoCacheManager $CacheManager;
+    private RequestSession $RequestSession;
 
     private array $known_tokens = [];
     private array $known_tokens_by_code = [];
@@ -72,6 +81,8 @@ class TokensController
         MarkdownRenderer $MarkdownRenderer,
         GristSnapshotStore $GristSnapshotStore,
         GristSyncService $GristSyncService,
+        MongoCacheManager $CacheManager,
+        RequestSession $RequestSession,
     )
     {
         $this->BSN = $BSN;
@@ -89,6 +100,8 @@ class TokensController
         $this->MarkdownRenderer = $MarkdownRenderer;
         $this->GristSnapshotStore = $GristSnapshotStore;
         $this->GristSyncService = $GristSyncService;
+        $this->CacheManager = $CacheManager;
+        $this->RequestSession = $RequestSession;
     }
 
     public function Tokens(): ?string
@@ -248,24 +261,23 @@ class TokensController
 
         $offer_document = $this->findAssetOfferDocument($Issuer, $code);
 
-        $issued = null;
-        $holders_count = null;
-        if ($asset_data = $this->fetchAssetData($code, $issuer)) {
-            $issued = $asset_data['issued'];
-            $holders_count = $asset_data['holders_count'];
+        $refresh_scope = 'token_data:' . $issuer . ':' . $code;
+        $can_refresh = $this->CurrentUser->isImpactActivist();
+        $force_refresh = $can_refresh && $this->isRefreshDataRequested($refresh_scope);
+        $include_holders = ($Issuer->getRelation() instanceof Member)
+            || $Issuer->getIncomeTags()
+            || $Issuer->getBalance('EURMTL')
+            || ($known_tag && $known_tag['issuer'] === $issuer);
+        $snapshot = $this->fetchTokenSnapshot($code, $issuer, $include_holders, $force_refresh);
+        if ($force_refresh) {
+            SimpleRouter::response()->redirect($this->getRefreshDataRedirectUri([
+                'refresh_status' => $snapshot['warning'] ? 'failed' : null,
+            ]), 302);
+            return null;
         }
-
-        $holders = [];
-        if ($holders_count <= 200
-            && (
-                ($Issuer->getRelation() instanceof Member)
-                || $Issuer->getIncomeTags()
-                || $Issuer->getBalance('EURMTL')
-                || $known_tag
-            )
-        ) {
-            $holders = $this->fetchTokenHolders($code, $issuer);
-        }
+        $refresh = $this->buildRefreshDataContext($refresh_scope, $can_refresh);
+        $refresh['status'] = (string) ($_GET['refresh_status'] ?? '');
+        $holders = $include_holders ? $snapshot['holders'] : [];
         foreach ($holders as & $balance) {
             $balance['account'] = $this->BSN->makeAccountById($balance['id'])->jsonSerialize();
         }
@@ -311,8 +323,10 @@ class TokensController
                 PHP_QUERY_RFC3986
             ),
             'show_add_trustline_form' => $show_add_trustline_form,
-            'holders_count' => $holders_count,
-            'issued' => $issued,
+            'holders_count' => $snapshot['asset']['holders_count'] ?? null,
+            'issued' => $snapshot['asset']['issued'] ?? null,
+            'token_snapshot' => $snapshot,
+            'token_refresh' => $refresh,
             'category' => $category,
             'category_name' => $category_name,
             'offer_link' => $offer_link,
@@ -594,38 +608,54 @@ class TokensController
         return $key;
     }
 
+    private function fetchTokenSnapshot(string $code, string $issuer, bool $include_holders, bool $force_refresh): array
+    {
+        $cache_key = 'token_snapshot:' . $issuer . ':' . $code;
+        $cached = $this->CacheManager->fetch($cache_key)['data'] ?? null;
+        $ttl = ($cached['asset'] ?? null) === null ? self::TOKEN_DATA_MISSING_TTL : self::TOKEN_DATA_CACHE_TTL;
+        $is_stale = !is_array($cached) || time() - $cached['fetched_at'] >= $ttl;
+        $needs_holders = $include_holders && isset($cached['asset'])
+            && $cached['asset']['holders_count'] <= 200 && !$cached['holders_loaded'];
+        if (!$force_refresh && !$is_stale && !$needs_holders) {
+            return $cached + ['from_cache' => true, 'is_stale_cache' => false, 'warning' => false];
+        }
+
+        try {
+            $asset = $this->fetchAssetData($code, $issuer);
+            $holders_loaded = $include_holders && $asset !== null && $asset['holders_count'] <= 200;
+            $snapshot = [
+                'asset' => $asset,
+                'holders' => $holders_loaded ? $this->fetchTokenHolders($code, $issuer) : [],
+                'holders_loaded' => $holders_loaded,
+                'fetched_at' => time(),
+            ];
+            $this->CacheManager->store($cache_key, $snapshot, self::TOKEN_DATA_RETENTION_TTL);
+            return $snapshot + ['from_cache' => false, 'is_stale_cache' => false, 'warning' => false];
+        } catch (\Throwable $Exception) {
+            error_log('Unable to refresh token data: ' . $Exception->getMessage());
+            if (is_array($cached)) {
+                return $cached + ['from_cache' => true, 'is_stale_cache' => $is_stale, 'warning' => true];
+            }
+
+            return [
+                'asset' => null,
+                'holders' => [],
+                'fetched_at' => null,
+                'from_cache' => false,
+                'is_stale_cache' => false,
+                'warning' => true,
+            ];
+        }
+    }
+
     private function fetchTokenHolders(string $code, string $issuer): array
     {
-        $apcu_cache_key = 'token_horders:' . $issuer . ':' . $code . ":2";
-        $holders = apcu_fetch($apcu_cache_key);
-        if ($holders) {
-            return $holders;
-        }
-
         $holders = [];
-        $accounts = [];
-        $Asset = Asset::createNonNativeAsset($code, $issuer);
-        try {
-            $Accounts = $this->Stellar
-                ->accounts()
-                ->forAsset($Asset)
-                ->limit(200)
-                ->execute();
-    //        do {
-    //            $this->log('Got new ' . $Accounts->getAccounts()->count() . ' accounts');
-    //            foreach ($Accounts->getAccounts() as $Account) {
-    //                $accounts[] = $Account;
-    //            }
-    //            $Accounts = $Accounts->getNextPage();
-    //            $this->log('Fetch next accounts ' . $code);
-    //        } while ($Accounts->getAccounts()->count());
-            foreach ($Accounts->getAccounts() as $Account) {
-                $accounts[] = $Account;
-            }
-        } catch (\Exception $E) {
-        }
-
-        foreach ($accounts as $Account) {
+        $Accounts = $this->Stellar->accounts()
+            ->forAsset(Asset::createNonNativeAsset($code, $issuer))
+            ->limit(200)
+            ->execute();
+        foreach ($Accounts->getAccounts() as $Account) {
             foreach ($Account->getBalances() as $Balance) {
                 if ($Balance->getAssetType() === Asset::TYPE_NATIVE) {
                     continue;
@@ -645,23 +675,14 @@ class TokensController
             return $b['amount'] <=> $a['amount'];
         });
 
-        apcu_store($apcu_cache_key, $holders, 60 * 60);
-
         return $holders;
     }
 
-    private function fetchAssetData(string $code, mixed $issuer)
+    private function fetchAssetData(string $code, string $issuer): ?array
     {
-        $apcu_key = 'token_data:' . $issuer . ':' . $code;
-        $data = apcu_fetch($apcu_key);
-        if ($data !== false) {
-            return $data;
-        }
-
         $AssetRequest = $this->Stellar->assets()->forAssetCode($code)->forAssetIssuer($issuer)->execute();
         $AssetsResponse = $AssetRequest->getAssets();
         if (!$AssetsResponse->count()) {
-            apcu_store($apcu_key, null, 60 * 5);
             return null;
         }
         $Asset = $AssetsResponse->toArray()[0];
@@ -670,8 +691,6 @@ class TokensController
             'issued' => (float) $Asset->getBalances()->getAuthorized() + (float) $Asset->getBalances()->getUnauthorized(
                 ),
         ];
-
-        apcu_store($apcu_key, $data, 60 * 60);
 
         return $data;
     }
