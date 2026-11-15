@@ -1025,7 +1025,8 @@ mtla_program_page:
       no_payments: Enter an amount for at least one participant.
       invalid_amount: "Invalid amount for %account%."
       missing_timetoken: "%account% has not described their timetoken."
-      too_many_payments: A transaction may contain no more than 100 timetoken payments.
+      labr_unavailable: Could not identify the LABR token. Refresh the page and try again.
+      too_many_payments: A transaction may contain no more than 100 payments.
       program_unavailable: Could not load the program account.
       recipient_unavailable: "Could not load %account%."
       missing_recipient_trustline: "%account% has no trustline for %token%."
