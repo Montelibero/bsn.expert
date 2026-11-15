@@ -189,7 +189,8 @@
       "category": "mtla"
     },
     "ProgramCoordinator": {
-      "category": "mtla"
+      "category": "mtla",
+      "single": true
     },
     "RecommendForVerification": {
       "category": "mtla"

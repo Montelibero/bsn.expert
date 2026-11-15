@@ -119,7 +119,7 @@ try {
     writeSnapshot($snapshot_path, [
         'data_timestamp' => 300,
         'accounts' => [
-            $Replacement => ['profile' => ['Name' => ['Replacement']]],
+            $Replacement => ['profile' => ['Name' => ['Replacement']], 'balances' => ['MTLAP' => 1]],
         ],
     ], time() + 10);
     $BSN->refreshFromJsonFileIfChanged($snapshot_path);

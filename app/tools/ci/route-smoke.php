@@ -50,6 +50,38 @@ $checks = [
         ],
     ],
     [
+        'path' => '/api/mtla/members',
+        'status' => 401,
+        'json' => true,
+        'response_headers' => [
+            'www-authenticate' => 'Bearer realm="bsn"',
+            'cache-control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        ],
+        'absent_response_headers' => ['set-cookie'],
+    ],
+    [
+        'path' => '/api/mtla/members',
+        'method' => 'OPTIONS',
+        'status' => 204,
+        'request_headers' => [
+            'Origin: https://client.example',
+            'Access-Control-Request-Method: GET',
+            'Access-Control-Request-Headers: authorization',
+        ],
+        'response_headers' => [
+            'access-control-allow-origin' => '*',
+            'access-control-allow-methods' => 'GET, OPTIONS',
+            'access-control-allow-headers' => 'Authorization',
+        ],
+        'body' => '',
+    ],
+    [
+        'path' => '/api/mtla/members',
+        'method' => 'POST',
+        'status' => 405,
+        'response_headers' => ['allow' => 'GET, OPTIONS'],
+    ],
+    [
         'path' => '/mcp',
         'status' => 405,
         'response_headers' => ['allow' => 'POST'],

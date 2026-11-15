@@ -54,6 +54,15 @@ npm run hooks:install
 - Быстрый доступ из терминала: `docker compose exec mongo mongosh -u "$MONGO_ROOT_USERNAME" -p "$MONGO_ROOT_PASSWORD"`.
 - Индексы (`usernames`, `contacts`) создаются при старте контейнера `app` через `app/cli/mongo-indexes.php` (запуск из `init.sh`).
 
+### API участников МТЛА
+
+`GET https://bsn.expert/api/mtla/members` возвращает Telegram-связи участников МТЛА
+по ключу действующего координатора программы. Получение ключа, фильтры, формат ответа
+и ограничения описаны в [инструкции API участников МТЛА](doc/api_mtla_members.md).
+
+После обновления приложения полный импорт связок появится при следующей штатной
+синхронизации Grist.
+
 ### Синхронизация с Grist
 
 Grist webhooks используют существующие POST-адреса:

@@ -242,17 +242,20 @@ class BSN
 
     private function applyMtlaMembersJson(): void
     {
-        foreach ($this->tg_id_to_account as $Account) {
+        foreach ($this->accounts as $Account) {
             $Account->setTelegramId(null);
             $Account->setTelegramUsername(null);
         }
         $this->tg_id_to_account = [];
 
         foreach ($this->mtla_members_json as $item) {
-            if (!is_array($item)) {
+            if (!is_array($item) || !is_string($item['stellar'] ?? null)) {
                 continue;
             }
-            $Account = $this->makeAccountById($item['stellar']);
+            $Account = $this->getAccountById($item['stellar']);
+            if ($Account === null || $Account->getBalance('MTLAP') <= 0) {
+                continue;
+            }
             $Account->setTelegramId($item['tg_id']);
             $Account->setTelegramUsername($item['tg_username']);
             $this->tg_id_to_account[$item['tg_id']] = $Account;

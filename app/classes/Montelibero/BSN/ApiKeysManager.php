@@ -176,6 +176,9 @@ class ApiKeysManager
             'boolval',
             (array) ($permissions['contacts'] ?? [])
         );
+        $permissions['mtla_members'] = [
+            'read' => (bool) (((array) ($permissions['mtla_members'] ?? []))['read'] ?? false),
+        ];
 
         return [
             'id' => (string) $doc->_id,
@@ -211,6 +214,7 @@ class ApiKeysManager
                 'update' => false,
                 'delete' => false,
             ],
+            'mtla_members' => ['read' => false],
         ];
 
         foreach ($defaults as $scope => $actions) {

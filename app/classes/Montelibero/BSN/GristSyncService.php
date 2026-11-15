@@ -130,19 +130,20 @@ class GristSyncService
 
         foreach ($records as $item) {
             $fields = is_array($item['fields'] ?? null) ? $item['fields'] : [];
+            $stellar = $fields['Stellar'] ?? null;
+            $telegram_id = self::normalizeTelegramId($fields['TGID'] ?? null);
             if (
-                empty($fields['TGID'])
-                || empty($fields['Stellar'])
-                || empty($fields['MTLAP'])
-                || $fields['MTLAP'] == 0
+                !is_string($stellar)
+                || !BSN::validateStellarAccountIdFormat($stellar)
+                || $telegram_id === null
             ) {
                 continue;
             }
 
             $members[] = [
-                'stellar' => $fields['Stellar'],
-                'tg_id' => $fields['TGID'],
-                'tg_username' => trim((string) ($fields['Telegram'] ?? ''), '@'),
+                'stellar' => $stellar,
+                'tg_id' => $telegram_id,
+                'tg_username' => is_string($fields['Telegram'] ?? null) ? trim($fields['Telegram'], '@') : '',
             ];
         }
 
@@ -153,6 +154,20 @@ class GristSyncService
             'count' => count($members),
             'version' => $snapshot['version'],
         ];
+    }
+
+    public static function normalizeTelegramId(mixed $value): ?string
+    {
+        // Grist numeric columns can encode an integral ID as a JSON floating-point number.
+        if (is_float($value) && is_finite($value) && $value >= 1 && $value <= 9007199254740991 && floor($value) === $value) {
+            $value = sprintf('%.0f', $value);
+        }
+        if (!is_string($value) && !is_int($value)) {
+            return null;
+        }
+
+        $value = (string) $value;
+        return preg_match('/\A[1-9][0-9]{0,19}\z/', $value) ? $value : null;
     }
 
     public function syncDocuments(): array

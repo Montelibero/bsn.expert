@@ -220,10 +220,10 @@ preferences:
   api:
     title: API keys
     description: >
-      Create and manage personal API keys to integrate BSN contacts with other tools.
+      Create and manage personal API keys to integrate BSN with other tools.
     instructions:
       use_key_once: The full key is shown only once, immediately after creation—copy it and store it securely.
-      permissions: Choose granular permissions; only Contacts scope is available for now.
+      permissions: Select only the permissions your app or service needs.
       keep_secret: Keep your key secret. If it leaks, delete and create a new one.
     new_key:
       title: Create a new API key
@@ -236,9 +236,12 @@ preferences:
       create: Create
       update: Update
       delete: Delete
-    permissions_hint: Contacts scope only; more scopes will appear later.
+    permissions_hint: These permissions apply to your personal BSN contacts.
+    mtla_members_hint: Read Stellar and Telegram links for all MTLA members. Access remains available while you coordinate at least one active program.
+    mtla_members_inactive: MTLA members access is temporarily unavailable because you are not an active program coordinator. This key will work again when your coordinator status is restored.
     scopes:
       contacts: Contacts
+      mtla_members: MTLA members
     list:
       title: Your API keys
       show_full_hint: Copy this key now. For security, it cannot be shown again after you leave or refresh this page.
@@ -255,6 +258,7 @@ preferences:
       csrf_invalid: The form expired or changed in another tab or session. Reload the page and try again.
       create_expired: This key creation request has already been used or has expired. Reload the page and try again.
       unknown_action: Unknown API key action.
+      mtla_members_forbidden: Only active program coordinators can request permission to read MTLA members.
 
 who_are_you:
   title: Who are you acting as?

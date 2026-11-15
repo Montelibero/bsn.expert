@@ -84,7 +84,8 @@
     ],
     "test:api": [
       "php tests/ApiTokenAuthenticatorTest.php",
-      "php tests/ApiKeyManagementSecurityTest.php"
+      "php tests/ApiKeyManagementSecurityTest.php",
+      "php tests/ApiMtlaMembersTest.php"
     ],
     "test:mcp": [
       "php tests/McpServerTest.php"

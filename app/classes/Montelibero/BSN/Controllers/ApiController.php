@@ -5,7 +5,9 @@ namespace Montelibero\BSN\Controllers;
 use Montelibero\BSN\ApiAuthenticationException;
 use Montelibero\BSN\ApiKeysManager;
 use Montelibero\BSN\ApiTokenAuthenticator;
+use Montelibero\BSN\BSN;
 use Montelibero\BSN\CurrentUser;
+use Montelibero\BSN\MTLA\MtlaMembersService;
 use Montelibero\BSN\RequestSession;
 use Pecee\SimpleRouter\SimpleRouter;
 use Symfony\Component\Translation\Translator;
@@ -30,6 +32,7 @@ class ApiController
         Translator $Translator,
         CurrentUser $CurrentUser,
         RequestSession $RequestSession,
+        private readonly MtlaMembersService $MtlaMembers,
     ) {
         $this->Twig = $Twig;
 
@@ -50,6 +53,7 @@ class ApiController
         }
 
         $account_id = $this->CurrentUser->getAccountId();
+        $can_read_mtla_members = $this->MtlaMembers->isCoordinator($account_id);
         $errors = [];
         $default_permissions = [
             'contacts' => [
@@ -58,6 +62,7 @@ class ApiController
                 'update' => true,
                 'delete' => false,
             ],
+            'mtla_members' => ['read' => false],
         ];
         $form_permissions = $default_permissions;
         $form_name = '';
@@ -100,7 +105,12 @@ class ApiController
                         'update' => isset($submitted['contacts']['update']),
                         'delete' => isset($submitted['contacts']['delete']),
                     ],
+                    'mtla_members' => ['read' => isset($submitted['mtla_members']['read'])],
                 ];
+                if ($form_permissions['mtla_members']['read'] && !$can_read_mtla_members) {
+                    SimpleRouter::response()->httpCode(403);
+                    $errors[] = $this->Translator->trans('preferences.api.errors.mtla_members_forbidden');
+                }
 
                 if (!$errors) {
                     $key = $this->ApiKeysManager->createKey($account_id, $name, $form_permissions);
@@ -138,7 +148,61 @@ class ApiController
             'form_name' => $form_name,
             'csrf_token' => $csrf_token,
             'create_nonce' => $this->createNonce(),
+            'can_read_mtla_members' => $can_read_mtla_members,
         ]);
+    }
+
+    public function MtlaMembers(): string
+    {
+        $ip = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
+        try {
+            $Principal = $this->ApiTokenAuthenticator->authenticate($this->authorizationHeader(), $ip);
+        } catch (ApiAuthenticationException $Exception) {
+            return $this->unauthorized($Exception->getMessage());
+        }
+
+        if (($Principal->permissions()['mtla_members']['read'] ?? false) !== true) {
+            SimpleRouter::response()->header('WWW-Authenticate: Bearer realm="bsn", error="insufficient_scope", scope="mtla_members:read"');
+            SimpleRouter::response()->httpCode(403);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'API key does not have MTLA members permission']);
+        }
+        if (!$this->MtlaMembers->isCoordinator($Principal->accountId())) {
+            SimpleRouter::response()->httpCode(403);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'API key owner is not an active MTLA program coordinator']);
+        }
+
+        $stellar = $_GET['stellar'] ?? null;
+        $telegram_id = $_GET['telegram_id'] ?? null;
+        if (
+            ($stellar !== null && (!is_string($stellar) || !BSN::validateStellarAccountIdFormat($stellar)))
+            || ($telegram_id !== null && (!is_string($telegram_id) || !preg_match('/\A[1-9][0-9]{0,19}\z/', $telegram_id)))
+        ) {
+            SimpleRouter::response()->httpCode(400);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Invalid stellar or telegram_id filter']);
+        }
+
+        try {
+            $members = $this->MtlaMembers->members($stellar, $telegram_id);
+        } catch (\MongoDB\Driver\Exception\Exception) {
+            $members = null;
+        }
+        if ($members === null) {
+            SimpleRouter::response()->httpCode(503);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'MTLA members data is unavailable']);
+        }
+
+        SimpleRouter::response()->httpCode(200);
+        return $this->jsonResponse(['status' => 'OK', 'members' => (object) $members]);
+    }
+
+    public function MtlaMembersPreflight(): string
+    {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, OPTIONS');
+        header('Access-Control-Allow-Headers: Authorization');
+        header('Access-Control-Max-Age: 86400');
+        SimpleRouter::response()->httpCode(204);
+        return '';
     }
 
     public function ApiIndex(): string
