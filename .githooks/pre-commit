@@ -1,0 +1,72 @@
+#!/bin/sh
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+for tool in php composer node npm; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "pre-commit: $tool is required. Install the development dependencies; see README.md." >&2
+        exit 1
+    fi
+done
+
+if [ ! -f app/vendor/autoload.php ] || [ ! -x app/vendor/bin/phpstan ]; then
+    echo 'pre-commit: PHP development dependencies are missing. Run composer install from app/.' >&2
+    exit 1
+fi
+if [ ! -d node_modules ]; then
+    echo 'pre-commit: Node dependencies are missing. Run npm ci from the repository root.' >&2
+    exit 1
+fi
+
+# Export the index, including partial staging, without stashing or changing files.
+snapshot=$(mktemp -d "${TMPDIR:-/tmp}/bsn-pre-commit.XXXXXX")
+trap 'rm -rf "$snapshot"' EXIT
+trap 'exit 1' HUP INT TERM
+git checkout-index --all --prefix="$snapshot/"
+
+# Git exports these variables to hooks; Composer must not inspect the live tree.
+for variable in $(git rev-parse --local-env-vars); do
+    unset "$variable"
+done
+
+# The snapshot intentionally has no .git directory. Keep Composer's usual
+# fallback explicit so every nested script does not repeat its version warning.
+export COMPOSER_ROOT_VERSION="${COMPOSER_ROOT_VERSION:-1.0.0}"
+
+run_check() {
+    label=$1
+    shift
+    printf 'pre-commit: %s...\n' "$label"
+    if "$@" >"$snapshot/check.log" 2>&1; then
+        printf 'pre-commit: %s OK\n' "$label"
+    else
+        status=$?
+        log=$(mktemp "${TMPDIR:-/tmp}/bsn-pre-commit-log.XXXXXX")
+        cp "$snapshot/check.log" "$log"
+        printf '\npre-commit: %s FAILED (exit %s)\n' "$label" "$status" >&2
+        tail -n 25 "$log" >&2
+        printf '\nFull log: %s\n' "$log" >&2
+        echo 'Only the selected (staged) versions were checked. Include matching code, tests, templates and translations in the same commit.' >&2
+        return "$status"
+    fi
+}
+
+# A vendor symlink would make Composer load application classes from the live
+# checkout. Copy it and regenerate the autoloader inside the staged snapshot.
+cp -R "$root/app/vendor" "$snapshot/app/vendor"
+ln -s "$root/node_modules" "$snapshot/node_modules"
+
+echo 'pre-commit: checking the staged snapshot.'
+(
+    cd "$snapshot/app"
+    run_check 'Composer metadata' composer --no-interaction validate --strict
+    run_check 'Autoloader' composer --no-interaction dump-autoload --no-scripts --no-plugins
+    run_check 'PHP, Twig, PHPStan, tests and audit' composer --no-interaction check
+)
+(
+    cd "$snapshot"
+    run_check 'Font Awesome' npm run fa_test
+)
+echo 'pre-commit: all checks passed.'

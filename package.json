@@ -2,6 +2,9 @@
   "name": "bsn-viewer",
   "private": true,
   "scripts": {
+    "hooks:install": "sh tools/install-hooks.sh",
+    "check:staged": "sh .githooks/pre-commit",
+    "test:hooks": "sh tools/tests/pre-commit.sh",
     "fa_build": "node tools/fontawesome/build.mjs",
     "fa_test": "node tools/fontawesome/test.mjs"
   },

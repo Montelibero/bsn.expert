@@ -55,6 +55,9 @@ jobs:
       - name: Check Font Awesome subset config
         run: npm ci && npm run fa_test
 
+      - name: Test pre-commit snapshot checks
+        run: npm run test:hooks
+
   route-smoke:
     name: Route smoke
     needs: quality
