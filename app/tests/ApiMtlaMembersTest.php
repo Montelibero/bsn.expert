@@ -13,6 +13,7 @@ use Montelibero\BSN\DocumentsManager;
 use Montelibero\BSN\GristSnapshotStore;
 use Montelibero\BSN\GristSyncService;
 use Montelibero\BSN\MTLA\MtlaMembersService;
+use Montelibero\BSN\MTLA\TgMembersCache;
 use Montelibero\BSN\RequestSession;
 use Soneso\StellarSDK\Crypto\KeyPair;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -94,7 +95,21 @@ $graph = ['accounts' => [
 ]];
 $BSN = new BSN($Accounts, $Documents);
 $BSN->loadFromJson($graph);
-$Service = new MtlaMembersService($BSN, $Snapshots);
+$Telegram = new class extends TgMembersCache {
+    public ?array $users = null;
+    public int $reads = 0;
+    public bool $fail = false;
+    public function __construct() {}
+    public function users(): ?array
+    {
+        ++$this->reads;
+        if ($this->fail) {
+            throw new MongoDB\Driver\Exception\RuntimeException('Test chat cache failure');
+        }
+        return $this->users;
+    }
+};
+$Service = new MtlaMembersService($BSN, $Snapshots, $Telegram);
 assertMtlaMembers(true, $Service->isCoordinator($coordinator), 'A confirmed coordinator must qualify.');
 assertMtlaMembers(false, $Service->isCoordinator($program), 'The program account must not inherit coordinator access.');
 
@@ -144,7 +159,7 @@ assertMtlaMembers(null, GristSyncService::normalizeTelegramId(123.5), 'Fractiona
 assertMtlaMembers(4, count($Snapshots->snapshot['data']), 'Grist must not prefilter membership.');
 $members = $Service->members();
 assertMtlaMembers(3, count($members), 'Only current BSN members must be returned, including members of no program.');
-assertMtlaMembers(['telegram_id' => '123', 'telegram_username' => 'coordinator'], $members[$coordinator], 'Telegram data must be normalized.');
+assertMtlaMembers(['telegram_id' => '123', 'telegram_username' => 'coordinator', 'chats' => null], $members[$coordinator], 'An unavailable chat cache must preserve normalized Grist data.');
 assertMtlaMembers(null, $members[$member]['telegram_username'], 'A missing username must be null.');
 assertMtlaMembers('9007199254740993', $members[$other]['telegram_id'], 'Large Telegram IDs must remain strings.');
 assertMtlaMembers(2, count($Service->members(null, '123')), 'Telegram lookup must return all matching Stellar accounts.');
@@ -153,6 +168,15 @@ assertMtlaMembers([], $Service->members($member, '456'), 'Combined filters must 
 $Snapshots->snapshot['data'][] = ['stellar' => $member, 'tg_id' => '999', 'tg_username' => 'conflict'];
 assertMtlaMembers(false, isset($Service->members()[$member]), 'Conflicting identities must not be resolved by row order.');
 array_pop($Snapshots->snapshot['data']);
+
+$Telegram->users = ['123' => ['chats' => ['-100123'], 'username' => 'renamed']];
+$reads = $Telegram->reads;
+$members = $Service->members();
+assertMtlaMembers($reads + 1, $Telegram->reads, 'A full list must read the chat cache once.');
+assertMtlaMembers(['telegram_id' => '123', 'telegram_username' => 'renamed', 'chats' => ['-100123']], $members[$member], 'The cached Telegram profile must supply the new username and string chat IDs.');
+assertMtlaMembers($members[$member], $members[$coordinator], 'Every account linked to the same Telegram ID must receive the same chat data.');
+assertMtlaMembers([], $members[$other]['chats'], 'A user missing from a valid chat snapshot must have an empty chat list.');
+assertMtlaMembers('other', $members[$other]['telegram_username'], 'A user missing from the chat snapshot keeps their Grist username.');
 
 $BSN->loadMtlaMembersFromJson($Snapshots->snapshot['data']);
 assertMtlaMembers(null, $BSN->getAccountById($former)->getTelegramId(), 'The expanded import must not expose former members in existing UI.');
@@ -198,7 +222,9 @@ $Keys->keys['test-token']['permissions']['mtla_members'] = ['read' => false];
 assertMtlaMembers(403, $request()[0], 'A disabled read permission must fail.');
 $Keys->keys['test-token']['permissions']['mtla_members']['read'] = true;
 $BSN->loadFromJson($invalid_graphs['program cancelled']);
+$reads = $Telegram->reads;
 assertMtlaMembers(403, $request()[0], 'The next request must deny a cancelled program.');
+assertMtlaMembers($reads, $Telegram->reads, 'Revoked coordinator access must fail before reading cached memberships.');
 assertMtlaMembers(true, $Keys->keys['test-token']['permissions']['contacts']['read'], 'Other permissions must remain unchanged.');
 $BSN->loadFromJson($graph);
 assertMtlaMembers(200, $request()[0], 'Restoring coordinator status must restore the same key.');
@@ -213,6 +239,15 @@ foreach ([['stellar' => 'invalid'], ['stellar' => []], ['telegram_id' => []], ['
 [$status, $body] = $request(['stellar' => $member, 'telegram_id' => '123']);
 assertMtlaMembers(200, $status, 'Matching filters must succeed.');
 assertMtlaMembers([$member], array_keys(get_object_vars($body->members)), 'Filtered responses must remain keyed by Stellar account.');
+assertMtlaMembers(['-100123'], $body->members->{$member}->chats, 'Filtered responses include chat IDs as strings.');
+$Telegram->users['123']['username'] = null;
+assertMtlaMembers('coordinator', $request(['stellar' => $coordinator])[1]->members->{$coordinator}->telegram_username, 'An empty upstream username must fall back to Grist.');
+$Telegram->fail = true;
+[$status, $body] = $request(['stellar' => $coordinator]);
+assertMtlaMembers(200, $status, 'A chat cache outage must leave the member API available.');
+assertMtlaMembers(null, $body->members->{$coordinator}->chats, 'An unreadable cache must produce null chats.');
+assertMtlaMembers('coordinator', $body->members->{$coordinator}->telegram_username, 'An unreadable cache must fall back to the Grist username.');
+$Telegram->fail = false;
 [$status, $body] = $request(['telegram_id' => '777']);
 assertMtlaMembers(200, $status, 'No matches is a successful response.');
 assertMtlaMembers(true, $body->members instanceof stdClass && get_object_vars($body->members) === [], 'Empty results must be an object, not a JSON array.');

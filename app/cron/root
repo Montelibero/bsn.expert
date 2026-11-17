@@ -5,3 +5,4 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 17 */3 * * * . /var/run/bsn-cron-env.sh; /usr/local/bin/php /var/www/html/cli/update_stellar_tomls.php >> /proc/1/fd/1 2>> /proc/1/fd/2
 * * * * * . /var/run/bsn-cron-env.sh; /usr/local/bin/php /var/www/html/cli/process_grist_sync_jobs.php >> /proc/1/fd/1 2>> /proc/1/fd/2
 7 * * * * . /var/run/bsn-cron-env.sh; /usr/local/bin/php /var/www/html/cli/process_grist_sync_jobs.php --schedule-all >> /proc/1/fd/1 2>> /proc/1/fd/2
+*/15 * * * * . /var/run/bsn-cron-env.sh; /usr/local/bin/php /var/www/html/cli/sync_tg_members.php >> /proc/1/fd/1 2>> /proc/1/fd/2

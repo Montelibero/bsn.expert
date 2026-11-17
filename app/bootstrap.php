@@ -64,6 +64,8 @@ use Montelibero\BSN\GristSyncService;
 use Montelibero\BSN\GristWebhookAccess;
 use Montelibero\BSN\MongoCacheManager;
 use Montelibero\BSN\MongoSessionHandler;
+use Montelibero\BSN\MTLA\TgMembersCache;
+use Montelibero\BSN\MTLA\TgMembersClient;
 use Montelibero\BSN\PaymentTransactionBuilder;
 use Montelibero\BSN\CreateAccountTransactionBuilder;
 use Montelibero\BSN\OpenTrustlinesTransactionBuilder;
@@ -238,6 +240,7 @@ $Translator->addResource('yaml', __DIR__ . '/i18n/messages.en.yaml', 'en');
 $Translator->setFallbackLocales(['en']);
 
 $ContainerBuilder = new ContainerBuilder();
+$tg_members_key = trim($_ENV['TG_MEMBERS_KEY'] ?? (getenv('TG_MEMBERS_KEY') ?: ''));
 $ContainerBuilder->addDefinitions([
     // Базовые сервисы
     BSN::class => $BSN,
@@ -251,6 +254,8 @@ $ContainerBuilder->addDefinitions([
     TransactionConsolidationStore::class => $TransactionConsolidationStore,
     GristSyncService::class => $GristSyncService,
     GristRuntimeData::class => $GristRuntimeData,
+    TgMembersCache::class => new TgMembersCache($MongoManager, $_ENV['MONGO_BASENAME'], $tg_members_key),
+    TgMembersClient::class => static fn() => new TgMembersClient($tg_members_key),
     GristWebhookAccess::class => autowire(),
     MongoCacheManager::class => function() use ($MongoManager) {
         return new MongoCacheManager($MongoManager, $_ENV['MONGO_BASENAME']);

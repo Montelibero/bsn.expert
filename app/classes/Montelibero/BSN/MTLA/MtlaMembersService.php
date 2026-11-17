@@ -15,6 +15,7 @@ class MtlaMembersService
     public function __construct(
         private readonly BSN $BSN,
         private readonly GristSnapshotStore $Snapshots,
+        private readonly TgMembersCache $TgMembersCache,
     ) {
     }
 
@@ -51,7 +52,7 @@ class MtlaMembersService
         return false;
     }
 
-    /** @return array<string, array{telegram_id: string, telegram_username: ?string}>|null */
+    /** @return array<string, array{telegram_id: string, telegram_username: ?string, chats: ?list<string>}>|null */
     public function members(?string $stellar = null, ?string $telegram_id = null): ?array
     {
         $snapshot = $this->Snapshots->fetch(GristSyncService::MTLA_MEMBERS);
@@ -89,6 +90,20 @@ class MtlaMembersService
         $members = array_filter($members, static fn(array $member, string $address): bool =>
             ($stellar === null || $stellar === $address)
             && ($telegram_id === null || $telegram_id === $member['telegram_id']), ARRAY_FILTER_USE_BOTH);
+        if ($members === []) {
+            return [];
+        }
+
+        try {
+            $users = $this->TgMembersCache->users();
+        } catch (\MongoDB\Driver\Exception\Exception) {
+            $users = null;
+        }
+        foreach ($members as $address => $member) {
+            $user = $users[$member['telegram_id']] ?? null;
+            $members[$address]['chats'] = $users === null ? null : ($user['chats'] ?? []);
+            $members[$address]['telegram_username'] = $user['username'] ?? $member['telegram_username'];
+        }
         ksort($members);
 
         return $members;
